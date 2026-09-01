@@ -1,23 +1,32 @@
 /**
- * Entry point. Builds the scene, wires input to the flight sequence, the mission and the
+ * Entry point. Builds the scene, wires input to the flight sequence, the missions and the
  * UI, and owns both the restart and the teardown paths.
+ *
+ * Destinations are data. Every body listed in DESTINATIONS gets a flight, a fact and a
+ * collect mission built the same way, so adding the next planet is a config entry plus a
+ * body in Bodies.ts — there is no per-destination branching below.
  */
 
 import './ui/ui.css';
 import * as THREE from 'three';
-import { FRAMING_RADIUS, MOON_FACT, MOON_MISSION } from './config';
+import {
+  DESTINATIONS,
+  FRAMING_RADIUS,
+  FRAMING_RADIUS_WIDE,
+  WIDE_FRAMING_STICKER,
+} from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
 import { createSky } from './scene/Starfield';
-import { createWorld, type BodyId } from './scene/Bodies';
+import { createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
-import { createCollectMission } from './mission/CollectMission';
+import { createCollectMission, type CollectMission } from './mission/CollectMission';
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
-import { awardSticker } from './state/progress';
+import { awardSticker, loadProgress } from './state/progress';
 
 const boot = document.getElementById('boot');
 
@@ -50,6 +59,18 @@ async function main() {
   const ship = createSpaceship();
   scene.add(ship.group);
 
+  /**
+   * The opening shot only takes in Earth and the Moon until the Moon mission is done.
+   * Fitting Mars from the first frame would shrink the first destination to a speck for
+   * no reason a five-year-old could understand yet; finishing the Moon is what makes the
+   * world visibly get bigger.
+   */
+  function framingRadius(): number {
+    return loadProgress().stickers.includes(WIDE_FRAMING_STICKER)
+      ? FRAMING_RADIUS_WIDE
+      : FRAMING_RADIUS;
+  }
+
   const controls = createOrbitInput({
     camera,
     element: canvas,
@@ -58,7 +79,7 @@ async function main() {
   });
   controls.setFocusRadius(world.bodies.earth.radius);
   controls.setTarget(new THREE.Vector3(), true);
-  controls.frame(FRAMING_RADIUS, true);
+  controls.frame(framingRadius(), true);
 
   const narrator = createNarrator();
   const sfx = createSfx();
@@ -67,13 +88,17 @@ async function main() {
     root: uiRoot,
     narrator,
     onFly: () => {
-      if (!flight.start()) return;
+      const destination = selected ? world.bodies[selected] : null;
+      if (!destination || !flight.start(destination)) return;
       ui.enterFlight();
     },
     onMissionStart: () => {
+      const mission = missions[follow];
+      if (!mission) return;
       // The one reliable user gesture between page load and the first sound effect.
       // Mobile browsers start an AudioContext suspended and only let it resume here.
       sfx.resume();
+      activeMission = mission;
       mission.start();
       ui.beginMission(mission.definition.instruction, mission.definition.count);
     },
@@ -88,35 +113,49 @@ async function main() {
     ship,
     world,
     controls,
+    home: world.bodies.earth,
     reducedMotion,
-    onArrive: () => {
-      follow = 'moon';
+    onArrive: (destination) => {
+      follow = destination.id;
       selected = null;
-      // The sticker is no longer earned by arriving — the mission awards it.
-      ui.showArrival(MOON_FACT);
-      ui.offerMission(mission.definition.label);
+      const config = DESTINATIONS[destination.id];
+      if (!config) return;
+      // The sticker is not earned by arriving — the mission awards it.
+      ui.showArrival(destination.label, config.fact);
+      ui.offerMission(config.mission.label);
     },
   });
 
-  const mission = createCollectMission({
-    definition: { body: world.bodies.moon, ...MOON_MISSION },
-    camera,
-    quality: stage.quality,
-    reducedMotion,
-    onCollect: (collected, total) => {
-      sfx.collect(collected - 1, total);
-      ui.setMissionProgress(collected);
-      // Only the hidden one left: name the gesture now that the child needs it.
-      if (collected === total - 1) ui.setMissionCaption(mission.definition.huntLine);
-    },
-    onComplete: () => {
-      sfx.success();
-      // The celebration keys off finishing, not off the award: a child who earned this
-      // sticker on an earlier visit still gets the party, just not a second sticker.
-      const isNew = awardSticker(mission.definition.stickerId);
-      ui.completeMission(mission.definition.successLine, isNew ? mission.definition.stickerId : null);
-    },
-  });
+  /* --- missions ------------------------------------------------------------ */
+
+  // One per destination, built up front. Construction is only bookkeeping; a mission
+  // creates no geometry until it is started.
+  const missions: Partial<Record<BodyId, CollectMission>> = {};
+  let activeMission: CollectMission | null = null;
+
+  for (const [id, config] of Object.entries(DESTINATIONS)) {
+    const body = world.bodies[id as BodyId] as CelestialBody | undefined;
+    if (!body) continue;
+    missions[body.id] = createCollectMission({
+      definition: { body, ...config.mission },
+      camera,
+      quality: stage.quality,
+      reducedMotion,
+      onCollect: (collected, total) => {
+        sfx.collect(collected - 1, total);
+        ui.setMissionProgress(collected);
+        // Only the hidden one left: name the gesture now that the child needs it.
+        if (collected === total - 1) ui.setMissionCaption(config.mission.huntLine);
+      },
+      onComplete: () => {
+        sfx.success();
+        // The celebration keys off finishing, not off the award: a child who earned this
+        // sticker on an earlier visit still gets the party, just not a second sticker.
+        const isNew = awardSticker(config.mission.stickerId);
+        ui.completeMission(config.mission.successLine, isNew ? config.mission.stickerId : null);
+      },
+    });
+  }
 
   /* --- selection ----------------------------------------------------------- */
 
@@ -133,12 +172,12 @@ async function main() {
     pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
 
-    if (mission.active) {
-      // Collectibles float well inside the Moon's own (deliberately generous) hit
-      // sphere, so they get the tap to themselves. A miss simply does nothing: there is
-      // no wrong answer to punish here.
-      const target = raycaster.intersectObjects(mission.hitMeshes, false)[0];
-      if (target) mission.collectFrom(target.object);
+    if (activeMission?.active) {
+      // Collectibles float well inside the body's own (deliberately generous) hit sphere,
+      // so they get the tap to themselves. A miss simply does nothing: there is no wrong
+      // answer to punish here.
+      const target = raycaster.intersectObjects(activeMission.hitMeshes, false)[0];
+      if (target) activeMission.collectFrom(target.object);
       return;
     }
 
@@ -153,15 +192,16 @@ async function main() {
       return;
     }
     ui.setHint(null);
+    const config = DESTINATIONS[selected];
     ui.showSelection({
       label: world.bodies[selected].label,
-      flyable: selected === 'moon' && flight.phase === 'idle',
+      flyLabel: config && flight.phase === 'idle' ? config.flyLabel : null,
     });
   }
 
   /* --- scratch ------------------------------------------------------------- */
 
-  const moonPosition = new THREE.Vector3();
+  const aimPosition = new THREE.Vector3();
   const focusPosition = new THREE.Vector3();
   const shipHeading = new THREE.Vector3();
 
@@ -171,9 +211,13 @@ async function main() {
 
   function showOpeningHints() {
     window.clearTimeout(nudge);
-    ui.setHint('Drag to look around ✨');
+    // Once the shot has widened there is a new thing on screen, so the nudge points at
+    // that rather than at the Moon the child has already finished.
+    const wide = framingRadius() === FRAMING_RADIUS_WIDE;
+    ui.setHint(wide ? 'A new world is out there 🔴' : 'Drag to look around ✨');
     nudge = window.setTimeout(() => {
-      if (flight.phase === 'idle' && !selected) ui.setHint('Tap the Moon 🌙');
+      if (flight.phase !== 'idle' || selected) return;
+      ui.setHint(wide ? 'Tap Mars 🔴' : 'Tap the Moon 🌙');
     }, 6500);
   }
 
@@ -185,14 +229,15 @@ async function main() {
    * "Explore Again" without a page reload. Every stateful module owns its own reset;
    * this is the only place that calls them, so there is one order to reason about.
    *
-   * The Moon is deliberately not put back where it was: it has kept orbiting, and the
-   * next flight simply aims at wherever it is now.
+   * The bodies are deliberately not put back where they were: they have kept orbiting,
+   * and the next flight simply aims at wherever the destination is now.
    */
   function restart() {
-    mission.reset();
+    for (const mission of Object.values(missions)) mission.reset();
+    activeMission = null;
     flight.reset();
-    // The ship was re-parented to the Moon on arrival; the scene has to take it back
-    // before the ship can restore its own parked transform.
+    // The ship was re-parented to the destination on arrival; the scene has to take it
+    // back before the ship can restore its own parked transform.
     scene.attach(ship.group);
     ship.reset();
     world.reset();
@@ -200,7 +245,7 @@ async function main() {
     controls.reset();
     controls.setFocusRadius(world.bodies.earth.radius);
     controls.setTarget(world.bodies.earth.getWorldPosition(focusPosition), true);
-    controls.frame(FRAMING_RADIUS, true);
+    controls.frame(framingRadius(), true);
 
     selected = null;
     follow = 'earth';
@@ -217,12 +262,14 @@ async function main() {
   stage.onFrame((dt, elapsed) => {
     sky.update(dt);
     world.update(dt, elapsed, camera);
-    mission.update(dt, elapsed);
+    activeMission?.update(dt, elapsed);
 
     if (flight.phase === 'idle') {
-      // Idle ship keeps its nose pointed at the destination.
-      world.bodies.moon.getWorldPosition(moonPosition);
-      shipHeading.subVectors(moonPosition, ship.group.position);
+      // The idle ship keeps its nose pointed at whichever destination is selected, and
+      // at the Moon otherwise, so it never sits blankly side-on.
+      const aim = selected && selected !== 'earth' ? selected : 'moon';
+      world.bodies[aim].getWorldPosition(aimPosition);
+      shipHeading.subVectors(aimPosition, ship.group.position);
       ship.orient(shipHeading);
     }
 
@@ -235,7 +282,7 @@ async function main() {
       // destination is worse than losing the zoom level.
       if (camera.aspect !== lastAspect) {
         lastAspect = camera.aspect;
-        controls.frame(follow === 'moon' ? world.bodies.moon.radius * 2.6 : FRAMING_RADIUS);
+        controls.frame(follow === 'earth' ? framingRadius() : world.bodies[follow].radius * 2.6);
       }
       controls.setTarget(world.bodies[follow].getWorldPosition(focusPosition));
       controls.update(dt);
@@ -270,7 +317,7 @@ async function main() {
     ui.dispose();
     narrator.dispose();
     sfx.dispose();
-    mission.dispose();
+    for (const mission of Object.values(missions)) mission.dispose();
     ship.dispose();
     world.dispose();
     sky.dispose();

@@ -98,8 +98,15 @@ function smootherstep(t: number): number {
 /**
  * Yaw/pitch pairs relative to the view axis. Roughly a third of them — at least one —
  * go over the horizon; the rest fan out across the visible face.
+ *
+ * Exported for its unit test: this is the rule the whole "learn to drag" idea rests on,
+ * and it is the one part of the mission that can be checked without a GPU.
  */
-function placementAngles(count: number): Array<[number, number]> {
+export function placementAngles(count: number): Array<[number, number]> {
+  // How many we would like over the horizon, and how many are actually left for it. The
+  // two diverge only at count 1, where the floor on `visible` wins and the single
+  // collectible stays in plain sight - there is no drag to teach with one rock, and
+  // hiding it would open the mission on an empty screen.
   const hidden = Math.max(1, Math.round(count / 3));
   const visible = Math.max(1, count - hidden);
   const angles: Array<[number, number]> = [];

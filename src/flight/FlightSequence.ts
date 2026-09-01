@@ -1,29 +1,27 @@
 /**
- * The scripted Earth-to-Moon flight.
+ * The scripted flight from home out to a destination.
  *
- * While it runs it owns the camera outright: orbit input is disabled and the Moon's orbit
- * is frozen so the destination holds still. On arrival the ship is re-parented to the Moon
- * (so it rides along), the orbit controller re-derives its angles from wherever the camera
- * finished, and control returns to the player without a visible snap.
+ * While it runs it owns the camera outright: orbit input is disabled and every orbit is
+ * frozen so the destination holds still. On arrival the ship is re-parented to the
+ * destination (so it rides along), the orbit controller re-derives its angles from
+ * wherever the camera finished, and control returns to the player without a visible snap.
+ *
+ * The destination is a parameter of start(), not a constant: nothing here knows which
+ * body it is flying to, only its radius and where it is right now.
  */
 
 import * as THREE from 'three';
 import type { OrbitInput } from '../controls/OrbitInput';
 import type { Spaceship } from '../scene/Spaceship';
-import type { World } from '../scene/Bodies';
-import {
-  FLIGHT_DURATION,
-  FLIGHT_DURATION_REDUCED,
-  MOON_RADIUS,
-  SUN_DIRECTION,
-} from '../config';
+import type { CelestialBody, World } from '../scene/Bodies';
+import { FLIGHT_DURATION, FLIGHT_DURATION_REDUCED, SUN_DIRECTION } from '../config';
 
 export type FlightPhase = 'idle' | 'flying' | 'arrived';
 
 export interface FlightSequence {
   readonly phase: FlightPhase;
   /** No-op unless idle. Returns true if the flight actually began. */
-  start(): boolean;
+  start(destination: CelestialBody): boolean;
   /**
    * Back to idle, ready to fly again. Only the sequence's own state — the ship, the
    * world and the camera are restored by their own resets, from the same caller.
@@ -38,8 +36,10 @@ export interface FlightOptions {
   ship: Spaceship;
   world: World;
   controls: OrbitInput;
+  /** Where the ship departs from. The arc is bowed away from this, so it never cuts through it. */
+  home: CelestialBody;
   reducedMotion: boolean;
-  onArrive(): void;
+  onArrive(destination: CelestialBody): void;
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -56,10 +56,11 @@ function smoothBetween(value: number, from: number, to: number): number {
 }
 
 export function createFlightSequence(options: FlightOptions): FlightSequence {
-  const { camera, scene, ship, world, controls, reducedMotion, onArrive } = options;
+  const { camera, scene, ship, world, controls, home, reducedMotion, onArrive } = options;
   const duration = reducedMotion ? FLIGHT_DURATION_REDUCED : FLIGHT_DURATION;
 
   let phase: FlightPhase = 'idle';
+  let target: CelestialBody | null = null;
   let progress = 0;
   let curve: THREE.CatmullRomCurve3 | null = null;
   let chaseScale = 1;
@@ -67,8 +68,8 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
   const startCamera = new THREE.Vector3();
   const startLook = new THREE.Vector3();
   const endCamera = new THREE.Vector3();
-  const moonPosition = new THREE.Vector3();
-  const earthPosition = new THREE.Vector3();
+  const targetPosition = new THREE.Vector3();
+  const homePosition = new THREE.Vector3();
 
   // Scratch vectors — reused every frame so the flight allocates nothing.
   const point = new THREE.Vector3();
@@ -91,48 +92,56 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     return Math.min(vFov, hFov) / 2;
   }
 
-  /** Distance that frames the Moon nicely in the current viewport. */
-  function arrivalDistance(): number {
-    return THREE.MathUtils.clamp((MOON_RADIUS * 4.2) / Math.sin(halfFov()), 1.6, 5.5);
+  /**
+   * Distance that frames the destination nicely in the current viewport. The clamp is
+   * expressed in body radii rather than absolute units so it holds for any destination;
+   * the multipliers reproduce the 1.6-5.5 range this was originally tuned to for the Moon.
+   */
+  function arrivalDistance(radius: number): number {
+    return THREE.MathUtils.clamp(
+      (radius * 4.2) / Math.sin(halfFov()),
+      radius * 5.9,
+      radius * 20.4,
+    );
   }
 
-  function buildPath() {
-    world.bodies.moon.getWorldPosition(moonPosition);
-    world.bodies.earth.getWorldPosition(earthPosition);
+  function buildPath(destination: CelestialBody) {
+    destination.getWorldPosition(targetPosition);
+    home.getWorldPosition(homePosition);
 
-    axis.subVectors(moonPosition, earthPosition).normalize();
+    axis.subVectors(targetPosition, homePosition).normalize();
 
     // Arrive on the sunlit side. Weighting the Sun direction most heavily is what keeps
-    // the Moon a bright full disc instead of the dark limb you get facing back at Earth.
+    // the body a bright full disc instead of the dark limb you get facing back at home.
     endDirection
       .copy(SUN_DIRECTION)
       .multiplyScalar(0.9)
       .addScaledVector(axis, -0.5)
       .addScaledVector(UP, 0.18)
       .normalize();
-    const distance = arrivalDistance();
-    endCamera.copy(moonPosition).addScaledVector(endDirection, distance);
+    const radius = destination.radius;
+    endCamera.copy(targetPosition).addScaledVector(endDirection, arrivalDistance(radius));
 
-    // Park the ship on the camera's side of the Moon but well off to one side, so it
-    // frames next to the Moon rather than eclipsing it.
+    // Park the ship on the camera's side of the body but well off to one side, so it
+    // frames next to the destination rather than eclipsing it.
     lateral.crossVectors(endDirection, UP).normalize();
     const from = ship.group.position.clone();
-    const arrival = moonPosition
+    const arrival = targetPosition
       .clone()
-      .addScaledVector(endDirection, MOON_RADIUS * 2.4)
-      .addScaledVector(lateral, -MOON_RADIUS * 3.2)
-      .addScaledVector(UP, -MOON_RADIUS);
+      .addScaledVector(endDirection, radius * 2.4)
+      .addScaledVector(lateral, -radius * 3.2)
+      .addScaledVector(UP, -radius);
 
     heading.subVectors(arrival, from);
     const span = heading.length();
     heading.normalize();
 
     // Bow the path sideways so the trip reads as an arc rather than a straight line.
-    // The bow must lean *away* from Earth, or the shortcut passes through the planet.
+    // The bow must lean *away* from home, or the shortcut passes through the planet.
     side.crossVectors(heading, UP);
     if (side.lengthSq() < 1e-6) side.set(1, 0, 0);
     side.normalize();
-    outward.subVectors(from, earthPosition).normalize();
+    outward.subVectors(from, homePosition).normalize();
     if (side.dot(outward) < 0) side.negate();
 
     const mid1 = from
@@ -156,7 +165,9 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     startCamera.copy(camera.position);
     // The controller looks at its target, so the current view direction starts there.
     camera.getWorldDirection(look);
-    startLook.copy(camera.position).addScaledVector(look, camera.position.distanceTo(earthPosition));
+    startLook
+      .copy(camera.position)
+      .addScaledVector(look, camera.position.distanceTo(homePosition));
   }
 
   return {
@@ -164,13 +175,14 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       return phase;
     },
 
-    start() {
+    start(destination: CelestialBody) {
       if (phase !== 'idle') return false;
       phase = 'flying';
+      target = destination;
       progress = 0;
 
       scene.attach(ship.group);
-      buildPath();
+      buildPath(destination);
 
       controls.enabled = false;
       world.setOrbitSpeedScale(0);
@@ -180,13 +192,14 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
 
     reset() {
       phase = 'idle';
+      target = null;
       progress = 0;
       curve = null;
       chaseScale = 1;
     },
 
     update(dt: number) {
-      if (phase !== 'flying' || !curve) return;
+      if (phase !== 'flying' || !curve || !target) return;
 
       progress = Math.min(1, progress + dt / duration);
       const t = smootherstep(progress);
@@ -216,7 +229,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       const approach = smoothBetween(progress, 0.6, 1);
 
       camera.position.lerpVectors(startCamera, chase, departure).lerp(endCamera, approach);
-      look.lerpVectors(startLook, ahead, departure).lerp(moonPosition, approach);
+      look.lerpVectors(startLook, ahead, departure).lerp(targetPosition, approach);
       camera.lookAt(look);
 
       if (progress < 1) return;
@@ -225,16 +238,17 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       phase = 'arrived';
       ship.setThrust(0);
 
-      // attach() keeps the world transform, so the ship simply starts riding the Moon.
-      world.bodies.moon.anchor.attach(ship.group);
+      // attach() keeps the world transform, so the ship simply starts riding along.
+      const destination = target;
+      destination.anchor.attach(ship.group);
       world.setOrbitSpeedScale(1);
 
-      controls.setFocusRadius(MOON_RADIUS);
-      controls.setTarget(moonPosition, true);
+      controls.setFocusRadius(destination.radius);
+      controls.setTarget(targetPosition, true);
       controls.syncFromCamera();
       controls.enabled = true;
 
-      onArrive();
+      onArrive(destination);
     },
   };
 }

@@ -15,6 +15,7 @@ export interface StickerDefinition {
 
 export const STICKERS: Record<string, StickerDefinition> = {
   'moon-explorer': { id: 'moon-explorer', emoji: '🌙', label: 'Moon Explorer' },
+  'mars-explorer': { id: 'mars-explorer', emoji: '🔴', label: 'Mars Explorer' },
 };
 
 /** Empty slots shown alongside earned stickers, so the journal looks like a collection. */

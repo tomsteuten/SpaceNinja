@@ -10,8 +10,8 @@ import { JOURNAL_SLOTS, STICKERS, loadProgress } from '../state/progress';
 
 export interface SelectionInfo {
   label: string;
-  /** Whether this body is a flyable destination (only the Moon, for now). */
-  flyable: boolean;
+  /** Text for the launch button, or null when this body is not a destination. */
+  flyLabel: string | null;
 }
 
 export interface GameUI {
@@ -19,7 +19,7 @@ export interface GameUI {
   showSelection(selection: SelectionInfo | null): void;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
-  showArrival(fact: string): void;
+  showArrival(label: string, fact: string): void;
   /** Reveals the mission button, a beat later so the fact gets read first. */
   offerMission(label: string): void;
   /** Clears the arrival furniture and puts up the progress slots. */
@@ -108,7 +108,8 @@ export function createUI(options: UIOptions): GameUI {
 
   const flyButton = el('button', 'btn fly-btn');
   flyButton.type = 'button';
-  flyButton.append(el('span', undefined, '🚀'), el('span', undefined, 'Fly to the Moon'));
+  const flyButtonLabel = el('span');
+  flyButton.append(el('span', undefined, '🚀'), flyButtonLabel);
   flyButton.classList.add('is-hidden');
 
   const factCard = el('div', 'panel fact-card');
@@ -259,8 +260,11 @@ export function createUI(options: UIOptions): GameUI {
       namePill.textContent = selection.label;
       namePill.classList.remove('is-hidden');
       namePill.classList.add('fade-in');
-      flyButton.classList.toggle('is-hidden', !selection.flyable);
-      if (selection.flyable) flyButton.classList.add('fade-in');
+      flyButton.classList.toggle('is-hidden', !selection.flyLabel);
+      if (selection.flyLabel) {
+        flyButtonLabel.textContent = selection.flyLabel;
+        flyButton.classList.add('fade-in');
+      }
     },
 
     enterFlight() {
@@ -270,8 +274,8 @@ export function createUI(options: UIOptions): GameUI {
       setHint(null);
     },
 
-    showArrival(fact: string) {
-      namePill.textContent = 'The Moon';
+    showArrival(label: string, fact: string) {
+      namePill.textContent = label;
       namePill.classList.remove('is-hidden');
       // Speech needs a recent user gesture on mobile; the fly button provided one, but if
       // the platform refuses anyway the button is right there.

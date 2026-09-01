@@ -9,6 +9,12 @@ import * as THREE from 'three';
 import {
   EARTH_RADIUS,
   EARTH_SPIN,
+  MARS_ORBIT_RADIUS,
+  MARS_ORBIT_SPEED,
+  MARS_ORBIT_TILT,
+  MARS_RADIUS,
+  MARS_SPIN,
+  MARS_START_ANGLE,
   MOON_ORBIT_RADIUS,
   MOON_ORBIT_SPEED,
   MOON_ORBIT_TILT,
@@ -22,6 +28,7 @@ import {
 import {
   makeEarthMaps,
   makeGlowTexture,
+  makeMarsTexture,
   makeMoonTexture,
   makeRingTexture,
   makeSunTexture,
@@ -29,7 +36,7 @@ import {
 } from './textures';
 import type { QualitySettings } from './quality';
 
-export type BodyId = 'earth' | 'moon';
+export type BodyId = 'earth' | 'moon' | 'mars';
 
 export interface CelestialBody {
   id: BodyId;
@@ -125,6 +132,60 @@ function createHitMesh(radius: number): THREE.Mesh {
   return mesh;
 }
 
+/**
+ * The three-node rig every orbiting body uses: a tilt group so its path is not flat, a
+ * spin group carrying the orbit angle, and an anchor out at the orbit radius. Children of
+ * the anchor ride the orbit without inheriting the body's own rotation - which is what
+ * lets the ship park on it and the collectibles stay put under a child's finger.
+ */
+interface OrbitingBody {
+  tilt: THREE.Group;
+  spin: THREE.Group;
+  anchor: THREE.Group;
+  mesh: THREE.Mesh;
+  ring: THREE.Sprite;
+  hit: THREE.Mesh;
+  ringScale: number;
+}
+
+function createOrbitingBody(options: {
+  id: BodyId;
+  radius: number;
+  orbitRadius: number;
+  orbitTilt: number;
+  startAngle: number;
+  map: THREE.Texture;
+  roughness: number;
+  segments: [number, number];
+  ringTexture: THREE.Texture;
+}): OrbitingBody {
+  const tilt = new THREE.Group();
+  tilt.rotation.x = options.orbitTilt;
+  const spin = new THREE.Group();
+  spin.rotation.y = options.startAngle;
+  const anchor = new THREE.Group();
+  anchor.position.x = options.orbitRadius;
+
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(options.radius, options.segments[0], options.segments[1]),
+    new THREE.MeshStandardMaterial({
+      map: options.map,
+      roughness: options.roughness,
+      metalness: 0,
+    }),
+  );
+  const ringScale = options.radius * 6.4;
+  const ring = createSelectionRing(options.ringTexture, ringScale);
+  // Floored, because a small body far from the camera is otherwise a pixel-hunt.
+  const hit = createHitMesh(Math.max(0.72, options.radius * 2.6));
+  hit.userData.bodyId = options.id;
+
+  anchor.add(mesh, ring, hit);
+  spin.add(anchor);
+  tilt.add(spin);
+  return { tilt, spin, anchor, mesh, ring, hit, ringScale };
+}
+
 export async function createWorld(quality: QualitySettings): Promise<World> {
   const group = new THREE.Group();
   const segments = quality.sphereSegments;
@@ -134,7 +195,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   ];
 
   const earthPlaceholders = makeEarthMaps(quality.textureSize);
-  const [earthMap, earthRoughness, moonMap, sunMap] = await Promise.all([
+  const [earthMap, earthRoughness, moonMap, marsMap, sunMap] = await Promise.all([
     resolveTexture({ file: 'earth.jpg', fallback: () => earthPlaceholders.color, anisotropy: 8 }),
     resolveTexture({
       file: 'earth-roughness.jpg',
@@ -144,6 +205,11 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     resolveTexture({
       file: 'moon.jpg',
       fallback: () => makeMoonTexture(quality.textureSize),
+      anisotropy: 8,
+    }),
+    resolveTexture({
+      file: 'mars.jpg',
+      fallback: () => makeMarsTexture(quality.textureSize),
       anisotropy: 8,
     }),
     resolveTexture({
@@ -205,25 +271,33 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   earthAnchor.add(earthMesh, atmosphere, earthRing, earthHit);
   group.add(earthAnchor);
 
-  /* --- Moon --------------------------------------------------------------- */
+  /* --- Moon and Mars ------------------------------------------------------- */
 
-  const moonTilt = new THREE.Group();
-  moonTilt.rotation.x = MOON_ORBIT_TILT;
-  const moonSpin = new THREE.Group();
-  moonSpin.rotation.y = MOON_START_ANGLE;
-  const moonAnchor = new THREE.Group();
-  moonAnchor.position.x = MOON_ORBIT_RADIUS;
+  const moon = createOrbitingBody({
+    id: 'moon',
+    radius: MOON_RADIUS,
+    orbitRadius: MOON_ORBIT_RADIUS,
+    orbitTilt: MOON_ORBIT_TILT,
+    startAngle: MOON_START_ANGLE,
+    map: moonMap,
+    roughness: 0.94,
+    segments: moonSegments,
+    ringTexture,
+  });
 
-  const moonMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(MOON_RADIUS, moonSegments[0], moonSegments[1]),
-    new THREE.MeshStandardMaterial({ map: moonMap, roughness: 0.94, metalness: 0 }),
-  );
-  const moonRing = createSelectionRing(ringTexture, MOON_RADIUS * 6.4);
-  const moonHit = createHitMesh(Math.max(0.72, MOON_RADIUS * 2.6));
-  moonAnchor.add(moonMesh, moonRing, moonHit);
-  moonSpin.add(moonAnchor);
-  moonTilt.add(moonSpin);
-  group.add(moonTilt);
+  const mars = createOrbitingBody({
+    id: 'mars',
+    radius: MARS_RADIUS,
+    orbitRadius: MARS_ORBIT_RADIUS,
+    orbitTilt: MARS_ORBIT_TILT,
+    startAngle: MARS_START_ANGLE,
+    map: marsMap,
+    roughness: 0.88,
+    segments: moonSegments,
+    ringTexture,
+  });
+
+  group.add(moon.tilt, mars.tilt);
 
   /* --- Assembly ----------------------------------------------------------- */
 
@@ -240,27 +314,38 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       id: 'moon',
       label: 'The Moon',
       radius: MOON_RADIUS,
-      anchor: moonAnchor,
-      hitMesh: moonHit,
-      getWorldPosition: (target) => moonAnchor.getWorldPosition(target),
+      anchor: moon.anchor,
+      hitMesh: moon.hit,
+      getWorldPosition: (target) => moon.anchor.getWorldPosition(target),
+    },
+    mars: {
+      id: 'mars',
+      label: 'Mars',
+      radius: MARS_RADIUS,
+      anchor: mars.anchor,
+      hitMesh: mars.hit,
+      getWorldPosition: (target) => mars.anchor.getWorldPosition(target),
     },
   };
 
   earthHit.userData.bodyId = 'earth';
-  moonHit.userData.bodyId = 'moon';
 
   let orbitSpeedScale = 1;
-  const ringScales = { earth: EARTH_RADIUS * 3.1, moon: MOON_RADIUS * 6.4 };
+  // Paired with their resting scale, so the selection pulse is one loop for every body.
+  const rings: Array<[BodyId, THREE.Sprite, number]> = [
+    ['earth', earthRing, EARTH_RADIUS * 3.1],
+    ['moon', moon.ring, moon.ringScale],
+    ['mars', mars.ring, mars.ringScale],
+  ];
 
   function setSelected(id: BodyId | null) {
-    earthRing.visible = id === 'earth';
-    moonRing.visible = id === 'moon';
+    for (const [bodyId, ring] of rings) ring.visible = bodyId === id;
   }
 
   return {
     group,
     bodies,
-    hitMeshes: [earthHit, moonHit],
+    hitMeshes: [earthHit, moon.hit, mars.hit],
     setSelected,
 
     setOrbitSpeedScale(scale: number) {
@@ -274,13 +359,19 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
     update(dt: number, elapsed: number, camera: THREE.Camera) {
       earthMesh.rotation.y += EARTH_SPIN * dt;
-      moonSpin.rotation.y += MOON_ORBIT_SPEED * orbitSpeedScale * dt;
+
+      moon.spin.rotation.y += MOON_ORBIT_SPEED * orbitSpeedScale * dt;
       // Keep the same face toward Earth, the way the real Moon does.
-      moonMesh.rotation.y = -moonSpin.rotation.y + MOON_SPIN * elapsed;
+      moon.mesh.rotation.y = -moon.spin.rotation.y + MOON_SPIN * elapsed;
+
+      mars.spin.rotation.y += MARS_ORBIT_SPEED * orbitSpeedScale * dt;
+      // Mars is tidally locked to nothing here, so it simply turns on its own axis.
+      mars.mesh.rotation.y = MARS_SPIN * elapsed;
 
       const pulse = 1 + Math.sin(elapsed * 3.2) * 0.05;
-      if (earthRing.visible) earthRing.scale.setScalar(ringScales.earth * pulse);
-      if (moonRing.visible) moonRing.scale.setScalar(ringScales.moon * pulse);
+      for (const [, ring, scale] of rings) {
+        if (ring.visible) ring.scale.setScalar(scale * pulse);
+      }
 
       // Shrink the corona slightly as the camera approaches, so it never swallows the view.
       const sunDistance = camera.position.distanceTo(SUN_POSITION);
@@ -288,17 +379,32 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     },
 
     dispose() {
-      const meshes = [sunMesh, earthMesh, atmosphere, moonMesh, earthHit, moonHit];
+      const meshes = [
+        sunMesh,
+        earthMesh,
+        atmosphere,
+        earthHit,
+        moon.mesh,
+        moon.hit,
+        mars.mesh,
+        mars.hit,
+      ];
       for (const mesh of meshes) {
         mesh.geometry.dispose();
         (mesh.material as THREE.Material).dispose();
       }
       coronaMaterial.dispose();
-      (earthRing.material as THREE.SpriteMaterial).dispose();
-      (moonRing.material as THREE.SpriteMaterial).dispose();
-      for (const t of [earthMap, earthRoughness, moonMap, sunMap, ringTexture, glowTexture]) {
-        t.dispose();
-      }
+      for (const [, ring] of rings) (ring.material as THREE.SpriteMaterial).dispose();
+      const textures = [
+        earthMap,
+        earthRoughness,
+        moonMap,
+        marsMap,
+        sunMap,
+        ringTexture,
+        glowTexture,
+      ];
+      for (const t of textures) t.dispose();
       // The unused half of the placeholder pair when a real file was supplied.
       earthPlaceholders.color.dispose();
       earthPlaceholders.roughness.dispose();

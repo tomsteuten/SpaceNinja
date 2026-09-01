@@ -1,11 +1,12 @@
-# Space Ninja — Journey to the Moon
+# Space Ninja
 
-A gentle 3D space explorer for young children (roughly ages 5–8). This is the first
-vertical slice: one journey, from Earth to the Moon.
+A gentle 3D space explorer for young children (roughly ages 5–8). Two destinations so
+far: the Moon, and Mars.
 
-Tap the Moon, press **Fly to the Moon**, watch a small spaceship arc across space and hear
-a Moon fact read aloud. Then press **Collect Moon Rocks** to find three glowing rocks on
-the surface, earn a sticker for the discovery journal, and fly home to go again.
+Tap a destination, press **Fly**, watch a small spaceship arc across space and hear a
+fact read aloud. Then collect the glowing rocks on the surface, earn a sticker for the
+discovery journal, and fly home to go again. Finishing the Moon widens the view far
+enough to notice Mars.
 
 Built with Vite, TypeScript and Three.js. No backend, no accounts, no build-time assets.
 
@@ -46,11 +47,17 @@ npm run typecheck
 ```
 
 ```bash
+npm test
+```
+
+```bash
 npm run build
 ```
 
 `npm run build` type-checks first, then emits `dist/`. `npm run preview` serves that build
-on the network the same way.
+on the network the same way. `npm test` runs the unit tests — they cover the journal
+persistence and the collectible placement rule, the two pieces whose failure is easy to
+miss by eye.
 
 ---
 
@@ -76,16 +83,16 @@ later without touching the flight or UI code.
 index.html               boot markup + inline loading/error state
 src/
   main.ts                wiring, frame loop, teardown
-  config.ts              scene scale, speeds, timings, the Moon fact
+  config.ts              scene scale, speeds, timings, and the destination copy
   scene/
     Stage.ts             renderer, camera, bloom, resize, adaptive quality
     quality.ts           device tiering (low / medium / high)
-    Bodies.ts            Sun, Earth + atmosphere, Moon, lights
+    Bodies.ts            Sun, Earth + atmosphere, Moon, Mars, lights
     Spaceship.ts         the ship, built from primitives
     Starfield.ts         gradient sky + layered point stars
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
-  flight/FlightSequence.ts  the scripted Earth → Moon cutscene
+  flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts  the collect-the-things mission, for any body
   ui/                    interface layer (ui.ts + ui.css)
   audio/narration.ts     SpeechSynthesis wrapper, entirely optional
@@ -109,10 +116,27 @@ custom atmosphere and sky shaders.
 for a few seconds after startup and the tier steps down if the budget is being missed.
 Pixel ratio and bloom are the levers; geometry and texture sizes are fixed at construction.
 
-**The flight owns the camera outright.** Orbit input is disabled and the Moon's orbit is
-frozen so the destination holds still. On arrival the ship is re-parented to the Moon so it
+**The flight owns the camera outright.** Orbit input is disabled and the orbits are frozen
+so the destination holds still. On arrival the ship is re-parented to the destination so it
 rides along, and the orbit controller re-derives its angles from wherever the camera
 finished — so control returns without a snap.
+
+**Destinations are data.** `DESTINATIONS` in `config.ts` holds the copy; `Bodies.ts` holds
+the geometry; `main.ts` matches them by id and builds a flight, a fact and a mission for
+each the same way. `FlightSequence.start()` takes the destination as an argument, so
+nothing in the flight knows which body it is aiming at — only its radius and where it is
+right now. Adding the next planet is a config entry and a body, not new logic.
+
+**Mars gets its own compressed path around the scene centre**, not a heliocentric orbit.
+At true scale it would be thousands of Earth-radii away and the Sun is already at 105;
+this keeps every destination inside one composable frame. Radii, though, stay true — the
+Moon really is 0.27 Earths and Mars really is 0.53 — because relative size is something a
+child can learn from a picture, and relative distance at this scale is unshowable.
+
+**The opening shot only widens once it has earned the right to.** Fitting Mars from the
+first frame shrinks Earth and the Moon to a third of the size, which is a poor first
+impression for a child with no reason to care about Mars yet. Finishing the Moon mission
+is what makes the world visibly get bigger.
 
 **The mission knows nothing about the Moon.** `CollectMission` takes a `CelestialBody` and
 derives collectible size, float height, hit-target size and particle scale from its radius,
@@ -139,8 +163,7 @@ cut, removes camera inertia, and stops the UI animations.
 
 ---
 
-## Not in this slice
+## Not yet
 
-No other planets, no fly-back-to-Earth, no ambient or thruster sound, no downloaded
-models, and no real orbital physics. Those are deliberately out of scope for the first
-slice.
+No planets past Mars, no fly-back-to-Earth, no ambient or thruster sound, no downloaded
+models, and no real orbital physics. Those are deliberately still out of scope.

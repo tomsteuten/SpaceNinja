@@ -308,6 +308,80 @@ export function makeMoonTexture(width: number): THREE.CanvasTexture {
   return new THREE.CanvasTexture(el);
 }
 
+/**
+ * Rusty deserts, darker volcanic plains and two bright polar caps.
+ *
+ * The same shape as makeMoonTexture: broad low-frequency regions for the big features,
+ * fine noise for grain, then a 2D pass on top for anything that wants a soft gradient.
+ */
+export function makeMarsTexture(width: number): THREE.CanvasTexture {
+  const height = width / 2;
+  const [el, ctx] = canvas2d(width, height);
+  const image = ctx.createImageData(width, height);
+  const data = image.data;
+
+  for (let j = 0; j < height; j++) {
+    const lat = (0.5 - (j + 0.5) / height) * Math.PI;
+    const cosLat = Math.cos(lat);
+    const sinLat = Math.sin(lat);
+    for (let i = 0; i < width; i++) {
+      const lon = ((i + 0.5) / width) * Math.PI * 2;
+      const px = cosLat * Math.cos(lon);
+      const pz = cosLat * Math.sin(lon);
+
+      const region = fbm(px * 1.5 + 17, sinLat * 1.5 + 17, pz * 1.5 + 17, 3);
+      const grain = fbm(px * 11, sinLat * 11, pz * 11, 3);
+      // Dark basalt plains where the low-frequency field dips, bright dust where it rises.
+      const shade = (region - 0.5) * 1.5 + (grain - 0.5) * 0.42;
+
+      let r = mix(126, 214, THREE.MathUtils.clamp(0.5 + shade, 0, 1));
+      let g = r * mix(0.46, 0.6, THREE.MathUtils.clamp(0.5 + shade * 0.6, 0, 1));
+      let b = r * 0.36;
+
+      // Polar caps, with a soft ragged edge rather than a drawn-on circle.
+      const polar = Math.abs(sinLat);
+      const capEdge = 0.88 + (grain - 0.5) * 0.16;
+      if (polar > capEdge) {
+        const t = THREE.MathUtils.clamp((polar - capEdge) / (1 - capEdge), 0, 1);
+        r = mix(r, 244, t);
+        g = mix(g, 240, t);
+        b = mix(b, 232, t);
+      }
+
+      const o = (j * width + i) * 4;
+      data[o] = r;
+      data[o + 1] = g;
+      data[o + 2] = b;
+      data[o + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+
+  // A handful of craters, fewer and softer than the Moon's - Mars has weather, and a
+  // heavily cratered Mars reads as "another moon" at a glance.
+  const craters = Math.round(width / 22);
+  for (let c = 0; c < craters; c++) {
+    const cx = hash(c, 4, 21) * width;
+    const cy = height * 0.3 + (0.5 + (hash(c, 5, 21) - 0.5) * 1.4) * height * 0.4;
+    const radius = (0.6 + Math.pow(hash(c, 6, 21), 3) * 5) * (width / 190);
+
+    // Drawn three times horizontally so the seam wraps cleanly.
+    for (const offset of [-width, 0, width]) {
+      const grad = ctx.createRadialGradient(cx + offset, cy, radius * 0.1, cx + offset, cy, radius);
+      grad.addColorStop(0, 'rgba(84,42,26,0.42)');
+      grad.addColorStop(0.68, 'rgba(148,84,52,0.2)');
+      grad.addColorStop(0.88, 'rgba(226,158,110,0.24)');
+      grad.addColorStop(1, 'rgba(210,140,96,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx + offset, cy, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  return new THREE.CanvasTexture(el);
+}
+
 /** Warm granulated plasma. The Sun is unlit and bloomed, so this is mostly surface interest. */
 export function makeSunTexture(width: number): THREE.CanvasTexture {
   const height = width / 2;
