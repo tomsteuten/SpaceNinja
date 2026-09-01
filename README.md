@@ -3,8 +3,9 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). This is the first
 vertical slice: one journey, from Earth to the Moon.
 
-Tap the Moon, press **Fly to the Moon**, watch a small spaceship arc across space, hear a
-Moon fact read aloud, and earn a sticker for the discovery journal.
+Tap the Moon, press **Fly to the Moon**, watch a small spaceship arc across space and hear
+a Moon fact read aloud. Then press **Collect Moon Rocks** to find three glowing rocks on
+the surface, earn a sticker for the discovery journal, and fly home to go again.
 
 Built with Vite, TypeScript and Three.js. No backend, no accounts, no build-time assets.
 
@@ -85,8 +86,10 @@ src/
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
   flight/FlightSequence.ts  the scripted Earth → Moon cutscene
+  mission/CollectMission.ts  the collect-the-things mission, for any body
   ui/                    interface layer (ui.ts + ui.css)
   audio/narration.ts     SpeechSynthesis wrapper, entirely optional
+  audio/sfx.ts           two synthesised cues, entirely optional
   state/progress.ts      sticker persistence in localStorage
 public/assets/           drop real textures here
 ```
@@ -111,6 +114,23 @@ frozen so the destination holds still. On arrival the ship is re-parented to the
 rides along, and the orbit controller re-derives its angles from wherever the camera
 finished — so control returns without a snap.
 
+**The mission knows nothing about the Moon.** `CollectMission` takes a `CelestialBody` and
+derives collectible size, float height, hit-target size and particle scale from its radius,
+so the next destination is a definition object rather than new code. The `config.ts` entry
+holds only the strings and the count. Placement is measured in angles away from wherever
+the camera is looking when the mission starts, and the last collectible is deliberately
+placed past the limb: reaching it needs a drag, which teaches the camera control through
+need rather than through instructions a five-year-old cannot read.
+
+**Every stateful module owns a `reset()`**, and `main.ts` is the only caller. That is what
+makes **Explore Again** work without reloading the page — the flight, the ship, the world,
+the camera, the UI and the mission each undo exactly their own state. The bodies keep
+orbiting throughout, so the Moon is deliberately *not* put back where it was.
+
+**Sound is synthesised and optional by design.** Two cues, no audio files. The AudioContext
+is created from the mission button press, because mobile browsers start audio suspended and
+only allow it to resume inside a user gesture. If Web Audio is missing the calls no-op.
+
 **Narration is optional by design.** If SpeechSynthesis is missing the button simply does
 not appear and everything else works.
 
@@ -121,5 +141,6 @@ cut, removes camera inertia, and stops the UI animations.
 
 ## Not in this slice
 
-No other planets, no fly-back-to-Earth, no sound effects or music, no downloaded models,
-and no real orbital physics. Those are deliberately out of scope for the first slice.
+No other planets, no fly-back-to-Earth, no ambient or thruster sound, no downloaded
+models, and no real orbital physics. Those are deliberately out of scope for the first
+slice.

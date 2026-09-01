@@ -46,3 +46,16 @@ export const FLIGHT_DURATION_REDUCED = 1.4;
 export const MOON_FACT =
   'There is no wind and no rain on the Moon. So the footprints the astronauts left ' +
   'there are still exactly where they stepped!';
+
+/**
+ * The Moon's collect mission. Only the strings and the count live here; the mission
+ * module itself is destination-generic and takes the body at runtime.
+ */
+export const MOON_MISSION = {
+  count: 3,
+  label: 'Collect Moon Rocks',
+  instruction: 'Tap the glowing moon rocks!',
+  huntLine: 'One more! Drag to spin around the Moon.',
+  successLine: 'You found all the moon rocks! What a brilliant explorer you are.',
+  stickerId: 'moon-explorer',
+} as const;

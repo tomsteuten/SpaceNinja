@@ -24,6 +24,11 @@ export interface FlightSequence {
   readonly phase: FlightPhase;
   /** No-op unless idle. Returns true if the flight actually began. */
   start(): boolean;
+  /**
+   * Back to idle, ready to fly again. Only the sequence's own state — the ship, the
+   * world and the camera are restored by their own resets, from the same caller.
+   */
+  reset(): void;
   update(dt: number): void;
 }
 
@@ -171,6 +176,13 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       world.setOrbitSpeedScale(0);
       world.setSelected(null);
       return true;
+    },
+
+    reset() {
+      phase = 'idle';
+      progress = 0;
+      curve = null;
+      chaseScale = 1;
     },
 
     update(dt: number) {

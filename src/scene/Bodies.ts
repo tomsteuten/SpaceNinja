@@ -50,6 +50,11 @@ export interface World {
   /** 0 freezes the Moon mid-orbit so the flight has a stationary destination. */
   setOrbitSpeedScale(scale: number): void;
   update(dt: number, elapsed: number, camera: THREE.Camera): void;
+  /**
+   * Back to the opening state for "explore again". Orbits are deliberately *not* wound
+   * back: the bodies have kept moving, and pretending otherwise would teleport them.
+   */
+  reset(): void;
   dispose(): void;
 }
 
@@ -247,18 +252,24 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   let orbitSpeedScale = 1;
   const ringScales = { earth: EARTH_RADIUS * 3.1, moon: MOON_RADIUS * 6.4 };
 
+  function setSelected(id: BodyId | null) {
+    earthRing.visible = id === 'earth';
+    moonRing.visible = id === 'moon';
+  }
+
   return {
     group,
     bodies,
     hitMeshes: [earthHit, moonHit],
-
-    setSelected(id: BodyId | null) {
-      earthRing.visible = id === 'earth';
-      moonRing.visible = id === 'moon';
-    },
+    setSelected,
 
     setOrbitSpeedScale(scale: number) {
       orbitSpeedScale = scale;
+    },
+
+    reset() {
+      orbitSpeedScale = 1;
+      setSelected(null);
     },
 
     update(dt: number, elapsed: number, camera: THREE.Camera) {

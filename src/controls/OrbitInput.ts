@@ -22,6 +22,11 @@ export interface OrbitInput {
   frame(radius: number, immediate?: boolean): void;
   /** Re-derive orbit angles from the camera's actual transform. Call after a cutscene. */
   syncFromCamera(): void;
+  /**
+   * Back to the opening angles and distance, with no leftover glide. The caller still
+   * owns the target and the framing radius, exactly as it does at startup.
+   */
+  reset(): void;
   update(dt: number): void;
   dispose(): void;
 }
@@ -48,6 +53,8 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
   const target = new THREE.Vector3();
   const desiredTarget = new THREE.Vector3();
   const spherical = new THREE.Spherical(9, Math.PI / 2.35, 0.9);
+  // Kept so reset() can restore the opening framing without the numbers living twice.
+  const openingSpherical = spherical.clone();
   let desiredRadius = spherical.radius;
 
   // Angular velocity, decayed each frame for a little glide after a flick.
@@ -204,6 +211,17 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       desiredRadius = spherical.radius;
       velocityTheta = 0;
       velocityPhi = 0;
+    },
+
+    reset() {
+      spherical.copy(openingSpherical);
+      desiredRadius = spherical.radius;
+      focusRadius = 1;
+      velocityTheta = 0;
+      velocityPhi = 0;
+      pointers.clear();
+      pinchDistance = 0;
+      api.enabled = true;
     },
 
     update(dt: number) {

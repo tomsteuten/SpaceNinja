@@ -15,11 +15,23 @@ export interface Spaceship {
   setThrust(value: number): void;
   orient(direction: THREE.Vector3, rollHint?: number): void;
   update(dt: number, elapsed: number): void;
+  /**
+   * Back to the parked transform and a cold engine. Re-parenting is the caller's job —
+   * on arrival the ship belongs to the destination, and only the scene owner can undo
+   * that — but everything else the ship knows about itself is restored here.
+   */
+  reset(): void;
   dispose(): void;
 }
 
+/** Where the ship waits before launch. Held here so reset() has one source of truth. */
+const PARK_POSITION = new THREE.Vector3(2.2, 1.35, 1.4);
+const PARK_SCALE = 0.85;
+
 export function createSpaceship(): Spaceship {
   const group = new THREE.Group();
+  group.position.copy(PARK_POSITION);
+  group.scale.setScalar(PARK_SCALE);
   // Inner node carries the idle bob so the outer transform stays purely flight-driven.
   const body = new THREE.Group();
   group.add(body);
@@ -142,6 +154,17 @@ export function createSpaceship(): Spaceship {
       const calm = 1 - thrust;
       body.position.y = Math.sin(elapsed * 1.6) * 0.012 * calm;
       body.rotation.x = Math.sin(elapsed * 1.1) * 0.05 * calm;
+    },
+
+    reset() {
+      group.position.copy(PARK_POSITION);
+      group.scale.setScalar(PARK_SCALE);
+      group.quaternion.identity();
+      body.position.set(0, 0, 0);
+      body.rotation.set(0, 0, 0);
+      // Both, so the flame is cold on the next frame rather than easing down from a burn.
+      thrust = 0;
+      targetThrust = 0;
     },
 
     dispose() {

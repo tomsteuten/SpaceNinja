@@ -236,7 +236,7 @@ body {
   flex-direction: column;
   gap: 0.9rem;
   transform-origin: bottom left;
-  animation: pop 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
+  animation: popCorner 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
 .journal-panel h2 {
@@ -280,8 +280,6 @@ body {
 
 /* --- sticker award celebration -------------------------------------------- */
 
-/* Sits just above the journal button, so earning a sticker visibly points at where
-   the sticker went, rather than covering the thing you just flew to. */
 /* Top centre: the hint has been cleared by this point, the destination sits mid-screen,
    and the bottom belongs to the fact card. The badge on the journal button is what says
    where the sticker went. */
@@ -390,6 +388,156 @@ body {
     animation: none;
   }
   .btn {
+    transition: none;
+  }
+}
+
+/* --- mission HUD ---------------------------------------------------------- */
+
+/* Top band. The destination sits mid-screen and the dock owns the bottom, so this is
+   the only place that stays clear of both the body and the collectibles in portrait
+   and in landscape. Non-interactive, so a drag that starts up here still turns the
+   camera - which is exactly the gesture the third collectible is teaching. */
+.mission-hud {
+  position: absolute;
+  top: var(--pad-top);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: none;
+  max-width: calc(100vw - var(--pad-left) - var(--pad-right));
+}
+
+.slot-row {
+  display: flex;
+  gap: 0.7rem;
+}
+
+/* Empty and filled differ by outline style, contents and size as well as colour, so
+   the state is still readable without colour vision. */
+.slot {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-content: center;
+  font-size: 1.7rem;
+  line-height: 1;
+  border: 3px dashed rgba(243, 238, 255, 0.45);
+  background: rgba(20, 14, 44, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s ease;
+}
+
+.slot .slot-icon {
+  opacity: 0.45;
+  font-size: 1.5rem;
+}
+
+.slot.is-filled {
+  border-style: solid;
+  border-color: var(--warm);
+  background: radial-gradient(circle at 42% 34%, rgba(255, 214, 150, 0.5), rgba(120, 96, 220, 0.3));
+  box-shadow: 0 0 22px var(--glow);
+  animation: slotPop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+.slot.is-filled .slot-icon {
+  opacity: 1;
+  font-size: 1.7rem;
+}
+
+/* A tick as well as the rock, so "done" is two signals rather than one. */
+.slot.is-filled::after {
+  content: "✓";
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #2a1a05;
+  background: var(--warm);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-content: center;
+}
+
+.mission-caption {
+  margin: 0;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink);
+  background: rgba(20, 14, 44, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Same idea as .fade-in, but keeping the centring transform the element depends on. */
+.fade-in-centred {
+  animation: fadeInCentred 0.4s ease both;
+}
+
+@keyframes fadeInCentred {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+}
+
+@keyframes slotPop {
+  from {
+    transform: scale(0.7);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+}
+
+@media (max-width: 420px) {
+  .slot {
+    width: 54px;
+    height: 54px;
+  }
+  .mission-caption {
+    font-size: 0.95rem;
+    padding: 0.45rem 0.9rem;
+  }
+}
+
+@media (max-height: 480px) {
+  .slot {
+    width: 48px;
+    height: 48px;
+  }
+  .slot .slot-icon,
+  .slot.is-filled .slot-icon {
+    font-size: 1.25rem;
+  }
+  .slot.is-filled::after {
+    width: 18px;
+    height: 18px;
+    font-size: 0.8rem;
+  }
+  .mission-caption {
+    font-size: 0.95rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot,
+  .slot.is-filled,
+  .fade-in-centred {
+    animation: none;
     transition: none;
   }
 }
