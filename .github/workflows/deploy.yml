@@ -27,10 +27,10 @@ jobs:
           node-version: 24
           cache: npm
 
+      # Pages is already enabled on the repo with Actions as the build source, so this
+      # only reads the existing config. Do not add enablement:true - the workflow token
+      # is not permitted to create the site and the step hard-fails.
       - uses: actions/configure-pages@v5
-        with:
-          # Creates the Pages site on the first run so it needs no manual setup.
-          enablement: true
 
       - run: npm ci
 
