@@ -20,6 +20,14 @@
   --pad-right: max(1rem, env(safe-area-inset-right));
 }
 
+/* Without this, a width:100% panel plus its padding overshoots its parent - which is
+   exactly what the fact card was doing, hanging ~23px off each screen edge. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -539,5 +547,62 @@ body {
   .fade-in-centred {
     animation: none;
     transition: none;
+  }
+}
+
+/* --- go home -------------------------------------------------------------- */
+
+/* In the dock, under whatever the primary action is. Not a screen corner: every corner
+   is claimed by the journal button, the mission slots or the award card at one viewport
+   size or another, whereas the dock lays itself out and cannot collide. */
+.home-btn {
+  background: rgba(20, 14, 44, 0.72);
+  border: 1px solid var(--panel-edge);
+  color: var(--ink);
+  box-shadow: 0 8px 22px rgba(6, 4, 20, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* --- tap echo ------------------------------------------------------------- */
+
+/* A tap that hits nothing still gets an answer. Deliberately not a failure signal -
+   just "I saw you" - because an unresponsive tap reads to a small child as a broken
+   app rather than as a miss. */
+.tap-echo {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 214, 150, 0.8);
+  pointer-events: none;
+  animation: tapEcho 0.5s ease-out forwards;
+}
+
+@keyframes tapEcho {
+  from {
+    transform: scale(0.35);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still answers the tap, without the expanding ring. */
+  .tap-echo {
+    animation: tapFade 0.4s ease-out forwards;
+  }
+}
+
+@keyframes tapFade {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
   }
 }

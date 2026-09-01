@@ -178,6 +178,7 @@ async function main() {
       // answer to punish here.
       const target = raycaster.intersectObjects(activeMission.hitMeshes, false)[0];
       if (target) activeMission.collectFrom(target.object);
+      else ui.showTapEcho(clientX, clientY);
       return;
     }
 
@@ -189,6 +190,7 @@ async function main() {
 
     if (!selected) {
       ui.showSelection(null);
+      ui.showTapEcho(clientX, clientY);
       return;
     }
     ui.setHint(null);

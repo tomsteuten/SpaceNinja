@@ -32,6 +32,11 @@ export interface GameUI {
    * earlier visit — the party happens either way, only the "new sticker" badge does not.
    */
   completeMission(successLine: string, stickerId: string | null): void;
+  /**
+   * Answer a tap that hit nothing. Not a failure signal - to a small child an
+   * unresponsive tap reads as a broken app rather than as a miss.
+   */
+  showTapEcho(clientX: number, clientY: number): void;
   /** Back to the opening state, without rebuilding any of the DOM. */
   reset(): void;
   dispose(): void;
@@ -132,7 +137,18 @@ export function createUI(options: UIOptions): GameUI {
   againButton.append(el('span', undefined, '🌍'), el('span', undefined, 'Explore Again'));
   againButton.classList.add('is-hidden');
 
-  dock.append(namePill, factCard, flyButton, missionButton, againButton);
+  // A child who arrives somewhere and does not feel like collecting needs a door out;
+  // without this the only way to leave a mission is to finish it or reload the page.
+  // It lives in the dock rather than a screen corner because the dock lays itself out -
+  // every corner is already claimed by the journal button, the mission slots or the
+  // award card at one viewport size or another. Small and quiet under the big warm
+  // button, so which one is the main thing to press still reads at a glance.
+  const homeButton = el('button', 'btn btn--round btn--quiet home-btn', '🌍');
+  homeButton.type = 'button';
+  homeButton.setAttribute('aria-label', 'Fly back to Earth');
+  homeButton.classList.add('is-hidden');
+
+  dock.append(namePill, factCard, flyButton, missionButton, againButton, homeButton);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
@@ -179,6 +195,11 @@ export function createUI(options: UIOptions): GameUI {
     dock.classList.toggle('is-hidden', open);
     if (open) journalButton.removeAttribute('data-new');
   }
+
+  // Same operation as "Explore Again" - this is just the quiet, always-there version.
+  homeButton.addEventListener('click', () => {
+    onExploreAgain();
+  });
 
   journalButton.addEventListener('click', () => setJournalOpen(true));
   closeJournal.addEventListener('click', () => setJournalOpen(false));
@@ -235,6 +256,10 @@ export function createUI(options: UIOptions): GameUI {
     if (journalOpen) renderJournal();
   }
 
+  function setHomeAvailable(available: boolean) {
+    homeButton.classList.toggle('is-hidden', !available);
+  }
+
   function setHint(text: string | null) {
     hint.textContent = text ?? '';
     hint.style.opacity = text ? '1' : '0';
@@ -271,10 +296,13 @@ export function createUI(options: UIOptions): GameUI {
       namePill.classList.add('is-hidden');
       flyButton.classList.add('is-hidden');
       factCard.classList.add('is-hidden');
+      // Nothing to go home from yet, and the flight owns the camera regardless.
+      setHomeAvailable(false);
       setHint(null);
     },
 
     showArrival(label: string, fact: string) {
+      setHomeAvailable(true);
       namePill.textContent = label;
       namePill.classList.remove('is-hidden');
       // Speech needs a recent user gesture on mobile; the fly button provided one, but if
@@ -321,6 +349,8 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     completeMission(successLine: string, stickerId: string | null) {
+      // "Explore Again" is the same action said better, so the quiet one steps aside.
+      setHomeAvailable(false);
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       namePill.classList.remove('is-hidden');
@@ -330,11 +360,23 @@ export function createUI(options: UIOptions): GameUI {
       if (stickerId) celebrate(stickerId);
     },
 
+    showTapEcho(clientX: number, clientY: number) {
+      const echo = el('div', 'tap-echo');
+      echo.style.left = clientX + 'px';
+      echo.style.top = clientY + 'px';
+      // Removed by its own animation rather than a timer, so a reset mid-flight cannot
+      // cancel the cleanup and strand it on screen.
+      echo.addEventListener('animationend', () => echo.remove(), { once: true });
+      root.append(echo);
+    },
+
     reset() {
       clearTimers();
       narrator.stop();
       awardCard?.remove();
       awardCard = null;
+      setHomeAvailable(false);
+      for (const echo of root.querySelectorAll('.tap-echo')) echo.remove();
 
       setJournalOpen(false);
       journalButton.removeAttribute('data-new');
