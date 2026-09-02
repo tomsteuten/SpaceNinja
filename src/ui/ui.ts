@@ -7,6 +7,7 @@
 
 import type { Narrator } from '../audio/narration';
 import { JOURNAL_SLOTS, STICKERS, loadProgress } from '../state/progress';
+import { createIcon, iconMarkup } from './icons';
 
 export interface SelectionInfo {
   label: string;
@@ -99,7 +100,9 @@ export function createUI(options: UIOptions): GameUI {
       const slot = el('div', 'slot');
       // Not colour alone: an empty slot is dashed and holds a faint dot, a filled one is
       // solid, holds the rock itself and gains a tick.
-      slot.append(el('span', 'slot-icon', '·'));
+      const slotIcon = el('span', 'slot-icon');
+      slotIcon.innerHTML = iconMarkup('dot');
+      slot.append(slotIcon);
       slotRow.append(slot);
       slots.push(slot);
     }
@@ -114,12 +117,13 @@ export function createUI(options: UIOptions): GameUI {
   const flyButton = el('button', 'btn fly-btn');
   flyButton.type = 'button';
   const flyButtonLabel = el('span');
-  flyButton.append(el('span', undefined, '🚀'), flyButtonLabel);
+  flyButton.append(createIcon('rocket'), flyButtonLabel);
   flyButton.classList.add('is-hidden');
 
   const factCard = el('div', 'panel fact-card');
   const factText = el('p');
-  const narrateButton = el('button', 'btn btn--round narrate-btn', '🔊');
+  const narrateButton = el('button', 'btn btn--round narrate-btn');
+  narrateButton.append(createIcon('speaker'));
   narrateButton.type = 'button';
   narrateButton.setAttribute('aria-label', 'Read this out loud');
   factCard.append(factText, narrateButton);
@@ -127,7 +131,7 @@ export function createUI(options: UIOptions): GameUI {
 
   const missionButton = el('button', 'btn mission-btn');
   missionButton.type = 'button';
-  const missionButtonIcon = el('span', undefined, '🪨');
+  const missionButtonIcon = createIcon('rock');
   const missionButtonLabel = el('span');
   missionButton.append(missionButtonIcon, missionButtonLabel);
   missionButton.classList.add('is-hidden');
@@ -149,7 +153,7 @@ export function createUI(options: UIOptions): GameUI {
    */
   const homeButton = el('button', 'btn btn--secondary home-btn');
   homeButton.type = 'button';
-  homeButton.append(el('span', undefined, '🚀'), el('span', undefined, 'Fly Home'));
+  homeButton.append(createIcon('rocket'), el('span', undefined, 'Fly Home'));
   homeButton.classList.add('is-hidden');
 
   dock.append(namePill, factCard, flyButton, missionButton, homeButton);
@@ -157,7 +161,8 @@ export function createUI(options: UIOptions): GameUI {
 
   /* --- journal ------------------------------------------------------------- */
 
-  const journalButton = el('button', 'btn btn--round journal-btn', '📔');
+  const journalButton = el('button', 'btn btn--round journal-btn');
+  journalButton.append(createIcon('journal'));
   journalButton.type = 'button';
   journalButton.setAttribute('aria-label', 'Open your discovery journal');
 
@@ -344,7 +349,7 @@ export function createUI(options: UIOptions): GameUI {
         const filled = index < collected;
         slot.classList.toggle('is-filled', filled);
         const icon = slot.firstElementChild;
-        if (icon) icon.textContent = filled ? '🪨' : '·';
+        if (icon) icon.innerHTML = iconMarkup(filled ? 'rock' : 'dot');
       }
     },
 
