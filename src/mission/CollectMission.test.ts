@@ -6,10 +6,29 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { placementAngles } from './CollectMission';
+import { FLOAT_RATIO, hitRadiusFor, placementAngles } from './CollectMission';
+import { MARS_RADIUS, MOON_RADIUS } from '../config';
 
 /** Half the angle subtended by the visible face from a typical arrival distance. */
 const LIMB = 1.4; // radians, ~80°
+
+/**
+ * Where a collectible ends up, in units of the body's radius. Mirrors the basis maths in
+ * buildCollectible; any orthonormal basis gives the same distances *between* two of them,
+ * so this uses the plain axes rather than a camera-derived one.
+ */
+function placements(count: number, bodyRadius: number): Array<[number, number, number]> {
+  const float = bodyRadius * FLOAT_RATIO;
+  return placementAngles(count).map(([yaw, pitch]) => [
+    Math.sin(yaw) * Math.cos(pitch) * float,
+    Math.sin(pitch) * float,
+    Math.cos(yaw) * Math.cos(pitch) * float,
+  ]);
+}
+
+function distance(a: [number, number, number], b: [number, number, number]): number {
+  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+}
 
 describe('placementAngles', () => {
   it('produces one angle pair per collectible', () => {
@@ -66,4 +85,38 @@ describe('placementAngles', () => {
       expect(Math.abs((visible[i] ?? 0) - (visible[i - 1] ?? 0))).toBeGreaterThan(0.3);
     }
   });
+});
+
+/**
+ * The hit spheres are invisible and generously oversized, so two of them growing into
+ * each other is a bug nobody would see — the tap simply scores the wrong rock, and only
+ * sometimes. It is a pure consequence of the four proportions, so it is checked here.
+ *
+ * This is the constraint that stops ROCK_RATIO being raised freely: the hit radius is
+ * partly a multiple of the rock's, and the collectibles sit at fixed angles.
+ */
+describe('hit sphere spacing', () => {
+  const bodies: Array<[string, number, number]> = [
+    ['the Moon, 3 rocks', MOON_RADIUS, 3],
+    ['Mars, 4 rocks', MARS_RADIUS, 4],
+    // A denser mission than either destination currently asks for, as headroom.
+    ['a dense 6-rock mission', MOON_RADIUS, 6],
+  ];
+
+  for (const [name, radius, count] of bodies) {
+    it(`keeps every pair clear of each other on ${name}`, () => {
+      const points = placements(count, radius);
+      const minimum = hitRadiusFor(radius) * 2;
+      for (let i = 0; i < points.length; i++) {
+        for (let j = i + 1; j < points.length; j++) {
+          const a = points[i];
+          const b = points[j];
+          expect(a).toBeDefined();
+          expect(b).toBeDefined();
+          if (!a || !b) continue;
+          expect(distance(a, b)).toBeGreaterThan(minimum);
+        }
+      }
+    });
+  }
 });

@@ -9,8 +9,19 @@ Put the files directly in this folder (public/assets/) using these EXACT names:
 
 
   earth.jpg       Equirectangular Earth day map (continents, oceans, clouds baked in).
-                  Recommended: 2048 x 1024. Hard cap: 2048 wide — bigger costs mobile
-                  memory for no visible gain at this scene scale.
+                  Recommended: 2048 x 1024. Anything wider is rescaled to 2048 in the
+                  browser before it reaches the GPU, so a 21600 x 10800 Blue Marble
+                  original gives you a console warning and a slow load rather than a
+                  dead tab — but resize it and save everyone the download.
+
+  earth-roughness.jpg
+                  OPTIONAL, and you almost certainly do not need it. Supply earth.jpg
+                  alone and the roughness map is derived from it automatically: blue,
+                  not-too-bright pixels become sea and catch the specular highlight,
+                  everything else stays matte. Only add this file if you want to
+                  override that. Do NOT expect the generated Earth's roughness map to
+                  pair with a real photo — it is cut from the same noise field as the
+                  generated *colour* map, so it describes continents that are not there.
 
   moon.jpg        Equirectangular Moon surface map.
                   Recommended: 2048 x 1024.

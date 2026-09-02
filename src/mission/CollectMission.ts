@@ -82,6 +82,43 @@ const COLLECT_DURATION_REDUCED = 0.24;
 /** Breathing room between the last sparkle and the celebration. */
 const COMPLETION_DELAY = 0.3;
 
+/* --- proportions ----------------------------------------------------------- */
+
+/*
+ * All four are fractions of the body's radius (or of the rock's), so a bigger
+ * destination gets proportionally bigger treasure and nothing here needs a per-body
+ * number. The values are the shape of the thing a child is being asked to aim at, so
+ * they are worth stating once, together, rather than inline.
+ */
+
+/**
+ * Collectible size. Raised from 0.13: at the old size the rock was a third the width of
+ * its own halo, so what actually reached the screen was an orange smudge on the surface
+ * with a pebble somewhere inside it.
+ */
+export const ROCK_RATIO = 0.17;
+/**
+ * Halo width, as a multiple of the rock's. The glow texture puts its bright core in the
+ * inner 16% and fades across the rest, so much above 3 stops reading as "this rock is
+ * glowing" and starts reading as "something is smeared on the lens". Was 6.2.
+ */
+const GLOW_RATIO = 3.2;
+/** Far enough off the surface to read as hovering treasure rather than painted-on rubble. */
+export const FLOAT_RATIO = 1.16;
+/**
+ * Hit sphere, as a multiple of the rock's radius, under a floor tied to the body itself.
+ * Deliberately *not* raised alongside the rock: at the old 3.4 the larger rock puts two
+ * neighbouring hit spheres on Mars into overlap, and a tap meant for one would score the
+ * other. The floor is what keeps the target generous on a small body.
+ */
+export const HIT_RATIO = 2.4;
+export const HIT_FLOOR_RATIO = 0.42;
+
+/** The hit radius the mission will actually use for a body of this radius. */
+export function hitRadiusFor(bodyRadius: number): number {
+  return Math.max(bodyRadius * HIT_FLOOR_RATIO, bodyRadius * ROCK_RATIO * HIT_RATIO);
+}
+
 /* Scratch — reused by every instance, never allocated per frame. */
 const _center = new THREE.Vector3();
 const _forward = new THREE.Vector3();
@@ -155,10 +192,10 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     ? Math.max(6, Math.round(detail.particles * 0.5))
     : detail.particles;
 
-  const rockRadius = body.radius * 0.13;
-  const floatRadius = body.radius * 1.08; // just above the surface
+  const rockRadius = body.radius * ROCK_RATIO;
+  const floatRadius = body.radius * FLOAT_RATIO;
   // Generous: aim on a moving tablet, from a five-year-old, is nothing like a mouse.
-  const hitRadius = Math.max(body.radius * 0.42, rockRadius * 3.4);
+  const hitRadius = hitRadiusFor(body.radius);
 
   const collectibles: Collectible[] = [];
   const hitMeshes: THREE.Mesh[] = [];
@@ -185,13 +222,18 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     const node = new THREE.Group();
     node.position.copy(_dir).multiplyScalar(floatRadius);
 
-    // Warm and self-lit, so it reads as treasure even on the body's night side.
+    // Warm and self-lit, so it reads as treasure even on the body's night side — but only
+    // just. At 0.85 the emissive plus bloom washed the rock's own shading out completely
+    // and left a featureless blob; this is dim enough that the facets still show.
     const rockMaterial = new THREE.MeshStandardMaterial({
-      color: 0xd8cebe,
+      // Warm gold rather than the old bone white: the separation a child needs is from
+      // grey regolith on the Moon and from rust on Mars, and warmth does that on both
+      // where brightness alone only worked against the dark half of the body.
+      color: 0xf2ddaf,
       roughness: 0.72,
       metalness: 0.05,
       emissive: new THREE.Color(0xffbb63),
-      emissiveIntensity: 0.85,
+      emissiveIntensity: 0.55,
       transparent: true,
     });
     const rock = new THREE.Mesh(geometry, rockMaterial);
@@ -207,9 +249,11 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       blending: THREE.AdditiveBlending,
       opacity: 0.85,
     });
-    glowMaterial.color.setRGB(1.5, 1.15, 0.7);
+    // Over 1 so it still crosses the bloom threshold, but well down from 1.5: additively
+    // blended over a rock this size, the old value was most of what erased it.
+    glowMaterial.color.setRGB(1.25, 0.95, 0.58);
     const glow = new THREE.Sprite(glowMaterial);
-    const glowScale = rockRadius * 6.2;
+    const glowScale = rockRadius * GLOW_RATIO;
     glow.scale.setScalar(glowScale);
     node.add(glow);
 
@@ -410,9 +454,10 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
         collectible.rock.rotation.y += dt * 4;
         collectible.rockMaterial.opacity = 1 - eased;
 
-        // The glow flares first, then goes with it.
+        // The glow flares first, then goes with it. The multiplier is up from 1.6 to hold
+        // the size of the reward pop now that the resting halo is less than half as wide.
         const flare = Math.sin(Math.min(1, k * 1.7) * Math.PI);
-        collectible.glow.scale.setScalar(collectible.glowScale * (1 + flare * 1.6));
+        collectible.glow.scale.setScalar(collectible.glowScale * (1 + flare * 2.6));
         collectible.glowMaterial.opacity = 0.9 * (1 - eased);
 
         const positions = collectible.particleGeometry.getAttribute('position');

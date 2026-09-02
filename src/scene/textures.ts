@@ -37,11 +37,44 @@ function loadImage(url: string): Promise<THREE.Texture> {
   });
 }
 
+/**
+ * Hard ceiling on a supplied image before it ever reaches the GPU.
+ *
+ * The NASA Blue Marble originals are 21600x10800 — a 933MB RGBA upload that kills a
+ * tablet outright, and the kind of thing that is very easy to drop in by accident. This
+ * turns "dead tab" into "slightly soft texture, and a console line telling you to resize
+ * the file", which is the right failure for a folder anyone is invited to throw art into.
+ */
+const MAX_TEXTURE_WIDTH = 2048;
+
+function shrinkToFit(texture: THREE.Texture, file: string): THREE.Texture {
+  const image = texture.image as { width?: number; height?: number } | undefined;
+  const width = image?.width ?? 0;
+  const height = image?.height ?? 0;
+  if (!width || !height || width <= MAX_TEXTURE_WIDTH) return texture;
+
+  const scaledHeight = Math.max(1, Math.round((height * MAX_TEXTURE_WIDTH) / width));
+  const [el, ctx] = canvas2d(MAX_TEXTURE_WIDTH, scaledHeight);
+  ctx.drawImage(texture.image as CanvasImageSource, 0, 0, MAX_TEXTURE_WIDTH, scaledHeight);
+  texture.dispose();
+  console.warn(
+    `[assets] ${file} is ${width}x${height}; rescaled to ${MAX_TEXTURE_WIDTH}x${scaledHeight} ` +
+      'before upload. Resize the file itself to save the download.',
+  );
+  return new THREE.CanvasTexture(el);
+}
+
 export interface TextureRequest {
   /** File name inside public/assets/, e.g. "earth.jpg". */
   file: string;
   /** Produces the placeholder when the file is absent. */
   fallback: () => THREE.Texture;
+  /**
+   * What to call the fallback in the console. Defaults to "placeholder", which is a lie
+   * when the fallback is something better — the roughness map derived from a supplied
+   * earth.jpg, say — and these log lines are what the assets README tells people to read.
+   */
+  fallbackLabel?: string;
   /** Colour maps are sRGB; roughness/bump maps are raw data. */
   colorSpace?: THREE.ColorSpace;
   anisotropy?: number;
@@ -56,17 +89,19 @@ export async function resolveTexture(req: TextureRequest): Promise<THREE.Texture
   let texture: THREE.Texture;
   let source: string;
 
+  const label = req.fallbackLabel ?? 'placeholder';
+
   if (await imageExists(url)) {
     try {
-      texture = await loadImage(url);
+      texture = shrinkToFit(await loadImage(url), req.file);
       source = 'file';
     } catch {
       texture = req.fallback();
-      source = 'placeholder (file could not be decoded)';
+      source = label + ' (file could not be decoded)';
     }
   } else {
     texture = req.fallback();
-    source = 'placeholder';
+    source = label;
   }
 
   texture.colorSpace = req.colorSpace ?? THREE.SRGBColorSpace;
@@ -151,8 +186,8 @@ function mix(a: number, b: number, t: number): number {
 /* -------------------------------------------------------------------------- */
 
 export interface EarthMaps {
-  color: THREE.CanvasTexture;
-  roughness: THREE.CanvasTexture;
+  color: THREE.Texture;
+  roughness: THREE.Texture;
 }
 
 /**
@@ -252,6 +287,98 @@ export function makeEarthMaps(width: number): EarthMaps {
     color: new THREE.CanvasTexture(colorEl),
     roughness: new THREE.CanvasTexture(roughEl),
   };
+}
+
+/**
+ * A roughness map read back out of a colour map: water is blue-dominant and not very
+ * bright, so it gets the sheen and everything else stays matte.
+ *
+ * This exists because the generated colour and roughness maps are cut from the *same*
+ * noise field, and are only correct as a pair. Drop a real Earth photo in on its own and
+ * the generated roughness is suddenly describing continents that are not there — matte
+ * oceans, and a specular highlight sliding across the Sahara. Deriving from whatever
+ * colour map actually won means the pair always agree.
+ *
+ * Returns null if the pixels cannot be read, in which case the caller keeps its own
+ * fallback rather than getting something wrong.
+ */
+export function deriveRoughness(source: THREE.Texture): THREE.CanvasTexture | null {
+  const image = source.image as ({ width?: number; height?: number } & CanvasImageSource) | undefined;
+  const width = image?.width ?? 0;
+  const height = image?.height ?? 0;
+  if (!image || !width || !height) return null;
+
+  try {
+    const [el, ctx] = canvas2d(width, height);
+    ctx.drawImage(image, 0, 0);
+    const map = ctx.getImageData(0, 0, width, height);
+    const p = map.data;
+
+    for (let i = 0; i < p.length; i += 4) {
+      const r = p[i] ?? 0;
+      const g = p[i + 1] ?? 0;
+      const b = p[i + 2] ?? 0;
+      // How far blue leads the other channels, damped where the pixel is bright enough to
+      // be ice or cloud rather than water. Continuous rather than a threshold, so
+      // coastlines come out soft instead of stair-stepped.
+      const lead = THREE.MathUtils.clamp((b - Math.max(r, g)) / 40, 0, 1);
+      const bright = THREE.MathUtils.clamp((Math.max(r, g, b) - 150) / 80, 0, 1);
+      // 0.42 wet and 0.9 dry: the same two values makeEarthMaps writes.
+      const v = Math.round(mix(230, 107, lead * (1 - bright)));
+      p[i] = v;
+      p[i + 1] = v;
+      p[i + 2] = v;
+      p[i + 3] = 255;
+    }
+
+    ctx.putImageData(map, 0, 0);
+    return new THREE.CanvasTexture(el);
+  } catch {
+    // getImageData throws on a tainted canvas. Assets are same-origin so this should not
+    // happen, but a wrong guess here would be baked into every frame.
+    return null;
+  }
+}
+
+/**
+ * Earth's two maps together, because they are only ever correct as a pair.
+ *
+ *  - both files supplied: use both, the author knows what they want.
+ *  - earth.jpg alone (the common case — Blue Marble ships no roughness map): derive the
+ *    roughness from it.
+ *  - neither: the generated pair, which already agree with each other.
+ */
+export async function resolveEarthMaps(size: number): Promise<EarthMaps> {
+  const placeholders = makeEarthMaps(size);
+
+  const color = await resolveTexture({
+    file: 'earth.jpg',
+    fallback: () => placeholders.color,
+    anisotropy: 8,
+  });
+
+  // Identity, not a second HEAD probe: whatever resolveTexture handed back is the truth
+  // about which one won, including when a supplied file failed to decode.
+  const usingRealColor = color !== placeholders.color;
+  const derived = usingRealColor ? deriveRoughness(color) : null;
+
+  const roughness = await resolveTexture({
+    file: 'earth-roughness.jpg',
+    fallback: () => derived ?? placeholders.roughness,
+    fallbackLabel: derived
+      ? 'derived from earth.jpg'
+      : usingRealColor
+        ? 'placeholder (could not derive from earth.jpg)'
+        : 'placeholder',
+    colorSpace: THREE.NoColorSpace,
+  });
+
+  // Release whichever candidates lost.
+  if (color !== placeholders.color) placeholders.color.dispose();
+  if (roughness !== placeholders.roughness) placeholders.roughness.dispose();
+  if (derived && roughness !== derived) derived.dispose();
+
+  return { color, roughness };
 }
 
 /** Grey, cratered, gently mottled. Doubles as its own bump map. */

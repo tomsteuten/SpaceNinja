@@ -26,12 +26,12 @@ import {
   SUN_RADIUS,
 } from '../config';
 import {
-  makeEarthMaps,
   makeGlowTexture,
   makeMarsTexture,
   makeMoonTexture,
   makeRingTexture,
   makeSunTexture,
+  resolveEarthMaps,
   resolveTexture,
 } from './textures';
 import type { QualitySettings } from './quality';
@@ -194,14 +194,11 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     Math.max(10, Math.round(segments[1] * 0.6)),
   ];
 
-  const earthPlaceholders = makeEarthMaps(quality.textureSize);
-  const [earthMap, earthRoughness, moonMap, marsMap, sunMap] = await Promise.all([
-    resolveTexture({ file: 'earth.jpg', fallback: () => earthPlaceholders.color, anisotropy: 8 }),
-    resolveTexture({
-      file: 'earth-roughness.jpg',
-      fallback: () => earthPlaceholders.roughness,
-      colorSpace: THREE.NoColorSpace,
-    }),
+  // Earth's colour and roughness are resolved together: the generated pair are cut from
+  // one noise field, so mixing a real photo with a generated roughness map would put the
+  // ocean sheen on the wrong side of every coastline. See resolveEarthMaps.
+  const [earthMaps, moonMap, marsMap, sunMap] = await Promise.all([
+    resolveEarthMaps(quality.textureSize),
     resolveTexture({
       file: 'moon.jpg',
       fallback: () => makeMoonTexture(quality.textureSize),
@@ -258,8 +255,8 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   const earthMesh = new THREE.Mesh(
     new THREE.SphereGeometry(EARTH_RADIUS, segments[0], segments[1]),
     new THREE.MeshStandardMaterial({
-      map: earthMap,
-      roughnessMap: earthRoughness,
+      map: earthMaps.color,
+      roughnessMap: earthMaps.roughness,
       roughness: 1,
       metalness: 0,
     }),
@@ -396,8 +393,8 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       coronaMaterial.dispose();
       for (const [, ring] of rings) (ring.material as THREE.SpriteMaterial).dispose();
       const textures = [
-        earthMap,
-        earthRoughness,
+        earthMaps.color,
+        earthMaps.roughness,
         moonMap,
         marsMap,
         sunMap,
@@ -405,9 +402,6 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
         glowTexture,
       ];
       for (const t of textures) t.dispose();
-      // The unused half of the placeholder pair when a real file was supplied.
-      earthPlaceholders.color.dispose();
-      earthPlaceholders.roughness.dispose();
     },
   };
 }
