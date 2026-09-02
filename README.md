@@ -63,9 +63,25 @@ miss by eye.
 
 ## Artwork
 
+### Credits
+
+**Earth day map** (`public/assets/earth.jpg`) — [Solar System Scope](https://www.solarsystemscope.com/textures/),
+licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA
+elevation and imagery data.
+
+Everything else on screen is generated at runtime or built from Three.js primitives.
+
+### Adding more
+
 The game generates all of its textures at runtime, so it looks finished with nothing
 downloaded. To upgrade to real photography, drop image files into `public/assets/` and
-reload — the loader picks them up automatically and no code changes are needed.
+reload — the loader picks them up automatically and no code changes are needed. Anything
+you add under a CC BY licence needs crediting in the list above.
+
+Earth is the one that needs care, because its colour and roughness maps are only correct
+as a pair — see `resolveEarthMaps` in `textures.ts`. Supplying `earth.jpg` on its own is
+the intended path: the roughness map is derived from it, so the sea catches the light and
+the land does not. `public/assets/README.txt` has the details.
 
 `public/assets/README.txt` lists the exact filenames, resolutions and where to get them.
 The browser console logs one line per texture saying whether it used a file or a

@@ -191,6 +191,16 @@ export interface EarthMaps {
 }
 
 /**
+ * How glossy the sea is. Raised from 0.42, which put a blown-out white glint the size of
+ * the north Atlantic on the ocean — tolerable against the stylised generated map, and
+ * badly overcooked against a photographic one, whose darker water throws the highlight
+ * into much higher contrast.
+ */
+const SEA_ROUGHNESS = 0.55;
+/** Land, ice and cloud: matte, so nothing off the water takes a specular highlight. */
+const SHORE_ROUGHNESS = 0.9;
+
+/**
  * Blue/green world with continents, polar ice and a matching roughness map so the
  * oceans catch a specular highlight and the land does not.
  */
@@ -233,7 +243,7 @@ export function makeEarthMaps(width: number): EarthMaps {
         r = mix(48, 12, depth);
         g = mix(122, 38, depth);
         b = mix(186, 96, depth);
-        rough = 0.42;
+        rough = SEA_ROUGHNESS;
       } else {
         const h = Math.min(1, (e - SEA) / 0.3);
         if (h < 0.08) {
@@ -252,7 +262,7 @@ export function makeEarthMaps(width: number): EarthMaps {
           g = mix(104, 146, t);
           b = mix(60, 142, t);
         }
-        rough = 0.9;
+        rough = SHORE_ROUGHNESS;
       }
 
       // Polar caps, edge broken up by noise so they do not read as a drawn band.
@@ -323,8 +333,9 @@ export function deriveRoughness(source: THREE.Texture): THREE.CanvasTexture | nu
       // coastlines come out soft instead of stair-stepped.
       const lead = THREE.MathUtils.clamp((b - Math.max(r, g)) / 40, 0, 1);
       const bright = THREE.MathUtils.clamp((Math.max(r, g, b) - 150) / 80, 0, 1);
-      // 0.42 wet and 0.9 dry: the same two values makeEarthMaps writes.
-      const v = Math.round(mix(230, 107, lead * (1 - bright)));
+      // The same two values makeEarthMaps writes, so a supplied map and a generated one
+      // catch the light identically.
+      const v = Math.round(mix(SHORE_ROUGHNESS * 255, SEA_ROUGHNESS * 255, lead * (1 - bright)));
       p[i] = v;
       p[i + 1] = v;
       p[i + 2] = v;

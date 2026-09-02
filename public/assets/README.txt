@@ -66,4 +66,5 @@ AFTER ADDING FILES
 Just reload the page. If a texture does not appear, open the browser console — the
 loader logs one line per texture saying whether it used the real file or a placeholder.
 
-Remember to credit any CC BY sources (like Solar System Scope) in the README.
+Remember to credit any CC BY sources (like Solar System Scope) in the README. earth.jpg
+is already credited there — add yours to the same list.

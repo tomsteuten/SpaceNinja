@@ -65,9 +65,20 @@ export interface World {
   dispose(): void;
 }
 
-/** Fresnel shell: bright at the limb, invisible face-on, brightest on the lit side. */
+/**
+ * Fresnel shell: bright at the limb, invisible face-on, brightest on the lit side.
+ *
+ * Its own segment counts, not the body's. This is an unlit additive shell — far cheaper
+ * per triangle than the Earth it wraps — and it is the *silhouette*, so its facets are
+ * the ones that show when a child zooms all the way in. At the body's 64 the limb was a
+ * visible polygon.
+ */
 function createAtmosphere(radius: number, segments: [number, number]): THREE.Mesh {
-  const geometry = new THREE.SphereGeometry(radius * 1.035, segments[0], segments[1]);
+  const geometry = new THREE.SphereGeometry(
+    radius * 1.035,
+    Math.max(96, segments[0]),
+    Math.max(48, segments[1]),
+  );
   const material = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -76,7 +87,11 @@ function createAtmosphere(radius: number, segments: [number, number]): THREE.Mes
     uniforms: {
       uColor: { value: new THREE.Color(0x74b6ff) },
       uSunDir: { value: SUN_DIRECTION.clone() },
-      uIntensity: { value: 1.7 },
+      // Down from 1.7. Against the stylised procedural Earth this read as haze; against a
+      // photographic one, whose oceans are much darker, the same value read as a drawn-on
+      // blue outline — most obviously in portrait, where Earth is small and the ring is
+      // still a full pixel or two wide.
+      uIntensity: { value: 1.05 },
     },
     vertexShader: `
       varying vec3 vNormalW;
@@ -97,7 +112,10 @@ function createAtmosphere(radius: number, segments: [number, number]): THREE.Mes
       void main() {
         vec3 viewDir = normalize(cameraPosition - vPosW);
         // abs() because we render back faces: the far hemisphere reads as facing away.
-        float rim = pow(1.0 - abs(dot(viewDir, vNormalW)), 2.4);
+        // The exponent is what decides ring-versus-haze: 2.4 kept the whole effect inside
+        // a couple of pixels at the limb, which is the shape of an outline. 1.7 lets it
+        // bleed inward over the disc, so it reads as air with depth to it.
+        float rim = pow(1.0 - abs(dot(viewDir, vNormalW)), 1.7);
         float lit = clamp(dot(vNormalW, uSunDir) * 0.5 + 0.5, 0.0, 1.0);
         float a = rim * uIntensity * (0.18 + 0.95 * pow(lit, 1.5));
         gl_FragColor = vec4(uColor * a, a);
