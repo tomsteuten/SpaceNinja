@@ -6,8 +6,8 @@
  */
 
 import type { Narrator } from '../audio/narration';
-import { DISCOVERIES, type Discovery } from '../config';
-import { JOURNAL_SLOTS, STICKERS, loadProgress } from '../state/progress';
+import { DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
+import { STICKERS, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup } from './icons';
 
 export interface SelectionInfo {

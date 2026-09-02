@@ -103,6 +103,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
   const outward = new THREE.Vector3();
   const endDirection = new THREE.Vector3();
   const lateral = new THREE.Vector3();
+  const bodyPosition = new THREE.Vector3();
   const facing = new THREE.Vector3();
   const tailPoint = new THREE.Vector3();
 
@@ -171,6 +172,36 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       .addScaledVector(axis, -0.5)
       .addScaledVector(UP, 0.18)
       .normalize();
+
+    /*
+     * Steer away from anything else that would loom in the shot.
+     *
+     * Distances here are compressed about thirtyfold, and making Earth a destination is
+     * what exposed what that costs: the Moon's orbit is 2.5 Earth radii and an Earth
+     * arrival sits at 3.2, so the Moon can pass *between* the camera and the planet a
+     * child is trying to explore — a third of the screen wide, eclipsing it.
+     *
+     * This fixes the arrival shot, which is the one composed here, and no more than that:
+     * the camera then orbits on a shell the Moon's own orbit crosses, so dragging far
+     * enough round will still find it. Short of moving the Moon out — which would change
+     * every other shot in the game — that is a property of the compressed scale rather
+     * than something the flight can decide.
+     *
+     * A push rather than a hard constraint, weighted by how close it is, so a body out at
+     * the edge of the framing barely moves the arrival and one sitting on top of it moves
+     * it a long way. The Sun is at 105 and never qualifies.
+     */
+    for (const other of Object.values(world.bodies)) {
+      if (other.id === destination.id) continue;
+      other.getWorldPosition(bodyPosition).sub(targetPosition);
+      const range = bodyPosition.length();
+      if (range < 1e-4 || range > arrivalDistance(destination.radius)) continue;
+      bodyPosition.divideScalar(range);
+      // Only what is on the camera's side of the destination can get in front of it.
+      const along = bodyPosition.dot(endDirection);
+      if (along <= 0) continue;
+      endDirection.addScaledVector(bodyPosition, -along * 0.9).normalize();
+    }
 
     // Then swing it to the latitude the destination's own places sit at, keeping the
     // bearing the Sun just chose. The Sun is 33 degrees up, so left alone this arrives

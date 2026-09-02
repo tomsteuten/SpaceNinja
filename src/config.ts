@@ -155,6 +155,81 @@ export interface DestinationConfig {
 }
 
 export const DESTINATIONS: Record<string, DestinationConfig> = {
+  /*
+   * Earth is a destination like any other, which is the point: a five-year-old's first
+   * instinct is to tap their own planet, and until this entry existed the game answered
+   * by not offering a Fly button at all.
+   *
+   * "Flying" to the planet you are already at is not a contradiction here — the opening
+   * shot is a wide view of the whole neighbourhood, and this drops you into low orbit
+   * over it. The flight code needs nothing special for it: home and destination being the
+   * same body leaves the departure axis at zero, which contributes nothing to an arrival
+   * direction the Sun already dominates.
+   */
+  earth: {
+    flyLabel: 'Fly to Earth',
+    fact:
+      'This is your planet, seen from space. It is the only place anyone has ever found ' +
+      'with water you can swim in, air you can breathe, and anybody at all to talk to.',
+    mission: {
+      instruction: 'Three places to find down there!',
+      huntLine: 'One more! Drag to spin around Earth.',
+      successLine: 'You found all three! You know your own planet from space now.',
+      stickerId: 'earth-explorer',
+      discoveries: [
+        {
+          // These two average out to a longitude in the middle of the Atlantic, so the
+          // arrival is the classic view: Africa on one side, South America on the other.
+          id: 'earth-sahara',
+          name: 'The Biggest Desert',
+          emoji: '🏜️',
+          lat: 23,
+          lon: 13,
+          fact:
+            'That huge patch of sand is the Sahara. It is the biggest hot desert in the ' +
+            'world — almost as wide as the whole of America — and it is one of the ' +
+            'easiest things to spot on Earth from up here.',
+        },
+        {
+          id: 'earth-amazon',
+          name: 'The Biggest Forest',
+          emoji: '🌳',
+          lat: -3,
+          lon: -60,
+          fact:
+            'All that green is the Amazon rainforest. More kinds of animal live there ' +
+            'than anywhere else on Earth, and its trees help make the air you are ' +
+            'breathing right now.',
+        },
+        {
+          /*
+           * Last, so it is the one over the horizon — and placed over Bangkok, which is
+           * not arbitrary: it is the point that is both properly in darkness and still
+           * only one drag away.
+           *
+           * The obvious guess, that anything ~100 degrees round from a sunlit arrival is
+           * in night, is wrong. The camera does not arrive at the sub-solar point; the
+           * Sun sits about 23 degrees off it, and in the direction that costs longitude
+           * here. India at 79E measured out at a sun-dot of +0.154 — broad daylight, with
+           * the night-lights map fading in only below +0.12, so the one discovery whose
+           * whole point is the city lights had none at all. This measures -0.22: fully
+           * lit, and 120 degrees from the camera, which is the same drag the Moon and
+           * Mars ask for. Move it east for brighter cities and the drag grows past what a
+           * child will sit through; there is no more room than this.
+           */
+          id: 'earth-nightside',
+          name: 'The Night Side',
+          emoji: '🌃',
+          lat: 13.75,
+          lon: 100.5,
+          fact:
+            'Half of Earth is always in the dark. Over here it is night, and all those ' +
+            'little glows are the lights of towns and cities — every one of them full ' +
+            'of people, most of them fast asleep.',
+        },
+      ],
+    },
+  },
   moon: {
     flyLabel: 'Fly to the Moon',
     // The footprints used to be this line. They belong to a *place*, so they moved down
@@ -235,7 +310,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
         {
           id: 'mars-marineris',
           name: 'The Great Canyon',
-          emoji: '🏜️',
+          emoji: '🏞️',
           lat: -14,
           lon: -59,
           fact:
@@ -247,9 +322,11 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           // western half, so this sits about 117 degrees round from them — far enough to
           // need the drag, near enough to find it with one. Hellas, the obvious
           // alternative, is 167 degrees away and most of a turn of dragging.
+          // Not the volcano emoji: Olympus already has it, and two identical tiles in the
+          // journal are two the child cannot tell apart.
           id: 'mars-elysium',
           name: 'The Other Volcano',
-          emoji: '🌋',
+          emoji: '🗻',
           lat: 25,
           lon: 147,
           fact:
@@ -274,3 +351,13 @@ export const DISCOVERIES: Record<string, Discovery> = Object.fromEntries(
     destination.mission.discoveries.map((discovery) => [discovery.id, discovery]),
   ),
 );
+
+/**
+ * Slots in the discovery journal: exactly as many as there are places to find.
+ *
+ * Counted rather than written down. It was a hand-set 6 against a journal that held the
+ * two stickers, so a child who had done everything in the game saw a grid that was
+ * two-thirds question marks. Deriving it means the journal fills on completion for every
+ * future destination too, instead of quietly going wrong again the next time one is added.
+ */
+export const JOURNAL_SLOTS = Object.keys(DISCOVERIES).length;

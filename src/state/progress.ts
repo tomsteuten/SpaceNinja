@@ -16,17 +16,8 @@ export interface StickerDefinition {
 export const STICKERS: Record<string, StickerDefinition> = {
   'moon-explorer': { id: 'moon-explorer', emoji: '🌙', label: 'Moon Explorer' },
   'mars-explorer': { id: 'mars-explorer', emoji: '🔴', label: 'Mars Explorer' },
+  'earth-explorer': { id: 'earth-explorer', emoji: '🌍', label: 'Earth Explorer' },
 };
-
-/**
- * Empty slots shown alongside what has been found, so the journal looks like a collection
- * with more to go rather than a short list.
- *
- * It holds discoveries now, not stickers. There were two stickers and six slots, so a
- * child who had done everything in the game still saw a journal that was two thirds
- * question marks; there are exactly six real places to find, so finishing now fills it.
- */
-export const JOURNAL_SLOTS = 6;
 
 export interface Progress {
   /**

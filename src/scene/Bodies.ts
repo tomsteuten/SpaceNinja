@@ -384,11 +384,23 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   if (earthNightMap) {
     applyNightLights(earthMesh.material as THREE.MeshStandardMaterial, earthNightMap);
   }
-  earthMesh.rotation.z = 0.41; // axial tilt, purely for looks
+  /*
+   * The axial tilt lives on a group above the sphere, not on the sphere itself.
+   *
+   * It used to be `earthMesh.rotation.z`, which looks identical and is not: the mission
+   * places its markers by setting the surface's rotation *about Y*, and reads the camera's
+   * bearing in the surface's parent space to work out what to set it to. Both assume the
+   * only turn between those two spaces is that one. A z-tilt on the mesh sits inside the
+   * y-rotation and quietly moves every marker off its coordinates. The Moon and Mars carry
+   * their tilt on a container for the same reason; this makes Earth match them.
+   */
+  const earthAxis = new THREE.Group();
+  earthAxis.rotation.z = 0.41; // axial tilt, purely for looks
+  earthAxis.add(earthMesh);
   const atmosphere = createAtmosphere(EARTH_RADIUS, segments);
   const earthRing = createSelectionRing(ringTexture, EARTH_RADIUS * 3.1);
   const earthHit = createHitMesh(EARTH_RADIUS * 1.4);
-  earthAnchor.add(earthMesh, atmosphere, earthRing, earthHit);
+  earthAnchor.add(earthAxis, atmosphere, earthRing, earthHit);
   group.add(earthAnchor);
 
   /* --- Moon and Mars ------------------------------------------------------- */

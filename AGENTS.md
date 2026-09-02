@@ -119,6 +119,19 @@ drag. There is a bound on *how far* past: much beyond ~130 degrees is half a tur
 dragging over an unlit hemisphere, which a small child gives up on. Both halves of that are
 tested, because both have been got wrong.
 
+**A marker cannot be tapped through its own body.** `withinVisibleFace` rejects any hit on
+the far side. The hit spheres are many times the marker's size on purpose, and the raycast
+tests only them — it never learns the planet is in the way. This is not theoretical: at
+Earth's arrival the Sahara and the hidden night-side marker project within thirty pixels of
+each other, so tapping the same spot twice collected the far-side discovery through the
+planet, without the drag the whole design exists to teach.
+
+**Earth's axial tilt lives on a group above the sphere, not on the sphere.** It looks
+identical and is not. The mission sets the surface's rotation *about Y* and reads the
+camera's bearing in the surface's parent space to decide what to set it to; a z-tilt on the
+mesh itself sits inside that y-rotation and silently moves every marker off its
+coordinates. The Moon and Mars carry their tilt on a container for the same reason.
+
 **A visited body's surface is held still.** `holdSurface()` freezes it; the mission calls
 it in `build()` and releases it in `teardown()`. Markers are children of the surface mesh,
 and a turning one carries them out from under a child's finger. The Moon needs both its
@@ -131,10 +144,12 @@ a stale timer from the previous fact will otherwise close the new one. There is 
 floor on how briefly a fact can be shown: speech that fails reports itself finished
 immediately, and the fold hangs off the end of the reading.
 
-**The journal holds discoveries, not stickers.** `JOURNAL_SLOTS` is 6 and there are exactly
-six places to find, so a child who does everything fills it. It used to hold the two
-stickers, which left it two-thirds question marks for someone who had finished the game.
-Stickers are still earned and still celebrated; they just are not what the grid shows.
+**The journal holds discoveries, not stickers, and its size is counted rather than set.**
+`JOURNAL_SLOTS` is `Object.keys(DISCOVERIES).length`, so finishing the game fills the grid
+by construction. It was a hand-written 6 against a journal that showed the two stickers,
+which left it two-thirds question marks for a child who had done everything — and a
+hand-written number goes wrong again the next time a destination is added. Stickers are
+still earned and still celebrated; they just are not what the grid shows.
 
 **Visits and stickers are different facts.** `progress.ts` tracks both. The opening shot
 widens to take in Mars once the Moon has been *visited*, not once its collection is
@@ -223,26 +238,26 @@ produced audio it cannot produce.
 
 Ordered. The reasoning matters more than the order.
 
-1. **Make Earth a destination.** It is selectable but has no `DESTINATIONS` entry, so no
-   Fly button appears — a child's first instinct is to tap their own planet and the game
-   says no. Earth also has the best assets in the project (day map, night lights,
-   atmosphere) and you currently can only glimpse them from the title screen. Costs a
-   config entry, three `Discovery` entries, and a decision about what "home" means when you
-   are already there. The city lights on the night side are the obvious one to send a child
-   looking for, and the arrival already aims at whatever latitude they sit at.
-
-2. **Give the flight sound.** `sfx.ts` has exactly two cues, both fired by the mission. The
+1. **Give the flight sound.** `sfx.ts` has exactly two cues, both fired by the mission. The
    flight is the best-looking part of the game and is completely silent. A synthesised
    thruster driven by the same throttle value the trail already uses needs no audio files.
 
-3. **Then add a planet.** Cheap by design: a config entry with three real places on it, and
+2. **Then add a planet.** Cheap by design: a config entry with three real places on it, and
    a body. Saturn over Venus — the rings are the most recognisable object in the solar
    system to a small child, and a torus is trivial geometry. Check the new discovery list
    against `CollectMission.test.ts`, which covers every destination automatically.
 
+3. **Replace the narration voice.** Still the top complaint, and still needs pre-generated
+   audio and a human with a TTS account. See *Known weak spot* above.
+
+Known and left alone: the Moon can wander into the shot while a child explores Earth, and
+at these compressed distances it is large when it does. The arrival steers clear of it;
+the camera then orbits on a shell the Moon's orbit crosses, so dragging far enough round
+still finds it. Moving the Moon out would change every other shot in the game.
+
 Done since this file was written: collecting became discovering (real places at real
-coordinates, each telling you something that goes in the journal), and the flight now
-arrives about three body-radii out instead of nine and a half.
+coordinates, each telling you something that goes in the journal), the flight now arrives
+about three body-radii out instead of nine and a half, and Earth is a destination.
 
 Not yet in scope: real orbital physics, planets past Mars, downloaded models.
 

@@ -1,12 +1,12 @@
 # Space Ninja
 
-A gentle 3D space explorer for young children (roughly ages 5–8). Two destinations so
-far: the Moon, and Mars.
+A gentle 3D space explorer for young children (roughly ages 5–8). Three destinations so
+far: Earth, the Moon, and Mars.
 
 Tap a destination, press **Fly**, watch a small spaceship arc across space and arrive
 close enough to see the surface. Three real places are marked on each world — the first
-footprints on the Moon, the volcano on Mars — and finding one tells you about it and puts
-it in the discovery journal. One of the three is always round the back, so getting it
+footprints on the Moon, the volcano on Mars, the Sahara from orbit — and finding one tells
+you about it and puts it in the discovery journal. One of the three is always round the back, so getting it
 means learning to drag. Or just look around and fly home. Either way, having been to the
 Moon widens the view far enough to notice Mars.
 
@@ -175,6 +175,13 @@ the game. **Fly Home** is on screen from arrival onward and never moves. The mis
 exists, still awards its sticker, and still teaches the drag gesture — it just no longer
 holds the door shut.
 
+**Earth is a destination too.** A child's first instinct is to tap their own planet, and
+for a long time the game answered by not offering a Fly button at all. "Flying" to the
+planet you are already at is not a contradiction: the opening shot is a wide view of the
+whole neighbourhood, and this drops you into low orbit over it, close enough to pick out
+the Sahara. It needed no special case in the flight — home and destination being the same
+body simply leaves the departure axis at zero.
+
 **The places to find are real places.** Each entry in `config.ts` carries the feature's
 actual latitude and longitude, and the marker is placed from them onto the body's own
 surface mesh — so the ring a child taps really is sitting on Tycho's rays or on Olympus
@@ -204,6 +211,14 @@ makes **Fly Home** work without reloading the page — the flight, the ship, the
 world, the camera, the UI and the mission each undo exactly their own state. The bodies keep
 orbiting throughout, so the Moon is deliberately *not* put back where it was.
 
+**A marker cannot be tapped through the planet it is on.** The hit spheres are many times
+the size of the marker they surround, deliberately, so that a five-year-old's aim on a
+tablet is enough — and the raycast tests only those spheres, with no idea the body is in
+between. At Earth's arrival the Sahara and the hidden night-side marker project within
+thirty pixels of each other, one in front of the globe and one behind it, so tapping twice
+in the same place used to collect the far-side discovery through the whole planet. Every
+hit is now checked against the horizon the camera can actually see over.
+
 **The destination's surface is held still while you are there.** A marker fixed to a
 turning body slides out from under the finger reaching for it, and the Moon's own rotation
 is expressed as a counter-turn against its orbit, so neither one being stopped is enough.
@@ -224,8 +239,14 @@ cut, removes camera inertia, and stops the UI animations.
 
 ## Not yet
 
-No planets past Mars, no Earth as a destination, no ambient or thruster sound, no
-downloaded models, and no real orbital physics. Those are deliberately still out of scope.
+No planets past Mars, no ambient or thruster sound, no downloaded models, and no real
+orbital physics. Those are deliberately still out of scope.
+
+The Moon can wander into the shot while you are exploring Earth, and at these compressed
+distances it is large when it does. The flight steers its *arrival* clear of anything that
+would loom, but the camera then orbits on a shell that the Moon's own orbit crosses, so
+dragging far enough round will still find it. Moving the Moon out would change every other
+shot in the game, so it stays.
 
 The read-aloud voice is the browser's own `SpeechSynthesis`, which sounds different and
 mostly poor on every platform. Replacing it with pre-generated audio is the one known

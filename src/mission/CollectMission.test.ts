@@ -17,8 +17,15 @@ import {
   hitRadiusFor,
   placementAngles,
   surfaceDirection,
+  withinVisibleFace,
 } from './CollectMission';
-import { DESTINATIONS, MARS_RADIUS, MOON_RADIUS, type Discovery } from '../config';
+import {
+  DESTINATIONS,
+  EARTH_RADIUS,
+  MARS_RADIUS,
+  MOON_RADIUS,
+  type Discovery,
+} from '../config';
 
 /**
  * Half the angle subtended by the visible face at arrival.
@@ -31,14 +38,25 @@ const LIMB = 1.25; // radians, ~72°
 
 const MOON = DESTINATIONS.moon?.mission.discoveries ?? [];
 
+/**
+ * Radii by id. The hit-sphere spacing below scales with the body, so a destination that
+ * fell through to a default would be checked against the wrong one — silently, and in the
+ * safe direction for a small body, which is the direction that hides a real overlap.
+ */
+const RADII: Record<string, number> = {
+  earth: EARTH_RADIUS,
+  moon: MOON_RADIUS,
+  mars: MARS_RADIUS,
+};
+
 /** Every destination's real discovery list, so a new planet is covered the day it lands. */
 const DESTINATION_CASES: Array<[string, Discovery[], number]> = Object.entries(
   DESTINATIONS,
-).map(([id, config]) => [
-  id,
-  config.mission.discoveries,
-  id === 'mars' ? MARS_RADIUS : MOON_RADIUS,
-]);
+).map(([id, config]) => {
+  const radius = RADII[id];
+  if (radius === undefined) throw new Error(`No radius for destination "${id}" in this test.`);
+  return [id, config.mission.discoveries, radius];
+});
 
 /** Where a discovery ends up, in world units, mirroring what buildCollectible does. */
 function placements(discoveries: Discovery[], bodyRadius: number): THREENumberTriple[] {
@@ -214,4 +232,60 @@ describe('hit sphere spacing', () => {
       }
     });
   }
+});
+
+/**
+ * Whether a marker can be tapped *through* the body it is on.
+ *
+ * This was a real bug and an invisible one. The hit spheres are many times the size of
+ * the marker they surround, on purpose, and the raycast tests only those spheres — it
+ * never learns the planet is in the way. At Earth's arrival the Sahara and the hidden
+ * night-side marker project within thirty pixels of each other, one in front and one
+ * behind, so a child who tapped the Sahara and then tapped the same spot again collected
+ * the far-side discovery through six thousand miles of planet, without ever dragging.
+ * That is the one thing the whole placement design exists to make them do.
+ */
+describe('withinVisibleFace', () => {
+  // Earth-sized body at the distance the flight actually arrives at.
+  const R = 1;
+  const D = 3.19;
+
+  it('accepts a marker facing the camera head on', () => {
+    expect(withinVisibleFace(1, R, D)).toBe(true);
+  });
+
+  it('accepts one well inside the visible face', () => {
+    // 45 degrees round from the centre of the disc.
+    expect(withinVisibleFace(Math.cos(Math.PI / 4), R, D)).toBe(true);
+  });
+
+  it('rejects one directly behind the body', () => {
+    expect(withinVisibleFace(-1, R, D)).toBe(false);
+  });
+
+  it('rejects the case that caused this: a marker 120 degrees round', () => {
+    // Earth's night side at arrival, which shares a screen position with the Sahara.
+    expect(withinVisibleFace(Math.cos((120 * Math.PI) / 180), R, D)).toBe(false);
+  });
+
+  it('still accepts one sitting right on the limb', () => {
+    // acos(R/D) is the geometric horizon; a marker there must stay tappable, because
+    // being *just* reachable after a drag is the reward the placement is aiming for.
+    const limb = Math.acos(R / D);
+    expect(withinVisibleFace(Math.cos(limb), R, D)).toBe(true);
+  });
+
+  it('tightens as the camera comes closer, which is what a sphere really does', () => {
+    // The same marker, 75 degrees round from the centre of the disc. From 6.5 radii the
+    // horizon is at 81 degrees and it is in view; from 1.8 it is at 56 and this is well
+    // behind it. Not 60 degrees: that is inside the slack at 1.8, which is the point of
+    // the slack rather than a hole in it.
+    const alignment = Math.cos((75 * Math.PI) / 180);
+    expect(withinVisibleFace(alignment, R, 6.5)).toBe(true);
+    expect(withinVisibleFace(alignment, R, 1.8)).toBe(false);
+  });
+
+  it('never occludes anything when the camera is inside the body', () => {
+    expect(withinVisibleFace(-1, R, 0.5)).toBe(true);
+  });
 });

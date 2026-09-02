@@ -118,10 +118,37 @@ export function hitRadiusFor(bodyRadius: number): number {
   return Math.max(bodyRadius * HIT_FLOOR_RATIO, bodyRadius * MARKER_RATIO * HIT_RATIO);
 }
 
+/**
+ * Is a marker on the face the camera can actually see?
+ *
+ * `alignment` is how far the marker's own outward direction points at the camera, from 1
+ * (dead centre of the disc) through 0 (on the limb as seen from infinitely far) to -1
+ * (directly opposite). A sphere of radius r seen from distance d hides everything beyond
+ * acos(r / d), so that ratio is the cut, times a little slack to keep a marker sitting
+ * right on the limb tappable.
+ *
+ * This exists because the hit spheres are deliberately enormous — many times the marker
+ * they surround, so a five-year-old's aim on a tablet is enough — and the raycast tests
+ * only those spheres. It has no idea the planet is in between. On Earth the Sahara and
+ * the hidden night-side marker land within thirty pixels of each other at arrival, one in
+ * front of the globe and one behind it, so tapping the Sahara and then tapping the same
+ * spot again reached straight through the planet and collected the one place the whole
+ * design wants a child to have to go and look for.
+ */
+export function withinVisibleFace(
+  alignment: number,
+  bodyRadius: number,
+  cameraDistance: number,
+): boolean {
+  if (cameraDistance <= bodyRadius) return true; // Inside the body; nothing is occluded.
+  return alignment > (bodyRadius / cameraDistance) * 0.85;
+}
+
 /* Scratch — reused by every instance, never allocated per frame. */
 const _center = new THREE.Vector3();
 const _forward = new THREE.Vector3();
 const _dir = new THREE.Vector3();
+const _view = new THREE.Vector3();
 /** The plane RingGeometry is built in, and so the axis every marker is turned off. */
 const FACE = new THREE.Vector3(0, 0, 1);
 
@@ -489,6 +516,16 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       if (typeof index !== 'number') return false;
       const collectible = collectibles[index];
       if (!collectible || collectible.state !== 'idle') return false;
+
+      // Not one on the far side, reached through the body. See withinVisibleFace.
+      body.getWorldPosition(_center);
+      collectible.hit.getWorldPosition(_dir).sub(_center).normalize();
+      _view.copy(camera.position).sub(_center);
+      const distance = _view.length();
+      if (!withinVisibleFace(_dir.dot(_view.divideScalar(distance)), body.radius, distance)) {
+        return false;
+      }
+
       beginCollect(collectible);
       return true;
     },
