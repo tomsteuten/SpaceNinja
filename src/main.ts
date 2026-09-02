@@ -51,7 +51,7 @@ async function main() {
 
   const sky = createSky(stage.quality);
   scene.add(sky.group);
-  void sky.applyBackgroundTo(scene);
+  void sky.applyStarMap();
 
   const world = await createWorld(stage.quality);
   scene.add(world.group);

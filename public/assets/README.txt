@@ -35,7 +35,10 @@ Put the files directly in this folder (public/assets/) using these EXACT names:
                   glowing emissive sphere and already looks good.
                   Recommended: 1024 x 512.
 
-  starfield.jpg   Equirectangular night-sky panorama, used as the scene background.
+  starfield.jpg   Equirectangular night-sky panorama, ADDED over the violet gradient
+                  rather than replacing it — a star map is nearly all black, so the
+                  gradient still supplies the colour and depth underneath and the
+                  generated points thin out to a sparse layer in front.
                   Recommended: 4096 x 2048, or 2048 x 1024 for older tablets.
                   Optional — without it you get a generated 3D particle starfield,
                   which is cheaper and honestly quite pretty.

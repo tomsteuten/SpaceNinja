@@ -1,8 +1,8 @@
 /**
  * The backdrop: a violet-to-navy void with layered point stars.
  *
- * If public/assets/starfield.jpg exists it becomes the scene background instead of the
- * gradient shell, and the points stay on top as a parallax layer.
+ * If public/assets/starfield.jpg exists it is added on top of the gradient inside the
+ * shell's own shader, and the generated points thin out to a sparse layer in front of it.
  */
 
 import * as THREE from 'three';
@@ -12,8 +12,12 @@ import type { QualitySettings } from './quality';
 
 export interface Sky {
   group: THREE.Group;
-  /** Set once the optional equirect background has been probed. */
-  applyBackgroundTo(scene: THREE.Scene): Promise<void>;
+  /**
+   * Composites the optional equirect star map onto the gradient shell, once it has been
+   * probed for. Not a scene background: it is added over the gradient, not swapped in
+   * for it.
+   */
+  applyStarMap(): Promise<void>;
   update(dt: number): void;
   dispose(): void;
 }
@@ -27,6 +31,18 @@ function makeRandom(seed: number): () => number {
   };
 }
 
+/**
+ * How much of a supplied star map to add over the gradient. Under 1 because it is being
+ * added to a lit background rather than replacing a black one.
+ */
+const STAR_MAP_STRENGTH = 0.92;
+/**
+ * What is left of the generated points once a star map is carrying the star density.
+ * Not zero: the map's stars are soft at 2K stretched over the whole sky, and a few crisp
+ * points in front of them are what stops the sky reading as a flat photograph.
+ */
+const GENERATED_STAR_MIX = 0.4;
+
 /** Inverted sphere carrying a soft nebula gradient. Unlit, so it costs almost nothing. */
 function createGradientShell(): THREE.Mesh {
   const geometry = new THREE.SphereGeometry(STAR_SHELL_RADIUS * 1.15, 24, 16);
@@ -34,10 +50,13 @@ function createGradientShell(): THREE.Mesh {
     side: THREE.BackSide,
     depthWrite: false,
     fog: false,
+    defines: {},
     uniforms: {
       uTop: { value: new THREE.Color(0x120a30) },
       uBottom: { value: new THREE.Color(0x05040f) },
       uHaze: { value: new THREE.Color(0x3a2270) },
+      uStars: { value: null },
+      uStarStrength: { value: 0 },
     },
     vertexShader: `
       varying vec3 vDir;
@@ -50,13 +69,28 @@ function createGradientShell(): THREE.Mesh {
       uniform vec3 uTop;
       uniform vec3 uBottom;
       uniform vec3 uHaze;
+      uniform sampler2D uStars;
+      uniform float uStarStrength;
       varying vec3 vDir;
       void main() {
-        float h = vDir.y * 0.5 + 0.5;
+        vec3 dir = normalize(vDir);
+        float h = dir.y * 0.5 + 0.5;
         vec3 col = mix(uBottom, uTop, smoothstep(0.0, 1.0, h));
         // A slow diagonal band of violet haze, like a distant arm of the galaxy.
-        float band = exp(-pow((vDir.y - vDir.x * 0.45) * 2.6, 2.0));
+        float band = exp(-pow((dir.y - dir.x * 0.45) * 2.6, 2.0));
         col += uHaze * band * 0.34;
+        #ifdef USE_STAR_MAP
+          // Equirectangular lookup, ADDED rather than replacing what is underneath. A star
+          // map is almost entirely black, so adding it keeps the violet depth and lets
+          // only the stars and the Milky Way through. Assigning it to scene.background
+          // instead swaps the gradient out for that black, which is a colder and busier
+          // sky than the one it replaces.
+          vec2 uv = vec2(
+            atan(dir.z, dir.x) * 0.15915494 + 0.5,
+            asin(clamp(dir.y, -1.0, 1.0)) * 0.31830989 + 0.5
+          );
+          col += texture2D(uStars, uv).rgb * uStarStrength;
+        #endif
         gl_FragColor = vec4(col, 1.0);
       }
     `,
@@ -157,7 +191,7 @@ export function createSky(quality: QualitySettings): Sky {
   return {
     group,
 
-    async applyBackgroundTo(scene: THREE.Scene) {
+    async applyStarMap() {
       // The fallback is the gradient shell already in the group, so on any failure we
       // simply leave it alone rather than generating a substitute.
       const texture = await loadOptionalBackground();
@@ -167,10 +201,21 @@ export function createSky(quality: QualitySettings): Sky {
       }
       console.info('[assets] starfield.jpg: file');
       backgroundTexture = texture;
-      texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.colorSpace = THREE.SRGBColorSpace;
-      scene.background = texture;
-      shell.visible = false;
+      texture.wrapS = THREE.RepeatWrapping;
+
+      const material = shell.material as THREE.ShaderMaterial;
+      material.uniforms.uStars = { value: texture };
+      material.uniforms.uStarStrength = { value: STAR_MAP_STRENGTH };
+      material.defines.USE_STAR_MAP = '';
+      material.needsUpdate = true;
+
+      // The map brings its own stars, so the generated ones stop carrying the density and
+      // become a sparse crisp layer in front of it. Left at full strength the two sets sum
+      // into a noticeably busier sky than either alone.
+      for (const layer of points) {
+        (layer.material as THREE.PointsMaterial).opacity *= GENERATED_STAR_MIX;
+      }
     },
 
     update(dt: number) {

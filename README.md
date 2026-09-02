@@ -65,12 +65,18 @@ miss by eye.
 
 ### Credits
 
-**Earth day map** (`public/assets/earth.jpg`) and **Earth night map**
-(`public/assets/earth-night.jpg`) — [Solar System Scope](https://www.solarsystemscope.com/textures/),
-licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA
-elevation and imagery data.
+**Earth day and night maps, Moon, Mars and the star field** — `earth.jpg`,
+`earth-night.jpg`, `moon.jpg`, `mars.jpg` and `starfield.jpg` in `public/assets/`, from
+[Solar System Scope](https://www.solarsystemscope.com/textures/), licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA elevation and
+imagery data.
 
-Everything else on screen is generated at runtime or built from Three.js primitives.
+The Sun, the spaceship and everything else on screen is generated at runtime or built
+from Three.js primitives.
+
+`design/` holds reference art that is *not* shipped — it deliberately sits outside
+`public/`, because everything under `public/` is copied into the deployed build whether
+anything loads it or not.
 
 ### Adding more
 
