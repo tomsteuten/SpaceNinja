@@ -112,6 +112,19 @@ body {
   min-height: 54px;
 }
 
+/* Reads as the same *kind* of object as the primary button — same shape, same weight of
+   label, same press — in the second colour rather than at a lower volume. That is the
+   difference between "the other thing you can do" and "probably not for you". */
+.btn--secondary {
+  color: var(--ink);
+  background: linear-gradient(180deg, #6a58ae 0%, #4a3d84 100%);
+  box-shadow: 0 8px 22px rgba(6, 4, 20, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.22);
+}
+
+.btn--secondary:active {
+  box-shadow: 0 3px 12px rgba(6, 4, 20, 0.45), inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
+
 .btn--round {
   min-height: 0;
   width: 62px;
@@ -554,14 +567,14 @@ body {
 
 /* In the dock, under whatever the primary action is. Not a screen corner: every corner
    is claimed by the journal button, the mission slots or the award card at one viewport
-   size or another, whereas the dock lays itself out and cannot collide. */
+   size or another, whereas the dock lays itself out and cannot collide.
+
+   Secondary to the primary action, but never *quiet*: it carries a word, it is button
+   sized, and it is the same shape as everything else that can be pressed. A child who
+   wants to leave should recognise it as a button without having to try it. */
 .home-btn {
-  background: rgba(20, 14, 44, 0.72);
-  border: 1px solid var(--panel-edge);
-  color: var(--ink);
-  box-shadow: 0 8px 22px rgba(6, 4, 20, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  min-height: 54px;
+  font-size: 1.05rem;
 }
 
 /* --- tap echo ------------------------------------------------------------- */

@@ -132,23 +132,27 @@ export function createUI(options: UIOptions): GameUI {
   missionButton.append(missionButtonIcon, missionButtonLabel);
   missionButton.classList.add('is-hidden');
 
-  const againButton = el('button', 'btn again-btn');
-  againButton.type = 'button';
-  againButton.append(el('span', undefined, '🌍'), el('span', undefined, 'Explore Again'));
-  againButton.classList.add('is-hidden');
-
-  // A child who arrives somewhere and does not feel like collecting needs a door out;
-  // without this the only way to leave a mission is to finish it or reload the page.
-  // It lives in the dock rather than a screen corner because the dock lays itself out -
-  // every corner is already claimed by the journal button, the mission slots or the
-  // award card at one viewport size or another. Small and quiet under the big warm
-  // button, so which one is the main thing to press still reads at a glance.
-  const homeButton = el('button', 'btn btn--round btn--quiet home-btn', '🌍');
+  /**
+   * The one way back, from the moment the ship arrives until it leaves again.
+   *
+   * This replaces a pair that used to split the job: a 62px unlabelled round "🌍" while
+   * a mission was running, and a big labelled "Explore Again" once it was finished. Two
+   * problems with that. The quiet one was the *only* thing in the dock during a mission,
+   * competing with nothing, yet styled to lose — a translucent circle next to the
+   * journal's translucent circle, with no word on it to say which was which. And the
+   * loud one appeared only on completion, so the game shouted the exit at exactly the
+   * child who no longer needed it and whispered it at the one who did.
+   *
+   * So: one button, always the same words, never hidden mid-mission. It stays visually
+   * secondary to whatever the primary action is, but it is unmistakably a button with a
+   * label, because "how do I get out of here" should never need a guess.
+   */
+  const homeButton = el('button', 'btn btn--secondary home-btn');
   homeButton.type = 'button';
-  homeButton.setAttribute('aria-label', 'Fly back to Earth');
+  homeButton.append(el('span', undefined, '🚀'), el('span', undefined, 'Fly Home'));
   homeButton.classList.add('is-hidden');
 
-  dock.append(namePill, factCard, flyButton, missionButton, againButton, homeButton);
+  dock.append(namePill, factCard, flyButton, missionButton, homeButton);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
@@ -196,7 +200,6 @@ export function createUI(options: UIOptions): GameUI {
     if (open) journalButton.removeAttribute('data-new');
   }
 
-  // Same operation as "Explore Again" - this is just the quiet, always-there version.
   homeButton.addEventListener('click', () => {
     onExploreAgain();
   });
@@ -212,9 +215,6 @@ export function createUI(options: UIOptions): GameUI {
   });
   missionButton.addEventListener('click', () => {
     onMissionStart();
-  });
-  againButton.addEventListener('click', () => {
-    onExploreAgain();
   });
 
   let currentFact = '';
@@ -349,14 +349,14 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     completeMission(successLine: string, stickerId: string | null) {
-      // "Explore Again" is the same action said better, so the quiet one steps aside.
-      setHomeAvailable(false);
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       namePill.classList.remove('is-hidden');
       showFact(successLine);
-      againButton.classList.remove('is-hidden');
-      againButton.classList.add('fade-in');
+      // The way home has been on screen throughout and stays exactly where it was. It
+      // does not need promoting here — finishing is not the moment a child is looking
+      // for the exit, and moving it now would teach that it moves.
+      setHomeAvailable(true);
       if (stickerId) celebrate(stickerId);
     },
 
@@ -388,7 +388,7 @@ export function createUI(options: UIOptions): GameUI {
       slotRow.replaceChildren();
       slots = [];
 
-      for (const node of [namePill, flyButton, factCard, missionButton, againButton]) {
+      for (const node of [namePill, flyButton, factCard, missionButton, homeButton]) {
         node.classList.add('is-hidden');
         // Or the animation will not replay the next time the node is shown.
         node.classList.remove('fade-in');
