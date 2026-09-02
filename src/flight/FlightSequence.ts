@@ -129,14 +129,25 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
 
   /**
    * Distance that frames the destination nicely in the current viewport. The clamp is
-   * expressed in body radii rather than absolute units so it holds for any destination;
-   * the multipliers reproduce the 1.6-5.5 range this was originally tuned to for the Moon.
+   * expressed in body radii rather than absolute units so it holds for any destination.
+   *
+   * The numerator was 4.2, which put the camera about 9.6 body-radii out and left the
+   * Moon a small ball in the middle of the screen. The orbit controller would let a child
+   * reach 2.2 radii, where the real surface maps are genuinely worth looking at — but
+   * nothing on screen says "pinch", so nobody ever got there and the best-looking thing
+   * in the project went unseen. Arriving close is what makes the destination a *place*.
+   *
+   * 1.4 lands at ~3.2 radii: the body fills roughly two thirds of the frame height and
+   * still sits whole inside it, with room for the ship alongside. The lower clamp is 2.4
+   * rather than tighter because OrbitInput's own floor is max(MIN_ORBIT_DISTANCE,
+   * 2.1 radii) — arriving inside that would snap the camera outward the moment the
+   * flight handed control back.
    */
   function arrivalDistance(radius: number): number {
     return THREE.MathUtils.clamp(
-      (radius * 4.2) / Math.sin(halfFov()),
-      radius * 5.9,
-      radius * 20.4,
+      (radius * 1.4) / Math.sin(halfFov()),
+      radius * 2.4,
+      radius * 6.5,
     );
   }
 
@@ -155,17 +166,29 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       .addScaledVector(UP, 0.18)
       .normalize();
     const radius = destination.radius;
-    endCamera.copy(targetPosition).addScaledVector(endDirection, arrivalDistance(radius));
+    const framing = arrivalDistance(radius);
+    endCamera.copy(targetPosition).addScaledVector(endDirection, framing);
 
-    // Park the ship on the camera's side of the body but well off to one side, so it
-    // frames next to the destination rather than eclipsing it.
+    // Park the ship off the destination's lower limb, so it frames next to the body
+    // rather than eclipsing it.
+    //
+    // Fractions of the *arrival distance*, not of the body's radius. Tied to the radius
+    // (the old 2.4 / 3.2 / 1.0) the ship ended up 77 degrees off the view axis once the
+    // camera moved in — entirely off the side of the screen.
+    //
+    // The depth term is slightly negative, putting the ship a little *beyond* the body
+    // rather than in front of it. The ship is a fixed size in world units, so halving the
+    // camera's distance to the destination doubles the ship on screen; parking it past
+    // the body buys back some of that, and the lateral term is wide enough to clear the
+    // limb so it is still plainly visible out there.
+    // Also read by the flight itself, which turns the ship onto this axis as it arrives.
     lateral.crossVectors(endDirection, UP).normalize();
-    const from = ship.group.position.clone();
     const arrival = targetPosition
       .clone()
-      .addScaledVector(endDirection, radius * 2.4)
-      .addScaledVector(lateral, -radius * 3.2)
-      .addScaledVector(UP, -radius);
+      .addScaledVector(endDirection, -framing * 0.12)
+      .addScaledVector(lateral, -framing * 0.58)
+      .addScaledVector(UP, -framing * 0.25);
+    const from = ship.group.position.clone();
 
     heading.subVectors(arrival, from);
     const span = heading.length();

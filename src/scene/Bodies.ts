@@ -269,10 +269,13 @@ function createOrbitingBody(options: {
 export async function createWorld(quality: QualitySettings): Promise<World> {
   const group = new THREE.Group();
   const segments = quality.sphereSegments;
-  const moonSegments: [number, number] = [
-    Math.max(20, Math.round(segments[0] * 0.6)),
-    Math.max(10, Math.round(segments[1] * 0.6)),
-  ];
+  // The Moon and Mars used to be built at 0.6 of Earth's tessellation, on the reasoning
+  // that they are smaller and further away. The flight now arrives at about 3.2 body
+  // radii instead of 9.6, and at that range they are the largest thing on screen: 0.6 of
+  // medium is 29 segments around, which draws a visibly faceted, polygonal limb against
+  // the star field. They are destinations, so they get the same budget Earth does — a
+  // sphere is a rounding error next to the bloom pass either way.
+  const moonSegments: [number, number] = [segments[0], segments[1]];
 
   // Earth's colour and roughness are resolved together: the generated pair are cut from
   // one noise field, so mixing a real photo with a generated roughness map would put the
