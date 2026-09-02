@@ -45,8 +45,25 @@ export interface CelestialBody {
   radius: number;
   /** Object whose world position is the centre of the body. */
   anchor: THREE.Object3D;
+  /**
+   * The textured sphere itself. Anything parented to this is fixed to the map, which is
+   * what lets a marker be *on* a named feature rather than near one; its rotation about
+   * Y is the body's own turn, and nothing above it in the chain turns.
+   */
+  surface: THREE.Object3D;
   /** Invisible, generously sized sphere used for tap targeting. */
   hitMesh: THREE.Mesh;
+  /**
+   * Stop the body turning, holding the surface exactly where it is now.
+   *
+   * The surface has to be still to be explored: a marker on a rotating one slides out
+   * from under the finger reaching for it. Held rather than merely slowed, because the
+   * Moon's own rotation is expressed as a counter-turn against its orbit, so leaving
+   * either running leaves the surface moving.
+   */
+  holdSurface(): void;
+  /** Let it turn again, from wherever it was held. */
+  releaseSurface(): void;
   getWorldPosition(target: THREE.Vector3): THREE.Vector3;
 }
 
@@ -252,6 +269,23 @@ function createOrbitingBody(options: {
       map: options.map,
       roughness: options.roughness,
       metalness: 0,
+      /*
+       * A trace of the body's own map, added after shading, so the night side is dim
+       * rather than absolutely black.
+       *
+       * The far side of the Moon is one of the three places a child is sent to find, and
+       * it is 120 degrees round from an arrival that is deliberately on the sunlit side,
+       * which put it in full shadow: the marker glowed there beautifully and the crater it
+       * was marking could not be seen at all. Raising the scene's hemisphere fill would
+       * have done it too, but that also lifts Earth's night side, and the city lights are
+       * only legible because it is dark.
+       *
+       * 0.055 is a twentieth of the map, against a Sun at 2.7 — invisible on the lit side,
+       * and the difference between black and faint relief on the other.
+       */
+      emissiveMap: options.map,
+      emissive: new THREE.Color(0xffffff),
+      emissiveIntensity: 0.055,
     }),
   );
   const ringScale = options.radius * 6.4;
@@ -387,13 +421,28 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
   /* --- Assembly ----------------------------------------------------------- */
 
+  /**
+   * Per-body surface hold. A number is the total turn — the body's own rotation plus
+   * whatever its orbit contributes — that `update` reproduces every frame to leave the
+   * surface stationary in the world while the body itself goes on travelling.
+   */
+  const holds: Partial<Record<BodyId, number>> = {};
+
   const bodies: Record<BodyId, CelestialBody> = {
     earth: {
       id: 'earth',
       label: 'Earth',
       radius: EARTH_RADIUS,
       anchor: earthAnchor,
+      surface: earthMesh,
       hitMesh: earthHit,
+      // Earth sits at the origin, so its own rotation is the whole of its turn.
+      holdSurface: () => {
+        holds.earth = earthMesh.rotation.y;
+      },
+      releaseSurface: () => {
+        delete holds.earth;
+      },
       getWorldPosition: (target) => earthAnchor.getWorldPosition(target),
     },
     moon: {
@@ -401,7 +450,16 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       label: 'The Moon',
       radius: MOON_RADIUS,
       anchor: moon.anchor,
+      surface: moon.mesh,
       hitMesh: moon.hit,
+      // The Moon's mesh already counter-turns its orbit to stay tidally locked, so the
+      // held value is the offset that counter-turn is carrying — not the raw rotation.
+      holdSurface: () => {
+        holds.moon = moon.mesh.rotation.y + moon.spin.rotation.y;
+      },
+      releaseSurface: () => {
+        delete holds.moon;
+      },
       getWorldPosition: (target) => moon.anchor.getWorldPosition(target),
     },
     mars: {
@@ -409,7 +467,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       label: 'Mars',
       radius: MARS_RADIUS,
       anchor: mars.anchor,
+      surface: mars.mesh,
       hitMesh: mars.hit,
+      holdSurface: () => {
+        holds.mars = mars.mesh.rotation.y + mars.spin.rotation.y;
+      },
+      releaseSurface: () => {
+        delete holds.mars;
+      },
       getWorldPosition: (target) => mars.anchor.getWorldPosition(target),
     },
   };
@@ -440,19 +505,33 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
     reset() {
       orbitSpeedScale = 1;
+      // A backstop, not the normal path: whoever called holdSurface releases it, and the
+      // mission does. This is here because a hold that outlives its owner leaves a planet
+      // frozen for the rest of the session, which is a bad enough failure to guard twice.
+      // Deliberately not wound back to where the surface would have got to — the bodies
+      // have kept moving, and pretending otherwise would spin one of them on the spot.
+      for (const id of Object.keys(holds) as BodyId[]) delete holds[id];
       setSelected(null);
     },
 
     update(dt: number, elapsed: number, camera: THREE.Camera) {
-      earthMesh.rotation.y += EARTH_SPIN * dt;
+      // A held body subtracts its orbit back out, so the surface stays put in the world
+      // while the body itself keeps travelling. Earth has no orbit to subtract.
+      const earthHold = holds.earth;
+      if (earthHold === undefined) earthMesh.rotation.y += EARTH_SPIN * dt;
+      else earthMesh.rotation.y = earthHold;
 
       moon.spin.rotation.y += MOON_ORBIT_SPEED * orbitSpeedScale * dt;
+      const moonHold = holds.moon;
       // Keep the same face toward Earth, the way the real Moon does.
-      moon.mesh.rotation.y = -moon.spin.rotation.y + MOON_SPIN * elapsed;
+      moon.mesh.rotation.y =
+        -moon.spin.rotation.y + (moonHold ?? MOON_SPIN * elapsed);
 
       mars.spin.rotation.y += MARS_ORBIT_SPEED * orbitSpeedScale * dt;
+      const marsHold = holds.mars;
       // Mars is tidally locked to nothing here, so it simply turns on its own axis.
-      mars.mesh.rotation.y = MARS_SPIN * elapsed;
+      mars.mesh.rotation.y =
+        marsHold === undefined ? MARS_SPIN * elapsed : marsHold - mars.spin.rotation.y;
 
       const pulse = 1 + Math.sin(elapsed * 3.2) * 0.05;
       for (const [, ring, scale] of rings) {

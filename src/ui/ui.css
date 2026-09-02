@@ -264,8 +264,35 @@ body {
   padding: 1.3rem 1.4rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  /* So the discovery's name can take a full row of its own above the text and the
+     speaker button, which stay side by side on the row beneath it. */
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
   text-align: left;
+}
+
+.fact-title {
+  width: 100%;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: #ffd89a;
+}
+
+/* Folded away to just its speaker button, giving the destination the screen back.
+   width:auto is what actually shrinks it: the card is a full-width dock child, so
+   hiding the words alone would have left a full-width empty panel behind. */
+.fact-card.is-collapsed {
+  width: auto;
+  align-self: center;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.fact-card.is-collapsed .fact-title,
+.fact-card.is-collapsed p {
+  display: none;
 }
 
 .fact-card p {

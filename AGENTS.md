@@ -56,7 +56,7 @@ src/
     textures.ts             load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts    drag to rotate, pinch/wheel to zoom
   flight/FlightSequence.ts  the scripted flight out to any destination
-  mission/CollectMission.ts the collectibles, for any body
+  mission/CollectMission.ts the real places to find, for any body
   ui/                       ui.ts, ui.css, icons.ts
   audio/narration.ts        SpeechSynthesis wrapper — see "Known weak spot"
   audio/sfx.ts              two synthesised cues, no audio files
@@ -95,11 +95,46 @@ two independent `resolveTexture` calls.
 **Rendering always goes through `EffectComposer`**, even when bloom is off, so tone mapping
 and colour conversion happen in one place for every material including the custom shaders.
 
-**Collecting is ambient, not modal.** The rocks are simply present on arrival; there is no
+**Finding is ambient, not modal.** The markers are simply present on arrival; there is no
 button to start a mission and nothing to finish before leaving. *Fly Home* is on screen
 from arrival onward and never moves. This was a deliberate reversal — the mission used to
 be a mode whose only signposted exit was completing it, which made "how do I get back?" the
 most common reaction to the game.
+
+**The places are real, and so are their coordinates.** `Discovery` in `config.ts` carries a
+genuine latitude and longitude, and `surfaceDirection` puts the marker there on the body's
+own surface mesh. The ring is therefore *on* the feature in the actual NASA map. Do not
+"simplify" this back into positions chosen relative to the camera — that was the previous
+design, and a rock that could be anywhere is exactly what made finding one teach nothing.
+
+**Two things about an arrival are free, and both are spent on the discoveries.** The body's
+rotation about its own axis (`facingLongitude`) brings the near ones round to the camera,
+and the flight's arrival latitude (`facingLatitude`, passed into `start()`) swings the
+camera to the band they sit in. Neither moves a feature relative to another. Without the
+second one the Sun dominates the arrival direction, the camera looks down from 33 degrees
+up, and everything near the equator projects onto the bottom limb underneath the dock.
+
+**The last discovery in the list is the hidden one**, past the limb, so reaching it needs a
+drag. There is a bound on *how far* past: much beyond ~130 degrees is half a turn of
+dragging over an unlit hemisphere, which a small child gives up on. Both halves of that are
+tested, because both have been got wrong.
+
+**A visited body's surface is held still.** `holdSurface()` freezes it; the mission calls
+it in `build()` and releases it in `teardown()`. Markers are children of the surface mesh,
+and a turning one carries them out from under a child's finger. The Moon needs both its
+spin and its orbit-compensating counter-turn stopped, which is why the hold stores the sum
+rather than the raw rotation.
+
+**Only one fold timer for the fact card.** Facts overlap — finding a place replaces the
+arrival fact, and completing a body queues the success line behind the last discovery — and
+a stale timer from the previous fact will otherwise close the new one. There is also a
+floor on how briefly a fact can be shown: speech that fails reports itself finished
+immediately, and the fold hangs off the end of the reading.
+
+**The journal holds discoveries, not stickers.** `JOURNAL_SLOTS` is 6 and there are exactly
+six places to find, so a child who does everything fills it. It used to hold the two
+stickers, which left it two-thirds question marks for someone who had finished the game.
+Stickers are still earned and still celebrated; they just are not what the grid shows.
 
 **Visits and stickers are different facts.** `progress.ts` tracks both. The opening shot
 widens to take in Mars once the Moon has been *visited*, not once its collection is
@@ -192,25 +227,22 @@ Ordered. The reasoning matters more than the order.
    Fly button appears — a child's first instinct is to tap their own planet and the game
    says no. Earth also has the best assets in the project (day map, night lights,
    atmosphere) and you currently can only glimpse them from the title screen. Costs a
-   config entry and a decision about what "home" means when you are already there.
+   config entry, three `Discovery` entries, and a decision about what "home" means when you
+   are already there. The city lights on the night side are the obvious one to send a child
+   looking for, and the arrival already aims at whatever latitude they sit at.
 
-2. **Turn collecting into discovering.** `CollectMission` already places objects at chosen
-   angles around any body, with one deliberately past the limb so finding it requires a
-   drag — that is the smartest thing in the codebase and it teaches camera control through
-   need. Keep all of it; change the payoff so a found object *tells you something* that
-   goes into the journal, instead of ticking a counter. Requires `fact: string` to become a
-   list. This is the change that gives exploring a reward and gives the journal something
-   to hold: `JOURNAL_SLOTS` is 6 and only two stickers exist, so a child who does
-   everything sees a journal that is two-thirds question marks.
-
-3. **Give the flight sound.** `sfx.ts` has exactly two cues, both fired by the mission. The
+2. **Give the flight sound.** `sfx.ts` has exactly two cues, both fired by the mission. The
    flight is the best-looking part of the game and is completely silent. A synthesised
    thruster driven by the same throttle value the trail already uses needs no audio files.
 
-4. **Then add a planet.** Cheap by design, which is why it can wait — today it multiplies
-   one activity by three. After (2) it multiplies a real one. Saturn over Venus: the rings
-   are the most recognisable object in the solar system to a small child, and a torus is
-   trivial geometry.
+3. **Then add a planet.** Cheap by design: a config entry with three real places on it, and
+   a body. Saturn over Venus — the rings are the most recognisable object in the solar
+   system to a small child, and a torus is trivial geometry. Check the new discovery list
+   against `CollectMission.test.ts`, which covers every destination automatically.
+
+Done since this file was written: collecting became discovering (real places at real
+coordinates, each telling you something that goes in the journal), and the flight now
+arrives about three body-radii out instead of nine and a half.
 
 Not yet in scope: real orbital physics, planets past Mars, downloaded models.
 

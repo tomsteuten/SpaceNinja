@@ -27,8 +27,14 @@ export type FlightPhase = 'idle' | 'flying' | 'arrived';
 
 export interface FlightSequence {
   readonly phase: FlightPhase;
-  /** No-op unless idle. Returns true if the flight actually began. */
-  start(destination: CelestialBody): boolean;
+  /**
+   * No-op unless idle. Returns true if the flight actually began.
+   *
+   * `aimLatitude` (degrees) is the latitude to arrive over. The caller passes the one the
+   * destination's own discoveries sit at, because the flight deliberately knows nothing
+   * about them — only where to point.
+   */
+  start(destination: CelestialBody, aimLatitude?: number): boolean;
   /**
    * Back to idle, ready to fly again. Only the sequence's own state — the ship, the
    * world and the camera are restored by their own resets, from the same caller.
@@ -151,7 +157,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     );
   }
 
-  function buildPath(destination: CelestialBody) {
+  function buildPath(destination: CelestialBody, aimLatitude?: number) {
     destination.getWorldPosition(targetPosition);
     home.getWorldPosition(homePosition);
 
@@ -165,6 +171,16 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       .addScaledVector(axis, -0.5)
       .addScaledVector(UP, 0.18)
       .normalize();
+
+    // Then swing it to the latitude the destination's own places sit at, keeping the
+    // bearing the Sun just chose. The Sun is 33 degrees up, so left alone this arrives
+    // looking down on the body and everything near its equator projects onto the bottom
+    // limb. Only the elevation moves, so the arrival is still on the lit side.
+    if (aimLatitude !== undefined) {
+      const horizontal = Math.hypot(endDirection.x, endDirection.z);
+      endDirection.y = Math.tan(THREE.MathUtils.degToRad(aimLatitude)) * horizontal;
+      endDirection.normalize();
+    }
     const radius = destination.radius;
     const framing = arrivalDistance(radius);
     endCamera.copy(targetPosition).addScaledVector(endDirection, framing);
@@ -185,9 +201,9 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     lateral.crossVectors(endDirection, UP).normalize();
     const arrival = targetPosition
       .clone()
-      .addScaledVector(endDirection, -framing * 0.12)
-      .addScaledVector(lateral, -framing * 0.58)
-      .addScaledVector(UP, -framing * 0.25);
+      .addScaledVector(endDirection, -framing * 0.35)
+      .addScaledVector(lateral, -framing * 0.72)
+      .addScaledVector(UP, -framing * 0.24);
     const from = ship.group.position.clone();
 
     heading.subVectors(arrival, from);
@@ -233,14 +249,14 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       return phase;
     },
 
-    start(destination: CelestialBody) {
+    start(destination: CelestialBody, aimLatitude?: number) {
       if (phase !== 'idle') return false;
       phase = 'flying';
       target = destination;
       progress = 0;
 
       scene.attach(ship.group);
-      buildPath(destination);
+      buildPath(destination, aimLatitude);
 
       controls.enabled = false;
       world.setOrbitSpeedScale(0);

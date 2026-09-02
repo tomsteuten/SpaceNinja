@@ -6,6 +6,7 @@
  */
 
 import type { Narrator } from '../audio/narration';
+import { DISCOVERIES, type Discovery } from '../config';
 import { JOURNAL_SLOTS, STICKERS, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup } from './icons';
 
@@ -28,6 +29,8 @@ export interface GameUI {
    */
   beginMission(caption: string, total: number): void;
   setMissionCaption(text: string): void;
+  /** A place has been found: name it, read it out and put it in the journal. */
+  showDiscovery(discovery: Discovery): void;
   /** Fills `collected` of the slots. */
   setMissionProgress(collected: number): void;
   /**
@@ -122,12 +125,15 @@ export function createUI(options: UIOptions): GameUI {
   flyButton.classList.add('is-hidden');
 
   const factCard = el('div', 'panel fact-card');
+  // Named above the text rather than inside it: a child who cannot read the paragraph can
+  // still match three words against the ring they just tapped.
+  const factTitle = el('strong', 'fact-title');
   const factText = el('p');
   const narrateButton = el('button', 'btn btn--round narrate-btn');
   narrateButton.append(createIcon('speaker'));
   narrateButton.type = 'button';
   narrateButton.setAttribute('aria-label', 'Read this out loud');
-  factCard.append(factText, narrateButton);
+  factCard.append(factTitle, factText, narrateButton);
   factCard.classList.add('is-hidden');
 
   /**
@@ -172,18 +178,22 @@ export function createUI(options: UIOptions): GameUI {
 
   function renderJournal() {
     stickerGrid.replaceChildren();
-    const earned = loadProgress().stickers;
-    for (const id of earned) {
-      const definition = STICKERS[id];
-      if (!definition) continue;
-      const sticker = el('div', 'sticker');
-      sticker.append(
-        el('div', undefined, definition.emoji),
-        el('span', undefined, definition.label),
+    const found = loadProgress().discoveries;
+    let filled = 0;
+    for (const id of found) {
+      const discovery = DISCOVERIES[id];
+      // A discovery that no longer exists — an id retired between releases — is skipped
+      // rather than shown blank, and its slot goes back to being a question mark.
+      if (!discovery) continue;
+      const tile = el('div', 'sticker');
+      tile.append(
+        el('div', undefined, discovery.emoji),
+        el('span', undefined, discovery.name),
       );
-      stickerGrid.append(sticker);
+      stickerGrid.append(tile);
+      filled++;
     }
-    for (let i = earned.length; i < JOURNAL_SLOTS; i++) {
+    for (let i = filled; i < JOURNAL_SLOTS; i++) {
       stickerGrid.append(el('div', 'sticker sticker--empty', '?'));
     }
   }
@@ -214,13 +224,35 @@ export function createUI(options: UIOptions): GameUI {
   });
 
   let currentFact = '';
+  // Tapping the words puts them away. The card is wide and the destination is now close
+  // enough to fill the frame behind it, so a place worth finding can end up underneath it
+  // — and a tap that lands on the card instead of on the ring it is covering has to do
+  // something. Folding is the something: the next tap reaches the ring.
+  factCard.addEventListener('click', (event) => {
+    if (event.target instanceof Element && event.target.closest('.narrate-btn')) return;
+    // Advances rather than simply closing, so a tap during a discovery still gets to the
+    // completion line that was queued behind it.
+    factTimeUp();
+  });
+
   narrateButton.addEventListener('click', () => {
-    if (narrator.speaking) narrator.stop();
-    else if (currentFact) narrator.speak(currentFact);
+    if (narrator.speaking) {
+      narrator.stop();
+    } else if (currentFact) {
+      // Unfolds the card as well as reading it, so the speaker is how you get the words
+      // back on screen — one button, doing the one thing a child would expect of it.
+      factCard.classList.remove('is-collapsed');
+      factShownAt = Date.now();
+      narrator.speak(currentFact);
+      scheduleCollapse(11000);
+    }
   });
   narrator.onChange((speaking) => {
     narrateButton.classList.toggle('is-speaking', speaking);
     narrateButton.setAttribute('aria-label', speaking ? 'Stop reading' : 'Read this out loud');
+    // Fold away shortly after the reading finishes rather than on a fixed timer, so the
+    // card is never taken away mid-sentence.
+    if (!speaking) scheduleCollapse(1600);
   });
   if (!narrator.available) narrateButton.classList.add('is-hidden');
 
@@ -261,12 +293,75 @@ export function createUI(options: UIOptions): GameUI {
     hint.style.opacity = text ? '1' : '0';
   }
 
-  function showFact(text: string) {
+  /**
+   * The card folds itself away once it has been read, leaving only its speaker button.
+   *
+   * It used to stay up for the rest of the visit, and it is wide: at the old arrival
+   * distance the destination was a small ball above it and that cost nothing, but the
+   * flight now arrives close enough for the body to fill the frame, and a card across the
+   * bottom third was sitting on top of the very places the child is being asked to find.
+   * Two of the Moon's three were underneath it.
+   */
+  /**
+   * A fact waiting for the card, shown when the one on screen has had its time.
+   *
+   * Exists for exactly one case: the last place on a body is found, and the completion
+   * line wants the card a second later. Shown immediately it replaced the discovery that
+   * had just been earned — so the one find that actually required the drag was the one
+   * whose story got cut off after a second, which is precisely backwards.
+   */
+  let pendingFact: { text: string; title?: string } | null = null;
+
+  /** The fact on screen has had its time: hand over to the next one, or fold away. */
+  function factTimeUp() {
+    const next = pendingFact;
+    if (next) {
+      pendingFact = null;
+      showFact(next.text, next.title);
+      return;
+    }
+    if (!currentFact) return;
+    factCard.classList.add('is-collapsed');
+  }
+
+  /**
+   * One pending fold at a time.
+   *
+   * Deliberately not `later()`: these overlap. Finding a place while the arrival fact is
+   * still up replaces the words in the card, and the arrival's fold was already in flight
+   * — it fired a second later and shut the discovery away before it had been read.
+   */
+  let collapseTimer = 0;
+  let factShownAt = 0;
+  /**
+   * How long a fact is guaranteed to stay up, however the reading went.
+   *
+   * Speech that fails reports itself as finished immediately — no voices installed, an
+   * error, a platform that refuses outside a gesture — and the fold is hung off the end of
+   * the reading, so without a floor the card appeared and vanished inside two seconds.
+   * Long enough here for an adult to read the longest fact aloud themselves.
+   */
+  const FACT_MINIMUM_MS = 6500;
+
+  function scheduleCollapse(delay: number) {
+    window.clearTimeout(collapseTimer);
+    const held = Math.max(delay, FACT_MINIMUM_MS - (Date.now() - factShownAt));
+    collapseTimer = window.setTimeout(factTimeUp, Math.max(0, held));
+    timers.push(collapseTimer);
+  }
+
+  function showFact(text: string, title?: string) {
     currentFact = text;
+    factShownAt = Date.now();
+    factTitle.textContent = title ?? '';
+    factTitle.classList.toggle('is-hidden', !title);
     factText.textContent = text;
-    factCard.classList.remove('is-hidden');
+    factCard.classList.remove('is-hidden', 'is-collapsed');
     factCard.classList.add('fade-in');
     narrator.speak(text);
+    // A backstop for the common case where there is no narration at all to wait for —
+    // and long enough for an adult to read the longest fact out themselves if there is.
+    scheduleCollapse(11000);
   }
 
   return {
@@ -329,6 +424,14 @@ export function createUI(options: UIOptions): GameUI {
       narrator.speak(text);
     },
 
+    showDiscovery(discovery: Discovery) {
+      // Straight into the fact card, which reads it aloud. This is the whole payoff for
+      // going and looking: the old collectible answered a tap with a counter going up.
+      showFact(discovery.fact, discovery.name);
+      journalButton.setAttribute('data-new', 'true');
+      if (journalOpen) renderJournal();
+    },
+
     setMissionProgress(collected: number) {
       for (const [index, slot] of slots.entries()) {
         const filled = index < collected;
@@ -343,7 +446,10 @@ export function createUI(options: UIOptions): GameUI {
       missionHud.classList.add('is-hidden');
       missionHud.classList.remove('fade-in-centred');
       namePill.classList.remove('is-hidden');
-      showFact(successLine);
+      // Behind the last discovery rather than over it. The sticker and the chime land now;
+      // the words wait their turn.
+      if (currentFact) pendingFact = { text: successLine };
+      else showFact(successLine);
       // The way home has been on screen throughout and stays exactly where it was. It
       // does not need promoting here — finishing is not the moment a child is looking
       // for the exit, and moving it now would teach that it moves.
@@ -374,6 +480,11 @@ export function createUI(options: UIOptions): GameUI {
       renderJournal();
 
       currentFact = '';
+      pendingFact = null;
+      window.clearTimeout(collapseTimer);
+      factCard.classList.remove('is-collapsed');
+      factTitle.textContent = '';
+      factTitle.classList.add('is-hidden');
       factText.textContent = '';
       missionHud.classList.add('is-hidden');
       slotRow.replaceChildren();

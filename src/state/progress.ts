@@ -18,10 +18,23 @@ export const STICKERS: Record<string, StickerDefinition> = {
   'mars-explorer': { id: 'mars-explorer', emoji: '🔴', label: 'Mars Explorer' },
 };
 
-/** Empty slots shown alongside earned stickers, so the journal looks like a collection. */
+/**
+ * Empty slots shown alongside what has been found, so the journal looks like a collection
+ * with more to go rather than a short list.
+ *
+ * It holds discoveries now, not stickers. There were two stickers and six slots, so a
+ * child who had done everything in the game still saw a journal that was two thirds
+ * question marks; there are exactly six real places to find, so finishing now fills it.
+ */
 export const JOURNAL_SLOTS = 6;
 
 export interface Progress {
+  /**
+   * Places found, by discovery id, in the order they were found. This is what the
+   * journal shows: a list of things the child went and looked at, rather than a count of
+   * how many times they finished a tapping game.
+   */
+  discoveries: string[];
   /** Collections finished. */
   stickers: string[];
   /**
@@ -42,7 +55,7 @@ export interface Progress {
  * rest of the session.
  */
 function empty(): Progress {
-  return { stickers: [], visited: [] };
+  return { discoveries: [], stickers: [], visited: [] };
 }
 
 /** Anything that is not an array of strings is treated as absent rather than trusted. */
@@ -59,8 +72,10 @@ function read(): Progress {
     if (typeof parsed !== 'object' || parsed === null) return empty();
     const record = parsed as Partial<Progress>;
     return {
+      // Absent in saves written before there was anything to discover, and in saves
+      // written before visits were tracked. Both simply mean "none yet".
+      discoveries: stringList(record.discoveries),
       stickers: stringList(record.stickers),
-      // Absent in saves written before visits were tracked, which is simply "nowhere yet".
       visited: stringList(record.visited),
     };
   } catch {
@@ -85,6 +100,15 @@ export function awardSticker(id: string): boolean {
   const progress = read();
   if (progress.stickers.includes(id)) return false;
   progress.stickers.push(id);
+  write(progress);
+  return true;
+}
+
+/** Records a find. Returns true the first time this place is found, so it lands once. */
+export function recordDiscovery(id: string): boolean {
+  const progress = read();
+  if (progress.discoveries.includes(id)) return false;
+  progress.discoveries.push(id);
   write(progress);
   return true;
 }

@@ -108,9 +108,36 @@ export const FLIGHT_DURATION_REDUCED = 1.4;
 export const WIDE_FRAMING_VISIT = 'moon';
 
 /**
+ * A real place on a real body, at its real coordinates.
+ *
+ * These are not decorations scattered over the surface: `lat`/`lon` are the actual
+ * selenographic or areographic coordinates of the feature, and the marker is placed from
+ * them, so what a child taps really is sitting on Tycho's ray system or on the volcano.
+ * That is the whole point of the change from collectibles — a rock could be anywhere and
+ * therefore taught nothing about where you were.
+ *
+ * Order matters. Every entry but the last is expected to be facing the camera on arrival;
+ * the last is the one deliberately left over the horizon, so reaching it needs a drag.
+ * See `placementAngles`, which turns these into view angles, and its test.
+ */
+export interface Discovery {
+  /** Stable key. Written into the journal, so renaming one forgets a child's find. */
+  id: string;
+  /** Child-facing name. Plain English beats the catalogue name at this age. */
+  name: string;
+  /** Shown in the journal grid. */
+  emoji: string;
+  /** Degrees north, and degrees east, on the body itself. */
+  lat: number;
+  lon: number;
+  /** Told on discovery, and kept in the journal. */
+  fact: string;
+}
+
+/**
  * Everything a destination needs that is words rather than geometry. The bodies
- * themselves are built in Bodies.ts and matched up by id in main.ts; the collect
- * mission is generic and takes the body at runtime, so only the copy lives here.
+ * themselves are built in Bodies.ts and matched up by id in main.ts; the mission is
+ * generic and takes the body at runtime, so only the copy lives here.
  */
 export interface DestinationConfig {
   /** Text on the button that launches the flight. */
@@ -118,28 +145,69 @@ export interface DestinationConfig {
   /** Read aloud on arrival. */
   fact: string;
   mission: {
-    count: number;
-    label: string;
     instruction: string;
     huntLine: string;
     successLine: string;
     stickerId: string;
+    /** How many there are to find is simply how many there are. */
+    discoveries: Discovery[];
   };
 }
 
 export const DESTINATIONS: Record<string, DestinationConfig> = {
   moon: {
     flyLabel: 'Fly to the Moon',
+    // The footprints used to be this line. They belong to a *place*, so they moved down
+    // into it — an arrival fact is about the whole world, and this one now is.
     fact:
-      'There is no wind and no rain on the Moon. So the footprints the astronauts left ' +
-      'there are still exactly where they stepped!',
+      'The Moon has no air and no weather at all. Nothing moves here, and there is ' +
+      'nothing to carry a sound, so it is the quietest place there is.',
     mission: {
-      count: 3,
-      label: 'Collect Moon Rocks',
-      instruction: 'Tap the glowing moon rocks!',
+      instruction: 'Three places to find down there!',
       huntLine: 'One more! Drag to spin around the Moon.',
-      successLine: 'You found all the moon rocks! What a brilliant explorer you are.',
+      successLine: 'You found all three! What a brilliant explorer you are.',
       stickerId: 'moon-explorer',
+      discoveries: [
+        {
+          id: 'moon-tranquility',
+          name: 'The First Footprints',
+          emoji: '👣',
+          // Apollo 11, in Mare Tranquillitatis.
+          lat: 0.67,
+          lon: 23.47,
+          fact:
+            'Two astronauts landed right here, the first people ever to stand on the ' +
+            'Moon. With no wind and no rain to wash them away, their footprints are ' +
+            'still exactly where they stepped.',
+        },
+        {
+          id: 'moon-tycho',
+          name: 'The Bright Crater',
+          emoji: '✨',
+          lat: -43.3,
+          lon: -11.4,
+          fact:
+            'A rock crashed into the Moon here and splashed pale dust right across it. ' +
+            'The bright streaks reaching away from this crater are that splash, and it ' +
+            'is called Tycho.',
+        },
+        {
+          // Last, so it is the one over the horizon. Tsiolkovskiy crater, which is
+          // genuinely round the back — the near side runs out at about 90 degrees — but
+          // at 129 rather than at the far side's centre, which would be 180 and a
+          // half-turn of dragging away. Reaching it needs about 50 degrees, the same as
+          // the collectible it replaced.
+          id: 'moon-farside',
+          name: 'The Hidden Side',
+          emoji: '🌑',
+          lat: -20.4,
+          lon: 129.1,
+          fact:
+            'You had to go round the back to find this. The Moon always keeps the same ' +
+            'face turned towards Earth, so nobody had ever seen this side at all until a ' +
+            'spacecraft flew around and took a photograph.',
+        },
+      ],
     },
   },
   mars: {
@@ -148,12 +216,61 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'Mars is red because its dust is full of rust — the same rust that grows on an old ' +
       'bike left out in the rain. The whole planet is a bit rusty!',
     mission: {
-      count: 4,
-      label: 'Collect Mars Rocks',
-      instruction: 'Tap the glowing red rocks!',
+      instruction: 'Three places to find down there!',
       huntLine: 'One more! Drag to spin around Mars.',
-      successLine: 'You found all the Mars rocks! You are a real space explorer now.',
+      successLine: 'You found all three! You are a real space explorer now.',
       stickerId: 'mars-explorer',
+      discoveries: [
+        {
+          id: 'mars-olympus',
+          name: 'The Giant Volcano',
+          emoji: '🌋',
+          lat: 18.65,
+          lon: -133.8,
+          fact:
+            'The biggest volcano in the whole solar system is right here. Olympus Mons ' +
+            'is so wide that if you stood on top of it, its edges would be further away ' +
+            'than the horizon in every direction.',
+        },
+        {
+          id: 'mars-marineris',
+          name: 'The Great Canyon',
+          emoji: '🏜️',
+          lat: -14,
+          lon: -59,
+          fact:
+            'This enormous crack across Mars is called Valles Marineris. It is longer ' +
+            'than Australia is wide, and deep enough to lose a mountain in.',
+        },
+        {
+          // Last, so it is the one over the horizon. Both of the others are in Mars's
+          // western half, so this sits about 117 degrees round from them — far enough to
+          // need the drag, near enough to find it with one. Hellas, the obvious
+          // alternative, is 167 degrees away and most of a turn of dragging.
+          id: 'mars-elysium',
+          name: 'The Other Volcano',
+          emoji: '🌋',
+          lat: 25,
+          lon: 147,
+          fact:
+            'Round the far side of Mars is a second giant volcano, called Elysium Mons. ' +
+            'It is not quite as big as Olympus Mons, but it would still be the tallest ' +
+            'mountain on Earth twice over.',
+        },
+      ],
     },
   },
 };
+
+/**
+ * Every discovery in the game, by id.
+ *
+ * The journal shows what has been found without knowing which destination it came from,
+ * and progress.ts stores bare ids, so both need one flat lookup. Derived rather than
+ * written out, so a new destination cannot be added to the game and forgotten here.
+ */
+export const DISCOVERIES: Record<string, Discovery> = Object.fromEntries(
+  Object.values(DESTINATIONS).flatMap((destination) =>
+    destination.mission.discoveries.map((discovery) => [discovery.id, discovery]),
+  ),
+);

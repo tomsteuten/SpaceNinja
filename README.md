@@ -3,9 +3,11 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). Two destinations so
 far: the Moon, and Mars.
 
-Tap a destination, press **Fly**, watch a small spaceship arc across space and hear a
-fact read aloud. Glowing rocks are waiting on the surface — collect them for a sticker in
-the discovery journal, or just look around and fly home. Either way, having been to the
+Tap a destination, press **Fly**, watch a small spaceship arc across space and arrive
+close enough to see the surface. Three real places are marked on each world — the first
+footprints on the Moon, the volcano on Mars — and finding one tells you about it and puts
+it in the discovery journal. One of the three is always round the back, so getting it
+means learning to drag. Or just look around and fly home. Either way, having been to the
 Moon widens the view far enough to notice Mars.
 
 Built with Vite, TypeScript and Three.js. No backend, no accounts, no build-time assets.
@@ -117,7 +119,7 @@ src/
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
   flight/FlightSequence.ts  the scripted flight out to any destination
-  mission/CollectMission.ts  the collectibles, for any body
+  mission/CollectMission.ts  the places to find, for any body
   ui/                    interface layer (ui.ts + ui.css + icons.ts)
   audio/narration.ts     SpeechSynthesis wrapper, entirely optional
   audio/sfx.ts           two synthesised cues, entirely optional
@@ -173,18 +175,39 @@ the game. **Fly Home** is on screen from arrival onward and never moves. The mis
 exists, still awards its sticker, and still teaches the drag gesture — it just no longer
 holds the door shut.
 
+**The places to find are real places.** Each entry in `config.ts` carries the feature's
+actual latitude and longitude, and the marker is placed from them onto the body's own
+surface mesh — so the ring a child taps really is sitting on Tycho's rays or on Olympus
+Mons, not somewhere plausible. That is the whole difference from the collectibles this
+replaced: a rock could be anywhere, so finding one taught nothing about where you were.
+
+**The body is turned to face them, and the flight aims at them.** Only two things about an
+arrival are free — which way the body happens to have rotated, and which latitude you
+approach over — and both are chosen from the destination's own list. The body turns about
+its own axis to bring the near ones round; the camera swings to the latitude they sit at.
+Neither moves a feature relative to another, so every angle between them stays true. Real
+missions time their arrivals for the same reasons.
+
+**One of them is always over the horizon**, because reaching it needs a drag, which teaches
+the camera control through need rather than through instructions a five-year-old cannot
+read. On the Moon that one is round the far side, where having to go around to see it *is*
+the fact. There is a test for how far round it is: past the limb teaches the gesture, but
+far past it is half a turn of dragging across an unlit hemisphere, which a small child
+abandons.
+
 **The mission knows nothing about the Moon.** `CollectMission` takes a `CelestialBody` and
-derives collectible size, float height, hit-target size and particle scale from its radius,
-so the next destination is a definition object rather than new code. The `config.ts` entry
-holds only the strings and the count. Placement is measured in angles away from wherever
-the camera is looking when the mission starts, and the last collectible is deliberately
-placed past the limb: reaching it needs a drag, which teaches the camera control through
-need rather than through instructions a five-year-old cannot read.
+derives marker size, hit-target size and particle scale from its radius, so the next
+destination is a definition object rather than new code.
 
 **Every stateful module owns a `reset()`**, and `main.ts` is the only caller. That is what
 makes **Fly Home** work without reloading the page — the flight, the ship, the trail, the
 world, the camera, the UI and the mission each undo exactly their own state. The bodies keep
 orbiting throughout, so the Moon is deliberately *not* put back where it was.
+
+**The destination's surface is held still while you are there.** A marker fixed to a
+turning body slides out from under the finger reaching for it, and the Moon's own rotation
+is expressed as a counter-turn against its orbit, so neither one being stopped is enough.
+`holdSurface()` freezes both for the visit and the mission releases it on the way home.
 
 **Sound is synthesised and optional by design.** Two cues, no audio files. The AudioContext
 is created from the Fly button press, because mobile browsers start audio suspended and
@@ -201,5 +224,9 @@ cut, removes camera inertia, and stops the UI animations.
 
 ## Not yet
 
-No planets past Mars, no fly-back-to-Earth, no ambient or thruster sound, no downloaded
-models, and no real orbital physics. Those are deliberately still out of scope.
+No planets past Mars, no Earth as a destination, no ambient or thruster sound, no
+downloaded models, and no real orbital physics. Those are deliberately still out of scope.
+
+The read-aloud voice is the browser's own `SpeechSynthesis`, which sounds different and
+mostly poor on every platform. Replacing it with pre-generated audio is the one known
+weak spot — see the notes in `AGENTS.md`.

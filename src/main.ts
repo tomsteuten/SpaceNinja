@@ -23,11 +23,15 @@ import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
-import { createCollectMission, type CollectMission } from './mission/CollectMission';
+import {
+  createCollectMission,
+  facingLatitude,
+  type CollectMission,
+} from './mission/CollectMission';
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
-import { awardSticker, loadProgress, markVisited } from './state/progress';
+import { awardSticker, loadProgress, markVisited, recordDiscovery } from './state/progress';
 
 const boot = document.getElementById('boot');
 
@@ -95,7 +99,13 @@ async function main() {
     narrator,
     onFly: () => {
       const destination = selected ? world.bodies[selected] : null;
-      if (!destination || !flight.start(destination)) return;
+      if (!destination) return;
+      // The flight is told which latitude to arrive over; it does not know why. Matching
+      // destinations to their copy is this file's job, exactly as it is for the fact and
+      // the mission.
+      const discoveries = DESTINATIONS[destination.id]?.mission.discoveries;
+      const aim = discoveries ? facingLatitude(discoveries) : undefined;
+      if (!flight.start(destination, aim)) return;
       // The first reliable user gesture of the session, and the last one before the ship
       // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
       // suspended and only let it resume inside a gesture like this one.
@@ -127,13 +137,13 @@ async function main() {
       if (!config) return;
       ui.showArrival(destination.label, config.fact);
 
-      // The rocks are simply part of the place, put there on arrival rather than behind a
-      // button. Nothing waits on them: the child can look, collect, or fly home.
+      // The places to find are simply part of the destination, marked on arrival rather
+      // than behind a button. Nothing waits on them: the child can look, find, or fly home.
       const mission = missions[destination.id];
       if (!mission) return;
       activeMission = mission;
       mission.start();
-      ui.beginMission(mission.definition.instruction, mission.definition.count);
+      ui.beginMission(mission.definition.instruction, mission.definition.discoveries.length);
     },
   });
 
@@ -152,11 +162,16 @@ async function main() {
       camera,
       quality: stage.quality,
       reducedMotion,
-      onCollect: (collected, total) => {
-        sfx.collect(collected - 1, total);
-        ui.setMissionProgress(collected);
+      onCollect: (discovery, found, total) => {
+        sfx.collect(found - 1, total);
+        ui.setMissionProgress(found);
+        recordDiscovery(discovery.id);
+        // What the place is, read out, replacing the arrival fact in the same card. The
+        // hunt line would talk over it, so it waits for the last one instead — and when
+        // it is the last one, the success line is already about to say the same thing.
+        ui.showDiscovery(discovery);
         // Only the hidden one left: name the gesture now that the child needs it.
-        if (collected === total - 1) ui.setMissionCaption(config.mission.huntLine);
+        if (found === total - 1) ui.setMissionCaption(config.mission.huntLine);
       },
       onComplete: () => {
         sfx.success();
