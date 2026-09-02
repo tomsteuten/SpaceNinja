@@ -20,6 +20,7 @@ import { WebGLUnavailableError, createStage } from './scene/Stage';
 import { createSky } from './scene/Starfield';
 import { createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
+import { createEngineTrail } from './scene/EngineTrail';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createCollectMission, type CollectMission } from './mission/CollectMission';
@@ -58,6 +59,11 @@ async function main() {
 
   const ship = createSpaceship();
   scene.add(ship.group);
+
+  // World space, not parented to the ship: exhaust has to stay where it was laid down
+  // while the ship flies on. Sized off the quality tier like every other particle count.
+  const trail = createEngineTrail(stage.quality.tier === 'low' ? 24 : 46);
+  scene.add(trail.group);
 
   /**
    * The opening shot only takes in Earth and the Moon until the Moon mission is done.
@@ -111,6 +117,7 @@ async function main() {
     camera,
     scene,
     ship,
+    trail,
     world,
     controls,
     home: world.bodies.earth,
@@ -242,6 +249,8 @@ async function main() {
     // back before the ship can restore its own parked transform.
     scene.attach(ship.group);
     ship.reset();
+    // Or the last flight's exhaust hangs in space, still out at the destination.
+    trail.reset();
     world.reset();
 
     controls.reset();
@@ -264,6 +273,7 @@ async function main() {
   stage.onFrame((dt, elapsed) => {
     sky.update(dt);
     world.update(dt, elapsed, camera);
+    trail.update(dt);
     activeMission?.update(dt, elapsed);
 
     if (flight.phase === 'idle') {
@@ -321,6 +331,7 @@ async function main() {
     sfx.dispose();
     for (const mission of Object.values(missions)) mission.dispose();
     ship.dispose();
+    trail.dispose();
     world.dispose();
     sky.dispose();
     stage.dispose();

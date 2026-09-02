@@ -14,7 +14,14 @@ import * as THREE from 'three';
 import type { OrbitInput } from '../controls/OrbitInput';
 import type { Spaceship } from '../scene/Spaceship';
 import type { CelestialBody, World } from '../scene/Bodies';
-import { FLIGHT_DURATION, FLIGHT_DURATION_REDUCED, SUN_DIRECTION } from '../config';
+import type { EngineTrail } from '../scene/EngineTrail';
+import {
+  FLIGHT_DURATION,
+  FLIGHT_DURATION_REDUCED,
+  FLIGHT_FOV_PUNCH,
+  SUN_DIRECTION,
+  fovForAspect,
+} from '../config';
 
 export type FlightPhase = 'idle' | 'flying' | 'arrived';
 
@@ -34,6 +41,8 @@ export interface FlightOptions {
   camera: THREE.PerspectiveCamera;
   scene: THREE.Scene;
   ship: Spaceship;
+  /** Exhaust. Owned by the caller like the ship is; the flight only feeds it. */
+  trail: EngineTrail;
   world: World;
   controls: OrbitInput;
   /** Where the ship departs from. The arc is bowed away from this, so it never cuts through it. */
@@ -46,9 +55,14 @@ const UP = new THREE.Vector3(0, 1, 0);
 /** sin of half the 52-degree landscape FOV, the reference the chase offsets were tuned at. */
 const LANDSCAPE_SIN_HALF_FOV = Math.sin(THREE.MathUtils.degToRad(52) / 2);
 
-function smootherstep(t: number): number {
+export function smootherstep(t: number): number {
   const x = THREE.MathUtils.clamp(t, 0, 1);
-  return x * x * x * (x * (x * 6 - 15) + 10);
+  // Clamped on the way *out* as well as in. For an x a few ulps below 1 the polynomial
+  // can land a few ulps above it, and CatmullRomCurve3.getPointAt(u > 1) then reads one
+  // past the end of its arc-length table: undefined length, NaN t, and a crash inside
+  // getPoint. Whether progress happens to land exactly on 1 depends on the flight
+  // duration dividing the frame delta, so this was luck rather than correctness.
+  return THREE.MathUtils.clamp(x * x * x * (x * (x * 6 - 15) + 10), 0, 1);
 }
 
 function smoothBetween(value: number, from: number, to: number): number {
@@ -56,7 +70,7 @@ function smoothBetween(value: number, from: number, to: number): number {
 }
 
 export function createFlightSequence(options: FlightOptions): FlightSequence {
-  const { camera, scene, ship, world, controls, home, reducedMotion, onArrive } = options;
+  const { camera, scene, ship, trail, world, controls, home, reducedMotion, onArrive } = options;
   const duration = reducedMotion ? FLIGHT_DURATION_REDUCED : FLIGHT_DURATION;
 
   let phase: FlightPhase = 'idle';
@@ -84,6 +98,27 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
   const endDirection = new THREE.Vector3();
   const lateral = new THREE.Vector3();
   const facing = new THREE.Vector3();
+  const tailPoint = new THREE.Vector3();
+
+  /**
+   * How far the camera sits behind the ship, in the chase offset's own units. It closes
+   * in through the middle of the flight: the nearer the camera, the faster the stars sweep
+   * past for the same speed, which is the parallax the compressed distances otherwise
+   * deny us. It opens back out for the arrival so the destination still frames properly.
+   */
+  const CHASE_FAR = 1.6;
+  const CHASE_NEAR = 1.12;
+
+  /** Restores the field of view the viewport should be resting at. */
+  function restFov(): number {
+    return fovForAspect(camera.aspect);
+  }
+
+  function setFov(value: number) {
+    if (Math.abs(camera.fov - value) < 0.001) return;
+    camera.fov = value;
+    camera.updateProjectionMatrix();
+  }
 
   /** Half-angle of the tighter of the two fields of view. Portrait phones are horizontal. */
   function halfFov(): number {
@@ -196,6 +231,8 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       progress = 0;
       curve = null;
       chaseScale = 1;
+      // Explore Again can land here mid-flight, with the view still widened.
+      setFov(restFov());
     },
 
     update(dt: number) {
@@ -213,16 +250,35 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       facing.copy(tangent).lerp(lateral, smoothBetween(progress, 0.72, 1)).normalize();
       // Bank into the arc, easing back to level at both ends.
       ship.orient(facing, Math.sin(t * Math.PI) * 0.3);
-      ship.setThrust(smoothBetween(progress, 0, 0.14) * (1 - smoothBetween(progress, 0.84, 1)));
+      const thrust =
+        smoothBetween(progress, 0, 0.14) * (1 - smoothBetween(progress, 0.84, 1));
+      ship.setThrust(thrust);
+
+      // Exhaust, laid down behind the ship in world space so it stays where it was put
+      // while the ship flies on. Offset back along the heading by roughly the length of
+      // the hull, so it leaves the engines rather than the middle of the ship.
+      if (!reducedMotion) {
+        tailPoint.copy(point).addScaledVector(facing, -0.14);
+        trail.emit(tailPoint, thrust, dt);
+      }
+
+      // Rises from 0 through the middle of the flight and falls back to 0 for the
+      // arrival — one bell, driving everything that should peak at cruise.
+      const cruise = Math.sin(smootherstep(progress) * Math.PI);
 
       // Chase camera: behind, above and a little to the side, so the ship reads in
       // three-quarter view rather than as a silhouette around its own exhaust.
+      const chaseDistance = THREE.MathUtils.lerp(CHASE_FAR, CHASE_NEAR, cruise);
       chase
         .copy(point)
-        .addScaledVector(tangent, -1.6 * chaseScale)
+        .addScaledVector(tangent, -chaseDistance * chaseScale)
         .addScaledVector(UP, 0.6 * chaseScale)
         .addScaledVector(side, 0.55 * chaseScale);
       ahead.copy(point).addScaledVector(tangent, 1.1 * chaseScale);
+
+      // Widen the view at cruise. Measured against the *current* resting FOV rather than
+      // one captured at launch, so rotating the device mid-flight still lands correctly.
+      if (!reducedMotion) setFov(restFov() + FLIGHT_FOV_PUNCH * cruise);
 
       // Ease out of the player's view at the start, and into the fixed Moon view at the end.
       const departure = smoothBetween(progress, 0, 0.2);
@@ -237,6 +293,9 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       /* --- arrival ---------------------------------------------------------- */
       phase = 'arrived';
       ship.setThrust(0);
+      // The bell has already returned this to ~0 by now; set it exactly, so a flight that
+      // ended on a frame boundary cannot leave the view a fraction of a degree wide.
+      setFov(restFov());
 
       // attach() keeps the world transform, so the ship simply starts riding along.
       const destination = target;

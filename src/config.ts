@@ -47,6 +47,26 @@ export const MARS_ORBIT_SPEED = 0.03;
 
 export const CAMERA_FOV_LANDSCAPE = 52;
 export const CAMERA_FOV_PORTRAIT = 68;
+
+/**
+ * The resting field of view for a viewport shape. Portrait phones are narrow, so they get
+ * a wider vertical angle to keep the scene in frame.
+ *
+ * Shared rather than inlined in Stage, because the flight widens the FOV briefly to sell
+ * acceleration and has to know what to widen *from*. Deriving it here means rotating the
+ * device mid-flight still lands on the right resting angle instead of one captured before
+ * the rotation.
+ */
+export function fovForAspect(aspect: number): number {
+  return aspect < 1 ? CAMERA_FOV_PORTRAIT : CAMERA_FOV_LANDSCAPE;
+}
+
+/**
+ * How much wider the view gets at full burn, in degrees. A brief widening reads as
+ * acceleration — it is the cheapest speed cue there is, and the only one that works when
+ * the camera is travelling with the thing it is filming.
+ */
+export const FLIGHT_FOV_PUNCH = 9;
 export const CAMERA_NEAR = 0.05;
 export const CAMERA_FAR = 800;
 
@@ -69,7 +89,12 @@ export const MIN_ORBIT_DISTANCE = 0.6;
  */
 export const MAX_ORBIT_DISTANCE = 20;
 
-export const FLIGHT_DURATION = 5.5; // seconds
+/**
+ * Raised from 5.5. That was five and a half seconds with nothing to look at, which felt
+ * longer than seven seconds with a trail, a widening view and a camera that closes in.
+ * Length was never the problem; emptiness was.
+ */
+export const FLIGHT_DURATION = 7; // seconds
 export const FLIGHT_DURATION_REDUCED = 1.4;
 
 /**

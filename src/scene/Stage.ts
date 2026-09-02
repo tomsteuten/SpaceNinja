@@ -11,12 +11,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import {
-  CAMERA_FAR,
-  CAMERA_FOV_LANDSCAPE,
-  CAMERA_FOV_PORTRAIT,
-  CAMERA_NEAR,
-} from '../config';
+import { CAMERA_FAR, CAMERA_FOV_LANDSCAPE, CAMERA_NEAR, fovForAspect } from '../config';
 import { demote, type QualitySettings } from './quality';
 
 export type FrameCallback = (dt: number, elapsed: number) => void;
@@ -97,7 +92,7 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
 
     camera.aspect = aspect;
     // Portrait phones are narrow; widening the vertical FOV keeps the scene in frame.
-    camera.fov = aspect < 1 ? CAMERA_FOV_PORTRAIT : CAMERA_FOV_LANDSCAPE;
+    camera.fov = fovForAspect(aspect);
     camera.updateProjectionMatrix();
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, quality.maxPixelRatio);
