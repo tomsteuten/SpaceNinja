@@ -21,9 +21,11 @@ export interface GameUI {
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
   showArrival(label: string, fact: string): void;
-  /** Reveals the mission button, a beat later so the fact gets read first. */
-  offerMission(label: string): void;
-  /** Clears the arrival furniture and puts up the progress slots. */
+  /**
+   * Puts up the progress counter. A beat after arrival, so the fact is read first, and
+   * *alongside* the fact card rather than instead of it: the rocks are simply there to
+   * be found, not a mode the child has entered and has to finish to leave.
+   */
   beginMission(caption: string, total: number): void;
   setMissionCaption(text: string): void;
   /** Fills `collected` of the slots. */
@@ -47,7 +49,6 @@ export interface UIOptions {
   root: HTMLElement;
   narrator: Narrator;
   onFly(): void;
-  onMissionStart(): void;
   onExploreAgain(): void;
 }
 
@@ -63,7 +64,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 export function createUI(options: UIOptions): GameUI {
-  const { root, narrator, onFly, onMissionStart, onExploreAgain } = options;
+  const { root, narrator, onFly, onExploreAgain } = options;
   const timers: number[] = [];
 
   function later(callback: () => void, delay: number) {
@@ -129,13 +130,6 @@ export function createUI(options: UIOptions): GameUI {
   factCard.append(factText, narrateButton);
   factCard.classList.add('is-hidden');
 
-  const missionButton = el('button', 'btn mission-btn');
-  missionButton.type = 'button';
-  const missionButtonIcon = createIcon('rock');
-  const missionButtonLabel = el('span');
-  missionButton.append(missionButtonIcon, missionButtonLabel);
-  missionButton.classList.add('is-hidden');
-
   /**
    * The one way back, from the moment the ship arrives until it leaves again.
    *
@@ -156,7 +150,7 @@ export function createUI(options: UIOptions): GameUI {
   homeButton.append(createIcon('rocket'), el('span', undefined, 'Fly Home'));
   homeButton.classList.add('is-hidden');
 
-  dock.append(namePill, factCard, flyButton, missionButton, homeButton);
+  dock.append(namePill, factCard, flyButton, homeButton);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
@@ -217,9 +211,6 @@ export function createUI(options: UIOptions): GameUI {
 
   flyButton.addEventListener('click', () => {
     onFly();
-  });
-  missionButton.addEventListener('click', () => {
-    onMissionStart();
   });
 
   let currentFact = '';
@@ -315,28 +306,22 @@ export function createUI(options: UIOptions): GameUI {
       showFact(fact);
     },
 
-    offerMission(label: string) {
-      missionButtonLabel.textContent = label;
-      // One clear thing at a time: let the fact be read before a second thing appears.
-      later(() => {
-        missionButton.classList.remove('is-hidden');
-        missionButton.classList.add('fade-in');
-      }, 1400);
-    },
-
     beginMission(caption: string, total: number) {
-      missionButton.classList.add('is-hidden');
-      factCard.classList.add('is-hidden');
-      namePill.classList.add('is-hidden');
       setHint(null);
-
       buildSlots(total);
       missionCaption.textContent = caption;
-      missionHud.classList.remove('is-hidden');
-      // Its own keyframe, not .fade-in: that one animates transform and would drop the
-      // translateX(-50%) that centres this, sliding the slots off to one side.
-      missionHud.classList.add('fade-in-centred');
-      narrator.speak(caption);
+
+      // A beat behind the arrival, so the fact gets read before a second thing appears.
+      // The fact card and the name pill stay exactly where they are: the counter lives at
+      // the top of the screen and the dock owns the bottom, so nothing has to move aside.
+      later(() => {
+        missionHud.classList.remove('is-hidden');
+        // Its own keyframe, not .fade-in: that one animates transform and would drop the
+        // translateX(-50%) that centres this, sliding the slots off to one side.
+        missionHud.classList.add('fade-in-centred');
+      }, 1400);
+      // Deliberately not narrated. The fact is already being read aloud, and two voices
+      // at once is worse than one — the caption is a picture prompt, not a line of script.
     },
 
     setMissionCaption(text: string) {
@@ -356,6 +341,7 @@ export function createUI(options: UIOptions): GameUI {
     completeMission(successLine: string, stickerId: string | null) {
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
+      missionHud.classList.remove('fade-in-centred');
       namePill.classList.remove('is-hidden');
       showFact(successLine);
       // The way home has been on screen throughout and stays exactly where it was. It
@@ -393,7 +379,7 @@ export function createUI(options: UIOptions): GameUI {
       slotRow.replaceChildren();
       slots = [];
 
-      for (const node of [namePill, flyButton, factCard, missionButton, homeButton]) {
+      for (const node of [namePill, flyButton, factCard, homeButton]) {
         node.classList.add('is-hidden');
         // Or the animation will not replay the next time the node is shown.
         node.classList.remove('fade-in');

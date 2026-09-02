@@ -98,11 +98,14 @@ export const FLIGHT_DURATION = 7; // seconds
 export const FLIGHT_DURATION_REDUCED = 1.4;
 
 /**
- * Earning this is what widens the opening shot to take in Mars. Tied to finishing the
- * Moon rather than to a flag of its own, so the world grows as a reward for the mission
- * the child has just done.
+ * Reaching this is what widens the opening shot to take in Mars.
+ *
+ * Tied to *visiting* the Moon, not to finishing its collection. Collecting is optional —
+ * a child who flies out, looks at the Moon and comes home has done the thing this game is
+ * about, and gating the rest of the solar system behind a tapping game would have told
+ * them otherwise.
  */
-export const WIDE_FRAMING_STICKER = 'moon-explorer';
+export const WIDE_FRAMING_VISIT = 'moon';
 
 /**
  * Everything a destination needs that is words rather than geometry. The bodies

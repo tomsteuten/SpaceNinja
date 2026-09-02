@@ -4,9 +4,9 @@ A gentle 3D space explorer for young children (roughly ages 5–8). Two destinat
 far: the Moon, and Mars.
 
 Tap a destination, press **Fly**, watch a small spaceship arc across space and hear a
-fact read aloud. Then collect the glowing rocks on the surface, earn a sticker for the
-discovery journal, and fly home to go again. Finishing the Moon widens the view far
-enough to notice Mars.
+fact read aloud. Glowing rocks are waiting on the surface — collect them for a sticker in
+the discovery journal, or just look around and fly home. Either way, having been to the
+Moon widens the view far enough to notice Mars.
 
 Built with Vite, TypeScript and Three.js. No backend, no accounts, no build-time assets.
 
@@ -56,8 +56,8 @@ npm run build
 
 `npm run build` type-checks first, then emits `dist/`. `npm run preview` serves that build
 on the network the same way. `npm test` runs the unit tests — they cover the journal
-persistence and the collectible placement rule, the two pieces whose failure is easy to
-miss by eye.
+persistence, the collectible placement rule and the flight's easing curve — the pieces
+whose failure is easy to miss by eye.
 
 ---
 
@@ -112,15 +112,16 @@ src/
     quality.ts           device tiering (low / medium / high)
     Bodies.ts            Sun, Earth + atmosphere, Moon, Mars, lights
     Spaceship.ts         the ship, built from primitives
-    Starfield.ts         gradient sky + layered point stars
+    EngineTrail.ts       the exhaust the ship leaves behind it
+    Starfield.ts         gradient sky, star map, layered point stars
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
   flight/FlightSequence.ts  the scripted flight out to any destination
-  mission/CollectMission.ts  the collect-the-things mission, for any body
-  ui/                    interface layer (ui.ts + ui.css)
+  mission/CollectMission.ts  the collectibles, for any body
+  ui/                    interface layer (ui.ts + ui.css + icons.ts)
   audio/narration.ts     SpeechSynthesis wrapper, entirely optional
   audio/sfx.ts           two synthesised cues, entirely optional
-  state/progress.ts      sticker persistence in localStorage
+  state/progress.ts      stickers and visits, persisted in localStorage
 public/assets/           drop real textures here
 ```
 
@@ -158,8 +159,19 @@ child can learn from a picture, and relative distance at this scale is unshowabl
 
 **The opening shot only widens once it has earned the right to.** Fitting Mars from the
 first frame shrinks Earth and the Moon to a third of the size, which is a poor first
-impression for a child with no reason to care about Mars yet. Finishing the Moon mission
-is what makes the world visibly get bigger.
+impression for a child with no reason to care about Mars yet. *Visiting* the Moon is what
+makes the world visibly get bigger — visiting, not finishing. Flying out, looking at it
+and coming home is the thing this game is about, and gating the rest of the solar system
+behind a tapping game would have said otherwise. `progress.ts` therefore tracks visits
+separately from stickers: where you have been and what you finished are different facts.
+
+**Collecting is ambient, not modal.** The rocks are simply present when the ship arrives —
+there is no button that starts a mission and no state to be finished before leaving. That
+is a deliberate reversal: the collect mission used to be a mode, and the only way out of
+it was to complete it, which is what made "how do I get back?" the most common reaction to
+the game. **Fly Home** is on screen from arrival onward and never moves. The mission still
+exists, still awards its sticker, and still teaches the drag gesture — it just no longer
+holds the door shut.
 
 **The mission knows nothing about the Moon.** `CollectMission` takes a `CelestialBody` and
 derives collectible size, float height, hit-target size and particle scale from its radius,
@@ -170,13 +182,14 @@ placed past the limb: reaching it needs a drag, which teaches the camera control
 need rather than through instructions a five-year-old cannot read.
 
 **Every stateful module owns a `reset()`**, and `main.ts` is the only caller. That is what
-makes **Explore Again** work without reloading the page — the flight, the ship, the world,
-the camera, the UI and the mission each undo exactly their own state. The bodies keep
+makes **Fly Home** work without reloading the page — the flight, the ship, the trail, the
+world, the camera, the UI and the mission each undo exactly their own state. The bodies keep
 orbiting throughout, so the Moon is deliberately *not* put back where it was.
 
 **Sound is synthesised and optional by design.** Two cues, no audio files. The AudioContext
-is created from the mission button press, because mobile browsers start audio suspended and
-only allow it to resume inside a user gesture. If Web Audio is missing the calls no-op.
+is created from the Fly button press, because mobile browsers start audio suspended and
+only allow it to resume inside a user gesture — and that press is the last one guaranteed
+to happen before the ship reaches somewhere with sounds to make. If Web Audio is missing the calls no-op.
 
 **Narration is optional by design.** If SpeechSynthesis is missing the button simply does
 not appear and everything else works.

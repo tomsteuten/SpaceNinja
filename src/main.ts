@@ -13,7 +13,7 @@ import {
   DESTINATIONS,
   FRAMING_RADIUS,
   FRAMING_RADIUS_WIDE,
-  WIDE_FRAMING_STICKER,
+  WIDE_FRAMING_VISIT,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
@@ -27,7 +27,7 @@ import { createCollectMission, type CollectMission } from './mission/CollectMiss
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
-import { awardSticker, loadProgress } from './state/progress';
+import { awardSticker, loadProgress, markVisited } from './state/progress';
 
 const boot = document.getElementById('boot');
 
@@ -66,13 +66,13 @@ async function main() {
   scene.add(trail.group);
 
   /**
-   * The opening shot only takes in Earth and the Moon until the Moon mission is done.
+   * The opening shot only takes in Earth and the Moon until the Moon has been visited.
    * Fitting Mars from the first frame would shrink the first destination to a speck for
-   * no reason a five-year-old could understand yet; finishing the Moon is what makes the
-   * world visibly get bigger.
+   * no reason a five-year-old could understand yet; going there is what makes the world
+   * visibly get bigger. Going, not finishing — flying out and looking is enough.
    */
   function framingRadius(): number {
-    return loadProgress().stickers.includes(WIDE_FRAMING_STICKER)
+    return loadProgress().visited.includes(WIDE_FRAMING_VISIT)
       ? FRAMING_RADIUS_WIDE
       : FRAMING_RADIUS;
   }
@@ -96,17 +96,11 @@ async function main() {
     onFly: () => {
       const destination = selected ? world.bodies[selected] : null;
       if (!destination || !flight.start(destination)) return;
-      ui.enterFlight();
-    },
-    onMissionStart: () => {
-      const mission = missions[follow];
-      if (!mission) return;
-      // The one reliable user gesture between page load and the first sound effect.
-      // Mobile browsers start an AudioContext suspended and only let it resume here.
+      // The first reliable user gesture of the session, and the last one before the ship
+      // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
+      // suspended and only let it resume inside a gesture like this one.
       sfx.resume();
-      activeMission = mission;
-      mission.start();
-      ui.beginMission(mission.definition.instruction, mission.definition.count);
+      ui.enterFlight();
     },
     onExploreAgain: () => {
       restart();
@@ -125,11 +119,21 @@ async function main() {
     onArrive: (destination) => {
       follow = destination.id;
       selected = null;
+      // Arriving is the achievement that opens the rest of the system up. The sticker is
+      // still the collection's, and is still awarded by finishing it.
+      markVisited(destination.id);
+
       const config = DESTINATIONS[destination.id];
       if (!config) return;
-      // The sticker is not earned by arriving — the mission awards it.
       ui.showArrival(destination.label, config.fact);
-      ui.offerMission(config.mission.label);
+
+      // The rocks are simply part of the place, put there on arrival rather than behind a
+      // button. Nothing waits on them: the child can look, collect, or fly home.
+      const mission = missions[destination.id];
+      if (!mission) return;
+      activeMission = mission;
+      mission.start();
+      ui.beginMission(mission.definition.instruction, mission.definition.count);
     },
   });
 
