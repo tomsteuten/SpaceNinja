@@ -32,6 +32,7 @@ import {
   makeRingTexture,
   makeSunTexture,
   resolveEarthMaps,
+  resolveOptionalTexture,
   resolveTexture,
 } from './textures';
 import type { QualitySettings } from './quality';
@@ -125,6 +126,67 @@ function createAtmosphere(radius: number, segments: [number, number]): THREE.Mes
   return new THREE.Mesh(geometry, material);
 }
 
+/**
+ * How bright the cities burn. Tuned so they read clearly against the night side without
+ * crossing the bloom threshold — a bloomed city map turns the dark hemisphere into an
+ * orange smear and undoes the point of it.
+ */
+const NIGHT_LIGHT_INTENSITY = 0.85;
+
+/**
+ * City lights on Earth's night side.
+ *
+ * A plain emissiveMap would light the cities in broad daylight too: emissive is added
+ * after shading and knows nothing about where the Sun is, so the day side would carry a
+ * grey haze of streetlights over it. So the emissive term is masked by the same sun
+ * direction the rest of the scene is lit from — full past the terminator, gone before
+ * the sunlit side starts, with the crossover wide enough to read as dusk rather than as
+ * a drawn line.
+ *
+ * Uses the raw `normal` attribute rather than the shader's own transformed normal so the
+ * mask is in world space, which is what SUN_DIRECTION is in. Earth has no skinning or
+ * morph targets for that to skip over.
+ */
+function applyNightLights(material: THREE.MeshStandardMaterial, nightMap: THREE.Texture): void {
+  material.emissiveMap = nightMap;
+  // totalEmissiveRadiance starts at the emissive colour and is *multiplied* by the map,
+  // so this has to be non-black or the map cannot show at all.
+  material.emissive = new THREE.Color(0xffffff);
+  material.emissiveIntensity = NIGHT_LIGHT_INTENSITY;
+
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uSunDirection = { value: SUN_DIRECTION.clone() };
+
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vNightNormal;')
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nvNightNormal = normalize(mat3(modelMatrix) * normal);',
+      );
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nvarying vec3 vNightNormal;\nuniform vec3 uSunDirection;',
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `
+        #ifdef USE_EMISSIVEMAP
+          vec4 emissiveColor = texture2D( emissiveMap, vEmissiveMapUv );
+          float night = smoothstep(0.12, -0.20, dot(normalize(vNightNormal), uSunDirection));
+          totalEmissiveRadiance *= emissiveColor.rgb * night;
+        #endif
+        `,
+      );
+  };
+
+  // The program source no longer matches what the material's own parameters describe, so
+  // it needs a cache key of its own or an identical-looking material could reuse it.
+  material.customProgramCacheKey = () => 'earth-night-lights';
+  material.needsUpdate = true;
+}
+
 function createSelectionRing(texture: THREE.Texture, diameter: number): THREE.Sprite {
   const material = new THREE.SpriteMaterial({
     map: texture,
@@ -215,8 +277,11 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   // Earth's colour and roughness are resolved together: the generated pair are cut from
   // one noise field, so mixing a real photo with a generated roughness map would put the
   // ocean sheen on the wrong side of every coastline. See resolveEarthMaps.
-  const [earthMaps, moonMap, marsMap, sunMap] = await Promise.all([
+  const [earthMaps, earthNightMap, moonMap, marsMap, sunMap] = await Promise.all([
     resolveEarthMaps(quality.textureSize),
+    // Optional, and there is no sensible way to invent one: absent simply means the night
+    // side stays dark, which is what it did before the map existed.
+    resolveOptionalTexture({ file: 'earth-night.jpg', anisotropy: 8 }),
     resolveTexture({
       file: 'moon.jpg',
       fallback: () => makeMoonTexture(quality.textureSize),
@@ -279,6 +344,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       metalness: 0,
     }),
   );
+  if (earthNightMap) {
+    applyNightLights(earthMesh.material as THREE.MeshStandardMaterial, earthNightMap);
+  }
   earthMesh.rotation.z = 0.41; // axial tilt, purely for looks
   const atmosphere = createAtmosphere(EARTH_RADIUS, segments);
   const earthRing = createSelectionRing(ringTexture, EARTH_RADIUS * 3.1);
@@ -413,13 +481,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       const textures = [
         earthMaps.color,
         earthMaps.roughness,
+        earthNightMap,
         moonMap,
         marsMap,
         sunMap,
         ringTexture,
         glowTexture,
       ];
-      for (const t of textures) t.dispose();
+      for (const t of textures) t?.dispose();
     },
   };
 }

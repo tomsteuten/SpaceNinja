@@ -23,6 +23,11 @@ Put the files directly in this folder (public/assets/) using these EXACT names:
                   pair with a real photo — it is cut from the same noise field as the
                   generated *colour* map, so it describes continents that are not there.
 
+  earth-night.jpg OPTIONAL. City lights, shown on the night side only — the emissive
+                  term is masked by the Sun direction, so nothing bleeds onto the
+                  daylit half. Absent simply means the night side stays dark.
+                  Recommended: 2048 x 1024, and it must line up with earth.jpg.
+
   moon.jpg        Equirectangular Moon surface map.
                   Recommended: 2048 x 1024.
 

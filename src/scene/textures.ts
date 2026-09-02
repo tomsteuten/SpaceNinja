@@ -112,6 +112,40 @@ export async function resolveTexture(req: TextureRequest): Promise<THREE.Texture
   return texture;
 }
 
+/**
+ * For maps that have no placeholder: supplied or absent, never generated.
+ *
+ * Returns null when the file is not there, so the caller can leave the whole feature
+ * switched off rather than wiring up a map that renders nothing. Never rejects — a file
+ * that is present but broken is treated as absent, because a decode failure should cost
+ * the feature, not the scene.
+ */
+export async function resolveOptionalTexture(
+  req: Omit<TextureRequest, 'fallback' | 'fallbackLabel'>,
+): Promise<THREE.Texture | null> {
+  const url = ASSET_BASE + req.file;
+
+  if (!(await imageExists(url))) {
+    console.info('[assets] ' + req.file + ': absent (optional)');
+    return null;
+  }
+
+  let texture: THREE.Texture;
+  try {
+    texture = shrinkToFit(await loadImage(url), req.file);
+  } catch {
+    console.warn('[assets] ' + req.file + ': present but could not be decoded - skipped');
+    return null;
+  }
+
+  texture.colorSpace = req.colorSpace ?? THREE.SRGBColorSpace;
+  texture.anisotropy = req.anisotropy ?? 4;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.needsUpdate = true;
+  console.info('[assets] ' + req.file + ': file');
+  return texture;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Procedural noise                                                            */
 /* -------------------------------------------------------------------------- */
