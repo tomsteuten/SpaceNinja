@@ -50,6 +50,13 @@ export interface Sfx {
    */
   dawn(progress: number): void;
   /**
+   * Silence, or not. A muted context is still built and still driven — only the master
+   * gain goes to zero — so unmuting takes effect on the very next frame without having to
+   * find a user gesture again, which on mobile is not a thing that can be arranged on
+   * demand.
+   */
+  setMuted(muted: boolean): void;
+  /**
    * Stops everything continuous, now. Cues already ringing are left to ring out — they
    * are short and stopping them mid-tail is what a click sounds like.
    *
@@ -180,6 +187,9 @@ interface Voice {
  */
 const FOLLOW = 0.02;
 
+/** Small children, tablet speaker: quiet by default. Everything is mixed under this. */
+const MASTER_GAIN = 0.2;
+
 export function createSfx(): Sfx {
   const Ctor = audioContextConstructor();
   const available = Ctor !== null;
@@ -188,6 +198,7 @@ export function createSfx(): Sfx {
   let master: GainNode | null = null;
   let noise: AudioBuffer | null = null;
   let failed = false;
+  let muted = false;
 
   /** Returns a running-ish context, or null if audio is unavailable in any way. */
   function ensure(): AudioContext | null {
@@ -196,7 +207,7 @@ export function createSfx(): Sfx {
       try {
         const created = new Ctor();
         const gain = created.createGain();
-        gain.gain.value = 0.2; // small children, tablet speaker: quiet by default
+        gain.gain.value = muted ? 0 : MASTER_GAIN;
         const soften = created.createBiquadFilter();
         soften.type = 'lowpass';
         soften.frequency.value = 2800;
@@ -485,6 +496,20 @@ export function createSfx(): Sfx {
         fadeOut(voice, 0.35);
         sunrise = null;
         lastBell = -1;
+      }
+    },
+
+    setMuted(value: boolean) {
+      muted = value;
+      const context = ctx;
+      const out = master;
+      if (!context || !out) return; // Nothing built yet; ensure() will honour the flag.
+      try {
+        // Ramped rather than assigned: cutting a running engine to zero in one sample is
+        // a click, which on a tablet speaker is louder than the thing being silenced.
+        out.gain.setTargetAtTime(muted ? 0 : MASTER_GAIN, context.currentTime, 0.03);
+      } catch {
+        // Context died. It will come back with the flag applied.
       }
     },
 

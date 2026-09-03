@@ -34,6 +34,7 @@ import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import { awardSticker, loadProgress, markVisited, recordDiscovery } from './state/progress';
+import { loadSoundOn } from './state/settings';
 
 const boot = document.getElementById('boot');
 
@@ -104,7 +105,16 @@ async function main() {
    * storage was cleared. `?voices` still works, since that is what the README said first.
    */
   const asked = /[?&](grownups|voices)\b/.test(window.location.search);
-  const grownups = createGrownups({ root: uiRoot, narrator });
+  const grownups = createGrownups({
+    root: uiRoot,
+    narrator,
+    // The panel stores the choice; making the game obey it is this file's job, as with
+    // every other setting the modules do not own.
+    onSoundChange: (on) => {
+      sfx.setMuted(!on);
+      ui.setSoundOn(on);
+    },
+  });
   if (shouldGreet(asked)) grownups.show();
 
   const ui = createUI({
@@ -322,6 +332,11 @@ async function main() {
     }, 6500);
   }
 
+  // Whatever was chosen last time, applied before anything can make a noise.
+  const soundOn = loadSoundOn();
+  sfx.setMuted(!soundOn);
+  ui.setSoundOn(soundOn);
+
   showOpeningHints();
 
   /* --- restart ------------------------------------------------------------- */
@@ -372,6 +387,18 @@ async function main() {
     trail.update(dt);
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
+
+    /*
+     * Point at the last place, while it is round the back.
+     *
+     * Driven per frame rather than fired once, because the whole point is that it goes
+     * away the moment the child has dragged far enough to see the thing — which is a
+     * property of where the camera is now, not of an event. Nothing to point at during a
+     * flight or a day turn, when the camera is not theirs to move.
+     */
+    const hint =
+      flight.phase === 'flying' || dayTurn.active ? null : (activeMission?.remainingHint() ?? null);
+    ui.setHuntArrow(hint && !hint.visible ? hint.side : null);
 
     if (flight.phase === 'idle') {
       // The idle ship keeps its nose pointed at whichever destination is selected, and

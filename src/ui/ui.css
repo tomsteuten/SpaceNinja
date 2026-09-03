@@ -238,13 +238,21 @@ body {
   pointer-events: auto;
 }
 
-/* On a phone the dock would sit on top of the journal button, so give that corner
-   its own column and shift the dock across to clear it. */
+/*
+ * The dock used to be narrowed by 74px and shifted right on a phone, to keep it off the
+ * journal button in the bottom-left corner. Measured at 390x844, that collision does not
+ * happen: the buttons are centred and about 200px wide, so they never reach that corner,
+ * and the fact card sits hundreds of pixels above it. What the narrowing *did* do was
+ * squeeze the arrival fact into a column ten lines deep — a card 410px tall on an 844px
+ * screen, covering 93% of the planet a child had just flown to.
+ *
+ * Full width, and the words fit in six lines instead of ten.
+ */
 @media (max-width: 560px) {
   .dock {
-    width: calc(100vw - var(--pad-left) - var(--pad-right) - 74px);
-    left: calc(50% + 37px);
+    width: calc(100vw - var(--pad-left) - var(--pad-right));
   }
+
 }
 
 /*
@@ -596,6 +604,33 @@ body {
   display: none !important;
 }
 
+/* --- narrow screens -------------------------------------------------------- */
+
+/*
+ * Deliberately down here rather than beside the other phone rule up by `.dock`: media
+ * queries add no specificity, so a `.fact-card p` override written above the base
+ * `.fact-card p` simply loses to it. That is how the fact card came to be running at full
+ * desktop size on a 390px phone — eight lines deep, most of a screen, over the planet a
+ * child had just flown to.
+ *
+ * The type only drops to what a short *landscape* screen already used; a phone held
+ * upright is just as narrow and had never been given it.
+ */
+@media (max-width: 560px) {
+  .fact-card {
+    padding: 1rem 1.1rem;
+  }
+
+  .fact-card p {
+    font-size: 1.05rem;
+    line-height: 1.4;
+  }
+
+  .dock {
+    gap: 0.65rem;
+  }
+}
+
 /* --- short / landscape screens -------------------------------------------- */
 
 @media (max-height: 480px) {
@@ -836,6 +871,87 @@ body {
   }
   to {
     opacity: 0;
+  }
+}
+
+/*
+ * "It is round this way." Sits at the edge of the screen on the side the last place lies,
+ * and nudges towards it — the drag lesson without words, for an audience that mostly cannot
+ * read the line of text that used to be the only cue.
+ *
+ * Vertically centred rather than in a corner, because that is where a hand goes to turn a
+ * globe, and pointer-events:none so it can never eat the drag it is asking for.
+ */
+.hunt-arrow {
+  position: absolute;
+  top: 50%;
+  width: 58px;
+  height: 58px;
+  margin-top: -29px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(20, 14, 44, 0.72);
+  border: 1px solid rgba(255, 214, 150, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--warm);
+  font-size: 1.7rem;
+  font-weight: 800;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.hunt-arrow.is-left {
+  left: var(--pad-left);
+  animation: huntLeft 1.6s ease-in-out infinite;
+}
+
+.hunt-arrow.is-right {
+  right: var(--pad-right);
+  animation: huntRight 1.6s ease-in-out infinite;
+}
+
+.hunt-arrow.is-left .hunt-arrow__chevron {
+  transform: scaleX(-1);
+}
+
+@keyframes huntLeft {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-9px);
+  }
+}
+
+@keyframes huntRight {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(9px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still has to be noticed, so it pulses in place rather than travelling. */
+  .hunt-arrow.is-left,
+  .hunt-arrow.is-right {
+    animation: huntFade 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes huntFade {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
   }
 }
 

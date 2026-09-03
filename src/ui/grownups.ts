@@ -25,6 +25,7 @@ import {
   type Narrator,
 } from '../audio/narration';
 import { prefersReducedMotion } from '../scene/quality';
+import { loadSoundOn, saveSoundOn } from '../state/settings';
 
 /** Remembered per device, so it greets a new tablet and never nags a familiar one. */
 const SEEN_KEY = 'spaceninja.grownups.v1';
@@ -77,10 +78,12 @@ function el(tag: string, className: string, text?: string): HTMLElement {
 export interface GrownupsOptions {
   root: HTMLElement;
   narrator: Narrator;
+  /** Sound has been turned on or off. Persisting it is this module's job; obeying it is not. */
+  onSoundChange(on: boolean): void;
 }
 
 export function createGrownups(options: GrownupsOptions): Grownups {
-  const { root, narrator } = options;
+  const { root, narrator, onSoundChange } = options;
   const panel = el('div', 'grownups');
   const sample = sampleLine();
   let showing = false;
@@ -197,9 +200,20 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'p',
         'grownups__note',
         'Quiet by design, and nothing is ever read aloud on its own — the speaker button ' +
-          'on a card is the only thing that starts a reading.',
+          'on a card is the only thing that starts a reading. Turning sound off covers ' +
+          'the reading too, and takes that button away.',
       ),
     );
+    const soundToggle = el('button', 'grownups__auto') as HTMLButtonElement;
+    soundToggle.type = 'button';
+    soundToggle.textContent = loadSoundOn() ? 'Sound is on — turn it off' : 'Sound is off — turn it on';
+    soundToggle.addEventListener('click', () => {
+      const next = !loadSoundOn();
+      saveSoundOn(next);
+      onSoundChange(next);
+      render();
+    });
+    sound.append(soundToggle);
     inner.append(sound);
 
     inner.append(voiceSection());

@@ -65,6 +65,15 @@ export interface GameUI {
   showSpin(label: string | null): void;
   /** Greys the spin button out while a turn is running, so a press cannot stack. */
   setSpinBusy(busy: boolean): void;
+  /** Sound off also stops and hides the read-aloud button, which is the only sound the UI owns. */
+  setSoundOn(on: boolean): void;
+  /**
+   * Point at the last place still to be found, or `null` to take the arrow away.
+   *
+   * `-1` for the left edge, `1` for the right. Only ever shown while the one remaining
+   * discovery is round the back: it is the drag lesson, made visible.
+   */
+  setHuntArrow(side: -1 | 1 | null): void;
   /** Back to the opening state, without rebuilding any of the DOM. */
   reset(): void;
   dispose(): void;
@@ -182,6 +191,23 @@ export function createUI(options: UIOptions): GameUI {
 
   factCard.append(factTitle, factPhoto, factText, narrateButton);
   factCard.classList.add('is-hidden');
+
+  /*
+   * The drag lesson, made visible.
+   *
+   * One discovery on every world sits past the horizon, and reaching it is how a child
+   * learns the camera can be turned — the single most important thing the game teaches
+   * about its own controls. Until now the only cue was a line of text ("One more! Drag to
+   * spin around Earth"), which is a poor instrument for an audience that mostly cannot
+   * read. This points at where the place actually is, and only while it is out of sight.
+   *
+   * Outside the dock, because it belongs to the edge of the screen rather than to the
+   * cluster of controls at the bottom.
+   */
+  const huntArrow = el('div', 'hunt-arrow is-hidden');
+  huntArrow.setAttribute('aria-hidden', 'true');
+  huntArrow.append(el('span', 'hunt-arrow__chevron', '❯'));
+  root.append(huntArrow);
 
   const photoViewer = createPhotoViewer(root);
   /** What the thumbnail currently shows, so a tap opens the right one. */
@@ -390,7 +416,20 @@ export function createUI(options: UIOptions): GameUI {
     // card is never taken away mid-sentence.
     if (!speaking) scheduleCollapse(1600);
   });
-  if (!narrator.available) narrateButton.classList.add('is-hidden');
+  /*
+   * The read-aloud button exists when there is a voice to read with *and* sound is on.
+   *
+   * Sound off covers the reading too, and hides the button rather than leaving one that
+   * does nothing. Reading is only ever started deliberately, so an argument could be made
+   * for exempting it — but "I turned the sound off" and "the tablet then started talking"
+   * is not a conversation worth having with a parent in a quiet room.
+   */
+  let soundOn = true;
+
+  function updateNarrateButton() {
+    narrateButton.classList.toggle('is-hidden', !narrator.available || !soundOn);
+  }
+  updateNarrateButton();
 
   let awardCard: HTMLElement | null = null;
 
@@ -652,6 +691,20 @@ export function createUI(options: UIOptions): GameUI {
     setSpinBusy(busy: boolean) {
       spinButton.disabled = busy;
       spinButton.classList.toggle('is-busy', busy);
+    },
+
+    setSoundOn(on: boolean) {
+      soundOn = on;
+      if (!on) narrator.stop();
+      updateNarrateButton();
+    },
+
+    setHuntArrow(side: -1 | 1 | null) {
+      // Called every frame while a mission is running, so it has to be cheap and it has to
+      // be idempotent. Both are: a class that is already set costs nothing to set again.
+      huntArrow.classList.toggle('is-hidden', side === null);
+      huntArrow.classList.toggle('is-left', side === -1);
+      huntArrow.classList.toggle('is-right', side === 1);
     },
 
     showTapEcho(clientX: number, clientY: number) {

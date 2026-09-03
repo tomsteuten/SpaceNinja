@@ -47,6 +47,15 @@ export interface CollectMission {
   start(): void;
   /** Feed a raycast hit. Returns true if it was one of ours and was collected. */
   collectFrom(object: THREE.Object3D): boolean;
+  /**
+   * Which way the last unfound discovery lies, for the hint arrow.
+   *
+   * Null unless exactly one is left, because before that a child has something to tap on
+   * screen and does not need pointing anywhere. `visible` is the same visible-face test a
+   * tap has to pass, so the arrow disappears the instant the place could be tapped — an
+   * arrow still pointing at something already on screen is just clutter.
+   */
+  remainingHint(): { side: -1 | 1; visible: boolean } | null;
   update(dt: number, elapsed: number): void;
   /** Tears the mission down completely and disposes everything it built. */
   reset(): void;
@@ -171,6 +180,7 @@ const _forward = new THREE.Vector3();
 const _dir = new THREE.Vector3();
 const _view = new THREE.Vector3();
 const _screen = new THREE.Vector3();
+const _right = new THREE.Vector3();
 /** The plane RingGeometry is built in, and so the axis every marker is turned off. */
 const FACE = new THREE.Vector3(0, 0, 1);
 
@@ -590,6 +600,35 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
 
       beginCollect(collectible);
       return true;
+    },
+
+    remainingHint() {
+      if (!active) return null;
+      const left = collectibles.filter((collectible) => collectible.state === 'idle');
+      const last = left.length === 1 ? left[0] : undefined;
+      if (!last) return null;
+
+      body.getWorldPosition(_center);
+      last.hit.getWorldPosition(_dir).sub(_center).normalize();
+      _view.copy(camera.position).sub(_center);
+      const distance = _view.length();
+      const visible = withinVisibleFace(
+        _dir.dot(_view.clone().divideScalar(distance)),
+        body.radius,
+        distance,
+      );
+
+      /*
+       * Which side of the screen it is round towards.
+       *
+       * Column 0 of the camera's world matrix is its right vector, so this is simply "is
+       * the place to the right of where we are looking". Dragging right turns the planet
+       * so that whatever is round to the *left* comes to the middle, so an arrow pointing
+       * at the place is also pointing at the edge the child should be pulling from — the
+       * gesture a hand makes on a globe.
+       */
+      _right.setFromMatrixColumn(camera.matrixWorld, 0);
+      return { side: _dir.dot(_right) < 0 ? (-1 as const) : (1 as const), visible };
     },
 
     update(dt: number, elapsed: number) {

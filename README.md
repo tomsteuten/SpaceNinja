@@ -267,6 +267,9 @@ hear it read a line from the game, and the last one tapped is remembered and use
 on. Voice quality is a property of the device and cannot be judged from a development
 machine, so this is the only honest way to pick.
 
+**Sound can be turned off there too**, which covers the read-aloud voice as well and takes
+the speaker button away with it.
+
 **To open it again: press and hold the round book button for two seconds.** A hold rather
 than a visible button, because a settings control on screen is a settings control a
 five-year-old will press — and the panel says so in writing, which works precisely because
@@ -284,7 +287,7 @@ motion per second, not less, which is the opposite of what the preference is ask
 
 ## Not yet
 
-No planets past Mars, no way to turn the sound off, no downloaded models, and no real
+No planets past Mars, no downloaded models, and no real
 orbital physics. Those are deliberately still out of scope.
 
 Only Earth can be spun through a day. The Moon and Mars have terminators too, and the

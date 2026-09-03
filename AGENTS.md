@@ -201,6 +201,14 @@ Three things about it that are load-bearing rather than incidental:
   taught to fold away during the day turn because it covers the planet; a full-width
   picture would put that back and more.
 
+**A media query adds no specificity.** This bit the fact card: a `@media (max-width: 560px)`
+block written *above* the base `.fact-card p` rule loses to it outright, so the card ran at
+full desktop type on a 390px phone — eight lines deep, covering 93% of the planet a child
+had just flown to. Responsive overrides in `ui.css` go *below* the rules they override, and
+the landscape dock block only works where it does because it sets properties the base rule
+never sets. Measure a layout claim rather than reading it: `percentOfPlanetCovered` in the
+scratch driver projects the destination's disc and samples what is on top of it.
+
 **Reduced motion removes motion; it does not compress it.** `prefers-reduced-motion` skips
 the exhaust trail and the FOV punch, removes camera inertia, halves the collect particles,
 and stops UI animation. New motion should check it.
@@ -405,11 +413,7 @@ Then, in code:
    "use .jpg" rule. Watch the ring UVs: `THREE.RingGeometry` does not map `u` across the
    radius by default and rewriting that attribute is the classic Saturn gotcha.
 
-5. **Give sound a way to be turned off.** There is none, and `ui/grownups.ts` is now the
-   obvious home for it. Worth doing before any music: an unmuteable children's game is a
-   well-earned complaint.
-
-6. **Replace the narration voice.** Still the top complaint. The `?grownups` picker made the
+5. **Replace the narration voice.** Still the top complaint. The `?grownups` picker made the
    best of what a device ships, which may be enough — ask before spending an afternoon on
    recordings. See *Known weak spot* above.
 
