@@ -36,6 +36,11 @@ export interface GameUI {
    * speaker button, but nothing goes into the journal, because nothing was collected.
    */
   showNote(title: string, text: string): void;
+  /**
+   * Fold the card away to its speaker button now, because something has started that is
+   * worth more than the words are. Idempotent, and yields to a reading in progress.
+   */
+  foldFact(): void;
   /** Fills `collected` of the slots. */
   setMissionProgress(collected: number): void;
   /**
@@ -458,6 +463,27 @@ export function createUI(options: UIOptions): GameUI {
 
     showNote(title: string, text: string) {
       showFact(text, title);
+    },
+
+    foldFact() {
+      // Already out of the way, or there is nothing to fold.
+      if (factCard.classList.contains('is-hidden')) return;
+      if (factCard.classList.contains('is-collapsed')) return;
+      // Somebody asked for this to be read. Taking it away mid-sentence is worse than
+      // covering the planet, and the fold that follows a reading is scheduled already.
+      if (narrator.speaking) return;
+
+      /*
+       * Deliberately bypasses FACT_MINIMUM_MS, which every other fold respects.
+       *
+       * That floor exists because a *timed* fold hung off the end of a reading fires
+       * instantly on a device where speech fails, flashing the card away in under two
+       * seconds. This fold is not a timer running out — it is an event, and the event is
+       * the thing the card was introducing actually starting. Holding the words over it
+       * for another four seconds would cover exactly what they were pointing at.
+       */
+      window.clearTimeout(collapseTimer);
+      factCard.classList.add('is-collapsed');
     },
 
     showDiscovery(discovery: Discovery) {

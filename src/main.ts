@@ -153,7 +153,21 @@ async function main() {
     // The quietest thing in the game gets the sound that most needs one. Driven by the
     // turn's own progress rather than started and left to run, so the light and the sound
     // arrive together however slowly the frames are coming.
-    onProgress: (progress) => sfx.dawn(progress),
+    onProgress: (progress) => {
+      sfx.dawn(progress);
+      /*
+       * Get the words off the planet the moment it starts turning.
+       *
+       * The card explains what is about to happen, and it is a full-width block across
+       * the bottom of the dock — which is where the lower third of a destination framed
+       * to fill the frame actually is. Reported from a tablet: it covered much of the
+       * Earth for the whole turn, which is the one moment in the game whose entire point
+       * is watching. Folded on the first frame that turns rather than on a timer, because
+       * the swing before it is 2.2 seconds normally and 0.7 under reduced motion. The
+       * speaker button stays, so the words are one tap away.
+       */
+      if (progress > 0) ui.foldFact();
+    },
     onFinish: () => ui.setSpinBusy(false),
   });
 

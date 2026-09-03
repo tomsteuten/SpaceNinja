@@ -238,18 +238,29 @@ orbit it already inherits.
 turning body slides out from under the finger reaching for it. What `holdSurface()` freezes
 is the body's orientation against the stars, and the mission releases it on the way home.
 
-**Sound is synthesised and optional by design.** Two cues, no audio files. The AudioContext
-is created from the Fly button press, because mobile browsers start audio suspended and
-only allow it to resume inside a user gesture — and that press is the last one guaranteed
-to happen before the ship reaches somewhere with sounds to make. If Web Audio is missing the calls no-op.
+**Sound is synthesised and optional by design.** Two cues, the flight's engine and the day
+turn's sunrise — all generated at runtime, no audio files. The AudioContext is created from
+the Fly button press, because mobile browsers start audio suspended and only allow it to
+resume inside a user gesture — and that press is the last one guaranteed to happen before
+the ship reaches somewhere with sounds to make. If Web Audio is missing the calls no-op.
+The two continuous sounds follow a value the picture is already using, frame by frame,
+rather than starting a timed ramp, so they stay with the picture on a slow device.
 
 **Narration is optional by design, and off until asked for.** The read-aloud voice is the
 browser's own, which means it is whatever the operating system ships — and playtesting said
 it was bad enough that no narration beat this narration. So nothing speaks by itself: the
 speaker button on the fact card is the only thing that starts a reading, and if
-SpeechSynthesis is missing the button does not appear at all. Opening the game with
-`?voices` lists what a device actually offers and which one would be used, because voice
-quality cannot be judged from a development machine.
+SpeechSynthesis is missing the button does not appear at all.
+
+**To choose the voice, open the game with `?voices` on the end of the address** — on the
+published site that is
+[tomsteuten.github.io/SpaceNinja/?voices](https://tomsteuten.github.io/SpaceNinja/?voices),
+and locally `http://localhost:5173/?voices`. It lists every voice the device offers, best
+first; tap one to hear it read a line from the game, and the last one tapped is remembered
+and used from then on. There is no button to it inside the game, deliberately — it is a job
+for a grown-up, once, and a query string is the cheapest door that a child will not open by
+accident. Voice quality is a property of the device and cannot be judged from a development
+machine, so this page is the only honest way to pick.
 
 **Reduced motion is respected**: `prefers-reduced-motion` shortens the flight to a brief
 cut, removes camera inertia, and stops the UI animations.
@@ -258,7 +269,7 @@ cut, removes camera inertia, and stops the UI animations.
 
 ## Not yet
 
-No planets past Mars, no ambient or thruster sound, no downloaded models, and no real
+No planets past Mars, no downloaded models, and no real
 orbital physics. Those are deliberately still out of scope.
 
 Only Earth can be spun through a day. The Moon and Mars have terminators too, and the
