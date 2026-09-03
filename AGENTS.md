@@ -143,6 +143,16 @@ camera high, where the day/night line lies across the disc and an east-west rota
 everything along it instead of over it. Both halves are tested; the second one looked
 right until it was watched.
 
+**The Moon is tidally locked, and locking means doing nothing.** Its mesh inherits the
+orbit from the spin group above it, so a *constant* local rotation keeps one face towards
+Earth; any rotation of its own is what unlocks it. There used to be a `MOON_SPIN` and a
+counter-turn that subtracted the inherited orbit back out, under a comment claiming tidal
+locking — the opposite of it, leaving the Moon near enough fixed against the stars and
+turning once against Earth every two minutes. The game *tells* a child the Moon keeps the
+same face towards us, so this is a claim the scene has to honour. Not unit-testable (it is
+a scene-graph property); check it by measuring the angle between the Moon's local +X in
+world space and its direction to Earth over ~20s — constant means locked.
+
 **A visited body's surface is held still.** `holdSurface()` freezes it; the mission calls
 it in `build()` and releases it in `teardown()`. Markers are children of the surface mesh,
 and a turning one carries them out from under a child's finger. The Moon needs both its

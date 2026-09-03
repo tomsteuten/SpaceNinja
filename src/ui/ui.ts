@@ -484,8 +484,17 @@ export function createUI(options: UIOptions): GameUI {
       namePill.classList.remove('is-hidden');
       // Behind the last discovery rather than over it. The sticker and the chime land now;
       // the words wait their turn.
-      if (currentFact) pendingFact = { text: successLine };
-      else showFact(successLine);
+      if (currentFact) {
+        pendingFact = { text: successLine };
+        // And only their turn. The card's own timer is the eleven-second backstop for a
+        // fact nobody is reading aloud, which is the right wait for *finishing* with one
+        // and much too long for handing over to the next: the celebration would arrive
+        // after the sticker that announced it had already faded. Cut it to the time the
+        // discovery is guaranteed and no more.
+        scheduleCollapse(FACT_MINIMUM_MS);
+      } else {
+        showFact(successLine);
+      }
       // The way home has been on screen throughout and stays exactly where it was. It
       // does not need promoting here — finishing is not the moment a child is looking
       // for the exit, and moving it now would teach that it moves.

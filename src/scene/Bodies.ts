@@ -19,7 +19,6 @@ import {
   MOON_ORBIT_SPEED,
   MOON_ORBIT_TILT,
   MOON_RADIUS,
-  MOON_SPIN,
   MOON_START_ANGLE,
   SUN_DIRECTION,
   SUN_POSITION,
@@ -57,9 +56,9 @@ export interface CelestialBody {
    * Stop the body turning, holding the surface exactly where it is now.
    *
    * The surface has to be still to be explored: a marker on a rotating one slides out
-   * from under the finger reaching for it. Held rather than merely slowed, because the
-   * Moon's own rotation is expressed as a counter-turn against its orbit, so leaving
-   * either running leaves the surface moving.
+   * from under the finger reaching for it. What is held is the body's orientation against
+   * the stars, not its local rotation — the Moon's surface rides its orbit rather than
+   * turning on its own, so the local value alone says nothing about whether it is moving.
    */
   holdSurface(): void;
   /** Let it turn again, from wherever it was held. */
@@ -476,8 +475,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       anchor: moon.anchor,
       surface: moon.mesh,
       hitMesh: moon.hit,
-      // The Moon's mesh already counter-turns its orbit to stay tidally locked, so the
-      // held value is the offset that counter-turn is carrying — not the raw rotation.
+      // Local plus orbit, which is the Moon's orientation against the stars. Holding that
+      // is what stops the surface moving under a finger: the camera orbits in world space
+      // and follows the body along, so a world-fixed surface is a still one to explore.
       holdSurface: () => {
         holds.moon = moon.mesh.rotation.y + moon.spin.rotation.y;
       },
@@ -555,9 +555,21 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
       moon.spin.rotation.y += MOON_ORBIT_SPEED * orbitSpeedScale * dt;
       const moonHold = holds.moon;
-      // Keep the same face toward Earth, the way the real Moon does.
+      /*
+       * Tidally locked: the same face towards Earth, the way the real Moon does. The game
+       * tells a child exactly that — it is why the far side went unseen until a spacecraft
+       * flew round the back — so it had better be what the Moon does.
+       *
+       * A *constant* local rotation is what locks it, because the mesh already inherits
+       * the orbit from the spin group above it. This used to subtract that inheritance
+       * back out, which is the opposite of locking: it left the Moon near enough fixed
+       * against the stars, turning a full revolution against Earth every two minutes. The
+       * comment here claimed tidal locking throughout; the maths never did it.
+       *
+       * Pi puts longitude zero, the centre of the near side, towards Earth.
+       */
       moon.mesh.rotation.y =
-        -moon.spin.rotation.y + (moonHold ?? MOON_SPIN * elapsed);
+        moonHold === undefined ? Math.PI : moonHold - moon.spin.rotation.y;
 
       mars.spin.rotation.y += MARS_ORBIT_SPEED * orbitSpeedScale * dt;
       const marsHold = holds.mars;

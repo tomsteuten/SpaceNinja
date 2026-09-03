@@ -229,10 +229,14 @@ thirty pixels of each other, one in front of the globe and one behind it, so tap
 in the same place used to collect the far-side discovery through the whole planet. Every
 hit is now checked against the horizon the camera can actually see over.
 
+**The Moon keeps one face towards Earth**, as the real one does — which is exactly why its
+far side went unseen until a spacecraft flew round the back, and the game says so to a
+child. Locking it means giving it no rotation of its own: the surface simply rides the
+orbit it already inherits.
+
 **The destination's surface is held still while you are there.** A marker fixed to a
-turning body slides out from under the finger reaching for it, and the Moon's own rotation
-is expressed as a counter-turn against its orbit, so neither one being stopped is enough.
-`holdSurface()` freezes both for the visit and the mission releases it on the way home.
+turning body slides out from under the finger reaching for it. What `holdSurface()` freezes
+is the body's orientation against the stars, and the mission releases it on the way home.
 
 **Sound is synthesised and optional by design.** Two cues, no audio files. The AudioContext
 is created from the Fly button press, because mobile browsers start audio suspended and

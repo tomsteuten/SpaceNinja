@@ -39,7 +39,12 @@ export const STAR_SHELL_RADIUS = 420;
 
 /** Radians per second. Slow enough to feel calm rather than spinny. */
 export const EARTH_SPIN = 0.045;
-export const MOON_SPIN = 0.012;
+/*
+ * There is deliberately no MOON_SPIN. The Moon is tidally locked here, as it is in life,
+ * and locking means its surface simply rides the orbit — any rotation of its own would be
+ * the thing that unlocks it. It had one, at 0.012, and that is exactly what stopped the
+ * near side facing Earth.
+ */
 export const MOON_ORBIT_SPEED = 0.055;
 export const MARS_SPIN = 0.02;
 /** Slower than the Moon: an outer body that raced round would read as wrong. */
