@@ -229,8 +229,13 @@ is created from the Fly button press, because mobile browsers start audio suspen
 only allow it to resume inside a user gesture — and that press is the last one guaranteed
 to happen before the ship reaches somewhere with sounds to make. If Web Audio is missing the calls no-op.
 
-**Narration is optional by design.** If SpeechSynthesis is missing the button simply does
-not appear and everything else works.
+**Narration is optional by design, and off until asked for.** The read-aloud voice is the
+browser's own, which means it is whatever the operating system ships — and playtesting said
+it was bad enough that no narration beat this narration. So nothing speaks by itself: the
+speaker button on the fact card is the only thing that starts a reading, and if
+SpeechSynthesis is missing the button does not appear at all. Opening the game with
+`?voices` lists what a device actually offers and which one would be used, because voice
+quality cannot be judged from a development machine.
 
 **Reduced motion is respected**: `prefers-reduced-motion` shortens the flight to a brief
 cut, removes camera inertia, and stops the UI animations.

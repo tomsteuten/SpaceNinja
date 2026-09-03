@@ -28,7 +28,7 @@ import {
   facingLatitude,
   type CollectMission,
 } from './mission/CollectMission';
-import { createNarrator } from './audio/narration';
+import { createNarrator, describeVoices } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
 import { awardSticker, loadProgress, markVisited, recordDiscovery } from './state/progress';
@@ -93,6 +93,20 @@ async function main() {
 
   const narrator = createNarrator();
   const sfx = createSfx();
+
+  // `?voices` prints what this device actually offers to read with. The narration voice
+  // cannot be chosen well from a development machine — quality is a property of the
+  // device — so this is how the tablet gets asked directly. Never on the normal path.
+  if (window.location.search.includes('voices')) {
+    const panel = document.createElement('pre');
+    panel.className = 'voice-dump';
+    panel.textContent = describeVoices().join('\n');
+    uiRoot.append(panel);
+    // Chrome fills the list asynchronously and often after first paint.
+    window.speechSynthesis?.addEventListener('voiceschanged', () => {
+      panel.textContent = describeVoices().join('\n');
+    });
+  }
 
   const ui = createUI({
     root: uiRoot,

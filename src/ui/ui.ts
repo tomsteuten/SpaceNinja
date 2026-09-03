@@ -358,9 +358,10 @@ export function createUI(options: UIOptions): GameUI {
     factText.textContent = text;
     factCard.classList.remove('is-hidden', 'is-collapsed');
     factCard.classList.add('fade-in');
-    narrator.speak(text);
-    // A backstop for the common case where there is no narration at all to wait for —
-    // and long enough for an adult to read the longest fact out themselves if there is.
+    // Deliberately not spoken. Playtesting was blunt about it: the platform voice is bad
+    // enough that no narration beats this narration, and it used to start on its own for
+    // every fact, so there was no way to not have it. The speaker button is right there
+    // and now it is the only thing that starts a reading. One line to put back.
     scheduleCollapse(11000);
   }
 
@@ -420,8 +421,9 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     setMissionCaption(text: string) {
+      // Not spoken either, for the same reason, and it was the worse of the two: the hunt
+      // line arrives while a child is mid-search and had a voice interrupt them for it.
       missionCaption.textContent = text;
-      narrator.speak(text);
     },
 
     showDiscovery(discovery: Discovery) {

@@ -208,10 +208,31 @@ a screenshot.
 it temporary, and **the voice quality is poor** — that is the top complaint about the
 current build.
 
-It cannot really be fixed in place. `pickVoice()` regex-matches over `getVoices()` and
-takes what it finds; the actual voice is whatever the operating system ships, so the same
-code sounds different and mostly bad on every platform, and rate/pitch tuning cannot
-rescue it.
+It cannot really be fixed in place. The actual voice is whatever the operating system
+ships, so the same code sounds different and mostly bad on every platform, and rate/pitch
+tuning cannot rescue it.
+
+**Nothing is read aloud unless someone asks.** Playtesting was blunt: this narration is bad
+enough that none beats it. It used to start on its own for every fact and for the hunt
+line, so there was no way to not have it; the speaker button is now the only thing that
+starts a reading. That is a default and one line in `ui.ts`, not a deletion — put it back
+the moment there is a voice worth hearing.
+
+Two things were worth doing anyway, and both are tested:
+
+- `pickVoice` **ranks** rather than first-matches. The old rule took the first voice
+  matching any of a set of patterns in whatever order the platform listed them, so a
+  device carrying both a good voice and a poor one was a coin toss decided by enumeration
+  order.
+- `speechText` cleans the words before they reach the engine: em dashes become commas, and
+  each sentence becomes its own utterance so a weak voice stops for breath. The text on
+  screen keeps its dashes, where they read correctly.
+
+**Load the game with `?voices` on the real device.** None of the above can be heard from a
+development machine — this one reports the API present and zero voices installed, and
+quality is entirely a property of the device. That page lists every voice the tablet
+offers and marks the one that would be chosen. It is the only honest way to tune the
+ranking.
 
 Replacing it properly means pre-generated audio (ElevenLabs or similar), which is a real
 tradeoff, not a free win — it breaks the project's "no build-time assets" property and adds
@@ -228,9 +249,14 @@ payload. The migration path that preserves the most:
 - Budget it: the fact copy lives in `DESTINATIONS` in `config.ts` and is short. Prefer
   `.ogg`/`.mp3`, and credit/licence the voice in `README.md` like the textures.
 
-Generating the audio needs a TTS account and is a human step. An assistant can write the
-manifest, the loader, the fallback and the config changes — but should not claim to have
-produced audio it cannot produce.
+Generating the audio is a human step. An assistant can write the manifest, the loader, the
+fallback and the config changes — but should not claim to have produced audio it cannot
+produce.
+
+It does not need a TTS account either. There are nine lines and they total about ninety
+seconds; a phone voice memo is free, needs no licence line in the README, and for this
+audience a parent reading to a child beats any synthesiser, because it lands in a register
+no synthesiser reaches.
 
 ---
 
