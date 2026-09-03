@@ -73,6 +73,14 @@ whose failure is easy to miss by eye.
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA elevation and
 imagery data.
 
+**Discovery photographs** in `public/assets/discoveries/` — Sahara/Africa and Amazon
+River imagery from NASA Earth Observatory; Black Marble 2016 from NASA Goddard Space
+Flight Center; Apollo 11 bootprint from NASA/Buzz Aldrin; Tycho and the lunar far side
+from NASA/JPL/USGS and NASA/GSFC/Arizona State University; and Olympus Mons, Valles
+Marineris and Elysium from NASA/JPL/USGS. All public domain. The source pages and image
+identifiers are listed in
+[`public/assets/discoveries/README.txt`](public/assets/discoveries/README.txt).
+
 The Sun, the spaceship and everything else on screen is generated at runtime or built
 from Three.js primitives.
 

@@ -102,6 +102,53 @@ its id and no code changes.
                         25N 147E.
 
 
+FILES CURRENTLY INSTALLED
+-------------------------
+
+All nine are in place. Every one is public domain; the credit lines below are courtesy
+rather than obligation, and are repeated in README.md.
+
+  earth-sahara.jpg      Blue Marble: Next Generation, Africa, March 2005.
+                        Credit: NASA Earth Observatory.
+                        https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/
+  earth-amazon.jpg      ISS040-E-103491, Amazon River in Sunglint.
+                        Credit: NASA/ISS Crew Earth Observations Facility.
+                        https://science.nasa.gov/earth/earth-observatory/amazon-river-in-sunglint-84813/
+  earth-nightside.jpg   Black Marble 2016 global composite.
+                        Credit: NASA's Goddard Space Flight Center.
+                        https://svs.gsfc.nasa.gov/30876/
+  moon-tranquility.jpg  AS11-40-5878, Apollo 11 bootprint.
+                        Credit: NASA/Edwin "Buzz" Aldrin.
+                        https://science.nasa.gov/resource/apollo-11-bootprint/
+  moon-tycho.jpg        PIA00405, Earth's Moon, with Tycho's ray system visible.
+                        Credit: NASA/JPL/USGS.
+                        https://science.nasa.gov/photojournal/earths-moon/
+  moon-farside.jpg      LRO reconstruction of the lunar far side seen by Luna 3.
+                        Credit: NASA's Scientific Visualization Studio/Ernie Wright.
+                        https://svs.gsfc.nasa.gov/4109/
+  mars-olympus.jpg      PIA00300, Olympus Mons.
+                        Credit: NASA/JPL/USGS.
+                        https://www.jpl.nasa.gov/images/pia00300-olympus-mons/
+  mars-marineris.jpg    PIA00003, Valles Marineris Hemisphere.
+                        Credit: NASA/JPL/USGS.
+                        https://www.jpl.nasa.gov/images/pia00003-valles-marineris-hemisphere/
+  mars-elysium.jpg      PIA00412, Elysium, with Elysium Mons in the middle and Hecates
+                        Tholus and Albor Tholus either side.
+                        Credit: NASA/JPL/USGS.
+                        https://www.jpl.nasa.gov/images/pia00412-elysium/
+
+Two of them are worth knowing about before you swap anything:
+
+  earth-nightside.jpg is the flat world map as NASA publishes it, caption bar and all,
+  rather than a view of the night side from space. It is the right subject — the fact is
+  entirely about the city lights — but it is the one most worth replacing if a globe-shaped
+  night view turns up, and its square thumbnail crop lands on a dark part of the map.
+
+  moon-tycho.jpg is the colour-enhanced Galileo mosaic, so the Moon in it is faintly green
+  and blue where the game's own Moon is grey. Tycho's rays are unmistakable in it, which is
+  what the fact is about, so it stays — but that is why it does not match the sphere.
+
+
 WHERE TO GET THEM
 -----------------
 
