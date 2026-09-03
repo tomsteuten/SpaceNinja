@@ -57,7 +57,7 @@ src/
   controls/OrbitInput.ts    drag to rotate, pinch/wheel to zoom
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts the real places to find, for any body
-  ui/                       ui.ts, ui.css, icons.ts, voices.ts (the ?voices picker)
+  ui/                       ui.ts, ui.css, icons.ts, grownups.ts (the adult's one screen)
   audio/narration.ts        SpeechSynthesis wrapper — see "Known weak spot"
   audio/sfx.ts              every sound: two cues, the engine, the sunrise. No files
   state/progress.ts         stickers and visits, in localStorage
@@ -298,14 +298,21 @@ Two things were worth doing anyway, and both are tested:
   each sentence becomes its own utterance so a weak voice stops for breath. The text on
   screen keeps its dashes, where they read correctly.
 
-**Load the game with `?voices` on the real device, and let a person choose.** None of the
-above can be heard from a development machine — this one reports the API present and zero
-voices installed, and quality is entirely a property of the device. That page lists every
-voice the tablet offers, best first; tapping one reads a real line from the game in it and
-remembers it, and `pickVoice` then honours that saved choice over its own ranking. A
-ranking over voice *names* is guessing at a quality it cannot observe, and an adult holding
-the tablet can simply listen — so the heuristic is the default, not the verdict. The saved
-choice falls back to the ranking if that voice is ever uninstalled.
+**Let a person choose the voice, on the grown-ups panel.** None of the above can be heard
+from a development machine — this one reports the API present and zero voices installed,
+and quality is entirely a property of the device. `ui/grownups.ts` lists every voice the
+tablet offers, best first; tapping one reads a real line from the game in it and remembers
+it, and `pickVoice` then honours that saved choice over its own ranking. A ranking over
+voice *names* is guessing at a quality it cannot observe, and an adult holding the tablet
+can simply listen — so the heuristic is the default, not the verdict. The saved choice
+falls back to the ranking if that voice is ever uninstalled.
+
+The panel shows itself once per device and afterwards only on a two-second hold of the
+journal button (or `?grownups`). It is a hold rather than a button because anything on
+screen that opens settings is something a five-year-old will open, and it can say so in
+writing precisely because the person it hides from cannot read yet. If you add anything to
+it, keep it operational — a parent about to hand over a tablet reads one screen, and the
+reasoning behind the game belongs in `README.md` where it can be as long as it likes.
 
 Replacing it properly means pre-generated audio (ElevenLabs or similar), which is a real
 tradeoff, not a free win — it breaks the project's "no build-time assets" property and adds

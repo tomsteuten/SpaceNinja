@@ -76,6 +76,12 @@ export interface UIOptions {
   onExploreAgain(): void;
   /** The "turn this world through a day" button. Only offered where config has one. */
   onSpin(): void;
+  /**
+   * Someone held the journal button down. That is the way back into the grown-ups panel,
+   * and it is deliberately a gesture rather than a button: a settings control on screen is
+   * a settings control a five-year-old will press.
+   */
+  onGrownups(): void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -90,7 +96,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 export function createUI(options: UIOptions): GameUI {
-  const { root, narrator, onFly, onExploreAgain, onSpin } = options;
+  const { root, narrator, onFly, onExploreAgain, onSpin, onGrownups } = options;
   const timers: number[] = [];
 
   function later(callback: () => void, delay: number) {
@@ -252,7 +258,46 @@ export function createUI(options: UIOptions): GameUI {
     onSpin();
   });
 
-  journalButton.addEventListener('click', () => setJournalOpen(true));
+  /*
+   * Tap opens the journal; hold opens the grown-ups panel.
+   *
+   * A hold rather than a visible button, because anything on screen that opens settings is
+   * something a five-year-old will open. Two seconds is long enough that no child holds it
+   * by accident and short enough that an adult who has been told about it does not give up
+   * — and the panel says the gesture in writing, which works precisely because the person
+   * it needs to hide from cannot read it yet.
+   */
+  const HOLD_MS = 2000;
+  let holdTimer = 0;
+  let held = false;
+
+  function endHold() {
+    window.clearTimeout(holdTimer);
+  }
+
+  journalButton.addEventListener('pointerdown', () => {
+    held = false;
+    endHold();
+    holdTimer = window.setTimeout(() => {
+      held = true;
+      onGrownups();
+    }, HOLD_MS);
+    timers.push(holdTimer);
+  });
+  // pointerup alone is not enough: a finger that slides off the button, or a pointer the
+  // browser takes back mid-gesture, would otherwise leave the timer to fire later over
+  // whatever the child had moved on to.
+  for (const event of ['pointerup', 'pointerleave', 'pointercancel'] as const) {
+    journalButton.addEventListener(event, endHold);
+  }
+  journalButton.addEventListener('click', () => {
+    // The hold already did something. Chrome still fires the click that ended it.
+    if (held) {
+      held = false;
+      return;
+    }
+    setJournalOpen(true);
+  });
   closeJournal.addEventListener('click', () => setJournalOpen(false));
   renderJournal();
 

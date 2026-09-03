@@ -252,15 +252,18 @@ it was bad enough that no narration beat this narration. So nothing speaks by it
 speaker button on the fact card is the only thing that starts a reading, and if
 SpeechSynthesis is missing the button does not appear at all.
 
-**To choose the voice, open the game with `?voices` on the end of the address** — on the
-published site that is
-[tomsteuten.github.io/SpaceNinja/?voices](https://tomsteuten.github.io/SpaceNinja/?voices),
-and locally `http://localhost:5173/?voices`. It lists every voice the device offers, best
-first; tap one to hear it read a line from the game, and the last one tapped is remembered
-and used from then on. There is no button to it inside the game, deliberately — it is a job
-for a grown-up, once, and a query string is the cheapest door that a child will not open by
-accident. Voice quality is a property of the device and cannot be judged from a development
-machine, so this page is the only honest way to pick.
+**The voice is chosen on the grown-ups panel**, which appears by itself the first time the
+game is opened on a device. It lists every voice that device offers, best first; tap one to
+hear it read a line from the game, and the last one tapped is remembered and used from then
+on. Voice quality is a property of the device and cannot be judged from a development
+machine, so this is the only honest way to pick.
+
+**To open it again: press and hold the round book button for two seconds.** A hold rather
+than a visible button, because a settings control on screen is a settings control a
+five-year-old will press — and the panel says so in writing, which works precisely because
+the person it is hiding from cannot read it yet. `?grownups` on the end of the address does
+the same thing, which is the way back in if the browser's storage has been cleared
+(`?voices` still works too).
 
 **Reduced motion removes motion rather than speeding it up**: `prefers-reduced-motion`
 skips the exhaust trail and the widening view, removes camera inertia, thins the collect

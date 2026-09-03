@@ -32,7 +32,7 @@ import {
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
-import { createVoicePanel, type VoicePanel } from './ui/voices';
+import { createGrownups, shouldGreet } from './ui/grownups';
 import { awardSticker, loadProgress, markVisited, recordDiscovery } from './state/progress';
 
 const boot = document.getElementById('boot');
@@ -96,14 +96,16 @@ async function main() {
   const narrator = createNarrator();
   const sfx = createSfx();
 
-  // `?voices` lets whoever is holding the tablet pick the reading voice by listening to
-  // the candidates. The narration voice cannot be chosen well from a development machine —
-  // quality is a property of the device — so this is how it gets asked. Never on the
-  // normal path: a child does not type query strings.
-  let voicePanel: VoicePanel | null = null;
-  if (window.location.search.includes('voices')) {
-    voicePanel = createVoicePanel(uiRoot, narrator);
-  }
+  /*
+   * The one screen written for the adult: what the game is, and the reading voice, which
+   * cannot be chosen from a development machine because quality is a property of the
+   * device. Shown once on a device's first load, and after that only when someone holds
+   * the journal button down — or asks for it by address, which is the way back in if
+   * storage was cleared. `?voices` still works, since that is what the README said first.
+   */
+  const asked = /[?&](grownups|voices)\b/.test(window.location.search);
+  const grownups = createGrownups({ root: uiRoot, narrator });
+  if (shouldGreet(asked)) grownups.show();
 
   const ui = createUI({
     root: uiRoot,
@@ -126,6 +128,7 @@ async function main() {
     onExploreAgain: () => {
       restart();
     },
+    onGrownups: () => grownups.show(),
     onSpin: () => {
       const body = world.bodies[follow];
       const spin = DESTINATIONS[follow]?.spin;
@@ -425,7 +428,7 @@ async function main() {
     document.removeEventListener('visibilitychange', onVisibilityChange);
     controls.dispose();
     ui.dispose();
-    voicePanel?.dispose();
+    grownups.dispose();
     narrator.dispose();
     sfx.dispose();
     for (const mission of Object.values(missions)) mission.dispose();

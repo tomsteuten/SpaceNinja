@@ -792,34 +792,78 @@ body {
 /* The `?voices` readout. Deliberately plain and deliberately on top of everything: it is
    a diagnostic for an adult holding the tablet, not part of the game. */
 /*
- * The `?voices` picker. Reached deliberately, by an adult, so it can be plain — but the
- * rows are tap targets on a tablet, which is what the generous padding is for.
+ * The grown-ups panel. Reached deliberately by an adult, so it can be plain — but every
+ * row is a tap target on a tablet, which is what the generous padding is for.
  */
-.voice-panel {
+.grownups {
   position: absolute;
   inset: 0;
   margin: 0;
-  padding: 1.25rem;
+  padding: 1.5rem 1.25rem 3rem;
   overflow: auto;
-  background: rgba(10, 8, 24, 0.96);
+  background: rgba(10, 8, 24, 0.97);
   color: #e8e4ff;
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
   pointer-events: auto;
   z-index: 50;
 }
 
-.voice-title {
+.grownups__inner {
+  max-width: 56ch;
+  margin: 0 auto;
+}
+
+.grownups__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+}
+
+.grownups__lead,
+.grownups__note {
+  margin: 0 0 0.9rem;
+  max-width: 56ch;
+  color: #c4bde8;
+}
+
+/* The biggest thing on the panel and the first thing under the opening line, because the
+   failure mode here is a child opening the game alone and meeting text they cannot read. */
+.grownups__start {
+  display: block;
+  width: min(24rem, 100%);
+  margin: 0.4rem 0 1.8rem;
+  padding: 1rem 1.4rem;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffb454, #f08a2e);
+  color: #2a1400;
+  font: 700 1.25rem/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.grownups__section {
+  max-width: 56ch;
+  margin: 0 0 1.6rem;
+}
+
+.grownups__heading {
   margin: 0 0 0.4rem;
-  font-size: 1.15rem;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffd89a;
 }
 
-.voice-note {
-  margin: 0 0 1rem;
-  max-width: 46ch;
+.grownups__reopen {
+  max-width: 56ch;
+  margin: 2rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(160, 150, 220, 0.25);
   color: #b9b2e0;
+  font-size: 0.95rem;
 }
 
-.voice-auto,
+.grownups__auto,
 .voice-option {
   display: block;
   width: 100%;
@@ -833,12 +877,12 @@ body {
   cursor: pointer;
 }
 
-.voice-auto {
-  margin-bottom: 1rem;
+.grownups__auto {
+  margin-bottom: 0.75rem;
   padding: 0.6rem 0.9rem;
 }
 
-.voice-auto:disabled {
+.grownups__auto:disabled {
   opacity: 0.55;
   cursor: default;
 }
