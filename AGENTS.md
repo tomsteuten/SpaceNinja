@@ -315,10 +315,11 @@ Generating the audio is a human step. An assistant can write the manifest, the l
 fallback and the config changes — but should not claim to have produced audio it cannot
 produce.
 
-It does not need a TTS account either. There are nine lines and they total about ninety
-seconds; a phone voice memo is free, needs no licence line in the README, and for this
-audience a parent reading to a child beats any synthesiser, because it lands in a register
-no synthesiser reaches.
+It does not need a TTS account either. There are sixteen lines and they total about 465
+words — three minutes read aloud, counted rather than estimated, and up from the nine lines
+this paragraph used to claim, because Earth and Mars arrived since. A phone voice memo is
+free, needs no licence line in the README, and for this audience a parent reading to a child
+beats any synthesiser, because it lands in a register no synthesiser reaches.
 
 ---
 
