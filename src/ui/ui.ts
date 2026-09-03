@@ -9,6 +9,7 @@ import type { Narrator } from '../audio/narration';
 import { DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
 import { STICKERS, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup } from './icons';
+import { createPhotoViewer, findPhoto } from './photos';
 
 export interface SelectionInfo {
   label: string;
@@ -162,8 +163,59 @@ export function createUI(options: UIOptions): GameUI {
   narrateButton.append(createIcon('speaker'));
   narrateButton.type = 'button';
   narrateButton.setAttribute('aria-label', 'Read this out loud');
-  factCard.append(factTitle, factText, narrateButton);
+  /*
+   * A photograph of the place, when there is one for it.
+   *
+   * A thumbnail beside the words rather than a band above them: the card sits across the
+   * bottom of the screen over the planet a child is looking at, and it has already had to
+   * be taught to fold away for the day turn. A picture the width of the card would put a
+   * third of the screen back. Small here, big on a tap — and it is a button, so it reaches
+   * the same size as every other tap target in the game.
+   */
+  const factPhoto = el('button', 'fact-photo');
+  factPhoto.type = 'button';
+  factPhoto.setAttribute('aria-label', 'See a photo of this place');
+  const factPhotoImage = document.createElement('img');
+  factPhotoImage.alt = '';
+  factPhoto.append(factPhotoImage);
+  factPhoto.classList.add('is-hidden');
+
+  factCard.append(factTitle, factPhoto, factText, narrateButton);
   factCard.classList.add('is-hidden');
+
+  const photoViewer = createPhotoViewer(root);
+  /** What the thumbnail currently shows, so a tap opens the right one. */
+  let photoShowing: { url: string; caption: string } | null = null;
+
+  factPhoto.addEventListener('click', () => {
+    if (photoShowing) photoViewer.show(photoShowing.url, photoShowing.caption);
+  });
+
+  function clearPhoto() {
+    photoShowing = null;
+    factPhoto.classList.add('is-hidden');
+    factPhotoImage.removeAttribute('src');
+  }
+
+  /**
+   * Looks for this place's photo and shows it if it exists.
+   *
+   * Guarded on the discovery still being the one on screen, because facts overlap: finding
+   * a place replaces the arrival fact, and the completion line queues behind the last
+   * discovery. A probe that resolves a moment late would otherwise staple the Sahara's
+   * photograph to whatever the card had moved on to.
+   */
+  async function attachPhoto(discovery: Discovery) {
+    clearPhoto();
+    const url = await findPhoto(discovery.id);
+    if (!url || photoFor !== discovery.id) return;
+    factPhotoImage.src = url;
+    photoShowing = { url, caption: `${discovery.emoji} ${discovery.name}` };
+    factPhoto.classList.remove('is-hidden');
+  }
+
+  /** The discovery the card is currently about, or null for anything else. */
+  let photoFor: string | null = null;
 
   /**
    * The one way back, from the moment the ship arrives until it leaves again.
@@ -437,6 +489,11 @@ export function createUI(options: UIOptions): GameUI {
   function showFact(text: string, title?: string) {
     currentFact = text;
     factShownAt = Date.now();
+    // Every fact clears the photo; showDiscovery is the only one that puts one back, and
+    // it does so after calling this. Otherwise the arrival fact or the success line would
+    // inherit the picture belonging to the last place found.
+    photoFor = null;
+    clearPhoto();
     factTitle.textContent = title ?? '';
     factTitle.classList.toggle('is-hidden', !title);
     factText.textContent = text;
@@ -544,6 +601,10 @@ export function createUI(options: UIOptions): GameUI {
       // journal entry are visibly the same thing. For a child who cannot read the name,
       // that picture is the only part of the title that carries.
       showFact(discovery.fact, `${discovery.emoji} ${discovery.name}`);
+      // And the real photograph, if one has been dropped in for this place. Started after
+      // the words rather than waited on: the card must not hang on a network probe.
+      photoFor = discovery.id;
+      void attachPhoto(discovery);
       journalButton.setAttribute('data-new', 'true');
       if (journalOpen) renderJournal();
     },
@@ -642,6 +703,9 @@ export function createUI(options: UIOptions): GameUI {
 
       currentFact = '';
       pendingFact = null;
+      photoFor = null;
+      clearPhoto();
+      photoViewer.hide();
       window.clearTimeout(collapseTimer);
       factCard.classList.remove('is-collapsed');
       factTitle.textContent = '';
@@ -662,6 +726,8 @@ export function createUI(options: UIOptions): GameUI {
 
     dispose() {
       clearTimers();
+      // Its own window listener, so it has to be told rather than just detached.
+      photoViewer.dispose();
       root.replaceChildren();
     },
   };
