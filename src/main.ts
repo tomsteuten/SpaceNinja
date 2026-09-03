@@ -222,9 +222,19 @@ async function main() {
       camera,
       quality: stage.quality,
       reducedMotion,
-      onCollect: (discovery, found, total) => {
+      onCollect: (discovery, found, total, at) => {
         sfx.collect(found - 1, total);
         ui.setMissionProgress(found);
+        // The mission reports where the marker was in normalised device coordinates,
+        // because it holds a camera and not a canvas. This is handleTap's maths run
+        // backwards, and it is what lets the place be named where it was actually found.
+        const rect = canvas.getBoundingClientRect();
+        ui.showFindLabel(
+          rect.left + ((at.x + 1) / 2) * rect.width,
+          rect.top + ((1 - at.y) / 2) * rect.height,
+          discovery.emoji,
+          discovery.name,
+        );
         recordDiscovery(discovery.id);
         // What the place is, read out, replacing the arrival fact in the same card. The
         // hunt line would talk over it, so it waits for the last one instead — and when

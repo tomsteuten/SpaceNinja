@@ -718,6 +718,77 @@ body {
   }
 }
 
+/* The name of a place, at the place. Rises and fades so it never has to be dismissed, and
+   never sits on top of what a child is about to tap next. */
+.find-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(20, 14, 44, 0.86);
+  border: 1px solid rgba(255, 214, 150, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff3dc;
+  font-size: 1.05rem;
+  font-weight: 700;
+  /* Or it wraps to two words on a phone and stops being a label. */
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 30;
+  animation: findLabel 2.4s ease-out forwards;
+}
+
+.find-label__emoji {
+  font-size: 1.35em;
+  line-height: 1;
+}
+
+@keyframes findLabel {
+  0% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0;
+  }
+  12% {
+    transform: translate(-50%, -60%) scale(1);
+    opacity: 1;
+  }
+  72% {
+    transform: translate(-50%, -105%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -135%) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The label still has to appear and leave on its own — it is how the find is named —
+     but it does so without travelling. animationend still fires, so it still cleans up. */
+  .find-label {
+    animation: findLabelStill 2.4s ease-out forwards;
+  }
+}
+
+@keyframes findLabelStill {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* The `?voices` readout. Deliberately plain and deliberately on top of everything: it is
    a diagnostic for an adult holding the tablet, not part of the game. */
 /*

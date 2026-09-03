@@ -54,6 +54,11 @@ export interface GameUI {
    */
   showTapEcho(clientX: number, clientY: number): void;
   /**
+   * Name a place at the point on screen where it was found, so the answer arrives at the
+   * thing that was touched rather than only in a card at the bottom of the screen.
+   */
+  showFindLabel(clientX: number, clientY: number, emoji: string, name: string): void;
+  /**
    * Offer to turn the destination through a day, or take the offer away. Null hides it.
    */
   showSpin(label: string | null): void;
@@ -489,7 +494,11 @@ export function createUI(options: UIOptions): GameUI {
     showDiscovery(discovery: Discovery) {
       // Straight into the fact card, which reads it aloud. This is the whole payoff for
       // going and looking: the old collectible answered a tap with a counter going up.
-      showFact(discovery.fact, discovery.name);
+      //
+      // The emoji is in the title so the card, the badge now left on the planet and the
+      // journal entry are visibly the same thing. For a child who cannot read the name,
+      // that picture is the only part of the title that carries.
+      showFact(discovery.fact, `${discovery.emoji} ${discovery.name}`);
       journalButton.setAttribute('data-new', 'true');
       if (journalOpen) renderJournal();
     },
@@ -547,6 +556,28 @@ export function createUI(options: UIOptions): GameUI {
       // cancel the cleanup and strand it on screen.
       echo.addEventListener('animationend', () => echo.remove(), { once: true });
       root.append(echo);
+    },
+
+    showFindLabel(clientX: number, clientY: number, emoji: string, name: string) {
+      /*
+       * The name, right where the finger was.
+       *
+       * The fact card says the same name, in small orange text, at the bottom of the
+       * screen — and a five-year-old who cannot read it has nothing at all connecting the
+       * dot they just touched to the words that changed hundreds of pixels away. Reported
+       * from the tablet by an adult who also had not made the connection.
+       *
+       * Kept to the emoji and the short name. This is the label on the thing, not the
+       * story about it; the story is still the card's job.
+       */
+      const label = el('div', 'find-label');
+      label.append(el('span', 'find-label__emoji', emoji), el('span', '', name));
+      label.style.left = clientX + 'px';
+      label.style.top = clientY + 'px';
+      // Removed by its own animation, like the tap echo, so a Fly Home part-way through
+      // cannot cancel the cleanup and leave it stuck over the scene.
+      label.addEventListener('animationend', () => label.remove(), { once: true });
+      root.append(label);
     },
 
     reset() {

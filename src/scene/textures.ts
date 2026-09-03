@@ -596,6 +596,37 @@ export function makeGlowTexture(size = 256): THREE.CanvasTexture {
   return texture;
 }
 
+/**
+ * One emoji on a transparent square, for the badge left behind on a place once it has
+ * been found.
+ *
+ * Emoji rather than authored art, and not only because it ships no bytes: the journal
+ * already labels every discovery with exactly these characters, so the badge on the planet
+ * and the entry in the book are the same picture. A sprite sheet would be a second visual
+ * language to keep in step with the first.
+ *
+ * The dark rim underneath is doing real work. These sit on a bright desert, a green
+ * rainforest, grey regolith and red dust, and a flat emoji dropped on any of them can lose
+ * its edge entirely; a shadow behind it separates it from all four.
+ */
+export function makeEmojiTexture(emoji: string, size = 128): THREE.CanvasTexture {
+  const [el, ctx] = canvas2d(size, size);
+  const half = size / 2;
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // A named emoji stack first: a bare sans-serif can fall through to a monochrome glyph on
+  // platforms that carry both, and the colour is most of what makes these legible.
+  ctx.font = `${Math.round(size * 0.68)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+  ctx.shadowBlur = size * 0.09;
+  ctx.fillText(emoji, half, half + size * 0.02);
+
+  const texture = new THREE.CanvasTexture(el);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 /** Soft glowing annulus, drawn as a billboard to mark the selected body. */
 export function makeRingTexture(size = 256): THREE.CanvasTexture {
   const [el, ctx] = canvas2d(size, size);

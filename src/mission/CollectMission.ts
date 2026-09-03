@@ -23,7 +23,7 @@ import * as THREE from 'three';
 import type { Discovery } from '../config';
 import type { CelestialBody } from '../scene/Bodies';
 import type { QualitySettings, Tier } from '../scene/quality';
-import { makeGlowTexture } from '../scene/textures';
+import { makeEmojiTexture, makeGlowTexture } from '../scene/textures';
 
 export interface MissionDefinition {
   body: CelestialBody;
@@ -58,8 +58,22 @@ export interface CollectMissionOptions {
   camera: THREE.Camera;
   quality: QualitySettings;
   reducedMotion: boolean;
-  /** Fires the moment a marker is tapped, so sound and UI land with the particles. */
-  onCollect(discovery: Discovery, found: number, total: number): void;
+  /**
+   * Fires the moment a marker is tapped, so sound and UI land with the particles.
+   *
+   * `at` is where the marker was on screen, in normalised device coordinates (-1..1, y
+   * up) — the only screen unit a module holding a camera and no canvas can honestly
+   * report. The caller turns it into pixels. It is there so the answer to a tap can
+   * appear *at the thing tapped*: the fact card is at the bottom of the screen, hundreds
+   * of pixels away, and for a child who cannot yet read there was nothing at all
+   * connecting the dot they touched to the words that changed.
+   */
+  onCollect(
+    discovery: Discovery,
+    found: number,
+    total: number,
+    at: { x: number; y: number },
+  ): void;
   /** Fires once, after the last collect animation has finished. */
   onComplete(): void;
 }
@@ -99,6 +113,13 @@ export const MARKER_RATIO = 0.085;
  * and starts reading as "something is smeared on the lens". Was 6.2.
  */
 const GLOW_RATIO = 3.2;
+/**
+ * The found badge, as a multiple of the marker's radius. Bigger than the ring it replaces,
+ * because a ring only has to be *seen* and an emoji has to be *read* — at arrival distance
+ * a badge the size of the ring is a coloured speck, and the whole point of it is that a
+ * child can tell the desert from the rainforest at a glance.
+ */
+const BADGE_RATIO = 2.1;
 /**
  * How far off the surface the ring sits. Barely: it is meant to be lying on the ground,
  * and it only clears it at all to stay out of a z-fight with the sphere underneath.
@@ -149,6 +170,7 @@ const _center = new THREE.Vector3();
 const _forward = new THREE.Vector3();
 const _dir = new THREE.Vector3();
 const _view = new THREE.Vector3();
+const _screen = new THREE.Vector3();
 /** The plane RingGeometry is built in, and so the axis every marker is turned off. */
 const FACE = new THREE.Vector3(0, 0, 1);
 
@@ -256,6 +278,11 @@ interface Collectible {
   ringMaterial: THREE.MeshBasicMaterial;
   glow: THREE.Sprite;
   glowMaterial: THREE.SpriteMaterial;
+  /** The emoji left on the place once it is found. Hidden until then. */
+  badge: THREE.Sprite;
+  badgeMaterial: THREE.SpriteMaterial;
+  badgeTexture: THREE.CanvasTexture;
+  badgeScale: number;
   particles: THREE.Points;
   particleGeometry: THREE.BufferGeometry;
   particleMaterial: THREE.PointsMaterial;
@@ -361,6 +388,31 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     particles.frustumCulled = false;
     node.add(particles);
 
+    /*
+     * The badge: this place's own emoji, left standing on it once it is found.
+     *
+     * Before this, every marker was an identical gold ring and every one of them vanished
+     * on being tapped, so a finished planet looked exactly like an untouched one and
+     * nothing on screen ever said which dot had been the desert. Reported plainly from a
+     * tablet: "random yellow dots with no real educational value". The badge is the fix —
+     * the planet becomes a labelled map of the places a child went and looked at.
+     *
+     * Hidden while the marker is idle, because showing it up front would answer the
+     * question the hunt is asking. Not additive: it is a picture, not a light.
+     */
+    const badgeTexture = makeEmojiTexture(discovery.emoji, quality.tier === 'low' ? 64 : 128);
+    const badgeMaterial = new THREE.SpriteMaterial({
+      map: badgeTexture,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0,
+    });
+    const badge = new THREE.Sprite(badgeMaterial);
+    const badgeScale = markerRadius * BADGE_RATIO;
+    badge.scale.setScalar(badgeScale);
+    badge.visible = false;
+    node.add(badge);
+
     // material.visible, not object.visible, so the raycaster still traverses it.
     const hitMaterial = new THREE.MeshBasicMaterial({ visible: false });
     const hit = new THREE.Mesh(new THREE.SphereGeometry(hitRadius, 10, 8), hitMaterial);
@@ -374,6 +426,10 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       ringMaterial,
       glow,
       glowMaterial,
+      badge,
+      badgeMaterial,
+      badgeTexture,
+      badgeScale,
       particles,
       particleGeometry,
       particleMaterial,
@@ -463,7 +519,10 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     if (index >= 0) hitMeshes.splice(index, 1);
 
     collected++;
-    onCollect(collectible.discovery, collected, count);
+    // Where it is on screen, right now, before the burst moves anything. NDC, because
+    // this module has a camera and no idea how big the canvas is.
+    collectible.group.getWorldPosition(_screen).project(camera);
+    onCollect(collectible.discovery, collected, count, { x: _screen.x, y: _screen.y });
     if (collected >= count) completionTimer = collectDuration + COMPLETION_DELAY;
   }
 
@@ -475,6 +534,9 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       collectible.group.removeFromParent();
       collectible.ringMaterial.dispose();
       collectible.glowMaterial.dispose();
+      collectible.badgeMaterial.dispose();
+      // Its own canvas texture, one per discovery, so it is the mission's to free.
+      collectible.badgeTexture.dispose();
       collectible.particleGeometry.dispose();
       collectible.particleMaterial.dispose();
       collectible.hit.geometry.dispose();
@@ -576,9 +638,26 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
         positions.needsUpdate = true;
         collectible.particleMaterial.opacity = 1 - eased;
 
+        // The badge arrives as the ring leaves, so the marker turns into its own label
+        // rather than blinking out and being replaced. It overshoots and settles, which is
+        // the one bit of "you got it" left on the planet itself.
+        collectible.badge.visible = true;
+        const pop = smootherstep(Math.min(1, k * 1.5));
+        collectible.badgeMaterial.opacity = pop;
+        collectible.badge.scale.setScalar(
+          collectible.badgeScale * (0.4 + pop * 0.72 + Math.sin(pop * Math.PI) * 0.22),
+        );
+
         if (k >= 1) {
           collectible.state = 'gone';
-          collectible.group.visible = false;
+          // Not group.visible = false any more: the group is what carries the badge, and
+          // the badge is the whole point — a finished planet used to look identical to an
+          // untouched one. The parts that *are* finished get hidden individually.
+          collectible.ring.visible = false;
+          collectible.glow.visible = false;
+          collectible.particles.visible = false;
+          collectible.badgeMaterial.opacity = 1;
+          collectible.badge.scale.setScalar(collectible.badgeScale);
         }
       }
 
