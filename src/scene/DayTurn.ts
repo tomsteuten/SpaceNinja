@@ -58,6 +58,16 @@ export interface DayTurnOptions {
   /** Borrowed for the swing and handed back at the end, as the flight does. */
   controls: OrbitInput;
   reducedMotion: boolean;
+  /**
+   * How much of the day has turned, every active frame: 0 throughout the camera swing,
+   * then 0 → 1 across the turn itself, reaching exactly 1 on the frame it completes.
+   *
+   * Reported rather than scheduled because the turn is clamped against what is left rather
+   * than against the clock — a slow tablet stretches it, and anything following it has to
+   * stretch too. Not called by reset(); stopping is the caller's own business, as it is
+   * for onFinish.
+   */
+  onProgress?(progress: number): void;
   /** Fires once, when a full turn has been completed. Not called by reset(). */
   onFinish(): void;
 }
@@ -68,7 +78,7 @@ function smootherstep(t: number): number {
 }
 
 export function createDayTurn(options: DayTurnOptions): DayTurn {
-  const { camera, controls, reducedMotion, onFinish } = options;
+  const { camera, controls, reducedMotion, onProgress, onFinish } = options;
   const swingDuration = reducedMotion ? DAY_SWING_DURATION_REDUCED : DAY_SWING_DURATION;
   const turnDuration = reducedMotion ? DAY_TURN_DURATION_REDUCED : DAY_TURN_DURATION;
   const rate = FULL_TURN / turnDuration;
@@ -148,6 +158,9 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       if (phase === 'swing') {
         swung += dt;
         placeCamera(smootherstep(swung / swingDuration));
+        // Nothing has turned yet, and saying so is not the same as saying nothing: the
+        // swing is where a sound gets to arrive before the thing it is about starts.
+        onProgress?.(0);
         if (swung >= swingDuration) phase = 'turn';
         return;
       }
@@ -158,6 +171,7 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       const step = Math.min(FULL_TURN - turned, rate * dt);
       turned += step;
       body.turnSurface(step);
+      onProgress?.(turned / FULL_TURN);
       // Held against the body rather than the world, so one that is still orbiting does
       // not slide out of frame while it turns.
       placeCamera(1);

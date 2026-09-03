@@ -213,6 +213,70 @@ describe('createDayTurn', () => {
     expect(turn.active).toBe(false);
   });
 
+  /*
+   * What the turn reports, which is what the sunrise sound is driven by. It has to be the
+   * turn's own progress rather than a clock: the step is clamped against what is left, so
+   * a struggling tablet stretches the turn out, and anything scheduled against wall-clock
+   * time would finish while the light was still moving.
+   */
+  it('reports its progress from a silent swing through to exactly one', () => {
+    const reported: number[] = [];
+    const turn = createDayTurn({
+      camera: stubCamera(),
+      controls: stubControls(),
+      reducedMotion: false,
+      onProgress: (progress) => reported.push(progress),
+      onFinish: vi.fn(),
+    });
+    turn.start(stubBody().body);
+    while (turn.active) turn.update(1 / 60);
+
+    // The swing moves the camera and turns nothing, and says so.
+    expect(reported[0]).toBe(0);
+    expect(reported.filter((progress) => progress === 0).length).toBeGreaterThan(100);
+    // Landing on exactly 1 is what lets a sound end rather than be faded out of.
+    expect(reported.at(-1)).toBe(1);
+    for (let i = 1; i < reported.length; i++) {
+      expect(reported[i]).toBeGreaterThanOrEqual(reported[i - 1] as number);
+    }
+  });
+
+  it('reports one on the last frame however the frames land', () => {
+    for (const dt of [1 / 60, 1 / 15, 0.05, DAY_TURN_DURATION * 2]) {
+      const reported: number[] = [];
+      const turn = createDayTurn({
+        camera: stubCamera(),
+        controls: stubControls(),
+        reducedMotion: false,
+        onProgress: (progress) => reported.push(progress),
+        onFinish: vi.fn(),
+      });
+      turn.start(stubBody().body);
+      while (turn.active) turn.update(dt);
+      expect(reported.at(-1)).toBe(1);
+    }
+  });
+
+  it('says nothing more once it has been reset', () => {
+    // Fly Home part-way through. Whatever is listening is stopped by its own reset, from
+    // the same caller; this only has to stop talking.
+    const reported: number[] = [];
+    const turn = createDayTurn({
+      camera: stubCamera(),
+      controls: stubControls(),
+      reducedMotion: false,
+      onProgress: (progress) => reported.push(progress),
+      onFinish: vi.fn(),
+    });
+    turn.start(stubBody().body);
+    for (let i = 0; i < 4; i++) turn.update(1);
+    const said = reported.length;
+    turn.reset();
+    turn.update(1);
+    expect(reported).toHaveLength(said);
+    expect(reported.at(-1)).toBeLessThan(1);
+  });
+
   it('stops on reset without reporting a finish', () => {
     // Flying home mid-turn. The surface keeps whatever rotation it reached, which is fine
     // — the mission is torn down with it and rebuilt from the camera next time.

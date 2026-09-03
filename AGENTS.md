@@ -59,7 +59,7 @@ src/
   mission/CollectMission.ts the real places to find, for any body
   ui/                       ui.ts, ui.css, icons.ts
   audio/narration.ts        SpeechSynthesis wrapper — see "Known weak spot"
-  audio/sfx.ts              two synthesised cues, no audio files
+  audio/sfx.ts              every sound: two cues, the engine, the sunrise. No files
   state/progress.ts         stickers and visits, in localStorage
 public/assets/              real textures, dropped in and picked up automatically
 design/                     reference art that is NOT shipped
@@ -182,6 +182,28 @@ yet"); there is a test for that.
 removes camera inertia, skips the trail and the FOV punch, and stops UI animation. New
 motion should check it.
 
+**It deliberately does not mute anything, though.** The preference is about discomfort from
+*movement*, and silencing sound for it answers a question nobody asked. What it does do is
+shorten the two moments that have continuous sound, and because both sounds follow a
+normalised value rather than a clock they compress along with the picture for free. If
+sound should be silenceable that wants its own control, not this flag.
+
+**Continuous sound is driven a frame at a time, never scheduled.** `sfx.thruster` and
+`sfx.dawn` are handed a value the picture is already using and follow it; nothing sets a
+timed ramp and walks away. `Stage.tick` clamps dt to 0.05s, so a struggling tablet stretches
+a flight or a day turn well past its nominal duration — anything scheduled against the audio
+clock finishes early and leaves the rest of the moment silent. Measured headlessly: a 9s day
+turn took 16.1s and still rang all six of its bells, one per sixth of a turn.
+
+Three consequences, all of which have a test. The sound's *level* comes from the same value
+the picture does — the engine follows `thrust`, which is what the exhaust is emitted at, not
+the `cruise` bell that drives the FOV punch, or it would fade out while the flame was still
+visibly firing. Every continuous sound must stop in `sfx.reset()`, because nothing else in
+the game would ever stop it: a Fly Home mid-flight is a thruster running for the rest of the
+session. And `sfx.reset()` is called when the tab is backgrounded too, since `stage.stop()`
+halts the loop that does the driving and would otherwise leave the engine droning at
+whatever gain it had reached.
+
 ---
 
 ## Conventions
@@ -220,6 +242,25 @@ artifact, not a bug — at 60fps `dt` never reaches the clamp.
 Listen for `pageerror` in these scripts. A shader or maths bug shows up there and nowhere
 else; a crash inside the frame loop leaves the last good frame on screen and looks fine in
 a screenshot.
+
+## Verifying sound
+
+You cannot hear it. Say so rather than claiming a sound is good — how it lands is a property
+of a tablet speaker in a child's hands, and the only honest answer is to ask.
+
+What *is* checkable is everything that goes wrong silently, and all of it is a graph fact.
+`sfx.test.ts` installs a fake `window.AudioContext` (no seam in the module: it reads the
+constructor off `window`, so a test can simply provide one) and asserts that one engine is
+built rather than one per frame, that gain follows the throttle, that every voice is stopped
+and disconnected, and that nothing survives a `reset()`. The envelope maths is exported as
+pure functions and pinned separately, like the flight's easing.
+
+Headless Chromium has real Web Audio — a running context at 44.1kHz — so the same drive-the-
+app workflow above measures the actual output: subclass `window.AudioContext` in an init
+script, wrap `createOscillator` and friends to count starts and stops, and redefine
+`destination` as a gain feeding an `AnalyserNode` feeding the real one. `getFloatTimeDomainData`
+then gives you the RMS of everything the game is playing, frame by frame. That is how the
+plateau shape, the six bells and the silence after every reset were checked here.
 
 ---
 
@@ -285,11 +326,12 @@ no synthesiser reaches.
 
 Ordered. The reasoning matters more than the order.
 
-1. **Give the flight sound.** `sfx.ts` has exactly two cues, both fired by the mission. The
-   flight is the best-looking part of the game and is completely silent. A synthesised
-   thruster driven by the same throttle value the trail already uses needs no audio files.
-   The day turn is silent too, and wants something even more: a rising note as the light
-   comes round would carry it for a child who is only watching.
+1. **Listen to the new sound on the real device.** The engine and the sunrise are in and
+   the graph is measured, but nobody has *heard* them: the development machine has no
+   audio, and loudness balance is a property of a tablet speaker. The likeliest things to
+   want tuning are `THRUSTER_PEAK` and the bell peak in `dawn` — headlessly they measure
+   about equally loud, and a bell should probably sit under an engine. Everything worth
+   adjusting is a named constant at the top of its section in `sfx.ts`.
 
 2. **Then add a planet.** Cheap by design: a config entry with three real places on it, and
    a body. Saturn over Venus — the rings are the most recognisable object in the solar
@@ -307,7 +349,8 @@ still finds it. Moving the Moon out would change every other shot in the game.
 Done since this file was written: collecting became discovering (real places at real
 coordinates, each telling you something that goes in the journal), the flight now arrives
 about three body-radii out instead of nine and a half, Earth is a destination, the narration
-no longer starts on its own, and Earth can be turned through a day.
+no longer starts on its own, Earth can be turned through a day, and the flight and the day
+turn both make a sound.
 
 Not yet in scope: real orbital physics, planets past Mars, downloaded models.
 

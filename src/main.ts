@@ -154,6 +154,10 @@ async function main() {
     camera,
     controls,
     reducedMotion,
+    // The quietest thing in the game gets the sound that most needs one. Driven by the
+    // turn's own progress rather than started and left to run, so the light and the sound
+    // arrive together however slowly the frames are coming.
+    onProgress: (progress) => sfx.dawn(progress),
     onFinish: () => ui.setSpinBusy(false),
   });
 
@@ -166,6 +170,9 @@ async function main() {
     controls,
     home: world.bodies.earth,
     reducedMotion,
+    // The engine, from the same two numbers the exhaust and the widening view are drawn
+    // from. The context was created by the Fly press that started this flight.
+    onThrottle: (throttle, cruise) => sfx.thruster(throttle, cruise),
     onArrive: (destination) => {
       follow = destination.id;
       selected = null;
@@ -309,6 +316,9 @@ async function main() {
     activeMission = null;
     dayTurn.reset();
     flight.reset();
+    // Both of those were being *driven* by the modules above, so stopping them stops
+    // nothing on its own: a Fly Home mid-flight leaves the engine running otherwise.
+    sfx.reset();
     // The ship was re-parented to the destination on arrival; the scene has to take it
     // back before the ship can restore its own parked transform.
     scene.attach(ship.group);
@@ -381,6 +391,10 @@ async function main() {
     if (document.hidden) {
       stage.stop();
       narrator.stop();
+      // Continuous sound is driven a frame at a time, and stopping the loop stops the
+      // driving — leaving the engine held at whatever gain it had reached, droning out of
+      // a backgrounded tab forever. Both sounds rebuild themselves on the next frame.
+      sfx.reset();
     } else {
       stage.start();
     }

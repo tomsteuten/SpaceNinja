@@ -54,6 +54,15 @@ export interface FlightOptions {
   /** Where the ship departs from. The arc is bowed away from this, so it never cuts through it. */
   home: CelestialBody;
   reducedMotion: boolean;
+  /**
+   * Reported every frame of the flight, and once more as (0, 0) on arrival.
+   *
+   * The two values the flight already draws itself with: `throttle` is what the exhaust is
+   * emitted at, `cruise` is what the view widens on. The flight knows nothing about what
+   * listens to them, in the same way it knows nothing about the discoveries it is aiming
+   * at — sound is wired up in main.ts like everything else.
+   */
+  onThrottle?(throttle: number, cruise: number): void;
   onArrive(destination: CelestialBody): void;
 }
 
@@ -77,6 +86,7 @@ function smoothBetween(value: number, from: number, to: number): number {
 
 export function createFlightSequence(options: FlightOptions): FlightSequence {
   const { camera, scene, ship, trail, world, controls, home, reducedMotion, onArrive } = options;
+  const { onThrottle } = options;
   const duration = reducedMotion ? FLIGHT_DURATION_REDUCED : FLIGHT_DURATION;
 
   let phase: FlightPhase = 'idle';
@@ -336,6 +346,8 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       // arrival — one bell, driving everything that should peak at cruise.
       const cruise = Math.sin(smootherstep(progress) * Math.PI);
 
+      onThrottle?.(thrust, cruise);
+
       // Chase camera: behind, above and a little to the side, so the ship reads in
       // three-quarter view rather than as a silhouette around its own exhaust.
       const chaseDistance = THREE.MathUtils.lerp(CHASE_FAR, CHASE_NEAR, cruise);
@@ -363,6 +375,9 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       /* --- arrival ---------------------------------------------------------- */
       phase = 'arrived';
       ship.setThrust(0);
+      // The plateau has already fallen to near nothing by here; say so exactly, because
+      // "near nothing" is a quiet engine still running for the rest of the visit.
+      onThrottle?.(0, 0);
       // The bell has already returned this to ~0 by now; set it exactly, so a flight that
       // ended on a frame boundary cannot leave the view a fraction of a degree wide.
       setFov(restFov());
