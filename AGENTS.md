@@ -57,7 +57,8 @@ src/
   controls/OrbitInput.ts    drag to rotate, pinch/wheel to zoom
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts the real places to find, for any body
-  ui/                       ui.ts, ui.css, icons.ts, grownups.ts (the adult's one screen)
+  ui/                       ui.ts, ui.css, icons.ts, grownups.ts (the adult's one
+                            screen), photos.ts (real photographs of the places)
   audio/narration.ts        SpeechSynthesis wrapper — see "Known weak spot"
   audio/sfx.ts              every sound: two cues, the engine, the sunrise. No files
   state/progress.ts         stickers and visits, in localStorage
@@ -177,6 +178,28 @@ widens to take in Mars once the Moon has been *visited*, not once its collection
 finished — gating the solar system behind a tapping game contradicts what the game is for.
 Saves written before `visited` existed must keep loading (a missing list means "nowhere
 yet"); there is a test for that.
+
+**Assets are drop-in, and that now includes the discovery photographs.** Every texture is
+HEAD-probed and falls back to a generated one; the photographs work the same way, and a
+place whose file has not been sourced yet simply has no photograph rather than a broken
+image. `ui/photos.ts` names the file after the discovery's id, so adding one is a correctly
+named file and no code at all — the same bargain `public/assets/README.txt` makes, and the
+reason `public/assets/discoveries/README.txt` is a list of filenames rather than a schema.
+
+Three things about it that are load-bearing rather than incidental:
+
+- **Nothing is fetched until a place is found.** That is what makes photographs affordable
+  where sharpening the globe maps is not: sharper maps spend every byte before the title
+  screen, and on a device whose pixel ratio is capped at 1.5 most of that detail is never
+  drawn. A child who finds three places fetches three files; the other six are never asked
+  for. Do not preload them, and do not put them in the journal grid without thinking about
+  this — a journal that shows nine thumbnails has just downloaded all nine.
+- **The probe is guarded on the discovery still being on screen.** Facts overlap: a find
+  replaces the arrival fact, and the completion line queues behind the last find. A probe
+  resolving a moment late would otherwise staple one place's photograph to another's words.
+- **It is a thumbnail in the card, not a band across it.** The card already had to be
+  taught to fold away during the day turn because it covers the planet; a full-width
+  picture would put that back and more.
 
 **Reduced motion removes motion; it does not compress it.** `prefers-reduced-motion` skips
 the exhaust trail and the FOV punch, removes camera inertia, halves the collect particles,
@@ -345,20 +368,50 @@ beats any synthesiser, because it lands in a register no synthesiser reaches.
 
 Ordered. The reasoning matters more than the order.
 
-1. **Listen to the new sound on the real device.** The engine and the sunrise are in and
-   the graph is measured, but nobody has *heard* them: the development machine has no
-   audio, and loudness balance is a property of a tablet speaker. The likeliest things to
-   want tuning are `THRUSTER_PEAK` and the bell peak in `dawn` — headlessly they measure
-   about equally loud, and a bell should probably sit under an engine. Everything worth
-   adjusting is a named constant at the top of its section in `sfx.ts`.
+The first three need a person and a device, not a session. They are first because no amount
+of code substitutes for them.
 
-2. **Then add a planet.** Cheap by design: a config entry with three real places on it, and
-   a body. Saturn over Venus — the rings are the most recognisable object in the solar
-   system to a small child, and a torus is trivial geometry. Check the new discovery list
-   against `CollectMission.test.ts`, which covers every destination automatically.
+1. **Listen to the sound on the real device.** The engine and the sunrise are in and the
+   graph is measured, but nobody has *heard* them: the development machine has no audio,
+   and loudness balance is a property of a tablet speaker. The likeliest things to want
+   tuning are `THRUSTER_PEAK` and the bell peak in `dawn` — headlessly they measure about
+   equally loud, and a bell should probably sit under an engine. Everything worth adjusting
+   is a named constant at the top of its section in `sfx.ts`.
 
-3. **Replace the narration voice.** Still the top complaint, and still needs pre-generated
-   audio and a human with a TTS account. See *Known weak spot* above.
+2. **Drop the nine photographs in.** The feature is finished and waiting;
+   `public/assets/discoveries/README.txt` names the specific image wanted for each place
+   and why that one. It needs a network that can reach NASA, which the assistant
+   environment does not have — every image host is refused at the egress gateway, and an
+   assistant that offers to "source them" from in here is about to invent something.
+   **Never generate a stand-in for one of these.** The game tells a child *this is the real
+   Sahara*; a synthesised picture under a NASA credit is a lie told to a five-year-old.
+
+3. **Watch a child use it again.** Every genuinely valuable change in this project came
+   from that and not from reading the code: the sunrise, the drag lesson, the badges on the
+   markers. The open question is whether finding places still feels clunky now the dock has
+   moved off the planet.
+
+Then, in code:
+
+4. **Add Saturn.** Cheap by design — a config entry with three real places and a body — but
+   with one design decision that is not: a `Discovery` is a lat/lon on the surface mesh, and
+   Saturn's recognisable feature is the rings, which are not a surface coordinate. The polar
+   hexagon cannot be the hidden one either, because the hidden one has to sit ~120° round in
+   *longitude* and a pole does not hide behind the limb that way. Either pick three cloud
+   features spread in longitude, which wastes the reason to add Saturn at all, or let one
+   discovery live on the ring plane at a radius instead of on the sphere — a contained
+   change that keeps the drag rule intact. Assets: an equirectangular `saturn.jpg`, and a
+   ring strip **as a PNG** because it needs alpha, which is the one exception to the
+   "use .jpg" rule. Watch the ring UVs: `THREE.RingGeometry` does not map `u` across the
+   radius by default and rewriting that attribute is the classic Saturn gotcha.
+
+5. **Give sound a way to be turned off.** There is none, and `ui/grownups.ts` is now the
+   obvious home for it. Worth doing before any music: an unmuteable children's game is a
+   well-earned complaint.
+
+6. **Replace the narration voice.** Still the top complaint. The `?grownups` picker made the
+   best of what a device ships, which may be enough — ask before spending an afternoon on
+   recordings. See *Known weak spot* above.
 
 Known and left alone: the Moon can wander into the shot while a child explores Earth, and
 at these compressed distances it is large when it does. The arrival steers clear of it;
@@ -368,8 +421,10 @@ still finds it. Moving the Moon out would change every other shot in the game.
 Done since this file was written: collecting became discovering (real places at real
 coordinates, each telling you something that goes in the journal), the flight now arrives
 about three body-radii out instead of nine and a half, Earth is a destination, the narration
-no longer starts on its own, Earth can be turned through a day, and the flight and the day
-turn both make a sound.
+no longer starts on its own, Earth can be turned through a day, the flight and the day turn
+both make a sound, a found place keeps its own emoji badge and can show a real photograph,
+an adult can choose the reading voice, and in landscape the dock lies along the bottom
+instead of standing on the planet.
 
 Not yet in scope: real orbital physics, planets past Mars, downloaded models.
 

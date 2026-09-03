@@ -87,6 +87,15 @@ downloaded. To upgrade to real photography, drop image files into `public/assets
 reload — the loader picks them up automatically and no code changes are needed. Anything
 you add under a CC BY licence needs crediting in the list above.
 
+**Photographs of the places a child finds** work the same way, and are the most worthwhile
+thing you can add. Each discovery can show a real photograph of itself — a thumbnail in its
+card, full screen on a tap — from a file named after it in `public/assets/discoveries/`.
+That folder's `README.txt` names the specific NASA image wanted for each of the nine places
+and why that one rather than another. They are entirely optional and added one at a time: a
+place with no file simply has no photograph. **Nothing is downloaded until a place is
+actually found**, so all nine cost the game nothing at startup, and a child who finds three
+fetches three.
+
 Earth is the one that needs care, because its colour and roughness maps are only correct
 as a pair — see `resolveEarthMaps` in `textures.ts`. Supplying `earth.jpg` on its own is
 the intended path: the roughness map is derived from it, so the sea catches the light and
@@ -275,7 +284,7 @@ motion per second, not less, which is the opposite of what the preference is ask
 
 ## Not yet
 
-No planets past Mars, no downloaded models, and no real
+No planets past Mars, no way to turn the sound off, no downloaded models, and no real
 orbital physics. Those are deliberately still out of scope.
 
 Only Earth can be spun through a day. The Moon and Mars have terminators too, and the
