@@ -10,13 +10,7 @@
 
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  DAY_SWING_DURATION,
-  DAY_SWING_DURATION_REDUCED,
-  DAY_TURN_DURATION,
-  DAY_TURN_DURATION_REDUCED,
-  createDayTurn,
-} from './DayTurn';
+import { DAY_SWING_DURATION, DAY_TURN_DURATION, createDayTurn } from './DayTurn';
 import { SUN_DIRECTION } from '../config';
 import type { OrbitInput } from '../controls/OrbitInput';
 import type { CelestialBody } from './Bodies';
@@ -49,11 +43,11 @@ function stubCamera() {
 }
 
 /** Runs a turn to completion at a given frame time, returning how long it took. */
-function runToFinish(reducedMotion: boolean, dt: number) {
+function runToFinish(dt: number) {
   const onFinish = vi.fn();
   const camera = stubCamera();
   const controls = stubControls();
-  const turn = createDayTurn({ camera, controls, reducedMotion, onFinish });
+  const turn = createDayTurn({ camera, controls, onFinish });
   const { body, turnedBy } = stubBody();
   turn.start(body);
 
@@ -69,13 +63,13 @@ describe('createDayTurn', () => {
   it('turns exactly once, whatever the frame time', () => {
     // 60fps, a struggling tablet, and the 0.05 ceiling Stage clamps dt to.
     for (const dt of [1 / 60, 1 / 15, 0.05, 0.0123]) {
-      const { turnedBy } = runToFinish(false, dt);
+      const { turnedBy } = runToFinish(dt);
       expect(turnedBy()).toBeCloseTo(FULL_TURN, 10);
     }
   });
 
   it('never overshoots, even when a frame is longer than the whole turn', () => {
-    const { turnedBy, active } = runToFinish(false, DAY_TURN_DURATION * 2);
+    const { turnedBy, active } = runToFinish(DAY_TURN_DURATION * 2);
     expect(turnedBy()).toBeCloseTo(FULL_TURN, 10);
     expect(active).toBe(false);
   });
@@ -83,7 +77,7 @@ describe('createDayTurn', () => {
   it('takes about as long as it says it will, swing included', () => {
     const dt = 1 / 60;
     const total = DAY_SWING_DURATION + DAY_TURN_DURATION;
-    const { frames } = runToFinish(false, dt);
+    const { frames } = runToFinish(dt);
     expect(frames * dt).toBeGreaterThan(total * 0.95);
     expect(frames * dt).toBeLessThan(total * 1.05);
   });
@@ -96,7 +90,7 @@ describe('createDayTurn', () => {
    * and sunrise and sunset are both on screen.
    */
   it('ends up looking at the destination side-on to the Sun', () => {
-    const { camera } = runToFinish(false, 1 / 60);
+    const { camera } = runToFinish(1 / 60);
     const view = camera.position.clone().normalize();
     expect(Math.abs(view.dot(SUN_DIRECTION))).toBeLessThan(0.02);
   });
@@ -108,7 +102,7 @@ describe('createDayTurn', () => {
    * slides past the boundary and nothing crosses it, which is a sunrise that never happens.
    */
   it('ends up level with the equator, so the line stands upright', () => {
-    const { camera } = runToFinish(false, 1 / 60);
+    const { camera } = runToFinish(1 / 60);
     const view = camera.position.clone().normalize();
     expect(Math.abs(view.y)).toBeLessThan(0.02);
   });
@@ -129,7 +123,6 @@ describe('createDayTurn', () => {
       const turn = createDayTurn({
         camera,
         controls: stubControls(),
-        reducedMotion: false,
         onFinish: vi.fn(),
       });
       turn.start(stubBody().body);
@@ -142,7 +135,7 @@ describe('createDayTurn', () => {
     const camera = stubCamera();
     const controls = stubControls();
     const started = camera.position.length();
-    const turn = createDayTurn({ camera, controls, reducedMotion: false, onFinish: vi.fn() });
+    const turn = createDayTurn({ camera, controls, onFinish: vi.fn() });
     const { body } = stubBody();
     turn.start(body);
     // Part-way through the swing: a straight line between two points on a sphere dips
@@ -154,7 +147,7 @@ describe('createDayTurn', () => {
   it('borrows the camera and gives it back', () => {
     const camera = stubCamera();
     const controls = stubControls();
-    const turn = createDayTurn({ camera, controls, reducedMotion: false, onFinish: vi.fn() });
+    const turn = createDayTurn({ camera, controls, onFinish: vi.fn() });
     const { body } = stubBody();
 
     turn.start(body);
@@ -165,18 +158,24 @@ describe('createDayTurn', () => {
     expect(controls.syncFromCamera).toHaveBeenCalled();
   });
 
-  it('still turns the whole way round under reduced motion, only faster', () => {
+  /*
+   * There is no reduced-motion variant of this any more, and its absence is the point.
+   *
+   * There used to be one, at 0.7 + 3 seconds against 2.2 + 9. That is the identical camera
+   * swing and the identical rotation played three times as fast, which is three times the
+   * angular rate — more motion per second, not less, and reported from the tablet as
+   * exactly that. The accommodation was making the thing it accommodates worse.
+   */
+  it('takes the same time however the device feels about motion', () => {
     const dt = 1 / 60;
-    const reduced = DAY_SWING_DURATION_REDUCED + DAY_TURN_DURATION_REDUCED;
-    const { turnedBy, frames } = runToFinish(true, dt);
-    // Skipping it would show nothing: the change *is* the content.
+    const total = DAY_SWING_DURATION + DAY_TURN_DURATION;
+    const { frames, turnedBy } = runToFinish(dt);
     expect(turnedBy()).toBeCloseTo(FULL_TURN, 10);
-    expect(frames * dt).toBeLessThan(reduced * 1.05);
-    expect(reduced).toBeLessThan(DAY_SWING_DURATION + DAY_TURN_DURATION);
+    expect(frames * dt).toBeGreaterThan(total * 0.95);
   });
 
   it('reports finishing exactly once', () => {
-    const { onFinish } = runToFinish(false, 1 / 60);
+    const { onFinish } = runToFinish(1 / 60);
     expect(onFinish).toHaveBeenCalledTimes(1);
   });
 
@@ -185,7 +184,6 @@ describe('createDayTurn', () => {
     const turn = createDayTurn({
       camera: stubCamera(),
       controls: stubControls(),
-      reducedMotion: false,
       onFinish,
     });
     const first = stubBody();
@@ -205,7 +203,6 @@ describe('createDayTurn', () => {
     const turn = createDayTurn({
       camera: stubCamera(),
       controls: stubControls(),
-      reducedMotion: false,
       onFinish: vi.fn(),
     });
     expect(turn.active).toBe(false);
@@ -224,7 +221,6 @@ describe('createDayTurn', () => {
     const turn = createDayTurn({
       camera: stubCamera(),
       controls: stubControls(),
-      reducedMotion: false,
       onProgress: (progress) => reported.push(progress),
       onFinish: vi.fn(),
     });
@@ -247,8 +243,7 @@ describe('createDayTurn', () => {
       const turn = createDayTurn({
         camera: stubCamera(),
         controls: stubControls(),
-        reducedMotion: false,
-        onProgress: (progress) => reported.push(progress),
+          onProgress: (progress) => reported.push(progress),
         onFinish: vi.fn(),
       });
       turn.start(stubBody().body);
@@ -264,7 +259,6 @@ describe('createDayTurn', () => {
     const turn = createDayTurn({
       camera: stubCamera(),
       controls: stubControls(),
-      reducedMotion: false,
       onProgress: (progress) => reported.push(progress),
       onFinish: vi.fn(),
     });
@@ -285,7 +279,6 @@ describe('createDayTurn', () => {
     const turn = createDayTurn({
       camera: stubCamera(),
       controls,
-      reducedMotion: false,
       onFinish,
     });
     const { body, turnedBy } = stubBody();

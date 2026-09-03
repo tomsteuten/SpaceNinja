@@ -149,7 +149,6 @@ async function main() {
   const dayTurn = createDayTurn({
     camera,
     controls,
-    reducedMotion,
     // The quietest thing in the game gets the sound that most needs one. Driven by the
     // turn's own progress rather than started and left to run, so the light and the sound
     // arrive together however slowly the frames are coming.

@@ -99,8 +99,19 @@ export const MAX_ORBIT_DISTANCE = 20;
  * longer than seven seconds with a trail, a widening view and a camera that closes in.
  * Length was never the problem; emptiness was.
  */
+/*
+ * One duration, for everybody. There used to be a FLIGHT_DURATION_REDUCED of 1.4 under
+ * prefers-reduced-motion, and it was the wrong idea done confidently: the flight is a
+ * sweeping camera move, and compressing it to a fifth of its length does not reduce the
+ * motion, it quintuples the angular rate. Reported from the tablet it is played on — the
+ * short version reads as faster and more awkward, which is the opposite of the accommodation.
+ *
+ * What reduced motion still does is drop the motion that is *decoration*: the FOV punch,
+ * the exhaust trail, the camera inertia, the UI animation. Those genuinely lower how much
+ * is moving per second. If a stronger accommodation is ever wanted, the right shape for it
+ * is a cut — fade out, arrive, fade in — not the same sweep played fast.
+ */
 export const FLIGHT_DURATION = 7; // seconds
-export const FLIGHT_DURATION_REDUCED = 1.4;
 
 /**
  * Reaching this is what widens the opening shot to take in Mars.

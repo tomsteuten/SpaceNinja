@@ -35,13 +35,16 @@ const UP = new THREE.Vector3(0, 1, 0);
  * Seconds to swing the camera side-on, then seconds for the day itself.
  *
  * The turn is long enough to watch the light move rather than see it jump, short enough
- * to hold a five-year-old who is only watching. Reduced motion gets the same journey
- * briskly: the change *is* the content, so skipping it would show nothing at all.
+ * to hold a five-year-old who is only watching.
+ *
+ * One pair of durations for everybody. There were reduced-motion versions of both (0.7
+ * and 3), and they were wrong the same way the flight's was: this is a camera swing
+ * followed by a rotating planet, and playing the identical motion in a third of the time
+ * is three times the angular rate, not less motion. Skipping it outright is not an option
+ * either — the change *is* the content, so a day turn that does not turn shows nothing.
  */
 export const DAY_SWING_DURATION = 2.2;
 export const DAY_TURN_DURATION = 9;
-export const DAY_SWING_DURATION_REDUCED = 0.7;
-export const DAY_TURN_DURATION_REDUCED = 3;
 
 export interface DayTurn {
   /** True from start() until the turn completes or is reset. */
@@ -57,7 +60,6 @@ export interface DayTurnOptions {
   camera: THREE.PerspectiveCamera;
   /** Borrowed for the swing and handed back at the end, as the flight does. */
   controls: OrbitInput;
-  reducedMotion: boolean;
   /**
    * How much of the day has turned, every active frame: 0 throughout the camera swing,
    * then 0 → 1 across the turn itself, reaching exactly 1 on the frame it completes.
@@ -78,10 +80,9 @@ function smootherstep(t: number): number {
 }
 
 export function createDayTurn(options: DayTurnOptions): DayTurn {
-  const { camera, controls, reducedMotion, onProgress, onFinish } = options;
-  const swingDuration = reducedMotion ? DAY_SWING_DURATION_REDUCED : DAY_SWING_DURATION;
-  const turnDuration = reducedMotion ? DAY_TURN_DURATION_REDUCED : DAY_TURN_DURATION;
-  const rate = FULL_TURN / turnDuration;
+  const { camera, controls, onProgress, onFinish } = options;
+  const swingDuration = DAY_SWING_DURATION;
+  const rate = FULL_TURN / DAY_TURN_DURATION;
 
   const centre = new THREE.Vector3();
   const from = new THREE.Vector3();

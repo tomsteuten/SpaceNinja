@@ -19,11 +19,11 @@
  *
  * **`prefers-reduced-motion` mutes nothing here, deliberately.** The preference is about
  * discomfort from *movement* — vestibular, not auditory — and silencing sound for it
- * answers a question nobody asked. What it does do is shorten both of these moments (the
- * flight 7s → 1.4s, the day turn 11.2s → 3.7s), and because both sounds follow a
- * normalised value rather than a clock, they compress along with the picture for free.
- * There is no fixed-second envelope anywhere below for exactly that reason. If sound
- * should be silenceable, that wants its own control, not this flag.
+ * answers a question nobody asked. It no longer shortens these moments either (it used to,
+ * and that was worse: the same camera move played fast is more motion per second, not
+ * less). Following a normalised value rather than a clock is still what keeps the sound
+ * with the picture when the frame rate drops, which is the case that actually happens.
+ * If sound should be silenceable, that wants its own control, not this flag.
  */
 
 export interface Sfx {

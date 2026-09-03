@@ -17,7 +17,6 @@ import type { CelestialBody, World } from '../scene/Bodies';
 import type { EngineTrail } from '../scene/EngineTrail';
 import {
   FLIGHT_DURATION,
-  FLIGHT_DURATION_REDUCED,
   FLIGHT_FOV_PUNCH,
   SUN_DIRECTION,
   fovForAspect,
@@ -87,7 +86,8 @@ function smoothBetween(value: number, from: number, to: number): number {
 export function createFlightSequence(options: FlightOptions): FlightSequence {
   const { camera, scene, ship, trail, world, controls, home, reducedMotion, onArrive } = options;
   const { onThrottle } = options;
-  const duration = reducedMotion ? FLIGHT_DURATION_REDUCED : FLIGHT_DURATION;
+  // Deliberately not shortened under reduced motion — see FLIGHT_DURATION in config.ts.
+  const duration = FLIGHT_DURATION;
 
   let phase: FlightPhase = 'idle';
   let target: CelestialBody | null = null;

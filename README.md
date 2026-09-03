@@ -262,8 +262,11 @@ for a grown-up, once, and a query string is the cheapest door that a child will 
 accident. Voice quality is a property of the device and cannot be judged from a development
 machine, so this page is the only honest way to pick.
 
-**Reduced motion is respected**: `prefers-reduced-motion` shortens the flight to a brief
-cut, removes camera inertia, and stops the UI animations.
+**Reduced motion removes motion rather than speeding it up**: `prefers-reduced-motion`
+skips the exhaust trail and the widening view, removes camera inertia, thins the collect
+particles and stops the UI animations. It deliberately does *not* shorten the flight or the
+day turn any more — running the same sweeping camera move in a fifth of the time is more
+motion per second, not less, which is the opposite of what the preference is asking for.
 
 ---
 

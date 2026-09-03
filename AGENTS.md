@@ -178,15 +178,20 @@ finished — gating the solar system behind a tapping game contradicts what the 
 Saves written before `visited` existed must keep loading (a missing list means "nowhere
 yet"); there is a test for that.
 
-**Reduced motion is respected throughout.** `prefers-reduced-motion` shortens the flight,
-removes camera inertia, skips the trail and the FOV punch, and stops UI animation. New
-motion should check it.
+**Reduced motion removes motion; it does not compress it.** `prefers-reduced-motion` skips
+the exhaust trail and the FOV punch, removes camera inertia, halves the collect particles,
+and stops UI animation. New motion should check it.
 
-**It deliberately does not mute anything, though.** The preference is about discomfort from
-*movement*, and silencing sound for it answers a question nobody asked. What it does do is
-shorten the two moments that have continuous sound, and because both sounds follow a
-normalised value rather than a clock they compress along with the picture for free. If
-sound should be silenceable that wants its own control, not this flag.
+**What it must never do is play the same move faster.** The flight used to run in 1.4s
+instead of 7 under this flag, and the day turn in 3.7s instead of 11.2. That is the
+identical sweeping camera move at five times the angular rate — more motion per second, not
+less, and reported from the tablet the game is played on as faster and more awkward. Both
+now have one duration for everyone. If a stronger accommodation is ever wanted, the right
+shape is a *cut* (fade out, arrive, fade in), not a fast sweep.
+
+**It deliberately does not mute anything either.** The preference is about discomfort from
+movement, and silencing sound for it answers a question nobody asked. If sound should be
+silenceable that wants its own control, not this flag.
 
 **Continuous sound is driven a frame at a time, never scheduled.** `sfx.thruster` and
 `sfx.dawn` are handed a value the picture is already using and follow it; nothing sets a

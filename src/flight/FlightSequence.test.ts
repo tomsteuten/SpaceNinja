@@ -171,13 +171,30 @@ describe('what the flight reports for sound', () => {
     expect(reported.at(-1)).toEqual({ throttle: 0, cruise: 0, fov: expect.any(Number) });
   });
 
-  it('reports the whole shape under reduced motion too, only sooner', () => {
-    // Reduced motion shortens the flight rather than silencing it, and the sound follows
-    // a normalised value, so it compresses instead of being cut off part-way through.
-    const brisk = fly(true).reported;
-    const full = fly(false).reported;
-    expect(brisk.length).toBeLessThan(full.length);
-    expect(Math.max(...brisk.map((frame) => frame.throttle))).toBeCloseTo(1, 5);
-    expect(brisk.at(-1)?.throttle).toBe(0);
+  /*
+   * Reduced motion no longer shortens the flight, and this pins that it does not.
+   *
+   * FLIGHT_DURATION_REDUCED was 1.4 seconds against 7 — the same sweeping camera move at
+   * five times the angular rate, which is more motion per second, not less. Reported from
+   * the tablet the game is played on as faster and more awkward, which is the opposite of
+   * what the preference asks for. What reduced motion still drops is the decoration: the
+   * FOV punch and the exhaust trail, both checked here by their absence.
+   */
+  it('takes the same time however the device feels about motion', () => {
+    const brisk = fly(true);
+    const full = fly(false);
+    expect(brisk.reported.length).toBe(full.reported.length);
+    expect(Math.max(...brisk.reported.map((frame) => frame.throttle))).toBeCloseTo(1, 5);
+    expect(brisk.reported.at(-1)?.throttle).toBe(0);
+  });
+
+  it('still drops the decoration under reduced motion', () => {
+    const brisk = fly(true);
+    // No exhaust laid down, and the view never widens off its resting value.
+    expect(brisk.emitted).toHaveLength(0);
+    const rest = fovForAspect(brisk.camera.aspect);
+    for (const frame of brisk.reported) expect(frame.fov).toBeCloseTo(rest, 5);
+    // And the sound is untouched by any of that: it is not motion.
+    expect(Math.max(...brisk.reported.map((frame) => frame.cruise))).toBeCloseTo(1, 2);
   });
 });
