@@ -247,6 +247,53 @@ body {
   }
 }
 
+/*
+ * On a landscape screen the dock lies down.
+ *
+ * It is a centred column, which is right on a phone held upright — the destination is
+ * framed by width there, so the space under it is genuinely empty. In landscape the
+ * destination is framed by *height* and fills the middle of the screen, and the same
+ * column then runs from the planet's equator to the bottom of the window, straight down
+ * the middle of the thing it is asking a child to look at. Reported from a Surface: "the
+ * buttons and crap still cover too much of the Earth", with a name pill, a speaker and two
+ * big buttons stacked over the Atlantic.
+ *
+ * Laid out as one band along the bottom instead, the same controls clear the disc
+ * entirely. Nothing is removed and nothing shrinks: a five-year-old's finger needs every
+ * one of these targets at the size it is.
+ */
+@media (min-width: 760px) and (orientation: landscape) {
+  .dock {
+    width: min(1040px, calc(100vw - var(--pad-left) - var(--pad-right)));
+    flex-flow: row wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0.7rem 0.8rem;
+  }
+
+  /* Open, the card still earns a row of its own: it is the words, and they wrap. */
+  .fact-card {
+    flex: 1 0 100%;
+  }
+
+  /* Folded to its speaker button, it joins the others rather than hovering alone in the
+     middle of the planet — which is the state the game spends most of its time in. */
+  .fact-card.is-collapsed {
+    order: 2;
+    flex: 0 0 auto;
+  }
+
+  .name-pill {
+    order: 1;
+  }
+
+  .fly-btn,
+  .spin-btn,
+  .home-btn {
+    order: 3;
+  }
+}
+
 .name-pill {
   padding: 0.5rem 1.4rem;
   border-radius: 999px;
