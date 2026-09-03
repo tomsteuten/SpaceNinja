@@ -60,16 +60,60 @@ function voiceScore(voice: SpeechSynthesisVoice, preferredLang: string): number 
   if (lang === preferredLang) score += 6;
   else if (lang.startsWith('en-gb') || lang.startsWith('en-us')) score += 4;
 
+  /*
+   * A voice the device fetches rather than one it ships. On Android and desktop Chrome
+   * these are the neural ones and they are not marginally better than the local
+   * fallbacks, they are better in kind — the local ones are where the complaint about
+   * this feature comes from.
+   *
+   * Weighted below the name rank on purpose, because the reverse is not true everywhere:
+   * on iOS every voice is local and the good Siri ones would be dragged under a
+   * mediocre network voice by anything larger. Above `default`, below locale.
+   */
+  if (!voice.localService) score += 3;
+
   // Default voices are usually the platform's own pick and are rarely the worst one.
   if (voice.default) score += 1;
   return score;
 }
 
-/** Prefer a natural-sounding English voice; fall back to whatever the platform offers. */
+/**
+ * Every voice, best first. What the `?voices` picker lists, so a parent sees the same
+ * order the automatic choice is making its decision in.
+ */
+export function rankVoices(
+  voices: SpeechSynthesisVoice[],
+  preferredLang = 'en-gb',
+): SpeechSynthesisVoice[] {
+  const lang = preferredLang.toLowerCase();
+  return voices
+    .map((voice, index) => ({ voice, index, score: voiceScore(voice, lang) }))
+    // The index keeps it stable, so two equally-ranked voices hold the platform's order
+    // rather than swapping about between renders of the picker.
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((entry) => entry.voice);
+}
+
+/**
+ * Prefer a voice a person actually chose; otherwise a natural-sounding English one;
+ * otherwise whatever the platform offers.
+ *
+ * `chosenURI` wins outright when it is still installed. Ranking voices by their *names* is
+ * guessing at a quality we cannot observe from here — a parent with the tablet in their
+ * hands can simply listen, and their answer should not be second-guessed by a heuristic.
+ */
 export function pickVoice(
   voices: SpeechSynthesisVoice[],
   preferredLang = 'en-gb',
+  chosenURI?: string | null,
 ): SpeechSynthesisVoice | null {
+  if (chosenURI) {
+    // Falls through to the ranking when the saved voice has been uninstalled, rather than
+    // going silent over a device that changed under a preference.
+    const chosen = voices.find((voice) => voice.voiceURI === chosenURI);
+    if (chosen) return chosen;
+  }
+
   let best: SpeechSynthesisVoice | null = null;
   let bestScore = -Infinity;
   for (const voice of voices) {
@@ -81,6 +125,34 @@ export function pickVoice(
   }
   // Every voice scored -1 means there is no English at all; take the platform default.
   return bestScore >= 0 ? best : (voices[0] ?? null);
+}
+
+/*
+ * The chosen voice, remembered.
+ *
+ * Stored rather than ranked because voice quality is a property of the device and cannot
+ * be heard from where this is written. localStorage throws outright in some private
+ * browsing modes, so both accesses are guarded the way progress.ts guards its own: losing
+ * a preference must never break the game.
+ */
+const VOICE_KEY = 'spaceninja.voice.v1';
+
+export function loadVoiceChoice(): string | null {
+  try {
+    return window.localStorage.getItem(VOICE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Null forgets the choice, putting the automatic ranking back in charge. */
+export function saveVoiceChoice(voiceURI: string | null): void {
+  try {
+    if (voiceURI === null) window.localStorage.removeItem(VOICE_KEY);
+    else window.localStorage.setItem(VOICE_KEY, voiceURI);
+  } catch {
+    // Private browsing. The choice lasts this session and no longer, which is fine.
+  }
 }
 
 /**
@@ -108,7 +180,6 @@ export function createNarrator(): Narrator {
   const available = Boolean(synth && typeof SpeechSynthesisUtterance === 'function');
 
   let speaking = false;
-  let voice: SpeechSynthesisVoice | null = null;
   const listeners: Array<(speaking: boolean) => void> = [];
 
   function setSpeaking(value: boolean) {
@@ -117,15 +188,17 @@ export function createNarrator(): Narrator {
     for (const listener of listeners) listener(speaking);
   }
 
-  // Chrome populates the voice list asynchronously, often after the first getVoices() call.
-  function refreshVoices() {
-    if (!synth) return;
-    voice = pickVoice(synth.getVoices(), navigator.language || 'en-GB');
-  }
-
-  if (available && synth) {
-    refreshVoices();
-    synth.addEventListener('voiceschanged', refreshVoices);
+  /**
+   * Resolved per reading rather than cached, which settles two problems at once. Chrome
+   * fills the voice list asynchronously and often after the first getVoices(), so a
+   * cached pick taken at startup could be a pick from an empty list; and a voice chosen
+   * on the `?voices` page takes effect on the very next tap of the speaker with nothing
+   * needing to be told about it. A reading happens on a button press, so the cost is a
+   * getVoices() and a localStorage read per press.
+   */
+  function currentVoice(): SpeechSynthesisVoice | null {
+    if (!synth) return null;
+    return pickVoice(synth.getVoices(), navigator.language || 'en-GB', loadVoiceChoice());
   }
 
   return {
@@ -138,7 +211,7 @@ export function createNarrator(): Narrator {
     speak(text: string) {
       if (!available || !synth) return;
       synth.cancel();
-      if (!voice) refreshVoices();
+      const voice = currentVoice();
 
       // One utterance per sentence, queued. The engine puts a real pause between them,
       // which a single long string does not get, and only the last one ends the reading.
@@ -183,45 +256,55 @@ export function createNarrator(): Narrator {
     },
 
     dispose() {
-      if (available && synth) {
-        synth.cancel();
-        synth.removeEventListener('voiceschanged', refreshVoices);
-      }
+      if (available && synth) synth.cancel();
       listeners.length = 0;
     },
   };
 }
 
 /**
- * Every voice this device offers, best first, with the one that would be chosen marked.
+ * Every voice this device offers, best first, and the one a reading would use right now.
  *
  * Exists because the choice cannot be made from here. This machine reports the
  * SpeechSynthesis API present and zero voices installed, and voice quality is entirely a
  * property of the device — so the only way to pick well for the tablet this game is played
- * on is to look at what that tablet has. Reached with `?voices` in the URL, which a child
- * will never type and a parent can read off the screen.
+ * on is to ask that tablet. Rendered by the `?voices` page, which a child will never reach
+ * and a parent can be told about.
  */
-export function describeVoices(): string[] {
-  const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
-  if (!synth) return ['SpeechSynthesis is not available on this device.'];
+export interface VoiceReport {
+  voices: SpeechSynthesisVoice[];
+  chosen: SpeechSynthesisVoice | null;
+  /** True when the chosen one is a person's saved choice rather than the ranking's. */
+  saved: boolean;
+  language: string;
+  message: string | null;
+}
 
+export function describeVoices(): VoiceReport {
+  const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+  const language = (typeof navigator !== 'undefined' && navigator.language) || 'en-GB';
+  const blank = { voices: [], chosen: null, saved: false, language };
+
+  if (!synth) {
+    return { ...blank, message: 'This device has no speech at all, so nothing can read aloud.' };
+  }
   const voices = synth.getVoices();
   if (voices.length === 0) {
-    return [
-      'SpeechSynthesis is available but reports no voices.',
-      'Some platforms fill the list a moment after load — try reloading.',
-    ];
+    return {
+      ...blank,
+      message:
+        'Speech is available but this device lists no voices yet. ' +
+        'Some platforms fill the list a moment after loading — try reloading the page.',
+    };
   }
-  const chosen = pickVoice(voices, navigator.language || 'en-GB');
-  const lang = navigator.language || '(unknown)';
-  return [
-    `${voices.length} voices, device language ${lang}.`,
-    `Chosen: ${chosen ? `${chosen.name} (${chosen.lang})` : 'none'}`,
-    '',
-    ...voices.map(
-      (voice) =>
-        `${voice === chosen ? '>' : ' '} ${voice.name} (${voice.lang})` +
-        `${voice.default ? ' [default]' : ''}${voice.localService ? '' : ' [network]'}`,
-    ),
-  ];
+
+  const choice = loadVoiceChoice();
+  const chosen = pickVoice(voices, language, choice);
+  return {
+    voices: rankVoices(voices, language),
+    chosen,
+    saved: Boolean(choice && chosen?.voiceURI === choice),
+    language,
+    message: null,
+  };
 }

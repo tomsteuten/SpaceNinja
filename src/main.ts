@@ -29,9 +29,10 @@ import {
   facingLatitude,
   type CollectMission,
 } from './mission/CollectMission';
-import { createNarrator, describeVoices } from './audio/narration';
+import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
+import { createVoicePanel, type VoicePanel } from './ui/voices';
 import { awardSticker, loadProgress, markVisited, recordDiscovery } from './state/progress';
 
 const boot = document.getElementById('boot');
@@ -95,18 +96,13 @@ async function main() {
   const narrator = createNarrator();
   const sfx = createSfx();
 
-  // `?voices` prints what this device actually offers to read with. The narration voice
-  // cannot be chosen well from a development machine — quality is a property of the
-  // device — so this is how the tablet gets asked directly. Never on the normal path.
+  // `?voices` lets whoever is holding the tablet pick the reading voice by listening to
+  // the candidates. The narration voice cannot be chosen well from a development machine —
+  // quality is a property of the device — so this is how it gets asked. Never on the
+  // normal path: a child does not type query strings.
+  let voicePanel: VoicePanel | null = null;
   if (window.location.search.includes('voices')) {
-    const panel = document.createElement('pre');
-    panel.className = 'voice-dump';
-    panel.textContent = describeVoices().join('\n');
-    uiRoot.append(panel);
-    // Chrome fills the list asynchronously and often after first paint.
-    window.speechSynthesis?.addEventListener('voiceschanged', () => {
-      panel.textContent = describeVoices().join('\n');
-    });
+    voicePanel = createVoicePanel(uiRoot, narrator);
   }
 
   const ui = createUI({
@@ -406,6 +402,7 @@ async function main() {
     document.removeEventListener('visibilitychange', onVisibilityChange);
     controls.dispose();
     ui.dispose();
+    voicePanel?.dispose();
     narrator.dispose();
     sfx.dispose();
     for (const mission of Object.values(missions)) mission.dispose();

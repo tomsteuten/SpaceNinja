@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { pickVoice, speechText } from './narration';
+import { pickVoice, rankVoices, speechText } from './narration';
 
 /** Enough of a SpeechSynthesisVoice for the ranking, which reads four fields. */
 function voice(
@@ -68,6 +68,87 @@ describe('pickVoice', () => {
 
   it('tolerates the underscore form some platforms report', () => {
     expect(pickVoice([voice('Karen', 'en_AU')])?.name).toBe('Karen');
+  });
+
+  /*
+   * A voice the device fetches rather than one it ships. On Android and desktop Chrome
+   * these are the neural ones, and they are not marginally better than the local
+   * fallbacks — the local ones are where the complaint about this feature comes from.
+   */
+  it('prefers a network voice over an equally-named local one', () => {
+    const voices = [
+      voice('English United Kingdom', 'en-GB'),
+      voice('English United Kingdom', 'en-GB', { localService: false }),
+    ];
+    expect(pickVoice(voices)?.localService).toBe(false);
+  });
+
+  it('does not let a network voice outrank a genuinely good local one', () => {
+    // The reverse case, which is iOS: every voice there is local, and the Siri ones are
+    // the good ones. Weighting the network flag above the name rank would bury them.
+    const voices = [
+      voice('English United Kingdom', 'en-GB', { localService: false }),
+      voice('Samantha', 'en-GB'),
+    ];
+    expect(pickVoice(voices)?.name).toBe('Samantha');
+  });
+});
+
+describe('a voice someone actually chose', () => {
+  /*
+   * The whole point of the ?voices page. Ranking voices by their *names* is guessing at a
+   * quality that cannot be observed from the machine this is written on; a parent holding
+   * the tablet can just listen, and their answer must not be second-guessed.
+   */
+  it('wins outright over the ranking', () => {
+    const good = voice('Google UK English Female', 'en-GB');
+    const plain = voice('Albert', 'en-US');
+    expect(pickVoice([good, plain], 'en-GB', plain.voiceURI)?.name).toBe('Albert');
+  });
+
+  it('falls back to the ranking when that voice is gone', () => {
+    // Uninstalling a voice, or opening the game on another device with the same profile.
+    // Going silent over a stale preference would be the worst of both.
+    const good = voice('Google UK English Female', 'en-GB');
+    expect(pickVoice([good], 'en-GB', 'a-voice-that-left')?.name).toBe(good.name);
+  });
+
+  it('is ignored when it is empty rather than treated as a choice', () => {
+    const good = voice('Google UK English Female', 'en-GB');
+    expect(pickVoice([good], 'en-GB', '')?.name).toBe(good.name);
+    expect(pickVoice([good], 'en-GB', null)?.name).toBe(good.name);
+  });
+});
+
+describe('rankVoices', () => {
+  it('lists every voice, best first', () => {
+    const voices = [
+      voice('Albert', 'en-US'),
+      voice('Google UK English Female', 'en-GB'),
+      voice('Anna', 'de-DE'),
+    ];
+    const ranked = rankVoices(voices, 'en-GB');
+    expect(ranked).toHaveLength(3);
+    expect(ranked[0]?.name).toBe('Google UK English Female');
+    // Nothing is hidden: a parent choosing by ear may want the one the ranking dislikes.
+    expect(ranked.at(-1)?.name).toBe('Anna');
+  });
+
+  it('keeps the platform’s order between voices it cannot separate', () => {
+    // Otherwise the picker's rows reshuffle between renders, and the row a parent is
+    // reaching for moves out from under their finger.
+    const first = voice('Voice One', 'en-GB');
+    const second = voice('Voice Two', 'en-GB');
+    expect(rankVoices([first, second], 'en-GB').map((v) => v.name)).toEqual([
+      'Voice One',
+      'Voice Two',
+    ]);
+  });
+
+  it('leaves the caller’s array alone', () => {
+    const voices = [voice('Albert', 'en-US'), voice('Samantha', 'en-GB')];
+    rankVoices(voices, 'en-GB');
+    expect(voices[0]?.name).toBe('Albert');
   });
 });
 

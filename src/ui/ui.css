@@ -720,18 +720,89 @@ body {
 
 /* The `?voices` readout. Deliberately plain and deliberately on top of everything: it is
    a diagnostic for an adult holding the tablet, not part of the game. */
-.voice-dump {
+/*
+ * The `?voices` picker. Reached deliberately, by an adult, so it can be plain — but the
+ * rows are tap targets on a tablet, which is what the generous padding is for.
+ */
+.voice-panel {
   position: absolute;
   inset: 0;
   margin: 0;
-  padding: 1rem;
+  padding: 1.25rem;
   overflow: auto;
-  background: rgba(10, 8, 24, 0.94);
+  background: rgba(10, 8, 24, 0.96);
   color: #e8e4ff;
-  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-  white-space: pre;
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
   pointer-events: auto;
   z-index: 50;
+}
+
+.voice-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+}
+
+.voice-note {
+  margin: 0 0 1rem;
+  max-width: 46ch;
+  color: #b9b2e0;
+}
+
+.voice-auto,
+.voice-option {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid rgba(160, 150, 220, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.voice-auto {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.voice-auto:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.voice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.voice-option {
+  /* Comfortably over the 44px a fingertip needs, since the whole page is tapping. */
+  padding: 0.75rem 0.9rem;
+}
+
+.voice-option.is-chosen {
+  border-color: #9d8bff;
+  background: rgba(157, 139, 255, 0.22);
+}
+
+.voice-option.is-chosen .voice-name::after {
+  content: ' ✓';
+}
+
+.voice-name {
+  display: block;
+  font-weight: 600;
+}
+
+.voice-tags {
+  display: block;
+  font-size: 0.82em;
+  color: #b9b2e0;
 }
 
 /* Disabled while a day is turning. Faded rather than hidden: a button that vanishes

@@ -57,7 +57,7 @@ src/
   controls/OrbitInput.ts    drag to rotate, pinch/wheel to zoom
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts the real places to find, for any body
-  ui/                       ui.ts, ui.css, icons.ts
+  ui/                       ui.ts, ui.css, icons.ts, voices.ts (the ?voices picker)
   audio/narration.ts        SpeechSynthesis wrapper — see "Known weak spot"
   audio/sfx.ts              every sound: two cues, the engine, the sunrise. No files
   state/progress.ts         stickers and visits, in localStorage
@@ -285,16 +285,22 @@ Two things were worth doing anyway, and both are tested:
 - `pickVoice` **ranks** rather than first-matches. The old rule took the first voice
   matching any of a set of patterns in whatever order the platform listed them, so a
   device carrying both a good voice and a poor one was a coin toss decided by enumeration
-  order.
+  order. It also prefers a voice the device *fetches* over one it ships: on Android and
+  desktop Chrome those are the neural ones, and the local fallbacks are where the
+  complaint comes from. Weighted below the name rank, because on iOS everything is local
+  and the good Siri voices would otherwise be buried by a mediocre network voice.
 - `speechText` cleans the words before they reach the engine: em dashes become commas, and
   each sentence becomes its own utterance so a weak voice stops for breath. The text on
   screen keeps its dashes, where they read correctly.
 
-**Load the game with `?voices` on the real device.** None of the above can be heard from a
-development machine — this one reports the API present and zero voices installed, and
-quality is entirely a property of the device. That page lists every voice the tablet
-offers and marks the one that would be chosen. It is the only honest way to tune the
-ranking.
+**Load the game with `?voices` on the real device, and let a person choose.** None of the
+above can be heard from a development machine — this one reports the API present and zero
+voices installed, and quality is entirely a property of the device. That page lists every
+voice the tablet offers, best first; tapping one reads a real line from the game in it and
+remembers it, and `pickVoice` then honours that saved choice over its own ranking. A
+ranking over voice *names* is guessing at a quality it cannot observe, and an adult holding
+the tablet can simply listen — so the heuristic is the default, not the verdict. The saved
+choice falls back to the ranking if that voice is ever uninstalled.
 
 Replacing it properly means pre-generated audio (ElevenLabs or similar), which is a real
 tradeoff, not a free win — it breaks the project's "no build-time assets" property and adds
