@@ -132,6 +132,17 @@ camera's bearing in the surface's parent space to decide what to set it to; a z-
 mesh itself sits inside that y-rotation and silently moves every marker off its
 coordinates. The Moon and Mars carry their tilt on a container for the same reason.
 
+**The day turn drives the hold, it does not fight it.** `DayTurn` moves the value
+`holdSurface` is already reproducing every frame, via `turnSurface`, so a mission's markers
+stay exactly where they are relative to the ground while the world underneath them turns
+into the light. Exactly one full turn, clamped against what is left rather than against the
+clock, so every marker ends on its real coordinates — a few thousandths of a radian of
+overshoot per press is invisible and cumulative. And it swings the camera level with the
+equator *and* square to the Sun before turning anything: square to the Sun alone leaves the
+camera high, where the day/night line lies across the disc and an east-west rotation slides
+everything along it instead of over it. Both halves are tested; the second one looked
+right until it was watched.
+
 **A visited body's surface is held still.** `holdSurface()` freezes it; the mission calls
 it in `build()` and releases it in `teardown()`. Markers are children of the surface mesh,
 and a turning one carries them out from under a child's finger. The Moon needs both its
@@ -267,6 +278,8 @@ Ordered. The reasoning matters more than the order.
 1. **Give the flight sound.** `sfx.ts` has exactly two cues, both fired by the mission. The
    flight is the best-looking part of the game and is completely silent. A synthesised
    thruster driven by the same throttle value the trail already uses needs no audio files.
+   The day turn is silent too, and wants something even more: a rising note as the light
+   comes round would carry it for a child who is only watching.
 
 2. **Then add a planet.** Cheap by design: a config entry with three real places on it, and
    a body. Saturn over Venus — the rings are the most recognisable object in the solar
@@ -283,7 +296,8 @@ still finds it. Moving the Moon out would change every other shot in the game.
 
 Done since this file was written: collecting became discovering (real places at real
 coordinates, each telling you something that goes in the journal), the flight now arrives
-about three body-radii out instead of nine and a half, and Earth is a destination.
+about three body-radii out instead of nine and a half, Earth is a destination, the narration
+no longer starts on its own, and Earth can be turned through a day.
 
 Not yet in scope: real orbital physics, planets past Mars, downloaded models.
 

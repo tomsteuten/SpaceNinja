@@ -21,6 +21,7 @@ import { createSky } from './scene/Starfield';
 import { createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
+import { createDayTurn } from './scene/DayTurn';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import {
@@ -129,6 +130,31 @@ async function main() {
     onExploreAgain: () => {
       restart();
     },
+    onSpin: () => {
+      const body = world.bodies[follow];
+      const spin = DESTINATIONS[follow]?.spin;
+      if (!spin || dayTurn.active) return;
+      // Nothing to say until it starts moving, and then the card explains what is being
+      // watched rather than instructing anyone to watch it.
+      ui.showNote(spin.name, spin.fact);
+      ui.setSpinBusy(true);
+      dayTurn.start(body);
+    },
+  });
+
+  /*
+   * Turning a destination through one day, which is the thing children asked about.
+   *
+   * The mission holds the surface still so its markers stay under a finger; this drives
+   * the held value instead of fighting it, so the terminator sweeps and the city lights
+   * come on with no new physics at all. Exactly one turn, so every marker ends where it
+   * started.
+   */
+  const dayTurn = createDayTurn({
+    camera,
+    controls,
+    reducedMotion,
+    onFinish: () => ui.setSpinBusy(false),
   });
 
   const flight = createFlightSequence({
@@ -158,6 +184,10 @@ async function main() {
       activeMission = mission;
       mission.start();
       ui.beginMission(mission.definition.instruction, mission.definition.discoveries.length);
+      // Offered from arrival, not held back until the places are found. The day/night
+      // question is the one children actually bring to this, so it does not go behind a
+      // task — and the mission holding the surface still is what makes turning it legible.
+      ui.showSpin(config.spin?.label ?? null);
     },
   });
 
@@ -277,6 +307,7 @@ async function main() {
   function restart() {
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
+    dayTurn.reset();
     flight.reset();
     // The ship was re-parented to the destination on arrival; the scene has to take it
     // back before the ship can restore its own parked transform.
@@ -308,6 +339,7 @@ async function main() {
     world.update(dt, elapsed, camera);
     trail.update(dt);
     activeMission?.update(dt, elapsed);
+    dayTurn.update(dt);
 
     if (flight.phase === 'idle') {
       // The idle ship keeps its nose pointed at whichever destination is selected, and

@@ -29,8 +29,13 @@ export interface GameUI {
    */
   beginMission(caption: string, total: number): void;
   setMissionCaption(text: string): void;
-  /** A place has been found: name it, read it out and put it in the journal. */
+  /** A place has been found: name it, and put it in the journal. */
   showDiscovery(discovery: Discovery): void;
+  /**
+   * Something worth saying that is not a find — it uses the same card and the same
+   * speaker button, but nothing goes into the journal, because nothing was collected.
+   */
+  showNote(title: string, text: string): void;
   /** Fills `collected` of the slots. */
   setMissionProgress(collected: number): void;
   /**
@@ -43,6 +48,12 @@ export interface GameUI {
    * unresponsive tap reads as a broken app rather than as a miss.
    */
   showTapEcho(clientX: number, clientY: number): void;
+  /**
+   * Offer to turn the destination through a day, or take the offer away. Null hides it.
+   */
+  showSpin(label: string | null): void;
+  /** Greys the spin button out while a turn is running, so a press cannot stack. */
+  setSpinBusy(busy: boolean): void;
   /** Back to the opening state, without rebuilding any of the DOM. */
   reset(): void;
   dispose(): void;
@@ -53,6 +64,8 @@ export interface UIOptions {
   narrator: Narrator;
   onFly(): void;
   onExploreAgain(): void;
+  /** The "turn this world through a day" button. Only offered where config has one. */
+  onSpin(): void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -67,7 +80,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 export function createUI(options: UIOptions): GameUI {
-  const { root, narrator, onFly, onExploreAgain } = options;
+  const { root, narrator, onFly, onExploreAgain, onSpin } = options;
   const timers: number[] = [];
 
   function later(callback: () => void, delay: number) {
@@ -156,7 +169,19 @@ export function createUI(options: UIOptions): GameUI {
   homeButton.append(createIcon('rocket'), el('span', undefined, 'Fly Home'));
   homeButton.classList.add('is-hidden');
 
-  dock.append(namePill, factCard, flyButton, homeButton);
+  /*
+   * Above Fly Home rather than beside it. The dock is a column, and the exit has to stay
+   * exactly where it has always been — it is the answer to "how do I get out of here" and
+   * a button that moves teaches that buttons move. So the new one goes on top of the
+   * stack, and the one that matters most keeps the bottom.
+   */
+  const spinButton = el('button', 'btn btn--secondary spin-btn');
+  spinButton.type = 'button';
+  const spinLabel = el('span');
+  spinButton.append(createIcon('sun'), spinLabel);
+  spinButton.classList.add('is-hidden');
+
+  dock.append(namePill, factCard, flyButton, spinButton, homeButton);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
@@ -211,6 +236,10 @@ export function createUI(options: UIOptions): GameUI {
 
   homeButton.addEventListener('click', () => {
     onExploreAgain();
+  });
+
+  spinButton.addEventListener('click', () => {
+    onSpin();
   });
 
   journalButton.addEventListener('click', () => setJournalOpen(true));
@@ -387,6 +416,7 @@ export function createUI(options: UIOptions): GameUI {
     enterFlight() {
       namePill.classList.add('is-hidden');
       flyButton.classList.add('is-hidden');
+      spinButton.classList.add('is-hidden');
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
       setHomeAvailable(false);
@@ -426,6 +456,10 @@ export function createUI(options: UIOptions): GameUI {
       missionCaption.textContent = text;
     },
 
+    showNote(title: string, text: string) {
+      showFact(text, title);
+    },
+
     showDiscovery(discovery: Discovery) {
       // Straight into the fact card, which reads it aloud. This is the whole payoff for
       // going and looking: the old collectible answered a tap with a counter going up.
@@ -459,6 +493,17 @@ export function createUI(options: UIOptions): GameUI {
       if (stickerId) celebrate(stickerId);
     },
 
+    showSpin(label: string | null) {
+      spinLabel.textContent = label ?? '';
+      spinButton.classList.toggle('is-hidden', !label);
+      if (label) spinButton.classList.add('fade-in');
+    },
+
+    setSpinBusy(busy: boolean) {
+      spinButton.disabled = busy;
+      spinButton.classList.toggle('is-busy', busy);
+    },
+
     showTapEcho(clientX: number, clientY: number) {
       const echo = el('div', 'tap-echo');
       echo.style.left = clientX + 'px';
@@ -475,6 +520,9 @@ export function createUI(options: UIOptions): GameUI {
       awardCard?.remove();
       awardCard = null;
       setHomeAvailable(false);
+      spinButton.classList.add('is-hidden');
+      spinButton.disabled = false;
+      spinButton.classList.remove('is-busy');
       for (const echo of root.querySelectorAll('.tap-echo')) echo.remove();
 
       setJournalOpen(false);

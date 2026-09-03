@@ -142,8 +142,17 @@ export interface Discovery {
 export interface DestinationConfig {
   /** Text on the button that launches the flight. */
   flyLabel: string;
-  /** Read aloud on arrival. */
+  /** Shown on arrival. */
   fact: string;
+  /**
+   * Optional: this destination can be turned through one whole day where it stands.
+   *
+   * Data rather than a special case for Earth, so nothing branches on an id — but only
+   * Earth has it, because "why does the Sun come up?" is a question about *here*. It is
+   * also the question children playing this actually asked, which is better evidence than
+   * anything else in this file.
+   */
+  spin?: { label: string; name: string; fact: string };
   mission: {
     instruction: string;
     huntLine: string;
@@ -168,6 +177,13 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
    */
   earth: {
     flyLabel: 'Fly to Earth',
+    spin: {
+      label: 'Spin the Earth',
+      name: 'Day and Night',
+      fact:
+        'The Sun does not move. Earth turns! When your part of it turns towards the Sun ' +
+        'that is morning, and when it turns away the sky goes dark and the lights come on.',
+    },
     fact:
       'This is your planet, seen from space. It is the only place anyone has ever found ' +
       'with water you can swim in, air you can breathe, and anybody at all to talk to.',

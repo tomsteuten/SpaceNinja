@@ -24,6 +24,11 @@ const ICONS = {
     '<path d="M4 18.6A2.6 2.6 0 0 1 6.6 16H18"/>',
   /** The empty mission slot: something is meant to go here. */
   dot: '<circle cx="12" cy="12" r="2.4"/>',
+  /** Turning a world through a day. A sun, because what moves is the light on the ground. */
+  sun:
+    '<circle cx="12" cy="12" r="4.2"/>' +
+    '<path d="M12 2.6v2.1M12 19.3v2.1M2.6 12h2.1M19.3 12h2.1"/>' +
+    '<path d="m5.4 5.4 1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"/>',
 } as const;
 
 export type IconName = keyof typeof ICONS;

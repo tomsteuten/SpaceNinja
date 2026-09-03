@@ -211,6 +211,16 @@ makes **Fly Home** work without reloading the page — the flight, the ship, the
 world, the camera, the UI and the mission each undo exactly their own state. The bodies keep
 orbiting throughout, so the Moon is deliberately *not* put back where it was.
 
+**You can turn a world through a day and watch morning arrive.** Children playing this
+asked about the sunrise, which is better evidence than any of the reasoning elsewhere in
+this file. The scene had always answered the question correctly and never shown it: the
+city lights are masked by the world-space Sun direction and the sunlight is a world-space
+directional light, so turning the surface makes places cross into darkness with their
+lights coming on, and back out into morning. All of it already worked and none of it ever
+moved. **Spin the Earth** drives the rotation the surface hold is already reproducing — no
+new physics — and swings the camera side-on first, because the flight arrives near the
+sub-solar point where the day/night line hugs the limb and nothing appears to change.
+
 **A marker cannot be tapped through the planet it is on.** The hit spheres are many times
 the size of the marker they surround, deliberately, so that a five-year-old's aim on a
 tablet is enough — and the raycast tests only those spheres, with no idea the body is in
@@ -246,6 +256,10 @@ cut, removes camera inertia, and stops the UI animations.
 
 No planets past Mars, no ambient or thruster sound, no downloaded models, and no real
 orbital physics. Those are deliberately still out of scope.
+
+Only Earth can be spun through a day. The Moon and Mars have terminators too, and the
+button is a config entry rather than a special case, so they could have one — but "why does
+the Sun come up?" is a question about *here*, and answering it three times would dilute it.
 
 The Moon can wander into the shot while you are exploring Earth, and at these compressed
 distances it is large when it does. The flight steers its *arrival* clear of anything that

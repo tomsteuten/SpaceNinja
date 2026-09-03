@@ -733,3 +733,10 @@ body {
   pointer-events: auto;
   z-index: 50;
 }
+
+/* Disabled while a day is turning. Faded rather than hidden: a button that vanishes
+   under the finger that just pressed it reads as a broken app at this age. */
+.spin-btn.is-busy {
+  opacity: 0.55;
+  filter: saturate(0.6);
+}

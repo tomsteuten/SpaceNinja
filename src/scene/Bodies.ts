@@ -64,6 +64,14 @@ export interface CelestialBody {
   holdSurface(): void;
   /** Let it turn again, from wherever it was held. */
   releaseSurface(): void;
+  /**
+   * Turn a held surface by this much, in radians about its own axis.
+   *
+   * Only meaningful while the surface is held: `update` reproduces the held value every
+   * frame, so this moves the value it reproduces. On an unheld body the rotation is
+   * already being driven and this does nothing rather than fight it.
+   */
+  turnSurface(delta: number): void;
   getWorldPosition(target: THREE.Vector3): THREE.Vector3;
 }
 
@@ -455,6 +463,10 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       releaseSurface: () => {
         delete holds.earth;
       },
+      turnSurface: (delta: number) => {
+        const held = holds.earth;
+        if (held !== undefined) holds.earth = held + delta;
+      },
       getWorldPosition: (target) => earthAnchor.getWorldPosition(target),
     },
     moon: {
@@ -472,6 +484,10 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       releaseSurface: () => {
         delete holds.moon;
       },
+      turnSurface: (delta: number) => {
+        const held = holds.moon;
+        if (held !== undefined) holds.moon = held + delta;
+      },
       getWorldPosition: (target) => moon.anchor.getWorldPosition(target),
     },
     mars: {
@@ -486,6 +502,10 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       },
       releaseSurface: () => {
         delete holds.mars;
+      },
+      turnSurface: (delta: number) => {
+        const held = holds.mars;
+        if (held !== undefined) holds.mars = held + delta;
       },
       getWorldPosition: (target) => mars.anchor.getWorldPosition(target),
     },
