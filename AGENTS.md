@@ -201,6 +201,15 @@ Three things about it that are load-bearing rather than incidental:
   taught to fold away during the day turn because it covers the planet; a full-width
   picture would put that back and more.
 
+**Never generate a stand-in for a discovery photograph, and do not offer to source one from
+inside an assistant environment.** The nine that are installed were fetched and checked by a
+person, because every image host — NASA, Wikimedia, all of them — is refused at this
+environment's egress gateway, and `WebFetch` is blocked for them too. An assistant that
+offers to "source them" from in here is about to invent something. That matters more than
+usual here: the game tells a child *this is the real Sahara*, and a synthesised picture
+under a NASA credit is a lie told to a five-year-old. If a photograph needs replacing, say
+what is wanted and let a person fetch it.
+
 **A media query adds no specificity.** This bit the fact card: a `@media (max-width: 560px)`
 block written *above* the base `.fact-card p` rule loses to it outright, so the card ran at
 full desktop type on a 390px phone — eight lines deep, covering 93% of the planet a child
@@ -386,13 +395,14 @@ of code substitutes for them.
    equally loud, and a bell should probably sit under an engine. Everything worth adjusting
    is a named constant at the top of its section in `sfx.ts`.
 
-2. **Drop the nine photographs in.** The feature is finished and waiting;
-   `public/assets/discoveries/README.txt` names the specific image wanted for each place
-   and why that one. It needs a network that can reach NASA, which the assistant
-   environment does not have — every image host is refused at the egress gateway, and an
-   assistant that offers to "source them" from in here is about to invent something.
-   **Never generate a stand-in for one of these.** The game tells a child *this is the real
-   Sahara*; a synthesised picture under a NASA credit is a lie told to a five-year-old.
+2. **Run it fullscreen, from a home-screen icon.** There is no web app manifest, so the
+   game runs inside browser furniture — measured off a Surface screenshot, tabs, address
+   bar, bookmarks and taskbar were eating close to a fifth of the screen, which is more
+   than every CSS change in the layout pass put together won back. A manifest with
+   `display: "standalone"`, an icon and a theme colour is a small file and the single
+   biggest thing left for how big the planet looks. A service worker on top of it would
+   also make the game work in a car with no signal, which is squarely how a tablet game
+   gets used.
 
 3. **Watch a child use it again.** Every genuinely valuable change in this project came
    from that and not from reading the code: the sunrise, the drag lesson, the badges on the
@@ -413,7 +423,21 @@ Then, in code:
    "use .jpg" rule. Watch the ring UVs: `THREE.RingGeometry` does not map `u` across the
    radius by default and rewriting that attribute is the classic Saturn gotcha.
 
-5. **Replace the narration voice.** Still the top complaint. The `?grownups` picker made the
+5. **Finishing everything is not a moment.** Each world congratulates you, and the journal
+   holds nine places — but finding the ninth, which completes the entire game, gets exactly
+   the same celebration as finding the third. A child who has been to all three worlds and
+   filled the book deserves to be told so. Cheap: `JOURNAL_SLOTS` already knows the total
+   and `progress.ts` already knows what has been found.
+
+6. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
+   played on Android and a Surface. Safari differs in the places this game leans on: audio
+   context unlocking, `backdrop-filter` (used on nearly every surface — the `-webkit-`
+   prefixes are there, but untested), `localStorage` throwing in private mode (guarded, also
+   untested), and `env(safe-area-inset-*)`, which the layout uses for all four paddings and
+   which only earns its keep on a notched device. If the game is ever handed to someone with
+   an iPad, that is where it will break, and nobody has looked.
+
+7. **Replace the narration voice.** Still the top complaint. The `?grownups` picker made the
    best of what a device ships, which may be enough — ask before spending an afternoon on
    recordings. See *Known weak spot* above.
 
@@ -426,9 +450,14 @@ Done since this file was written: collecting became discovering (real places at 
 coordinates, each telling you something that goes in the journal), the flight now arrives
 about three body-radii out instead of nine and a half, Earth is a destination, the narration
 no longer starts on its own, Earth can be turned through a day, the flight and the day turn
-both make a sound, a found place keeps its own emoji badge and can show a real photograph,
-an adult can choose the reading voice, and in landscape the dock lies along the bottom
-instead of standing on the planet.
+both make a sound, a found place keeps its own emoji badge and shows a real NASA photograph
+of itself, an adult can choose the reading voice and turn the sound off, an arrow points at
+the last place while it is round the back, and the dock no longer stands on the planet in
+landscape or bury it on a phone.
+
+The nine discovery photographs are installed and credited. They had to be sourced outside
+the assistant environment, which cannot reach a single image host — see the note under
+*Assets are drop-in* before offering to fetch any more.
 
 Not yet in scope: real orbital physics, planets past Mars, downloaded models.
 
