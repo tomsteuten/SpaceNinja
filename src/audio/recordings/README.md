@@ -15,5 +15,18 @@ It preserves existing files unless passed `--force`, and accepts `--voice=<name>
 `--speed=<number>`. The first run downloads the q8 model to a task-specific temporary cache.
 `npm run narration:generate:openai` remains an optional keyed alternative.
 
+Generating is a one-time, local, human step, so its toolchain is **not** a committed
+dependency — that would put `onnxruntime`, `sharp` and `@huggingface/transformers` (~98
+packages, hundreds of MB of native binaries) into every CI deploy for something the deploy
+never runs. Install it just before generating and it need not stay:
+
+```bash
+npm install --no-save kokoro-js   # then: npm run narration:generate
+```
+
+The OpenAI path needs no install at all (it is a plain `fetch`), only `OPENAI_API_KEY` in
+the environment. Kokoro-82M has no Australian voice; American (`af_`/`am_`) and British
+(`bf_`/`bm_`) are the English options — the shipped pack uses `af_heart`.
+
 Both generators write `provenance.json` beside the MP3s to supply the adult-facing AI
 disclosure. A human recording pack may replace it with its own plain-language origin note.
