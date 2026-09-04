@@ -79,7 +79,39 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
     image.removeAttribute('src');
   }
 
-  overlay.addEventListener('click', hide);
+  /*
+   * The backdrop closes on a tap, but only a *fresh* one — never the tail of the tap that
+   * opened it. Reported from a Samsung phone: the photo opened and shut again instantly,
+   * on Earth, every time. It is the classic touch "ghost click": a tap on the thumbnail
+   * shows this full-screen overlay at those same coordinates, and the device then delivers
+   * the tap's trailing compatibility click, which now hit-tests onto the overlay sitting
+   * under the finger and dismisses it. It did not reproduce in a headless browser because
+   * that ghost click is a real-hardware behaviour.
+   *
+   * The opening tap's pointerdown landed on the thumbnail, never on this overlay, so a
+   * dismiss is only honoured when a pointerdown actually begins here — which the ghost
+   * click has none of — and, belt and braces, not within a moment of opening, since a
+   * ghost lands within a few hundred milliseconds. A deliberate second tap to close is
+   * well past both gates.
+   */
+  const OPEN_GUARD_MS = 450;
+  let openedAt = 0;
+  let pressedInside = false;
+
+  overlay.addEventListener('pointerdown', () => {
+    pressedInside = performance.now() - openedAt > OPEN_GUARD_MS;
+  });
+  overlay.addEventListener('click', () => {
+    if (pressedInside) hide();
+    pressedInside = false;
+  });
+  // The close button is an explicit control, so it always closes — no ghost reaches a
+  // 62px target the finger deliberately found, and gating it would only make the X feel
+  // broken. stopPropagation so it does not also run the backdrop handler.
+  close.addEventListener('click', (event) => {
+    event.stopPropagation();
+    hide();
+  });
   const onKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape') hide();
   };
@@ -92,6 +124,8 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
       image.src = url;
       caption.textContent = text;
       overlay.classList.remove('is-hidden');
+      openedAt = performance.now();
+      pressedInside = false;
     },
     hide,
     dispose() {

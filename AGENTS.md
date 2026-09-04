@@ -226,6 +226,17 @@ child; that was the actual report behind "the Earth photos don't pop up" even th
 Earth photos loaded fine. If you make the card smaller again, the picture is the last thing to
 cut: it is the part of the card a pre-reader can actually take something from.
 
+**The full-screen photo viewer dismisses only on a fresh press on its backdrop, never on
+the tail of the tap that opened it.** Reported from a Samsung phone: the photo opened and
+shut instantly, on Earth, every time. It is a touch "ghost click" — a tap on the thumbnail
+shows the overlay at those same coordinates, and the device then delivers the tap's trailing
+compatibility click straight onto the overlay now under the finger. It does not reproduce in
+a headless browser, which emits no ghost, so do not "simplify" the guard away because a
+driver shows the viewer closing fine. The guard is in `ui/photos.ts`: a dismiss is honoured
+only when a `pointerdown` actually begins on the overlay (the opening tap's landed on the
+thumbnail) and not within `OPEN_GUARD_MS` of opening. The ✕ button bypasses both, because a
+deliberately-found control must always work.
+
 **A media query adds no specificity.** This bit the fact card: a `@media (max-width: 560px)`
 block written *above* the base `.fact-card p` rule loses to it outright, so the card ran at
 full desktop type on a 390px phone — eight lines deep, covering 93% of the planet a child

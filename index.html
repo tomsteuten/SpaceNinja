@@ -19,6 +19,15 @@
     -->
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <!--
+      Raster favicons as well as the SVG. When the game is opened over a plain-http address
+      (a phone on the same wifi as the dev server), Chrome does not offer a real install and
+      an "Add to Home screen" shortcut falls back to the favicon — and an SVG favicon does
+      not rasterise to a launcher icon on Android. A PNG does. Over https (the deployed
+      site) the manifest icons take over and give the proper installed-app icon.
+    -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
     <!-- iOS ignores the manifest's icons and reads these instead. -->
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
