@@ -448,8 +448,45 @@ beats any synthesiser, because it lands in a register no synthesiser reaches.
 
 Ordered. The reasoning matters more than the order.
 
-The first three need a person and a device, not a session. They are first because no amount
-of code substitutes for them.
+### Latest playtest — Samsung S25, a parent and their son (the live https build)
+
+The most valuable input the project has had in a while, because it is real use by the actual
+audience. Recorded here rather than left to be rediscovered:
+
+- **The lit collectibles read as the Sun, and confused the child.** He thought the glowing
+  gold rings were the sun or sunlight, not places to find. This is the single most important
+  finding: the marker is a warm, additively-blended halo, and to a five-year-old a warm glow
+  *is* a light source, not a target. The warmth was chosen deliberately (separation from grey
+  regolith and rust — see the marker notes in `CollectMission.ts`), so the fix is not just
+  "make it another colour"; it wants a shape/metaphor a child reads as *here is a thing to
+  tap* — a pin, a ring that reads as drawn-on, a peek of the real photo, a "?" — and it needs
+  watching, not a blind swap.
+- **Touch rotation is too sensitive** — the view spins away faster than a child (or the
+  parent) can control. `OrbitInput` maps a drag across the short screen edge to about a half
+  turn (`scale = π / min(edge)`) and then adds glide (`inertia = 0.86`). Both are worth
+  dropping for a coarse pointer; this is a safe, contained change.
+- **The discovery photo still closes itself "about half the time" on the device**, even after
+  the ghost-click guard in `photos.ts` (which fixed it in every headless run and reproduces
+  nowhere here). Two live suspects, both needing the device to tell apart: a service worker
+  still serving the previous build (a full close-and-reopen, or clearing the app's storage,
+  forces the update), and a ghost whose synthetic `pointerdown` lands on the overlay outside
+  the current 450ms guard. A stronger guard is to swallow the first synthetic click after
+  opening at the document capture level; ship it only with someone holding the phone.
+- **The Earth day-turn is beautiful on the planet, but its text card still distracts** from
+  the one moment whose whole point is watching the light move.
+- **The speech is still bad.** This is the known weak spot; the only real fix is recorded
+  audio, not tuning the platform voice (see *Known weak spot*).
+
+The parent's own direction — make **audio the primary guide** for a pre-reading audience,
+default it **on**, and make the on-screen **text less prominent** — is the right shape, and
+it is gated correctly on fixing the voice first. A synthesised voice defaulted-on would make
+the game worse, not better; a *recorded human* voice defaulted-on could carry the whole "what
+do I do", which is exactly the wordless-teaching gap this file keeps pointing at. Sequence:
+record the lines, wire the file-backed `Narrator` (the interface is already there), *then*
+flip the default and demote the text.
+
+The first three below need a person and a device, not a session. They are first because no
+amount of code substitutes for them.
 
 1. **Listen to the sound on the real device.** The engine and the sunrise are in and the
    graph is measured, but nobody has *heard* them: the development machine has no audio,
@@ -468,8 +505,10 @@ of code substitutes for them.
 
 3. **Watch a child use it again.** Every genuinely valuable change in this project came
    from that and not from reading the code: the sunrise, the drag lesson, the badges on the
-   markers. The open question is whether finding places still feels clunky now the dock has
-   moved off the planet.
+   markers. This has now happened once on an S25 (see *Latest playtest* above) and it earned
+   its keep immediately — the collectibles reading as the Sun is the kind of thing no amount
+   of reading the code would have found. Keep doing it; the next round should watch whether a
+   recorded voice plus a less sun-like marker fixes "what do I do".
 
 Then, in code:
 
@@ -497,9 +536,13 @@ Then, in code:
    which only earns its keep on a notched device. If the game is ever handed to someone with
    an iPad, that is where it will break, and nobody has looked.
 
-7. **Replace the narration voice.** Still the top complaint. The `?grownups` picker made the
-   best of what a device ships, which may be enough — ask before spending an afternoon on
-   recordings. See *Known weak spot* above.
+7. **Replace the narration voice — and it is now the lever, not a nicety.** Still the top
+   complaint, and the S25 playtest confirms it: the parent's whole proposed direction (audio
+   as the primary guide, defaulted on, text demoted) hangs on it. The `?grownups` picker made
+   the best of what a device ships and it is not enough. The next real step is recorded audio
+   behind the file-backed `Narrator` — a parent's voice memo beats any synthesiser for this
+   audience, needs no licence, and is what would let audio carry "what do I do". See *Known
+   weak spot* above for the migration path, which is already scaffolded.
 
 Known and left alone: the Moon can wander into the shot while a child explores Earth, and
 at these compressed distances it is large when it does. The arrival steers clear of it;
@@ -507,10 +550,13 @@ the camera then orbits on a shell the Moon's orbit crosses, so dragging far enou
 still finds it. Moving the Moon out would change every other shot in the game.
 
 Done since this file was written: the game is now an installable app with a manifest,
-home-screen icons and an offline service worker; finishing every place on every world is
-its own celebration with its own sticker; the frame loop now shows a crash screen instead of
-a frozen last frame; and the grown-ups panel states the privacy property and explains adding
-to the home screen. Before that: collecting became discovering (real places at real
+home-screen icons (confirmed working on an S25) and an offline service worker; finishing
+every place on every world is its own celebration with its own sticker; the frame loop now
+shows a crash screen instead of a frozen last frame; the grown-ups panel states the privacy
+property and explains adding to the home screen; the discovery photo is a full-width card
+with an obvious magnifier affordance instead of a buried thumbnail, and its full-screen view
+no longer dismisses itself to a touch ghost-click (mostly — see *Latest playtest*). Before
+that: collecting became discovering (real places at real
 coordinates, each telling you something that goes in the journal), the flight now arrives
 about three body-radii out instead of nine and a half, Earth is a destination, the narration
 no longer starts on its own, Earth can be turned through a day, the flight and the day turn
