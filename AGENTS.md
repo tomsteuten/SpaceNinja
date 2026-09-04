@@ -33,7 +33,7 @@ npm run dev         # vite, binds to every interface (LAN address works as-is)
 npm run typecheck   # tsc --noEmit
 npm test            # vitest run
 npm run build       # typechecks first, then emits dist/
-npm run narration:generate  # optional: make keyed offline MP3s; needs OPENAI_API_KEY
+npm run narration:generate  # make keyed offline MP3s locally with Kokoro; needs ffmpeg
 ```
 
 Run `npm run typecheck && npm test` before every commit. Both are fast.
@@ -427,13 +427,15 @@ gesture, cached in memory after first use, and stopped through the same `Narrato
 path as SpeechSynthesis. A failed fetch/decode falls back only when the speaker was already
 asked to speak; automatic playback is never enabled for a cue without a bundled URL.
 
-`npm run narration:generate` reads `narration-script.json` and calls OpenAI text-to-speech.
-It requires `OPENAI_API_KEY`, never writes the key, preserves existing MP3s unless `--force`
-is passed, and accepts `--voice=<name>`. The checked-in prompt asks for calm, warm,
-child-directed delivery rather than an announcer. Generated voices must remain clearly
-disclosed as AI-generated in the grown-ups panel. Do not commit a generated pack merely
-because generation succeeded: listen on the target device, then watch the child act without
-adult explanation.
+`npm run narration:generate` reads `narration-script.json` and runs the Apache-2.0
+Kokoro-82M model locally. It needs no account or API key. The q8 model is about 90MB in a
+task-specific temporary cache; only the 880KB MP3 pack is shipped. `ffmpeg` normalises every
+cue to -16 LUFS and encodes 24kHz mono MP3. The command preserves existing MP3s unless
+`--force` is passed and accepts `--voice=<name>` / `--speed=<number>`. The older OpenAI path
+remains available as `npm run narration:generate:openai`, but is not needed for the included
+pack. Generated voices must stay clearly disclosed as AI-generated in the grown-ups panel.
+Do not approve a regenerated pack merely because generation succeeded: listen on the target
+device, then watch the child act without adult explanation.
 
 The old voice picker remains useful when no MP3 pack ships. It ranks rather than
 first-matches, lets an adult audition real game copy, remembers their explicit choice, and
@@ -499,11 +501,11 @@ Then, in code:
    which only earns its keep on a notched device. If the game is ever handed to someone with
    an iPad, that is where it will break, and nobody has looked.
 
-7. **Generate, listen to and child-test the narration pack.** The keyed loader, concise
-   script and generator are done, but no generated MP3 should be promoted to primary guide
-   without hearing it on the target phone. Try delivery or voice changes in
-   `narration-script.json` / `--voice`, regenerate with `--force`, then watch whether the
-   child taps or swipes after the cue without an adult translating it.
+7. **Listen to and child-test the narration pack.** The 19 Kokoro clips, keyed loader and
+   generator are done, but audio measurements do not establish whether a five-year-old
+   understands the delivery. Try voice or speed changes in `narration-script.json`,
+   regenerate with `--force`, then watch whether the child taps or swipes after the cue
+   without an adult translating it.
 
 Known and left alone: the Moon can wander into the shot while a child explores Earth, and
 at these compressed distances it is large when it does. The arrival steers clear of it;

@@ -2,6 +2,12 @@
   "model": "gpt-4o-mini-tts",
   "voice": "marin",
   "instructions": "Speak like a warm Australian parent guiding one curious five-year-old. Calm, natural and friendly, never announcer-like or sing-song. Use short pauses between ideas, clear consonants, and a gently excited tone. Do not rush. Do not add words that are not in the script.",
+  "kokoro": {
+    "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+    "dtype": "q8",
+    "voice": "af_heart",
+    "speed": 0.95
+  },
   "cues": {
     "arrival-earth": "We made it to Earth! This is our home seen from space. Tap a gold target to discover a real place.",
     "arrival-moon": "We made it to the Moon! There is no air or weather here. Tap a gold target to discover a real place.",

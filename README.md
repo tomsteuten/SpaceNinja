@@ -61,15 +61,16 @@ npm run build
 ```
 
 ```bash
-OPENAI_API_KEY=... npm run narration:generate
+npm run narration:generate
 ```
 
 `npm run build` type-checks first, then emits `dist/`. `npm run preview` serves that build
 on the network the same way. `npm test` runs the unit tests — they cover the journal
 persistence, collectible placement and visibility, touch-camera maths, photo dismissal,
 narration cue coverage and the flight's easing curve — the pieces whose failure is easy
-to miss by eye. Narration generation is optional; it creates the offline MP3 cue pack from
-`src/audio/narration-script.json` and never stores the API key.
+to miss by eye. Narration generation creates the offline MP3 cue pack from
+`src/audio/narration-script.json` with a local open-weight model; it needs `ffmpeg`, but no
+account or API key.
 
 ---
 
@@ -90,6 +91,11 @@ from NASA/JPL/USGS and NASA/GSFC/Arizona State University; and Olympus Mons, Val
 Marineris and Elysium from NASA/JPL/USGS. All public domain. The source pages and image
 identifiers are listed in
 [`public/assets/discoveries/README.txt`](public/assets/discoveries/README.txt).
+
+**Narration** in `src/audio/recordings/` — generated locally with
+[Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M), whose model weights are licensed
+[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0). The included voice is disclosed
+as AI-generated on the grown-ups screen.
 
 The Sun, the spaceship and everything else on screen is generated at runtime or built
 from Three.js primitives.
@@ -324,13 +330,15 @@ not being asked to infer a verb from prose. A missing cue never auto-starts the 
 poor `SpeechSynthesis` voice; that fallback remains available only from the speaker button.
 This makes a partial voice pack safe to ship and keeps silence preferable to bad narration.
 
-`npm run narration:generate` creates the MP3 pack with OpenAI text-to-speech from the
-checked-in script, using a short, calm child-directed delivery prompt. It preserves existing
-files unless passed `--force`, accepts `--voice=<name>`, and requires `OPENAI_API_KEY` only
-for generation. Generated narration is disclosed as AI-generated in the grown-ups panel.
-The files are Vite assets, fingerprinted and precached by the existing service worker, so
-playback is deterministic and offline. They still need to be listened to on the target
-phone and watched with a child before the text is made even less visible.
+`npm run narration:generate` creates the MP3 pack locally with the Apache-licensed
+Kokoro-82M model. The default `af_heart` voice is slowed slightly, then every cue is
+normalised and compressed by `ffmpeg` for a phone speaker. The first run downloads about
+90MB of model weights into a temporary cache; no script text or audio is sent to a service.
+The command preserves existing files unless passed `--force`, and accepts `--voice=<name>`
+and `--speed=<number>`. OpenAI remains an optional alternative via
+`npm run narration:generate:openai`. Generated narration is disclosed as AI-generated in
+the grown-ups panel. The MP3s are Vite assets, fingerprinted and precached by the existing
+service worker, so playback is deterministic and offline.
 
 **Without recorded cues, the voice is chosen on the grown-ups panel.** It appears by itself
 the first time the game is opened on a device and lists every voice that device offers,
@@ -370,6 +378,7 @@ would loom, but the camera then orbits on a shell that the Moon's own orbit cros
 dragging far enough round will still find it. Moving the Moon out would change every other
 shot in the game, so it stays.
 
-The generated narration pack is not committed by default. Until MP3 cues are generated and
-real-device approved, the browser's inconsistent `SpeechSynthesis` remains the manual
-fallback and narration deliberately does not start on its own.
+The included narration pack still needs a real-device listen and child playtest. Its audio
+format, levels, duration and offline bundling are checked, but only a child can establish
+whether the delivery actually prompts the intended tap or swipe. `SpeechSynthesis` remains
+the manual fallback for any future cue whose MP3 has not yet been generated.

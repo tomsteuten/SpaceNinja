@@ -10,8 +10,10 @@ with a recording start automatically; an incomplete voice pack therefore never m
 poor platform voice begin talking by itself.
 
 `npm run narration:generate` creates the complete pack from `../narration-script.json`
-using OpenAI text-to-speech and requires `OPENAI_API_KEY`. The script never stores the key,
-preserves existing files unless passed `--force`, and accepts `--voice=<name>`. Generated
-files are AI voices and must stay disclosed as such in the grown-ups panel and README.
-The generator writes `provenance.json` beside the MP3s to supply that disclosure. A human
-recording pack may omit it or provide its own plain-language origin note.
+locally with the Apache-2.0 Kokoro-82M model. It needs `ffmpeg`, but no account or API key.
+It preserves existing files unless passed `--force`, and accepts `--voice=<name>` and
+`--speed=<number>`. The first run downloads the q8 model to a task-specific temporary cache.
+`npm run narration:generate:openai` remains an optional keyed alternative.
+
+Both generators write `provenance.json` beside the MP3s to supply the adult-facing AI
+disclosure. A human recording pack may replace it with its own plain-language origin note.

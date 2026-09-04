@@ -1,0 +1,10 @@
+{
+  "kind": "ai",
+  "provider": "Kokoro",
+  "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+  "voice": "af_heart",
+  "speed": 0.95,
+  "modelLicense": "Apache-2.0",
+  "modelSource": "https://huggingface.co/hexgrad/Kokoro-82M",
+  "disclosure": "The included narration uses the open-weight Kokoro AI voice model."
+}

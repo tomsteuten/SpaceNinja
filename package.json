@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host",
     "test": "vitest run",
-    "narration:generate": "node scripts/generate-narration.mjs"
+    "narration:generate": "node scripts/generate-narration-kokoro.mjs",
+    "narration:generate:openai": "node scripts/generate-narration.mjs"
   },
   "dependencies": {
     "three": "^0.185.1"
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^26.4.1",
     "@types/three": "^0.185.4",
+    "kokoro-js": "^1.2.1",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
