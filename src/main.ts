@@ -73,7 +73,9 @@ function fail(message: string, error: unknown, crash = false) {
  */
 function registerOffline() {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('./sw.js').catch((error: unknown) => {
+  // The shell itself stays cache-first and atomic, but the update check for the tiny
+  // worker script must reach Pages rather than an HTTP cache holding yesterday's build.
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch((error: unknown) => {
     console.warn('[offline] not available', error);
   });
 }
@@ -166,6 +168,7 @@ async function main() {
       // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
       // suspended and only let it resume inside a gesture like this one.
       sfx.resume();
+      narrator.resume();
       ui.enterFlight();
     },
     onExploreAgain: () => {
@@ -179,9 +182,11 @@ async function main() {
       const body = world.bodies[follow];
       const spin = DESTINATIONS[follow]?.spin;
       if (!spin || dayTurn.active) return;
-      // Nothing to say until it starts moving, and then the card explains what is being
-      // watched rather than instructing anyone to watch it.
-      ui.showNote(spin.name, spin.fact);
+      // Put the explanation one speaker-tap away before the camera starts moving. This is
+      // the one lesson whose content is entirely visual, and a full-width card during the
+      // 2.2s swing pulled the child's eyes away before the sunlight even began to move.
+      ui.showNote(`spin-${follow}`, spin.name, spin.fact);
+      ui.foldFact(true);
       ui.setSpinBusy(true);
       dayTurn.start(body);
     },
@@ -201,21 +206,7 @@ async function main() {
     // The quietest thing in the game gets the sound that most needs one. Driven by the
     // turn's own progress rather than started and left to run, so the light and the sound
     // arrive together however slowly the frames are coming.
-    onProgress: (progress) => {
-      sfx.dawn(progress);
-      /*
-       * Get the words off the planet the moment it starts turning.
-       *
-       * The card explains what is about to happen, and it is a full-width block across
-       * the bottom of the dock — which is where the lower third of a destination framed
-       * to fill the frame actually is. Reported from a tablet: it covered much of the
-       * Earth for the whole turn, which is the one moment in the game whose entire point
-       * is watching. Folded on the first frame that turns rather than on a timer, because
-       * the swing before it is 2.2 seconds normally and 0.7 under reduced motion. The
-       * speaker button stays, so the words are one tap away.
-       */
-      if (progress > 0) ui.foldFact();
-    },
+    onProgress: (progress) => sfx.dawn(progress),
     onFinish: () => ui.setSpinBusy(false),
   });
 
@@ -240,7 +231,7 @@ async function main() {
 
       const config = DESTINATIONS[destination.id];
       if (!config) return;
-      ui.showArrival(destination.label, config.fact);
+      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact);
 
       // The places to find are simply part of the destination, marked on arrival rather
       // than behind a button. Nothing waits on them: the child can look, find, or fly home.
@@ -290,14 +281,20 @@ async function main() {
         // it is the last one, the success line is already about to say the same thing.
         ui.showDiscovery(discovery);
         // Only the hidden one left: name the gesture now that the child needs it.
-        if (found === total - 1) ui.setMissionCaption(config.mission.huntLine);
+        if (found === total - 1) {
+          ui.setMissionCaption(config.mission.huntLine, `hunt-${body.id}`);
+        }
       },
       onComplete: () => {
         sfx.success();
         // The celebration keys off finishing, not off the award: a child who earned this
         // sticker on an earlier visit still gets the party, just not a second sticker.
         const isNew = awardSticker(config.mission.stickerId);
-        ui.completeMission(config.mission.successLine, isNew ? config.mission.stickerId : null);
+        ui.completeMission(
+          `success-${body.id}`,
+          config.mission.successLine,
+          isNew ? config.mission.stickerId : null,
+        );
         // And when this was the last place on the last world, the finale. Same rule as
         // the sticker: the moment happens whenever a completion leaves the book full,
         // the badge only the first time.
@@ -368,10 +365,12 @@ async function main() {
     // Once the shot has widened there is a new thing on screen, so the nudge points at
     // that rather than at the Moon the child has already finished.
     const wide = framingRadius() === FRAMING_RADIUS_WIDE;
-    ui.setHint(wide ? 'A new world is out there 🔴' : 'Drag to look around ✨');
+    // The gesture pictures carry the instruction for a child who cannot read the words.
+    // Audio cannot do this first job: no user gesture has unlocked playback yet.
+    ui.setHint(wide ? '👀 🔴  A new world is out there' : '☝️ ↔️  Drag to look around');
     nudge = window.setTimeout(() => {
       if (flight.phase !== 'idle' || selected) return;
-      ui.setHint(wide ? 'Tap Mars 🔴' : 'Tap the Moon 🌙');
+      ui.setHint(wide ? '👆 🔴  Tap Mars' : '👆 🌙  Tap the Moon');
     }, 6500);
   }
 

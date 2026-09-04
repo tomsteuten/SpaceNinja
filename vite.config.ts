@@ -50,6 +50,11 @@ function serviceWorker(): Plugin {
 export default defineConfig({
   // Relative base so the build can be opened from any sub-path or a plain file server.
   base: './',
+  // Shown only on the grown-ups screen. It lets a phone bug report distinguish stale
+  // service-worker code from the current deploy without adding child-facing clutter.
+  define: {
+    __BUILD_ID__: JSON.stringify(process.env.GITHUB_SHA?.slice(0, 7) ?? 'local'),
+  },
   plugins: [serviceWorker()],
   server: {
     host: true, // bind 0.0.0.0 so phones/tablets on the same WiFi can connect

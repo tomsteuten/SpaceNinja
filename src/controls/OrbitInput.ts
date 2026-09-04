@@ -12,6 +12,51 @@ import { MAX_ORBIT_DISTANCE, MIN_ORBIT_DISTANCE } from '../config';
 const TAP_MOVE_TOLERANCE = 12; // css px
 const TAP_DURATION = 400; // ms
 
+/**
+ * A full drag across the short edge turns a little under 130 degrees.
+ *
+ * This used to be PI, but the drag delta was also accumulated as a velocity and then
+ * applied again every frame. On a high-refresh phone that could turn several times for one
+ * finger movement. The direct mapping below is deliberately calm while still putting the
+ * hidden discovery (bounded to about 130 degrees) within one committed swipe.
+ */
+export const TOUCH_TURN_PER_SHORT_EDGE = Math.PI * 0.72;
+const MAX_FLING_SPEED = 2.4; // radians / second
+const FLING_SAMPLE_BLEND = 0.45;
+const FLING_STALE_MS = 80;
+
+/** The exact angle represented by a screen-space drag. Additive, so sampling rate cannot change it. */
+export function dragAngle(deltaPixels: number, shortEdge: number): number {
+  if (!Number.isFinite(deltaPixels) || !Number.isFinite(shortEdge) || shortEdge <= 0) return 0;
+  return (deltaPixels * TOUCH_TURN_PER_SHORT_EDGE) / shortEdge;
+}
+
+export interface InertiaStep {
+  angle: number;
+  velocity: number;
+}
+
+/**
+ * Integrates exponential angular damping exactly over `dt`.
+ *
+ * Using `velocity * dt` and then decaying is subtly frame-rate dependent. The analytic
+ * integral costs almost nothing and makes the same release glide match at 30, 60 and 120fps.
+ */
+export function stepInertia(
+  velocity: number,
+  dt: number,
+  frameRetention: number,
+): InertiaStep {
+  if (velocity === 0 || dt <= 0 || frameRetention <= 0) return { angle: 0, velocity: 0 };
+  if (frameRetention >= 1) return { angle: velocity * dt, velocity };
+  const rate = -60 * Math.log(frameRetention);
+  const retained = Math.exp(-rate * dt);
+  return {
+    angle: (velocity * (1 - retained)) / rate,
+    velocity: velocity * retained,
+  };
+}
+
 export interface OrbitInput {
   enabled: boolean;
   /** Point the camera orbits and looks at. Eased, so retargeting glides. */
@@ -44,6 +89,7 @@ interface PointerState {
   startX: number;
   startY: number;
   startTime: number;
+  lastMoveTime: number;
   moved: number;
 }
 
@@ -92,6 +138,7 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       startX: event.clientX,
       startY: event.clientY,
       startTime: event.timeStamp,
+      lastMoveTime: event.timeStamp,
       moved: 0,
     });
     try {
@@ -99,7 +146,13 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
     } catch {
       // Fine - pointermove/up still arrive, they just stop at the element bounds.
     }
-    if (pointers.size === 2) pinchDistance = currentPinchDistance();
+    // A finger touching the globe catches the old glide immediately. Its first movement
+    // must not be averaged with velocity left over from the previous swipe.
+    velocityTheta = 0;
+    velocityPhi = 0;
+    if (pointers.size === 2) {
+      pinchDistance = currentPinchDistance();
+    }
   }
 
   function currentPinchDistance(): number {
@@ -114,17 +167,41 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
 
     const dx = event.clientX - state.x;
     const dy = event.clientY - state.y;
+    const elapsed = Math.max(8, event.timeStamp - state.lastMoveTime) / 1000;
     state.x = event.clientX;
     state.y = event.clientY;
+    state.lastMoveTime = event.timeStamp;
     state.moved += Math.hypot(dx, dy);
 
     if (!api.enabled) return;
 
     if (pointers.size === 1) {
-      // Full drag across the shorter screen edge is roughly a half turn.
-      const scale = Math.PI / Math.min(element.clientWidth, element.clientHeight);
-      velocityTheta -= dx * scale;
-      velocityPhi -= dy * scale;
+      /*
+       * Move by the finger delta exactly once. Previously these deltas were added to an
+       * angular value that `update()` then applied every frame, so a drag was integrated a
+       * second time and a 120Hz phone spun much farther than a 60Hz tablet.
+       *
+       * Velocity is only the short release glide. It is measured in radians per second,
+       * smoothed across pointer samples and capped so a noisy final event cannot launch the
+       * child past the place they were trying to reveal.
+       */
+      const shortEdge = Math.min(element.clientWidth, element.clientHeight);
+      const thetaDelta = -dragAngle(dx, shortEdge);
+      const phiDelta = -dragAngle(dy, shortEdge);
+      spherical.theta += thetaDelta;
+      spherical.phi = THREE.MathUtils.clamp(spherical.phi + phiDelta, PHI_MIN, PHI_MAX);
+      if (!reducedMotion) {
+        velocityTheta = THREE.MathUtils.clamp(
+          THREE.MathUtils.lerp(velocityTheta, thetaDelta / elapsed, FLING_SAMPLE_BLEND),
+          -MAX_FLING_SPEED,
+          MAX_FLING_SPEED,
+        );
+        velocityPhi = THREE.MathUtils.clamp(
+          THREE.MathUtils.lerp(velocityPhi, phiDelta / elapsed, FLING_SAMPLE_BLEND),
+          -MAX_FLING_SPEED,
+          MAX_FLING_SPEED,
+        );
+      }
     } else if (pointers.size === 2) {
       const distance = currentPinchDistance();
       if (pinchDistance > 0 && distance > 0) {
@@ -147,6 +224,10 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
     pinchDistance = pointers.size === 2 ? currentPinchDistance() : 0;
 
     if (!state || !api.enabled) return;
+    if (event.timeStamp - state.lastMoveTime > FLING_STALE_MS) {
+      velocityTheta = 0;
+      velocityPhi = 0;
+    }
     const isTap =
       state.moved < TAP_MOVE_TOLERANCE && event.timeStamp - state.startTime < TAP_DURATION;
     // Only a clean single-finger tap counts; the second finger of a pinch must not select.
@@ -227,12 +308,19 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
     update(dt: number) {
       if (!api.enabled) return;
 
-      spherical.theta += velocityTheta;
-      spherical.phi = THREE.MathUtils.clamp(spherical.phi + velocityPhi, PHI_MIN, PHI_MAX);
-      // Frame-rate independent decay, so a 30fps tablet glides like a 60fps phone.
-      const decay = Math.pow(inertia, dt * 60);
-      velocityTheta *= decay;
-      velocityPhi *= decay;
+      // A drag has already moved the angles directly. Only a released finger gets glide.
+      if (pointers.size === 0) {
+        const thetaStep = stepInertia(velocityTheta, dt, inertia);
+        const phiStep = stepInertia(velocityPhi, dt, inertia);
+        spherical.theta += thetaStep.angle;
+        spherical.phi = THREE.MathUtils.clamp(
+          spherical.phi + phiStep.angle,
+          PHI_MIN,
+          PHI_MAX,
+        );
+        velocityTheta = thetaStep.velocity;
+        velocityPhi = phiStep.velocity;
+      }
 
       const ease = damping >= 1 ? 1 : 1 - Math.pow(1 - damping, dt * 60);
       spherical.radius += (desiredRadius - spherical.radius) * ease;

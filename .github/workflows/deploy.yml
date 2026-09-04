@@ -34,7 +34,11 @@ jobs:
 
       - run: npm ci
 
-      # `npm run build` type-checks first, so a type error fails the deploy.
+      # Both gates are intentionally in the deploy path: the unit tests pin interaction
+      # invariants that a successful TypeScript compilation cannot see.
+      - run: npm test
+
+      # `npm run build` type-checks first, so a type error fails the deploy too.
       - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3

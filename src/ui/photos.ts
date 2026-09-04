@@ -42,6 +42,20 @@ export interface PhotoViewer {
   dispose(): void;
 }
 
+/** Pure seam for the timing half of the real-device ghost-click guard. */
+export function canBeginPhotoDismiss(openedAt: number, pressedAt: number, guardMs: number): boolean {
+  return pressedAt - openedAt > guardMs;
+}
+
+/** The release must belong to the exact backdrop press that armed dismissal. */
+export function canFinishPhotoDismiss(
+  armedPointer: number | null,
+  releasedPointer: number,
+  releasedOnBackdrop: boolean,
+): boolean {
+  return releasedOnBackdrop && armedPointer === releasedPointer;
+}
+
 /**
  * The photo, big.
  *
@@ -96,14 +110,24 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
    */
   const OPEN_GUARD_MS = 450;
   let openedAt = 0;
-  let pressedInside = false;
+  let dismissPointer: number | null = null;
 
-  overlay.addEventListener('pointerdown', () => {
-    pressedInside = performance.now() - openedAt > OPEN_GUARD_MS;
+  overlay.addEventListener('pointerdown', (event) => {
+    // Only the backdrop. Presses on the photograph are exploration, not dismissal, and
+    // the explicit close button has its own unconditional handler below.
+    dismissPointer =
+      event.target === overlay && canBeginPhotoDismiss(openedAt, performance.now(), OPEN_GUARD_MS)
+        ? event.pointerId
+        : null;
   });
-  overlay.addEventListener('click', () => {
-    if (pressedInside) hide();
-    pressedInside = false;
+  overlay.addEventListener('pointerup', (event) => {
+    // Close from a complete fresh pointer sequence, never from the compatibility `click`
+    // Android may deliver after the thumbnail tap has put this overlay under the finger.
+    if (canFinishPhotoDismiss(dismissPointer, event.pointerId, event.target === overlay)) hide();
+    dismissPointer = null;
+  });
+  overlay.addEventListener('pointercancel', () => {
+    dismissPointer = null;
   });
   // The close button is an explicit control, so it always closes — no ghost reaches a
   // 62px target the finger deliberately found, and gating it would only make the X feel
@@ -125,7 +149,7 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
       caption.textContent = text;
       overlay.classList.remove('is-hidden');
       openedAt = performance.now();
-      pressedInside = false;
+      dismissPointer = null;
     },
     hide,
     dispose() {

@@ -22,33 +22,35 @@ export interface GameUI {
   showSelection(selection: SelectionInfo | null): void;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
-  showArrival(label: string, fact: string): void;
+  showArrival(cueId: string, label: string, fact: string): void;
   /**
    * Puts up the progress counter. A beat after arrival, so the fact is read first, and
    * *alongside* the fact card rather than instead of it: the rocks are simply there to
    * be found, not a mode the child has entered and has to finish to leave.
    */
   beginMission(caption: string, total: number): void;
-  setMissionCaption(text: string): void;
+  setMissionCaption(text: string, cueId?: string): void;
   /** A place has been found: name it, and put it in the journal. */
   showDiscovery(discovery: Discovery): void;
   /**
    * Something worth saying that is not a find — it uses the same card and the same
    * speaker button, but nothing goes into the journal, because nothing was collected.
    */
-  showNote(title: string, text: string): void;
+  showNote(cueId: string, title: string, text: string): void;
   /**
    * Fold the card away to its speaker button now, because something has started that is
-   * worth more than the words are. Idempotent, and yields to a reading in progress.
+   * worth more than the words are. Idempotent, and normally yields to a reading in
+   * progress. The explicit override is reserved for a visual lesson whose card would
+   * cover the thing the narration asks the child to watch.
    */
-  foldFact(): void;
+  foldFact(forceWhileSpeaking?: boolean): void;
   /** Fills `collected` of the slots. */
   setMissionProgress(collected: number): void;
   /**
    * The celebration. `stickerId` is null when the sticker was already earned on an
    * earlier visit — the party happens either way, only the "new sticker" badge does not.
    */
-  completeMission(successLine: string, stickerId: string | null): void;
+  completeMission(cueId: string, successLine: string, stickerId: string | null): void;
   /**
    * The bigger celebration, for finding every place on every world. Follows the world's
    * own completion rather than replacing it; `stickerId` works as in `completeMission`.
@@ -421,6 +423,8 @@ export function createUI(options: UIOptions): GameUI {
   });
 
   let currentFact = '';
+  let currentFactCueId: string | null = null;
+  let pendingGuide: { text: string; cueId: string } | null = null;
   // Tapping the words puts them away. The card is wide and the destination is now close
   // enough to fill the frame behind it, so a place worth finding can end up underneath it
   // — and a tap that lands on the card instead of on the ring it is covering has to do
@@ -434,30 +438,40 @@ export function createUI(options: UIOptions): GameUI {
 
   narrateButton.addEventListener('click', () => {
     if (narrator.speaking) {
+      // Stop means stop. Do not let the queued hunt cue begin a moment later.
+      pendingGuide = null;
       narrator.stop();
     } else if (currentFact) {
       // Unfolds the card as well as reading it, so the speaker is how you get the words
       // back on screen — one button, doing the one thing a child would expect of it.
-      factCard.classList.remove('is-collapsed');
+      factCard.classList.remove('is-collapsed', 'is-audio-first');
       factShownAt = Date.now();
-      narrator.speak(currentFact);
+      narrator.speak(currentFact, currentFactCueId);
       scheduleCollapse(11000);
     }
   });
   narrator.onChange((speaking) => {
     narrateButton.classList.toggle('is-speaking', speaking);
     narrateButton.setAttribute('aria-label', speaking ? 'Stop reading' : 'Read this out loud');
-    // Fold away shortly after the reading finishes rather than on a fixed timer, so the
-    // card is never taken away mid-sentence.
-    if (!speaking) scheduleCollapse(1600);
+    if (!speaking && pendingGuide && soundOn) {
+      const guide = pendingGuide;
+      pendingGuide = null;
+      // A breath after the discovery rather than two recordings joined into one sentence.
+      later(() => {
+        if (soundOn) narrator.speak(guide.text, guide.cueId, false);
+      }, 350);
+    } else if (!speaking) {
+      // Fold away shortly after the reading finishes rather than on a fixed timer, so the
+      // card is never taken away mid-sentence.
+      scheduleCollapse(1600);
+    }
   });
   /*
    * The read-aloud button exists when there is a voice to read with *and* sound is on.
    *
    * Sound off covers the reading too, and hides the button rather than leaving one that
-   * does nothing. Reading is only ever started deliberately, so an argument could be made
-   * for exempting it — but "I turned the sound off" and "the tablet then started talking"
-   * is not a conversation worth having with a parent in a quiet room.
+   * does nothing. Authored narration starts automatically, but never after a parent has
+   * turned sound off; the browser fallback still starts only from this explicit button.
    */
   let soundOn = true;
 
@@ -589,14 +603,14 @@ export function createUI(options: UIOptions): GameUI {
    * had just been earned — so the one find that actually required the drag was the one
    * whose story got cut off after a second, which is precisely backwards.
    */
-  let pendingFact: { text: string; title?: string } | null = null;
+  let pendingFact: { text: string; title?: string; cueId?: string } | null = null;
 
   /** The fact on screen has had its time: hand over to the next one, or fold away. */
   function factTimeUp() {
     const next = pendingFact;
     if (next) {
       pendingFact = null;
-      showFact(next.text, next.title);
+      showFact(next.text, next.title, next.cueId);
       return;
     }
     if (!currentFact) return;
@@ -629,8 +643,10 @@ export function createUI(options: UIOptions): GameUI {
     timers.push(collapseTimer);
   }
 
-  function showFact(text: string, title?: string) {
+  function showFact(text: string, title?: string, cueId?: string) {
     currentFact = text;
+    currentFactCueId = cueId ?? null;
+    pendingGuide = null;
     factShownAt = Date.now();
     // Every fact clears the photo; showDiscovery is the only one that puts one back, and
     // it does so after calling this. Otherwise the arrival fact or the success line would
@@ -640,12 +656,14 @@ export function createUI(options: UIOptions): GameUI {
     factTitle.textContent = title ?? '';
     factTitle.classList.toggle('is-hidden', !title);
     factText.textContent = text;
-    factCard.classList.remove('is-hidden', 'is-collapsed');
+    factCard.classList.remove('is-hidden', 'is-collapsed', 'is-audio-first');
     factCard.classList.add('fade-in');
-    // Deliberately not spoken. Playtesting was blunt about it: the platform voice is bad
-    // enough that no narration beats this narration, and it used to start on its own for
-    // every fact, so there was no way to not have it. The speaker button is right there
-    // and now it is the only thing that starts a reading. One line to put back.
+    // Only authored audio starts itself. A partial voice pack never makes the platform's
+    // poor fallback begin talking, and the paragraph remains fully visible for that cue.
+    if (soundOn && narrator.hasRecording(currentFactCueId)) {
+      factCard.classList.add('is-audio-first');
+      narrator.speak(text, currentFactCueId, false);
+    }
     scheduleCollapse(11000);
   }
 
@@ -678,13 +696,13 @@ export function createUI(options: UIOptions): GameUI {
       setHint(null);
     },
 
-    showArrival(label: string, fact: string) {
+    showArrival(cueId: string, label: string, fact: string) {
       setHomeAvailable(true);
       namePill.textContent = label;
       namePill.classList.remove('is-hidden');
       // Speech needs a recent user gesture on mobile; the fly button provided one, but if
       // the platform refuses anyway the button is right there.
-      showFact(fact);
+      showFact(fact, undefined, cueId);
     },
 
     beginMission(caption: string, total: number) {
@@ -705,23 +723,27 @@ export function createUI(options: UIOptions): GameUI {
       // at once is worse than one — the caption is a picture prompt, not a line of script.
     },
 
-    setMissionCaption(text: string) {
-      // Not spoken either, for the same reason, and it was the worse of the two: the hunt
-      // line arrives while a child is mid-search and had a voice interrupt them for it.
+    setMissionCaption(text: string, cueId?: string) {
       missionCaption.textContent = text;
+      // Wait behind the discovery narration rather than interrupting the reward the child
+      // just earned. Without an authored cue the visual hand/arrow remains the instruction.
+      if (cueId && soundOn && narrator.hasRecording(cueId)) {
+        if (narrator.speaking) pendingGuide = { text, cueId };
+        else narrator.speak(text, cueId, false);
+      }
     },
 
-    showNote(title: string, text: string) {
-      showFact(text, title);
+    showNote(cueId: string, title: string, text: string) {
+      showFact(text, title, cueId);
     },
 
-    foldFact() {
+    foldFact(forceWhileSpeaking = false) {
       // Already out of the way, or there is nothing to fold.
       if (factCard.classList.contains('is-hidden')) return;
       if (factCard.classList.contains('is-collapsed')) return;
       // Somebody asked for this to be read. Taking it away mid-sentence is worse than
       // covering the planet, and the fold that follows a reading is scheduled already.
-      if (narrator.speaking) return;
+      if (narrator.speaking && !forceWhileSpeaking) return;
 
       /*
        * Deliberately bypasses FACT_MINIMUM_MS, which every other fold respects.
@@ -737,13 +759,18 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     showDiscovery(discovery: Discovery) {
-      // Straight into the fact card, which reads it aloud. This is the whole payoff for
+      // Straight into the fact card. Authored audio reads it aloud; the platform fallback
+      // remains opt-in. This is the whole payoff for
       // going and looking: the old collectible answered a tap with a counter going up.
       //
       // The emoji is in the title so the card, the badge now left on the planet and the
       // journal entry are visibly the same thing. For a child who cannot read the name,
       // that picture is the only part of the title that carries.
-      showFact(discovery.fact, `${discovery.emoji} ${discovery.name}`);
+      showFact(
+        discovery.fact,
+        `${discovery.emoji} ${discovery.name}`,
+        `discovery-${discovery.id}`,
+      );
       // And the real photograph, if one has been dropped in for this place. Started after
       // the words rather than waited on: the card must not hang on a network probe.
       photoFor = discovery.id;
@@ -761,7 +788,7 @@ export function createUI(options: UIOptions): GameUI {
       }
     },
 
-    completeMission(successLine: string, stickerId: string | null) {
+    completeMission(cueId: string, successLine: string, stickerId: string | null) {
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       missionHud.classList.remove('fade-in-centred');
@@ -769,7 +796,7 @@ export function createUI(options: UIOptions): GameUI {
       // Behind the last discovery rather than over it. The sticker and the chime land now;
       // the words wait their turn.
       if (currentFact) {
-        pendingFact = { text: successLine };
+        pendingFact = { text: successLine, cueId };
         // And only their turn. The card's own timer is the eleven-second backstop for a
         // fact nobody is reading aloud, which is the right wait for *finishing* with one
         // and much too long for handing over to the next: the celebration would arrive
@@ -777,7 +804,7 @@ export function createUI(options: UIOptions): GameUI {
         // discovery is guaranteed and no more.
         scheduleCollapse(FACT_MINIMUM_MS);
       } else {
-        showFact(successLine);
+        showFact(successLine, undefined, cueId);
       }
       // The way home has been on screen throughout and stays exactly where it was. It
       // does not need promoting here — finishing is not the moment a child is looking
@@ -851,6 +878,9 @@ export function createUI(options: UIOptions): GameUI {
 
     reset() {
       clearTimers();
+      // Clear this before stop(): the narrator's onChange listener otherwise interprets
+      // reset as the end of a discovery and queues the hunt line into the fresh home view.
+      pendingGuide = null;
       narrator.stop();
       awardCard?.remove();
       awardCard = null;
@@ -869,6 +899,7 @@ export function createUI(options: UIOptions): GameUI {
       renderJournal();
 
       currentFact = '';
+      currentFactCueId = null;
       pendingFact = null;
       photoFor = null;
       clearPhoto();

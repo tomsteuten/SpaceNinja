@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { pickVoice, rankVoices, speechText } from './narration';
+import { pickVoice, rankVoices, recordingCueId, speechText } from './narration';
 
 /** Enough of a SpeechSynthesisVoice for the ranking, which reads four fields. */
 function voice(
@@ -91,6 +91,19 @@ describe('pickVoice', () => {
       voice('Samantha', 'en-GB'),
     ];
     expect(pickVoice(voices)?.name).toBe('Samantha');
+  });
+});
+
+describe('recordingCueId', () => {
+  it('derives the stable cue from a Vite glob path', () => {
+    expect(recordingCueId('./recordings/arrival-earth.mp3')).toBe('arrival-earth');
+    expect(recordingCueId('./recordings/discovery-moon-tycho.MP3')).toBe(
+      'discovery-moon-tycho',
+    );
+  });
+
+  it('ignores files that are not MP3 narration', () => {
+    expect(recordingCueId('./recordings/README.md')).toBeNull();
   });
 });
 

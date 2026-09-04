@@ -111,17 +111,17 @@ const COMPLETION_DELAY = 0.3;
 /**
  * Marker size. Was 0.17, as a gold rock floating above the surface — which was tuned for
  * a camera nine radii out and became a flat-shaded crystal the size of a small country
- * once the flight started arriving at three. It is a ring drawn *on* the ground now, so
- * the number is the size of a place rather than of an object, and it can be much smaller
- * because the halo and the hit sphere are what carry legibility.
+ * once the flight started arriving at three. It is a target drawn *on* the ground now,
+ * so the number is the size of a place rather than of an object. The opaque silhouette
+ * carries visual legibility and the much larger invisible hit sphere carries touch ease.
  */
 export const MARKER_RATIO = 0.085;
 /**
- * Halo width, as a multiple of the marker's. The glow texture puts its bright core in the
- * inner 16% and fades across the rest, so much above 3 stops reading as "this is glowing"
- * and starts reading as "something is smeared on the lens". Was 6.2.
+ * Halo width, as a multiple of the marker's. The target shape carries the instruction now;
+ * this is only enough glow to find it on the dark side. A broad warm additive disc was
+ * read as sunlight on a phone. Was 3.2 after first coming down from 6.2.
  */
-const GLOW_RATIO = 3.2;
+const GLOW_RATIO = 2.2;
 /**
  * The found badge, as a multiple of the marker's radius. Bigger than the ring it replaces,
  * because a ring only has to be *seen* and an emoji has to be *read* — at arrival distance
@@ -284,8 +284,10 @@ export function surfaceDirection(lat: number, lon: number): THREE.Vector3 {
 interface Collectible {
   discovery: Discovery;
   group: THREE.Group;
-  ring: THREE.Mesh;
+  /** Opaque bullseye silhouette. The halo is deliberately not the thing that names it. */
+  target: THREE.Group;
   ringMaterial: THREE.MeshBasicMaterial;
+  outlineMaterial: THREE.MeshBasicMaterial;
   glow: THREE.Sprite;
   glowMaterial: THREE.SpriteMaterial;
   /** The emoji left on the place once it is found. Hidden until then. */
@@ -327,6 +329,8 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
   const hitMeshes: THREE.Mesh[] = [];
   let group: THREE.Group | null = null;
   let ringGeometry: THREE.RingGeometry | null = null;
+  let innerRingGeometry: THREE.RingGeometry | null = null;
+  let outlineGeometry: THREE.RingGeometry | null = null;
   let sparkTexture: THREE.CanvasTexture | null = null;
 
   let active = false;
@@ -335,8 +339,12 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
 
   function buildCollectible(index: number, discovery: Discovery): Collectible {
     const geometry = ringGeometry;
+    const innerGeometry = innerRingGeometry;
+    const backingGeometry = outlineGeometry;
     const texture = sparkTexture;
-    if (!geometry || !texture) throw new Error('buildCollectible ran before build()');
+    if (!geometry || !innerGeometry || !backingGeometry || !texture) {
+      throw new Error('buildCollectible ran before build()');
+    }
 
     // Straight from the feature's real coordinates. The marker is a child of the surface
     // mesh, so this lands it on the actual place in the actual map and keeps it there.
@@ -345,35 +353,53 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     const node = new THREE.Group();
     node.position.copy(_dir).multiplyScalar(floatRadius);
 
-    // Unlit rather than shaded: the ring has to read on the body's night side too, and a
-    // standard material there is simply black. Warm gold, because the separation a child
-    // needs is from grey regolith on the Moon and from rust on Mars, and warmth does that
-    // on both where brightness alone only worked against the dark half.
+    /*
+     * A target, not a light. The old warm additive ring plus a broad additive halo looked
+     * exactly like sunlight on Earth. Warmth still separates it from grey Moon and rusty
+     * Mars, but an opaque double ring and dark keyline now carry a bullseye silhouette on
+     * both day and night sides.
+     */
+    const target = new THREE.Group();
+    target.quaternion.setFromUnitVectors(FACE, _dir);
+    target.renderOrder = 1;
+    node.add(target);
+
+    const outlineMaterial = new THREE.MeshBasicMaterial({
+      color: 0x21143f,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    target.add(new THREE.Mesh(backingGeometry, outlineMaterial));
+
     const ringMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffcf7a,
+      color: 0xffbd45,
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
     });
     const ring = new THREE.Mesh(geometry, ringMaterial);
-    // RingGeometry lies in the XY plane facing +Z; turn it to lie flat on the ground.
-    ring.quaternion.setFromUnitVectors(FACE, _dir);
-    node.add(ring);
+    ring.position.z = markerRadius * 0.006;
+    target.add(ring);
+    const innerRing = new THREE.Mesh(innerGeometry, ringMaterial);
+    innerRing.position.z = markerRadius * 0.006;
+    target.add(innerRing);
 
     const glowMaterial = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      opacity: 0.85,
+      opacity: 0.28,
     });
-    // Over 1 so it still crosses the bloom threshold, but well down from 1.5: additively
-    // blended over a marker this size, the old value was most of what erased it.
-    glowMaterial.color.setRGB(1.25, 0.95, 0.58);
+    // Below the bloom threshold so it cannot become a second little Sun. The opaque target
+    // remains legible even on the low tier where bloom is absent.
+    glowMaterial.color.setRGB(1, 0.66, 0.2);
     const glow = new THREE.Sprite(glowMaterial);
     const glowScale = markerRadius * GLOW_RATIO;
     glow.scale.setScalar(glowScale);
+    glow.renderOrder = 0;
     node.add(glow);
 
     const particleGeometry = new THREE.BufferGeometry();
@@ -432,8 +458,9 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     return {
       discovery,
       group: node,
-      ring,
+      target,
       ringMaterial,
+      outlineMaterial,
       glow,
       glowMaterial,
       badge,
@@ -481,8 +508,18 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     body.holdSurface();
 
     ringGeometry = new THREE.RingGeometry(
-      markerRadius * 0.58,
+      markerRadius * 0.66,
       markerRadius,
+      detail.ringSegments,
+    );
+    innerRingGeometry = new THREE.RingGeometry(
+      markerRadius * 0.18,
+      markerRadius * 0.34,
+      detail.ringSegments,
+    );
+    outlineGeometry = new THREE.RingGeometry(
+      markerRadius * 0.58,
+      markerRadius * 1.12,
       detail.ringSegments,
     );
     sparkTexture = makeGlowTexture(quality.tier === 'low' ? 64 : 128);
@@ -543,6 +580,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     for (const collectible of collectibles) {
       collectible.group.removeFromParent();
       collectible.ringMaterial.dispose();
+      collectible.outlineMaterial.dispose();
       collectible.glowMaterial.dispose();
       collectible.badgeMaterial.dispose();
       // Its own canvas texture, one per discovery, so it is the mission's to free.
@@ -559,6 +597,10 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     // Shared across the whole set, so it is built and released with the set.
     ringGeometry?.dispose();
     ringGeometry = null;
+    innerRingGeometry?.dispose();
+    innerRingGeometry = null;
+    outlineGeometry?.dispose();
+    outlineGeometry = null;
     sparkTexture?.dispose();
     sparkTexture = null;
   }
@@ -642,10 +684,11 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
             // The ring itself no longer bobs — it is lying on the ground, and something
             // drawn on a place should stay on it. The pulse carries the "tap me" instead.
             const wave = Math.sin(elapsed * 1.9 + collectible.phase);
-            collectible.ring.scale.setScalar(1 + wave * 0.09);
+            collectible.target.scale.setScalar(1 + wave * 0.07);
             collectible.ringMaterial.opacity = 0.78 + wave * 0.22;
-            collectible.glow.scale.setScalar(collectible.glowScale * (1 + wave * 0.12));
-            collectible.glowMaterial.opacity = 0.72 + wave * 0.16;
+            collectible.outlineMaterial.opacity = 0.82 + wave * 0.08;
+            collectible.glow.scale.setScalar(collectible.glowScale * (1 + wave * 0.08));
+            collectible.glowMaterial.opacity = 0.2 + wave * 0.08;
           }
           continue;
         }
@@ -656,8 +699,9 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
 
         // The ring opens outward and fades, like something being marked found rather
         // than something being picked up: the place stays, the marker on it does not.
-        collectible.ring.scale.setScalar(1 + eased * 2.2);
+        collectible.target.scale.setScalar(1 + eased * 2.2);
         collectible.ringMaterial.opacity = 1 - eased;
+        collectible.outlineMaterial.opacity = 1 - eased;
 
         // The glow flares first, then goes with it. The multiplier is up from 1.6 to hold
         // the size of the reward pop now that the resting halo is less than half as wide.
@@ -692,7 +736,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
           // Not group.visible = false any more: the group is what carries the badge, and
           // the badge is the whole point — a finished planet used to look identical to an
           // untouched one. The parts that *are* finished get hidden individually.
-          collectible.ring.visible = false;
+          collectible.target.visible = false;
           collectible.glow.visible = false;
           collectible.particles.visible = false;
           collectible.badgeMaterial.opacity = 1;

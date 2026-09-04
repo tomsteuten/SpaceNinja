@@ -33,6 +33,7 @@ npm run dev         # vite, binds to every interface (LAN address works as-is)
 npm run typecheck   # tsc --noEmit
 npm test            # vitest run
 npm run build       # typechecks first, then emits dist/
+npm run narration:generate  # optional: make keyed offline MP3s; needs OPENAI_API_KEY
 ```
 
 Run `npm run typecheck && npm test` before every commit. Both are fast.
@@ -62,7 +63,8 @@ src/
   mission/CollectMission.ts the real places to find, for any body
   ui/                       ui.ts, ui.css, icons.ts, grownups.ts (the adult's one
                             screen), photos.ts (real photographs of the places)
-  audio/narration.ts        SpeechSynthesis wrapper — see "Known weak spot"
+  audio/narration.ts        keyed MP3 narrator + manual SpeechSynthesis fallback
+  audio/narration-script.json  generated-audio copy and delivery settings
   audio/sfx.ts              every sound: two cues, the engine, the sunrise. No files
   state/progress.ts         discoveries, stickers and visits, in localStorage
   state/settings.ts         the grown-up's device choices (sound on/off), in localStorage
@@ -124,6 +126,19 @@ drag. There is a bound on *how far* past: much beyond ~130 degrees is half a tur
 dragging over an unlit hemisphere, which a small child gives up on. Both halves of that are
 tested, because both have been got wrong.
 
+**A touch drag is an angle, not a frame accumulator.** `OrbitInput` maps one full drag
+across the short edge to about 130 degrees and applies each pointer delta exactly once.
+Only measured radians-per-second at release feed the capped inertia, whose exponential
+integration is time-based. The previous code applied drag deltas again on every frame, so
+the same finger motion spun much farther on a high-refresh Samsung. Tests pin the drag
+mapping and 30/60/120Hz equivalence.
+
+**The gold marker has to be a target silhouette.** Warmth separates it from grey Moon and
+rusty Mars, but warmth plus a broad additive halo was read as Sunlight. The opaque double
+ring and dark keyline now carry meaning; the small dim halo only helps find it in darkness
+and renders behind the target. Preserve the enormous invisible hit sphere independently of
+the drawn size.
+
 **A marker cannot be tapped through its own body.** `withinVisibleFace` rejects any hit on
 the far side. The hit spheres are many times the marker's size on purpose, and the raycast
 tests only them — it never learns the planet is in the way. This is not theoretical: at
@@ -147,6 +162,12 @@ equator *and* square to the Sun before turning anything: square to the Sun alone
 camera high, where the day/night line lies across the disc and an east-west rotation slides
 everything along it instead of over it. Both halves are tested; the second one looked
 right until it was watched.
+
+**The day/night words leave before the lesson starts.** `onSpin` deliberately calls
+`foldFact(true)` before `DayTurn.start()`, even if authored narration is still speaking.
+The small replay button can remain, but the full-width card competes with the only evidence
+that matters: sunlight moving across the globe. Do not move this back to the first progress
+frame; that visibly flashes the card over the beginning of the turn.
 
 **The Moon is tidally locked, and locking means doing nothing.** Its mesh inherits the
 orbit from the spin group above it, so a *constant* local rotation keeps one face towards
@@ -233,9 +254,16 @@ shows the overlay at those same coordinates, and the device then delivers the ta
 compatibility click straight onto the overlay now under the finger. It does not reproduce in
 a headless browser, which emits no ghost, so do not "simplify" the guard away because a
 driver shows the viewer closing fine. The guard is in `ui/photos.ts`: a dismiss is honoured
-only when a `pointerdown` actually begins on the overlay (the opening tap's landed on the
-thumbnail) and not within `OPEN_GUARD_MS` of opening. The ✕ button bypasses both, because a
-deliberately-found control must always work.
+only when the same fresh pointer both begins and ends on the backdrop after
+`OPEN_GUARD_MS` (the opening tap began on the thumbnail). There is deliberately no backdrop
+`click` listener for Android's compatibility click to reach. The ✕ button bypasses the
+guard, because a deliberately-found control must always work. If a deployed phone appears
+to alternate between fixed and broken behaviour, unregister/update its service worker and
+confirm the new build before changing this guard again.
+The grown-ups panel shows the short Git build id for exactly this diagnosis (`local` in a
+non-CI build); ask for it with the device report. Registration uses `updateViaCache: none`
+so the worker update check reaches Pages without weakening the shell's cache-first,
+whole-build activation rule.
 
 **A media query adds no specificity.** This bit the fact card: a `@media (max-width: 560px)`
 block written *above* the base `.fact-card p` rule loses to it outright, so the card ran at
@@ -372,75 +400,49 @@ plateau shape, the six bells and the silence after every reset were checked here
 
 ---
 
-## Known weak spot: the narration
+## Narration: authored first, device voice only on request
 
-`src/audio/narration.ts` uses the browser's `SpeechSynthesis` API. Its own docstring calls
-it temporary, and **the voice quality is poor** — that is the top complaint about the
-current build.
+`src/audio/narration.ts` now plays stable keyed MP3 cues behind the existing `Narrator`
+interface. The browser's `SpeechSynthesis` remains a manual fallback for a missing file,
+because the operating-system voice sounds different and mostly poor on every platform.
 
-It cannot really be fixed in place. The actual voice is whatever the operating system
-ships, so the same code sounds different and mostly bad on every platform, and rate/pitch
-tuning cannot rescue it.
+**Only an exact authored cue starts automatically.** This is the boundary that lets audio
+become the primary guide without reviving the top playtest complaint. `showFact()` asks
+`hasRecording(cueId)` before hiding the paragraph or speaking. A partial pack therefore
+improves only the lines it contains; it never causes the browser fallback to begin talking.
+The speaker button can still request either the recording or fallback, and sound-off stops
+both and hides that button.
 
-**Nothing is read aloud unless someone asks.** Playtesting was blunt: this narration is bad
-enough that none beats it. It used to start on its own for every fact and for the hunt
-line, so there was no way to not have it; the speaker button is now the only thing that
-starts a reading. That is a default and one line in `ui.ts`, not a deletion — put it back
-the moment there is a voice worth hearing.
+The cue IDs are semantic (`arrival-earth`, `discovery-moon-tycho`, `hunt-mars`), not hashes
+of display copy. `narration-script.test.ts` derives every expected ID from `DESTINATIONS`
+and fails if a new destination or discovery has no script. The generated line may be shorter
+than the adult-readable fact, because listening memory and reading layout are different jobs.
+Instructional lines explicitly say the visible action and object: “tap a gold target” or
+“swipe the planet sideways.” The target shape, arrow and hand emoji remain; audio does not
+get to become the only instruction.
 
-Two things were worth doing anyway, and both are tested:
+Recordings live in `src/audio/recordings/` so Vite fingerprints them and the service-worker
+builder precaches them. They are decoded through the one AudioContext unlocked by the Fly
+gesture, cached in memory after first use, and stopped through the same `Narrator.stop()`
+path as SpeechSynthesis. A failed fetch/decode falls back only when the speaker was already
+asked to speak; automatic playback is never enabled for a cue without a bundled URL.
 
-- `pickVoice` **ranks** rather than first-matches. The old rule took the first voice
-  matching any of a set of patterns in whatever order the platform listed them, so a
-  device carrying both a good voice and a poor one was a coin toss decided by enumeration
-  order. It also prefers a voice the device *fetches* over one it ships: on Android and
-  desktop Chrome those are the neural ones, and the local fallbacks are where the
-  complaint comes from. Weighted below the name rank, because on iOS everything is local
-  and the good Siri voices would otherwise be buried by a mediocre network voice.
-- `speechText` cleans the words before they reach the engine: em dashes become commas, and
-  each sentence becomes its own utterance so a weak voice stops for breath. The text on
-  screen keeps its dashes, where they read correctly.
+`npm run narration:generate` reads `narration-script.json` and calls OpenAI text-to-speech.
+It requires `OPENAI_API_KEY`, never writes the key, preserves existing MP3s unless `--force`
+is passed, and accepts `--voice=<name>`. The checked-in prompt asks for calm, warm,
+child-directed delivery rather than an announcer. Generated voices must remain clearly
+disclosed as AI-generated in the grown-ups panel. Do not commit a generated pack merely
+because generation succeeded: listen on the target device, then watch the child act without
+adult explanation.
 
-**Let a person choose the voice, on the grown-ups panel.** None of the above can be heard
-from a development machine — this one reports the API present and zero voices installed,
-and quality is entirely a property of the device. `ui/grownups.ts` lists every voice the
-tablet offers, best first; tapping one reads a real line from the game in it and remembers
-it, and `pickVoice` then honours that saved choice over its own ranking. A ranking over
-voice *names* is guessing at a quality it cannot observe, and an adult holding the tablet
-can simply listen — so the heuristic is the default, not the verdict. The saved choice
-falls back to the ranking if that voice is ever uninstalled.
+The old voice picker remains useful when no MP3 pack ships. It ranks rather than
+first-matches, lets an adult audition real game copy, remembers their explicit choice, and
+uses `speechText` to clean punctuation and split sentences. It is a graceful fallback, not
+the plan for primary guidance.
 
-The panel shows itself once per device and afterwards only on a two-second hold of the
-journal button (or `?grownups`). It is a hold rather than a button because anything on
-screen that opens settings is something a five-year-old will open, and it can say so in
-writing precisely because the person it hides from cannot read yet. If you add anything to
-it, keep it operational — a parent about to hand over a tablet reads one screen, and the
-reasoning behind the game belongs in `README.md` where it can be as long as it likes.
-
-Replacing it properly means pre-generated audio (ElevenLabs or similar), which is a real
-tradeoff, not a free win — it breaks the project's "no build-time assets" property and adds
-payload. The migration path that preserves the most:
-
-- `Narrator` is already an interface (`available`, `speaking`, `speak`, `stop`, `onChange`,
-  `dispose`). Write a file-backed implementation behind it; nothing else needs to change.
-- **The one real friction:** `speak(text)` takes arbitrary text, and file playback needs a
-  *key*. Either give every line an id in `config.ts` and change the signature to something
-  like `speak(id, fallbackText)`, or keep a text→filename manifest. Decide this before
-  generating any audio.
-- Keep SpeechSynthesis as the fallback for any line without a file, so the game never goes
-  silent and lines can be migrated incrementally.
-- Budget it: the fact copy lives in `DESTINATIONS` in `config.ts` and is short. Prefer
-  `.ogg`/`.mp3`, and credit/licence the voice in `README.md` like the textures.
-
-Generating the audio is a human step. An assistant can write the manifest, the loader, the
-fallback and the config changes — but should not claim to have produced audio it cannot
-produce.
-
-It does not need a TTS account either. There are sixteen lines and they total about 465
-words — three minutes read aloud, counted rather than estimated, and up from the nine lines
-this paragraph used to claim, because Earth and Mars arrived since. A phone voice memo is
-free, needs no licence line in the README, and for this audience a parent reading to a child
-beats any synthesiser, because it lands in a register no synthesiser reaches.
+The grown-ups panel shows itself once per device and afterwards only on a two-second hold of
+the journal button (or `?grownups`). Keep it operational and short. A parent about to hand
+over a tablet reads one screen; the child-facing interaction must still work without it.
 
 ---
 
@@ -497,9 +499,11 @@ Then, in code:
    which only earns its keep on a notched device. If the game is ever handed to someone with
    an iPad, that is where it will break, and nobody has looked.
 
-7. **Replace the narration voice.** Still the top complaint. The `?grownups` picker made the
-   best of what a device ships, which may be enough — ask before spending an afternoon on
-   recordings. See *Known weak spot* above.
+7. **Generate, listen to and child-test the narration pack.** The keyed loader, concise
+   script and generator are done, but no generated MP3 should be promoted to primary guide
+   without hearing it on the target phone. Try delivery or voice changes in
+   `narration-script.json` / `--voice`, regenerate with `--force`, then watch whether the
+   child taps or swipes after the cue without an adult translating it.
 
 Known and left alone: the Moon can wander into the shot while a child explores Earth, and
 at these compressed distances it is large when it does. The arrival steers clear of it;
@@ -512,8 +516,9 @@ its own celebration with its own sticker; the frame loop now shows a crash scree
 a frozen last frame; and the grown-ups panel states the privacy property and explains adding
 to the home screen. Before that: collecting became discovering (real places at real
 coordinates, each telling you something that goes in the journal), the flight now arrives
-about three body-radii out instead of nine and a half, Earth is a destination, the narration
-no longer starts on its own, Earth can be turned through a day, the flight and the day turn
+about three body-radii out instead of nine and a half, Earth is a destination, authored
+narration can now start on its own while the poor device fallback cannot, Earth can be
+turned through a day, the flight and the day turn
 both make a sound, a found place keeps its own emoji badge and shows a real NASA photograph
 of itself, an adult can choose the reading voice and turn the sound off, an arrow points at
 the last place while it is round the back, and the dock no longer stands on the planet in

@@ -1,11 +1,10 @@
 /**
  * The one screen written for the adult rather than the child.
  *
- * It exists because two things in this game cannot be decided from the code and had no
- * door at all: which voice reads aloud (quality is a property of the device, and the
- * ranking in narration.ts is a heuristic over voice *names* — guessing at something it
- * cannot hear), and whether the tablet's reduce-motion setting is on, which changes what
- * the game does and is invisible from inside it.
+ * It exists because two things in this game need an adult-facing door: the narration and
+ * whether the tablet's reduce-motion setting is on. An authored voice is deterministic;
+ * without one, quality remains a property of the device and the SpeechSynthesis ranking
+ * is only a heuristic over voice *names* — guessing at something code cannot hear.
  *
  * Deliberately short. A parent standing there about to hand over a tablet reads about one
  * screen, and what they need at that moment is operational: how to pick a voice, what will
@@ -113,6 +112,20 @@ export function createGrownups(options: GrownupsOptions): Grownups {
   function voiceSection(): HTMLElement {
     const section = el('section', 'grownups__section');
     section.append(el('h3', 'grownups__heading', 'The reading voice'));
+
+    if (narrator.recorded) {
+      section.append(
+        el(
+          'p',
+          'grownups__note',
+          `${narrator.recordingDisclosure ?? 'This build includes its own narration.'} ` +
+            'It sounds the same on every ' +
+            'device and works offline. Included lines start by themselves; the speaker ' +
+            'button replays the current one.',
+        ),
+      );
+      return section;
+    }
 
     const report = describeVoices();
     if (report.message) {
@@ -251,9 +264,13 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       el(
         'p',
         'grownups__note',
-        'Quiet by design, and nothing is ever read aloud on its own — the speaker button ' +
-          'on a card is the only thing that starts a reading. Turning sound off covers ' +
-          'the reading too, and takes that button away.',
+        narrator.recorded
+          ? 'Quiet by design. Included narration starts automatically and the speaker ' +
+            'button replays it. Turning sound off covers narration too and takes that ' +
+            'button away.'
+          : 'Quiet by design, and the device voice never starts on its own — the speaker ' +
+            'button on a card is the only thing that starts it. Turning sound off covers ' +
+            'the reading too, and takes that button away.',
       ),
     );
     const soundToggle = el('button', 'grownups__auto') as HTMLButtonElement;
@@ -287,6 +304,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
             'camera movement. Turning it on in the device settings calms it down.',
       ),
     );
+    motion.append(el('p', 'grownups__note', `Build ${__BUILD_ID__}.`));
     inner.append(motion);
 
     inner.append(

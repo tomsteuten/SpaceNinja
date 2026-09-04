@@ -1,27 +1,70 @@
 /**
- * Read-aloud support via the browser's SpeechSynthesis API.
+ * Read-aloud support, preferring deterministic MP3 cues and retaining the browser's
+ * SpeechSynthesis voice as an explicitly requested fallback.
  *
- * Still temporary, and still the weakest thing in the project. The voice is whatever the
- * operating system ships, so the same code sounds different and mostly poor on every
- * platform. Two consequences are baked in here:
- *
- *  - **Nothing is read aloud unless a child or an adult asks for it.** Playtesting said
- *    the voice was bad enough that no narration beat this narration, so the speaker
- *    button is the only thing that starts it. That is a default, not a deletion: the call
- *    to speak on arrival is one line in ui.ts.
- *  - What it *is* asked to read is cleaned up first. See speechText.
- *
- * The real fix is pre-recorded audio behind this same interface; see AGENTS.md.
+ * Only authored cues may start automatically. That distinction is load-bearing: the
+ * device voice was the top playtest complaint, while good audio is the clearest way to
+ * guide a child who cannot read. A partial recording pack therefore improves only the
+ * lines it contains and never makes the poor fallback start speaking by itself.
  */
 
 export interface Narrator {
-  /** False when SpeechSynthesis is absent. Callers should hide their button. */
+  /** False only when neither recorded playback nor SpeechSynthesis can work. */
   readonly available: boolean;
+  /** At least one deterministic, offline recording ships with this build. */
+  readonly recorded: boolean;
+  /** Adult-facing origin note for the included voice, when the pack provides one. */
+  readonly recordingDisclosure: string | null;
   readonly speaking: boolean;
-  speak(text: string): void;
+  /** True when this exact cue has authored audio and is therefore safe to start automatically. */
+  hasRecording(cueId: string | null): boolean;
+  /** Unlock file playback inside the Fly press before an arrival tries to speak. */
+  resume(): void;
+  speak(text: string, cueId?: string | null, allowPlatformFallback?: boolean): void;
   stop(): void;
   onChange(listener: (speaking: boolean) => void): void;
   dispose(): void;
+}
+
+/*
+ * Authored narration lives with source rather than under public/. Vite fingerprints every
+ * imported MP3 and the service-worker build already precaches every emitted bundle asset,
+ * so a voice that is the primary guide is available offline rather than only after a line
+ * happened to be heard online. An empty folder is valid: SpeechSynthesis remains the
+ * manual fallback while the script is recorded or generated incrementally.
+ */
+const RECORDING_FILES = import.meta.glob('./recordings/*.mp3', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+const PROVENANCE_FILES = import.meta.glob('./recordings/provenance.json', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+/** `./recordings/arrival-earth.mp3` -> `arrival-earth`. */
+export function recordingCueId(path: string): string | null {
+  const match = /\/([^/]+)\.mp3$/i.exec(path);
+  return match?.[1] ?? null;
+}
+
+const RECORDINGS = new Map<string, string>();
+for (const [path, url] of Object.entries(RECORDING_FILES)) {
+  const id = recordingCueId(path);
+  if (id) RECORDINGS.set(id, url);
+}
+
+function recordingDisclosure(): string | null {
+  const raw = Object.values(PROVENANCE_FILES)[0];
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as { disclosure?: unknown };
+    return typeof value.disclosure === 'string' ? value.disclosure : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -177,10 +220,21 @@ export function speechText(text: string): string[] {
 
 export function createNarrator(): Narrator {
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
-  const available = Boolean(synth && typeof SpeechSynthesisUtterance === 'function');
+  const speechAvailable = Boolean(synth && typeof SpeechSynthesisUtterance === 'function');
+  const AudioContextConstructor =
+    typeof window !== 'undefined'
+      ? (window.AudioContext ??
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
+      : undefined;
+  const recordedAvailable = RECORDINGS.size > 0 && Boolean(AudioContextConstructor);
+  const available = recordedAvailable || speechAvailable;
 
   let speaking = false;
   const listeners: Array<(speaking: boolean) => void> = [];
+  let context: AudioContext | null = null;
+  let source: AudioBufferSourceNode | null = null;
+  let generation = 0;
+  const buffers = new Map<string, Promise<AudioBuffer>>();
 
   function setSpeaking(value: boolean) {
     if (speaking === value) return;
@@ -201,54 +255,139 @@ export function createNarrator(): Narrator {
     return pickVoice(synth.getVoices(), navigator.language || 'en-GB', loadVoiceChoice());
   }
 
+  function audioContext(): AudioContext | null {
+    if (!AudioContextConstructor) return null;
+    context ??= new AudioContextConstructor();
+    return context;
+  }
+
+  function stopCurrent(invalidate = true) {
+    if (invalidate) generation++;
+    if (speechAvailable && synth) synth.cancel();
+    if (source) {
+      source.onended = null;
+      try {
+        source.stop();
+      } catch {
+        // It may have ended between the check and stop(). Either way it is finished.
+      }
+      source.disconnect();
+      source = null;
+    }
+    setSpeaking(false);
+  }
+
+  function speakWithPlatformVoice(text: string) {
+    if (!speechAvailable || !synth) {
+      setSpeaking(false);
+      return;
+    }
+    const voice = currentVoice();
+    const sentences = speechText(text);
+    if (sentences.length === 0) return;
+
+    let remaining = sentences.length;
+    const finished = () => {
+      remaining--;
+      if (remaining <= 0) setSpeaking(false);
+    };
+
+    setSpeaking(true);
+    try {
+      for (const sentence of sentences) {
+        const utterance = new SpeechSynthesisUtterance(sentence);
+        if (voice) utterance.voice = voice;
+        utterance.rate = 0.92;
+        utterance.pitch = 1.08;
+        utterance.volume = 1;
+        utterance.onend = finished;
+        utterance.onerror = () => {
+          remaining = 0;
+          setSpeaking(false);
+        };
+        synth.speak(utterance);
+      }
+    } catch {
+      setSpeaking(false);
+    }
+  }
+
+  async function speakRecording(
+    url: string,
+    fallbackText: string,
+    token: number,
+    allowPlatformFallback: boolean,
+  ) {
+    try {
+      const audio = audioContext();
+      if (!audio) throw new Error('Web Audio unavailable');
+      if (audio.state === 'suspended') await audio.resume();
+      let pending = buffers.get(url);
+      if (!pending) {
+        pending = fetch(url)
+          .then((response) => {
+            if (!response.ok) throw new Error(`narration ${response.status}`);
+            return response.arrayBuffer();
+          })
+          .then((bytes) => audio.decodeAudioData(bytes));
+        buffers.set(url, pending);
+      }
+      const buffer = await pending;
+      if (token !== generation) return;
+
+      const next = audio.createBufferSource();
+      next.buffer = buffer;
+      next.connect(audio.destination);
+      next.onended = () => {
+        if (source !== next) return;
+        next.disconnect();
+        source = null;
+        setSpeaking(false);
+      };
+      source = next;
+      setSpeaking(true);
+      next.start();
+    } catch {
+      buffers.delete(url);
+      if (token !== generation) return;
+      if (allowPlatformFallback) speakWithPlatformVoice(fallbackText);
+      else setSpeaking(false);
+    }
+  }
+
   return {
     available,
+    recorded: recordedAvailable,
+    recordingDisclosure: recordingDisclosure(),
 
     get speaking() {
       return speaking;
     },
 
-    speak(text: string) {
-      if (!available || !synth) return;
-      synth.cancel();
-      const voice = currentVoice();
+    hasRecording(cueId: string | null) {
+      return Boolean(cueId && recordedAvailable && RECORDINGS.has(cueId));
+    },
 
-      // One utterance per sentence, queued. The engine puts a real pause between them,
-      // which a single long string does not get, and only the last one ends the reading.
-      const sentences = speechText(text);
-      if (sentences.length === 0) return;
+    resume() {
+      if (!recordedAvailable) return;
+      void audioContext()?.resume().catch(() => undefined);
+    },
 
-      let remaining = sentences.length;
-      const finished = () => {
-        remaining--;
-        if (remaining <= 0) setSpeaking(false);
-      };
-
-      setSpeaking(true);
-      try {
-        for (const sentence of sentences) {
-          const utterance = new SpeechSynthesisUtterance(sentence);
-          if (voice) utterance.voice = voice;
-          utterance.rate = 0.92; // a touch slow, for young listeners
-          utterance.pitch = 1.08;
-          utterance.volume = 1;
-          utterance.onend = finished;
-          // An error cancels the rest of the queue, so stop counting and go quiet.
-          utterance.onerror = () => {
-            remaining = 0;
-            setSpeaking(false);
-          };
-          synth.speak(utterance);
-        }
-      } catch {
-        setSpeaking(false);
+    speak(text: string, cueId?: string | null, allowPlatformFallback = true) {
+      if (!available) return;
+      stopCurrent();
+      const url = cueId ? RECORDINGS.get(cueId) : undefined;
+      if (url && recordedAvailable) {
+        const token = generation;
+        setSpeaking(true);
+        void speakRecording(url, text, token, allowPlatformFallback);
+      } else {
+        speakWithPlatformVoice(text);
       }
     },
 
     stop() {
-      if (!available || !synth) return;
-      synth.cancel();
-      setSpeaking(false);
+      stopCurrent();
     },
 
     onChange(listener: (speaking: boolean) => void) {
@@ -256,7 +395,10 @@ export function createNarrator(): Narrator {
     },
 
     dispose() {
-      if (available && synth) synth.cancel();
+      stopCurrent();
+      if (context) void context.close().catch(() => undefined);
+      context = null;
+      buffers.clear();
       listeners.length = 0;
     },
   };

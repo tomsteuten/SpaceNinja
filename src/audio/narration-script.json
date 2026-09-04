@@ -1,0 +1,26 @@
+{
+  "model": "gpt-4o-mini-tts",
+  "voice": "marin",
+  "instructions": "Speak like a warm Australian parent guiding one curious five-year-old. Calm, natural and friendly, never announcer-like or sing-song. Use short pauses between ideas, clear consonants, and a gently excited tone. Do not rush. Do not add words that are not in the script.",
+  "cues": {
+    "arrival-earth": "We made it to Earth! This is our home seen from space. Tap a gold target to discover a real place.",
+    "arrival-moon": "We made it to the Moon! There is no air or weather here. Tap a gold target to discover a real place.",
+    "arrival-mars": "We made it to Mars! Its red dust is full of rust. Tap a gold target to discover a real place.",
+    "discovery-earth-sahara": "You found the Sahara! It is the biggest hot desert in the world, and it is enormous even from space.",
+    "discovery-earth-amazon": "You found the Amazon rainforest! More kinds of animals live here than anywhere else on Earth.",
+    "discovery-earth-nightside": "You found Earth's night side! Those tiny glows are towns and cities full of people.",
+    "discovery-moon-tranquility": "You found the Apollo 11 landing place! The astronauts' footprints are still there because there is no wind or rain.",
+    "discovery-moon-tycho": "You found Tycho! A crashing space rock splashed those bright streaks of dust across the Moon.",
+    "discovery-moon-farside": "You found the Moon's far side! People never saw this side until a spacecraft flew around it.",
+    "discovery-mars-olympus": "You found Olympus Mons! It is the biggest volcano in the whole solar system.",
+    "discovery-mars-marineris": "You found Valles Marineris! This giant crack is longer than Australia is wide.",
+    "discovery-mars-elysium": "You found Elysium Mons! This volcano would still be twice as tall as Earth's tallest mountain.",
+    "hunt-earth": "One more is hiding. Swipe the planet sideways to look around the back.",
+    "hunt-moon": "One more is hiding. Swipe the Moon sideways to look around the back.",
+    "hunt-mars": "One more is hiding. Swipe Mars sideways to look around the back.",
+    "success-earth": "You found all three places on Earth!",
+    "success-moon": "You found all three places on the Moon!",
+    "success-mars": "You found all three places on Mars!",
+    "spin-earth": "Watch the sunlight move while Earth turns. The bright side is day, and the dark side is night."
+  }
+}

@@ -361,6 +361,20 @@ body {
   font-weight: 600;
 }
 
+/*
+ * Authored audio is the primary telling; the card keeps the name, real photograph and
+ * replay control while the paragraph waits one tap away. This is not `.is-collapsed`:
+ * that older state reduces the whole card to the speaker and would throw away the picture,
+ * which is the useful part for a child who cannot read.
+ */
+.fact-card.is-audio-first {
+  padding-block: 0.8rem;
+}
+
+.fact-card.is-audio-first p {
+  display: none;
+}
+
 /* The picture and the speaker, together on one row under the words. The speaker is pushed
    to the far end so the picture leads: on this world the photograph is the payoff, and it
    is the one thing a child who cannot read the paragraph can still take from the card. */

@@ -60,10 +60,16 @@ npm test
 npm run build
 ```
 
+```bash
+OPENAI_API_KEY=... npm run narration:generate
+```
+
 `npm run build` type-checks first, then emits `dist/`. `npm run preview` serves that build
 on the network the same way. `npm test` runs the unit tests — they cover the journal
-persistence, the collectible placement rule and the flight's easing curve — the pieces
-whose failure is easy to miss by eye.
+persistence, collectible placement and visibility, touch-camera maths, photo dismissal,
+narration cue coverage and the flight's easing curve — the pieces whose failure is easy
+to miss by eye. Narration generation is optional; it creates the offline MP3 cue pack from
+`src/audio/narration-script.json` and never stores the API key.
 
 ---
 
@@ -145,7 +151,8 @@ src/
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts  the places to find, for any body
   ui/                    interface layer (ui.ts + ui.css + icons.ts)
-  audio/narration.ts     SpeechSynthesis wrapper, entirely optional
+  audio/narration.ts     keyed MP3 narrator + manual SpeechSynthesis fallback
+  audio/narration-script.json  short child-directed lines for generated narration
   audio/sfx.ts           two synthesised cues, entirely optional
   state/progress.ts      stickers and visits, persisted in localStorage
 public/assets/           drop real textures here
@@ -163,6 +170,8 @@ on a plane, at a grandparent's with bad wifi. The discovery photographs stay laz
 only when a place is found and then kept, so the offline promise costs nothing at startup. The
 worker is built from the bundle rather than hand-written, because Vite hashes its file names;
 `sw/build.ts` is the pure, tested core of that. Nothing runs in development.
+The grown-ups panel shows the deployed Git build id so an intermittent phone report can be
+separated from an old service worker still serving the previous shell.
 
 **Privacy is a feature, so it is claimed.** No backend, no accounts, no analytics — nothing
 ever leaves the device, and the journal lives in the tablet's own storage. The grown-ups
@@ -265,6 +274,22 @@ lights coming on, and back out into morning. All of it already worked and none o
 moved. **Spin the Earth** drives the rotation the surface hold is already reproducing — no
 new physics — and swings the camera side-on first, because the flight arrives near the
 sub-solar point where the day/night line hugs the limb and nothing appears to change.
+The explanation card folds before the turn starts, even while its narration is playing:
+this is the one moment where watching the light move is the entire lesson, so the speaker
+button may remain but the full-width words must not cover or compete with the globe.
+
+**A touch drag is distance, not frame-rate-dependent velocity.** A full short-edge drag
+turns about 130 degrees and each pointer delta is applied once. Only the measured release
+speed becomes a capped, time-based glide. The previous code accumulated drag deltas into a
+value applied again on every animation frame, which made a high-refresh phone spin much
+farther than a 60Hz screen. Tests pin both sampling-rate independence and equal inertia at
+30, 60 and 120fps.
+
+**A collectible looks like a target, not a light.** It keeps its warm gold separation from
+grey Moon and rusty Mars, but its meaning comes from an opaque double ring with a dark
+keyline. The additive halo is now small and dim and renders behind that silhouette. Do not
+solve this by changing only the hue: the reported problem was that a warm luminous blob
+read as Sunlight rather than as something to tap.
 
 **A marker cannot be tapped through the planet it is on.** The hit spheres are many times
 the size of the marker they surround, deliberately, so that a five-year-old's aim on a
@@ -291,17 +316,26 @@ the ship reaches somewhere with sounds to make. If Web Audio is missing the call
 The two continuous sounds follow a value the picture is already using, frame by frame,
 rather than starting a timed ramp, so they stay with the picture on a slow device.
 
-**Narration is optional by design, and off until asked for.** The read-aloud voice is the
-browser's own, which means it is whatever the operating system ships — and playtesting said
-it was bad enough that no narration beat this narration. So nothing speaks by itself: the
-speaker button on the fact card is the only thing that starts a reading, and if
-SpeechSynthesis is missing the button does not appear at all.
+**Good narration is the primary guide; the device voice is not.** Exact keyed MP3 cues in
+`src/audio/recordings/` start automatically when sound is on, while the paragraph becomes
+less prominent and the photograph, title and replay button remain. Each instructional cue
+also names a visible action — tap the gold target, or swipe the planet — so a pre-reader is
+not being asked to infer a verb from prose. A missing cue never auto-starts the browser's
+poor `SpeechSynthesis` voice; that fallback remains available only from the speaker button.
+This makes a partial voice pack safe to ship and keeps silence preferable to bad narration.
 
-**The voice is chosen on the grown-ups panel**, which appears by itself the first time the
-game is opened on a device. It lists every voice that device offers, best first; tap one to
-hear it read a line from the game, and the last one tapped is remembered and used from then
-on. Voice quality is a property of the device and cannot be judged from a development
-machine, so this is the only honest way to pick.
+`npm run narration:generate` creates the MP3 pack with OpenAI text-to-speech from the
+checked-in script, using a short, calm child-directed delivery prompt. It preserves existing
+files unless passed `--force`, accepts `--voice=<name>`, and requires `OPENAI_API_KEY` only
+for generation. Generated narration is disclosed as AI-generated in the grown-ups panel.
+The files are Vite assets, fingerprinted and precached by the existing service worker, so
+playback is deterministic and offline. They still need to be listened to on the target
+phone and watched with a child before the text is made even less visible.
+
+**Without recorded cues, the voice is chosen on the grown-ups panel.** It appears by itself
+the first time the game is opened on a device and lists every voice that device offers,
+best first. Tap one to audition a real line; the last one tapped is remembered. This is a
+fallback, not the route for making audio primary.
 
 **Sound can be turned off there too**, which covers the read-aloud voice as well and takes
 the speaker button away with it.
@@ -336,6 +370,6 @@ would loom, but the camera then orbits on a shell that the Moon's own orbit cros
 dragging far enough round will still find it. Moving the Moon out would change every other
 shot in the game, so it stays.
 
-The read-aloud voice is the browser's own `SpeechSynthesis`, which sounds different and
-mostly poor on every platform. Replacing it with pre-generated audio is the one known
-weak spot — see the notes in `AGENTS.md`.
+The generated narration pack is not committed by default. Until MP3 cues are generated and
+real-device approved, the browser's inconsistent `SpeechSynthesis` remains the manual
+fallback and narration deliberately does not start on its own.
