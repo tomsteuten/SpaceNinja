@@ -24,6 +24,10 @@ const ICONS = {
     '<path d="M4 18.6A2.6 2.6 0 0 1 6.6 16H18"/>',
   /** The empty mission slot: something is meant to go here. */
   dot: '<circle cx="12" cy="12" r="2.4"/>',
+  /** On the photo thumbnail: this opens bigger. Four arrows pushing out from the middle. */
+  expand:
+    '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/>' +
+    '<path d="M4 15v5h5"/><path d="M20 15v5h-5"/>',
   /** Turning a world through a day. A sun, because what moves is the light on the ground. */
   sun:
     '<circle cx="12" cy="12" r="4.2"/>' +

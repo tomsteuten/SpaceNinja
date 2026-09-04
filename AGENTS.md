@@ -214,6 +214,18 @@ usual here: the game tells a child *this is the real Sahara*, and a synthesised 
 under a NASA credit is a lie told to a five-year-old. If a photograph needs replacing, say
 what is wanted and let a person fetch it.
 
+**The fact card is a column — name, then words at full width, then a row with the photo and
+the speaker — and that is load-bearing, not cosmetic.** It used to flank the words with the
+photo on one side and the speaker on the other, which squeezed a long fact into a strip so
+narrow it ran ten lines deep: a card that covered most of the planet a child had just flown
+to and hid the very markers it was asking them to tap. Full-width words wrap in half as many
+lines. Do not put the photo or the speaker back *beside* the paragraph. And the photo carries
+a magnifier chip (the `expand` icon) because it is a button that opens the picture full
+screen, and a bare thumbnail was read as decoration — by an adult on a phone, not just a
+child; that was the actual report behind "the Earth photos don't pop up" even though the
+Earth photos loaded fine. If you make the card smaller again, the picture is the last thing to
+cut: it is the part of the card a pre-reader can actually take something from.
+
 **A media query adds no specificity.** This bit the fact card: a `@media (max-width: 560px)`
 block written *above* the base `.fact-card p` rule loses to it outright, so the card ran at
 full desktop type on a 390px phone — eight lines deep, covering 93% of the planet a child

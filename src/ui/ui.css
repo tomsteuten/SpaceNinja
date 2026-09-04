@@ -314,20 +314,22 @@ body {
   -webkit-backdrop-filter: blur(10px);
 }
 
+/* A column: the name, then the words at full width, then a row with the picture and the
+   speaker. It used to flank the words with the picture on one side and the speaker on the
+   other, which squeezed a long fact into a narrow strip ten lines deep — a card that
+   covered the planet a child had just flown to and hid the very markers it was asking them
+   to tap. Full-width words wrap in half as many lines, so the card is far shorter. */
 .fact-card {
   width: 100%;
-  padding: 1.3rem 1.4rem;
+  padding: 1.15rem 1.35rem 1.2rem;
   display: flex;
-  align-items: center;
-  /* So the discovery's name can take a full row of its own above the text and the
-     speaker button, which stay side by side on the row beneath it. */
-  flex-wrap: wrap;
-  gap: 0.35rem 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
   text-align: left;
 }
 
 .fact-title {
-  width: 100%;
   font-size: 1.05rem;
   letter-spacing: 0.02em;
   color: #ffd89a;
@@ -340,33 +342,48 @@ body {
   width: auto;
   align-self: center;
   padding: 0;
+  gap: 0;
   background: none;
   border: none;
   box-shadow: none;
 }
 
 .fact-card.is-collapsed .fact-title,
-.fact-card.is-collapsed p {
+.fact-card.is-collapsed p,
+.fact-card.is-collapsed .fact-photo {
   display: none;
 }
 
 .fact-card p {
   margin: 0;
-  flex: 1;
-  font-size: 1.22rem;
-  line-height: 1.45;
+  font-size: 1.16rem;
+  line-height: 1.42;
   font-weight: 600;
 }
 
-/* The real photograph of the place, small in the card. flex-shrink:0 so a long fact never
-   squeezes it into a sliver — the picture is the part a five-year-old can read. */
+/* The picture and the speaker, together on one row under the words. The speaker is pushed
+   to the far end so the picture leads: on this world the photograph is the payoff, and it
+   is the one thing a child who cannot read the paragraph can still take from the card. */
+.fact-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.fact-actions .narrate-btn {
+  margin-left: auto;
+}
+
+/* The real photograph of the place. Bigger than it was and unmistakably a button: a
+   thumbnail read as decoration and neither a child nor an adult learned it opens. */
 .fact-photo {
+  position: relative;
   flex: 0 0 auto;
-  width: 84px;
-  height: 84px;
+  width: 108px;
+  height: 108px;
   padding: 0;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 214, 150, 0.45);
+  border-radius: 14px;
+  border: 2px solid rgba(255, 214, 150, 0.6);
   background: rgba(255, 255, 255, 0.06);
   overflow: hidden;
   cursor: pointer;
@@ -380,8 +397,43 @@ body {
   object-fit: cover;
 }
 
-.fact-card.is-collapsed .fact-photo {
-  display: none;
+/* The wordless "this gets bigger". A warm chip in the corner, over the photo, carrying the
+   expand icon — the only signal a pre-reader gets that the picture is a door. */
+.fact-photo__zoom {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-content: center;
+  border-radius: 9px;
+  color: #2a1a05;
+  background: var(--warm);
+  box-shadow: 0 2px 7px rgba(6, 4, 20, 0.5);
+}
+
+.fact-photo__zoom .icon {
+  width: 17px;
+  height: 17px;
+}
+
+/* Two soft pulses when a photo first lands, then still — enough to pull the eye to the new
+   thing without becoming a light that never stops blinking next to a child. */
+.fact-photo.is-fresh {
+  animation: photoAttention 0.9s ease-in-out 2;
+}
+
+@keyframes photoAttention {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 208, 138, 0);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 7px rgba(255, 208, 138, 0.28);
+  }
 }
 
 /* Big, on a tap. Closing is over-served on purpose — a child who opens this by accident
@@ -798,7 +850,8 @@ body {
   .award,
   .journal-panel,
   .fade-in,
-  .narrate-btn.is-speaking {
+  .narrate-btn.is-speaking,
+  .fact-photo.is-fresh {
     animation: none;
   }
   .btn {

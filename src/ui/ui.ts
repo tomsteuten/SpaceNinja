@@ -196,10 +196,22 @@ export function createUI(options: UIOptions): GameUI {
   factPhoto.setAttribute('aria-label', 'See a photo of this place');
   const factPhotoImage = document.createElement('img');
   factPhotoImage.alt = '';
-  factPhoto.append(factPhotoImage);
+  // The magnifier corner is the whole point of this change: a bare thumbnail read as
+  // decoration, and a child (and an adult, reported on a phone) never learned it opens. The
+  // icon is the wordless "this gets bigger" for an audience that cannot read a caption.
+  const factPhotoZoom = el('span', 'fact-photo__zoom');
+  factPhotoZoom.innerHTML = iconMarkup('expand');
+  factPhoto.append(factPhotoImage, factPhotoZoom);
   factPhoto.classList.add('is-hidden');
 
-  factCard.append(factTitle, factPhoto, factText, narrateButton);
+  // The words get their own full width, and the picture and the speaker share the row
+  // beneath. Flanking the text with both used to squeeze a long fact into a column so
+  // narrow it ran ten lines deep and buried the planet — the very thing a child has just
+  // flown to and is being asked to look at.
+  const factActions = el('div', 'fact-actions');
+  factActions.append(factPhoto, narrateButton);
+
+  factCard.append(factTitle, factText, factActions);
   factCard.classList.add('is-hidden');
 
   /*
@@ -230,6 +242,7 @@ export function createUI(options: UIOptions): GameUI {
   function clearPhoto() {
     photoShowing = null;
     factPhoto.classList.add('is-hidden');
+    factPhoto.classList.remove('is-fresh');
     factPhotoImage.removeAttribute('src');
   }
 
@@ -248,6 +261,13 @@ export function createUI(options: UIOptions): GameUI {
     factPhotoImage.src = url;
     photoShowing = { url, caption: `${discovery.emoji} ${discovery.name}` };
     factPhoto.classList.remove('is-hidden');
+    // Pulse once to say "this is new, and it opens". Retriggered by removing the class and
+    // forcing a reflow, because the element persists between finds and a CSS animation
+    // otherwise fires only the first time.
+    factPhoto.classList.remove('is-fresh');
+    void factPhoto.offsetWidth;
+    factPhoto.classList.add('is-fresh');
+    later(() => factPhoto.classList.remove('is-fresh'), 2200);
   }
 
   /** The discovery the card is currently about, or null for anything else. */
