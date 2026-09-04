@@ -563,6 +563,147 @@ body {
   color: var(--ink-soft);
 }
 
+/* --- the finale ----------------------------------------------------------- */
+
+/* Over everything in the game but under the grown-ups panel and the crash screen. The
+   backdrop is a tap target in its own right: closing is over-served for the same reason
+   the photo viewer's is. */
+.finale {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(6, 4, 16, 0.8);
+  z-index: 55;
+  animation: fadeIn 0.4s ease both;
+}
+
+.finale.is-leaving {
+  animation: fadeOut 0.5s ease both;
+  pointer-events: none;
+}
+
+.finale__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.4rem 1.6rem 1.5rem;
+  max-width: min(420px, 100%);
+  text-align: center;
+  animation: popDown 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  /* popDown centres with a translateX; this is centred by flex, so undo that. */
+  transform: none;
+}
+
+/* The full book, three by three like the journal itself, so it is recognisably the
+   same thing — only bigger, and with no question marks left. */
+.finale__badges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.finale__badge {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-content: center;
+  font-size: 2.3rem;
+  line-height: 1;
+  border-radius: 22px;
+  background: radial-gradient(circle at 40% 32%, rgba(255, 220, 170, 0.32), rgba(120, 96, 220, 0.24));
+  border: 1px solid var(--panel-edge);
+  box-shadow: 0 0 22px var(--glow);
+  /* One after another, in the order they were found. */
+  animation: badgePop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: calc(0.35s + var(--i, 0) * 0.14s);
+}
+
+.finale__title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--warm);
+}
+
+.finale__line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.finale__hero {
+  font-size: 2.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 18px var(--warm));
+  animation: badgePop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: 1.8s;
+}
+
+.finale__close {
+  margin-top: 0.3rem;
+}
+
+@keyframes badgePop {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-12deg);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 420px), (max-height: 480px) {
+  .finale__badge {
+    width: 58px;
+    height: 58px;
+    font-size: 1.8rem;
+    border-radius: 16px;
+  }
+  .finale__inner {
+    gap: 0.6rem;
+    padding: 1rem 1.2rem 1.1rem;
+  }
+  .finale__title {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-height: 480px) {
+  /* Sideways on a phone there is no height for a column: badges beside the words. */
+  .finale__inner {
+    flex-direction: row;
+    max-width: min(560px, 100%);
+    text-align: left;
+  }
+  .finale__inner > :not(.finale__badges) {
+    flex: 0 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finale,
+  .finale.is-leaving,
+  .finale__inner,
+  .finale__badge,
+  .finale__hero {
+    animation: none;
+  }
+}
+
 /* --- animation ------------------------------------------------------------ */
 
 @keyframes popCorner {

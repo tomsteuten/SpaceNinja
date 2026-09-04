@@ -42,7 +42,10 @@ Run `npm run typecheck && npm test` before every commit. Both are fast.
 ## Layout
 
 ```
-index.html                  boot markup + inline loading/error state
+index.html                  boot markup + inline loading/error/crash state
+sw/                         service worker: sw.js (template), build.ts (pure builder), tests
+public/manifest.webmanifest the web app manifest — installable, standalone
+public/icons/               home-screen icons: icon.svg is the source, the PNGs render from it
 src/
   main.ts                   wiring, frame loop, restart, teardown
   config.ts                 scene scale, speeds, timings, destination copy
@@ -61,7 +64,8 @@ src/
                             screen), photos.ts (real photographs of the places)
   audio/narration.ts        SpeechSynthesis wrapper — see "Known weak spot"
   audio/sfx.ts              every sound: two cues, the engine, the sunrise. No files
-  state/progress.ts         stickers and visits, in localStorage
+  state/progress.ts         discoveries, stickers and visits, in localStorage
+  state/settings.ts         the grown-up's device choices (sound on/off), in localStorage
 public/assets/              real textures, dropped in and picked up automatically
 design/                     reference art that is NOT shipped
 ```
@@ -217,6 +221,42 @@ had just flown to. Responsive overrides in `ui.css` go *below* the rules they ov
 the landscape dock block only works where it does because it sets properties the base rule
 never sets. Measure a layout claim rather than reading it: `percentOfPlanetCovered` in the
 scratch driver projects the destination's disc and samples what is on top of it.
+
+**The service worker is built, not written, and it is what makes the game work with no
+signal.** `sw/sw.js` is a template with three placeholders; the Vite plugin in
+`vite.config.ts` fills them from the built bundle, because Vite hashes its output names and
+the worker cannot know them ahead of time. Everything that *decides* the worker's contents
+lives in `sw/build.ts`, which is pure and has a test — two things it pins are load-bearing.
+The shell cache is named after a version hash that includes `index.html`'s *contents*, not
+just the hashed file names: a page-only change leaves every file name identical, and a
+byte-identical worker is one the browser never reinstalls, so the stale `index.html` would
+be served from cache forever. And the globe textures go in a *separate* cache that is not
+named after the build, because they do not change when the code does and re-downloading
+three megabytes on every deploy is not worth it — bump `MEDIA_CACHE` in the template by hand
+to force those. The discovery photographs are deliberately never precached: nothing is
+fetched until a place is found, and a photograph fetched once is then kept. Nothing registers
+in development — a worker there serves stale modules over the dev server's live ones — so this
+is only ever exercised against a `build` + `preview`, never `dev`.
+
+**A crash has to be made visible, because the last good frame is not.** An exception thrown
+inside the frame loop used to propagate to the console and leave the last rendered frame on
+screen, which looks completely fine — a bug report from a tablet then reads only "it just
+stopped". `Stage.tick` now wraps the whole frame in a try/catch, stops the loop (the same
+throw would repeat sixty times a second otherwise) and calls `onCrash`; `main.ts` turns that
+into the crash screen, which is the boot screen reused. That is why `#boot` is now *hidden*
+on a successful start rather than removed, and why its `z-index` sits above every panel. The
+crash screen prints the actual error small and selectable for whoever files the report, and
+its one button reloads the page — the journal is in localStorage and survives.
+
+**Finishing everything is its own moment, once.** Finding the ninth place completes the whole
+game, and it used to get the same celebration as finding the third. `foundEverything()` in
+`progress.ts` decides it — it takes the id list rather than importing config, so it is pinned
+without a scene — and `main.ts` fires `ui.completeGame()` from a world's completion whenever
+the book is now full, awarding the `space-ninja` sticker the first time only, exactly like
+every other sticker. The finale is the journal shown full and big, badges popping in the
+order they were found; it follows the world's own sticker rather than fighting it for the top
+of the screen (a 3.2s delay), and closes on any tap or by itself. Adding a destination needs
+no change here: the total is counted, not written down.
 
 **Reduced motion removes motion; it does not compress it.** `prefers-reduced-motion` skips
 the exhaust trail and the FOV punch, removes camera inertia, halves the collect particles,
@@ -395,14 +435,13 @@ of code substitutes for them.
    equally loud, and a bell should probably sit under an engine. Everything worth adjusting
    is a named constant at the top of its section in `sfx.ts`.
 
-2. **Run it fullscreen, from a home-screen icon.** There is no web app manifest, so the
-   game runs inside browser furniture — measured off a Surface screenshot, tabs, address
-   bar, bookmarks and taskbar were eating close to a fifth of the screen, which is more
-   than every CSS change in the layout pass put together won back. A manifest with
-   `display: "standalone"`, an icon and a theme colour is a small file and the single
-   biggest thing left for how big the planet looks. A service worker on top of it would
-   also make the game work in a car with no signal, which is squarely how a tablet game
-   gets used.
+2. **Run it fullscreen, from a home-screen icon — and check it there.** The manifest and a
+   service worker are now in (`display: "standalone"`, icons, offline). What is *not* done
+   is watching a child launch it from the home screen: the fullscreen gain was measured off
+   a Surface screenshot as close to a fifth of the screen, but nobody has installed it on a
+   real tablet and confirmed the launcher icon, the standalone chrome and the offline
+   reload all behave. The grown-ups panel now tells a parent how to add it and detects
+   whether they already have. iOS is the untested platform here as everywhere (see below).
 
 3. **Watch a child use it again.** Every genuinely valuable change in this project came
    from that and not from reading the code: the sunrise, the drag lesson, the badges on the
@@ -423,11 +462,9 @@ Then, in code:
    "use .jpg" rule. Watch the ring UVs: `THREE.RingGeometry` does not map `u` across the
    radius by default and rewriting that attribute is the classic Saturn gotcha.
 
-5. **Finishing everything is not a moment.** Each world congratulates you, and the journal
-   holds nine places — but finding the ninth, which completes the entire game, gets exactly
-   the same celebration as finding the third. A child who has been to all three worlds and
-   filled the book deserves to be told so. Cheap: `JOURNAL_SLOTS` already knows the total
-   and `progress.ts` already knows what has been found.
+5. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
+   ninth place now brings up the finale and the `space-ninja` sticker. Still unwatched with
+   a child, like everything in this file that has not been.
 
 6. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
    played on Android and a Surface. Safari differs in the places this game leans on: audio
@@ -446,7 +483,11 @@ at these compressed distances it is large when it does. The arrival steers clear
 the camera then orbits on a shell the Moon's orbit crosses, so dragging far enough round
 still finds it. Moving the Moon out would change every other shot in the game.
 
-Done since this file was written: collecting became discovering (real places at real
+Done since this file was written: the game is now an installable app with a manifest,
+home-screen icons and an offline service worker; finishing every place on every world is
+its own celebration with its own sticker; the frame loop now shows a crash screen instead of
+a frozen last frame; and the grown-ups panel states the privacy property and explains adding
+to the home screen. Before that: collecting became discovering (real places at real
 coordinates, each telling you something that goes in the journal), the flight now arrives
 about three body-radii out instead of nine and a half, Earth is a destination, the narration
 no longer starts on its own, Earth can be turned through a day, the flight and the day turn

@@ -17,7 +17,16 @@ export const STICKERS: Record<string, StickerDefinition> = {
   'moon-explorer': { id: 'moon-explorer', emoji: '🌙', label: 'Moon Explorer' },
   'mars-explorer': { id: 'mars-explorer', emoji: '🔴', label: 'Mars Explorer' },
   'earth-explorer': { id: 'earth-explorer', emoji: '🌍', label: 'Earth Explorer' },
+  /**
+   * The last one, for finding every place on every world. The title of the game is the
+   * thing a child becomes by finishing it — which is also why it is one sticker rather
+   * than a fourth "explorer": it is not another world, it is all of them.
+   */
+  'space-ninja': { id: 'space-ninja', emoji: '🥷', label: 'Space Ninja' },
 };
+
+/** The sticker that finishing the whole game earns. */
+export const FINALE_STICKER = 'space-ninja';
 
 export interface Progress {
   /**
@@ -102,6 +111,20 @@ export function recordDiscovery(id: string): boolean {
   progress.discoveries.push(id);
   write(progress);
   return true;
+}
+
+/**
+ * Whether every place in the game has been found.
+ *
+ * Takes the list of ids rather than importing config, so it can be pinned in a test
+ * without a scene: `all` is `Object.keys(DISCOVERIES)` in the game. Extra ids in the save
+ * — a place retired between releases — count for nothing, and order does not matter.
+ * Finding the ninth place completes the whole game, and it used to get exactly the same
+ * celebration as finding the third.
+ */
+export function foundEverything(found: readonly string[], all: readonly string[]): boolean {
+  if (all.length === 0) return false;
+  return all.every((id) => found.includes(id));
 }
 
 /** Records an arrival. Returns true the first time this body is reached. */

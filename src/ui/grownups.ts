@@ -68,6 +68,21 @@ export interface Grownups {
   dispose(): void;
 }
 
+/**
+ * Whether the game was opened from a home-screen icon rather than a browser tab.
+ *
+ * The manifest asks for standalone display; this is how to tell whether it got it. The
+ * `navigator.standalone` fallback is iOS Safari, which predates the media query.
+ */
+export function runningStandalone(): boolean {
+  try {
+    if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
+    return (navigator as { standalone?: boolean }).standalone === true;
+  } catch {
+    return false;
+  }
+}
+
 function el(tag: string, className: string, text?: string): HTMLElement {
   const node = document.createElement(tag);
   node.className = className;
@@ -192,6 +207,43 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       ),
     );
     inner.append(what);
+
+    /*
+     * The thing a parent most wants to know before handing over a tablet, and the one
+     * thing this screen never said. It has always been true — no backend, no accounts, no
+     * analytics — but a property nobody claims is a property nobody can rely on.
+     */
+    const privacy = el('section', 'grownups__section');
+    privacy.append(el('h3', 'grownups__heading', 'Private'));
+    privacy.append(
+      el(
+        'p',
+        'grownups__note',
+        'Nothing leaves this device. There are no accounts, no adverts and no tracking of ' +
+          'any kind; the journal is saved on the tablet itself, and after its first load ' +
+          'the game works with no internet at all.',
+      ),
+    );
+    inner.append(privacy);
+
+    // Operational, like everything else here: the single biggest thing left for how big
+    // the planet looks is not in the game's control, it is in the parent's.
+    const screen = el('section', 'grownups__section');
+    screen.append(el('h3', 'grownups__heading', 'Full screen'));
+    screen.append(
+      el(
+        'p',
+        'grownups__note',
+        runningStandalone()
+          ? 'You are running it from the home screen, so it fills the whole screen and ' +
+            'there is no address bar for a child to tap.'
+          : 'For the biggest planet, add Space Ninja to the home screen and open it from ' +
+            'there: it then fills the whole screen, with no address bar for a child to tap. ' +
+            'In Chrome that is the browser menu, then Add to Home screen; in Safari it is ' +
+            'Share, then Add to Home Screen.',
+      ),
+    );
+    inner.append(screen);
 
     const sound = el('section', 'grownups__section');
     sound.append(el('h3', 'grownups__heading', 'Sound'));

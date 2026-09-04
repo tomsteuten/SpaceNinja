@@ -33,16 +33,49 @@ import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
 import { createGrownups, shouldGreet } from './ui/grownups';
-import { awardSticker, loadProgress, markVisited, recordDiscovery } from './state/progress';
+import {
+  FINALE_STICKER,
+  awardSticker,
+  foundEverything,
+  loadProgress,
+  markVisited,
+  recordDiscovery,
+} from './state/progress';
 import { loadSoundOn } from './state/settings';
+import { DISCOVERIES } from './config';
 
 const boot = document.getElementById('boot');
 
-function fail(message: string, error: unknown) {
+/**
+ * The boot screen doubles as the failure screen. `crash` is the mid-session case: the
+ * frame loop threw, the picture underneath is the last good frame, and without this the
+ * only signal a tablet gives is a child saying it stopped. The words differ, there is a
+ * button that reloads, and the error itself is printed small for whoever reports it.
+ */
+function fail(message: string, error: unknown, crash = false) {
   console.error(message, error);
   if (!boot) return;
   boot.classList.add('has-error');
+  boot.classList.toggle('has-crash', crash);
   boot.classList.remove('is-hidden');
+  if (!crash) return;
+  const detail = boot.querySelector('.boot-detail');
+  if (detail) detail.textContent = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  boot.querySelector('.boot-restart')?.addEventListener('click', () => window.location.reload(), {
+    once: true,
+  });
+}
+
+/**
+ * Offline, from the second launch on. Only in a build: there is no bundle to cache in
+ * development, and a worker there would serve stale modules over the live ones. A browser
+ * without the API, or a registration that fails, simply leaves the game as it was.
+ */
+function registerOffline() {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js').catch((error: unknown) => {
+    console.warn('[offline] not available', error);
+  });
 }
 
 async function main() {
@@ -139,6 +172,9 @@ async function main() {
       restart();
     },
     onGrownups: () => grownups.show(),
+    // The whole game finished. Played when the overlay lands, not when the last world
+    // completes, or it would run under the world's own chime.
+    onFinale: () => sfx.fanfare(),
     onSpin: () => {
       const body = world.bodies[follow];
       const spin = DESTINATIONS[follow]?.spin;
@@ -262,6 +298,13 @@ async function main() {
         // sticker on an earlier visit still gets the party, just not a second sticker.
         const isNew = awardSticker(config.mission.stickerId);
         ui.completeMission(config.mission.successLine, isNew ? config.mission.stickerId : null);
+        // And when this was the last place on the last world, the finale. Same rule as
+        // the sticker: the moment happens whenever a completion leaves the book full,
+        // the badge only the first time.
+        if (foundEverything(loadProgress().discoveries, Object.keys(DISCOVERIES))) {
+          const first = awardSticker(FINALE_STICKER);
+          ui.completeGame(first ? FINALE_STICKER : null);
+        }
       },
     });
   }
@@ -426,9 +469,20 @@ async function main() {
 
     if (!booted) {
       booted = true;
+      // Hidden rather than removed: it comes back as the crash screen.
       boot?.classList.add('is-hidden');
-      window.setTimeout(() => boot?.remove(), 700);
+      // Now and not at load, so installing the worker never competes with the textures
+      // for the connection while the first frame is still being got ready.
+      registerOffline();
     }
+  });
+
+  stage.onCrash((error) => {
+    // The loop has stopped; the sounds it was driving have not, and the engine would
+    // otherwise drone under the crash screen at whatever gain it had reached.
+    sfx.reset();
+    narrator.stop();
+    fail('Space Ninja stopped', error, true);
   });
 
   stage.start();

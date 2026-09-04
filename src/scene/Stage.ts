@@ -22,6 +22,12 @@ export interface Stage {
   camera: THREE.PerspectiveCamera;
   quality: QualitySettings;
   onFrame(callback: FrameCallback): void;
+  /**
+   * Something inside a frame threw. The loop has already stopped by the time this is
+   * called: a callback that throws once throws every frame, and the picture underneath is
+   * the last good one, which looks fine and is not.
+   */
+  onCrash(handler: (error: unknown) => void): void;
   start(): void;
   stop(): void;
   dispose(): void;
@@ -161,6 +167,7 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
   /* --- loop ---------------------------------------------------------------- */
 
   const callbacks: FrameCallback[] = [];
+  let crashHandler: ((error: unknown) => void) | null = null;
   // Timer rather than the deprecated Clock; connect() makes it use the Page Visibility API
   // so returning to a backgrounded tab does not produce one enormous delta.
   const timer = new THREE.Timer();
@@ -186,13 +193,26 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
     frameHandle = requestAnimationFrame(tick);
     if (contextLost) return;
 
-    timer.update();
-    // Clamp so a dropped frame cannot teleport the ship mid-flight.
-    const dt = Math.min(timer.getDelta(), 0.05);
-    const elapsed = timer.getElapsed();
-    for (const callback of callbacks) callback(dt, elapsed);
-    composer.render(dt);
-    sampleFrame(dt, elapsed);
+    /*
+     * Caught here and nowhere else, because this is the one place a crash is *visible* as
+     * a crash. An exception out of a frame used to propagate to the console and leave the
+     * last rendered frame on screen — a bug report from a tablet reads "it just stopped",
+     * with a picture that looks perfectly fine. Stopping the loop is deliberate: the same
+     * throw would otherwise repeat sixty times a second.
+     */
+    try {
+      timer.update();
+      // Clamp so a dropped frame cannot teleport the ship mid-flight.
+      const dt = Math.min(timer.getDelta(), 0.05);
+      const elapsed = timer.getElapsed();
+      for (const callback of callbacks) callback(dt, elapsed);
+      composer.render(dt);
+      sampleFrame(dt, elapsed);
+    } catch (error) {
+      running = false;
+      cancelAnimationFrame(frameHandle);
+      crashHandler?.(error);
+    }
   }
 
   return {
@@ -205,6 +225,10 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
 
     onFrame(callback: FrameCallback) {
       callbacks.push(callback);
+    },
+
+    onCrash(handler: (error: unknown) => void) {
+      crashHandler = handler;
     },
 
     start() {

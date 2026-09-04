@@ -5,7 +5,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { awardSticker, loadProgress, markVisited } from './progress';
+import {
+  FINALE_STICKER,
+  STICKERS,
+  awardSticker,
+  foundEverything,
+  loadProgress,
+  markVisited,
+} from './progress';
 
 const KEY = 'spaceninja.progress.v1';
 
@@ -99,6 +106,30 @@ describe('awardSticker', () => {
     awardSticker('moon-explorer');
     awardSticker('mars-explorer');
     expect(loadProgress().stickers).toEqual(['moon-explorer', 'mars-explorer']);
+  });
+});
+
+describe('foundEverything', () => {
+  const all = ['moon-a', 'moon-b', 'mars-a'];
+
+  it('is false until the last place is found, whatever order they came in', () => {
+    expect(foundEverything([], all)).toBe(false);
+    expect(foundEverything(['moon-a', 'mars-a'], all)).toBe(false);
+    expect(foundEverything(['mars-a', 'moon-b', 'moon-a'], all)).toBe(true);
+  });
+
+  it('ignores places that no longer exist in the game', () => {
+    // A retired id in an old save must neither count towards the total nor break it.
+    expect(foundEverything(['moon-a', 'retired'], all)).toBe(false);
+    expect(foundEverything(['moon-a', 'moon-b', 'mars-a', 'retired'], all)).toBe(true);
+  });
+
+  it('is never true of a game with nothing to find', () => {
+    expect(foundEverything([], [])).toBe(false);
+  });
+
+  it('has a sticker to award for it', () => {
+    expect(STICKERS[FINALE_STICKER]).toBeDefined();
   });
 });
 

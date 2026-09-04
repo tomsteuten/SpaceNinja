@@ -14,6 +14,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  FANFARE_SECONDS,
   createSfx,
   dawnBell,
   dawnCutoff,
@@ -535,5 +536,26 @@ describe('dawn envelope', () => {
       expect(bell).toBeGreaterThanOrEqual(previous);
       previous = bell;
     }
+  });
+});
+
+/* --- the finale ----------------------------------------------------------- */
+
+describe('fanfare', () => {
+  it('is bigger than the success chime and stops every voice it starts', () => {
+    // Ten steps up two octaves, a three-note landing and the pad: fourteen voices, each
+    // scheduled to stop, so nothing rings on under the rest of the session.
+    const sfx = started();
+    sfx.fanfare();
+    const voices = oscillators();
+    expect(voices.length).toBe(14);
+    expect(voices.every((osc) => osc.starts === 1 && osc.stops === 1)).toBe(true);
+    expect(running()).toHaveLength(0);
+  });
+
+  it('tells the screen how long it lasts', () => {
+    // The overlay is timed to it rather than the other way round.
+    expect(FANFARE_SECONDS).toBeGreaterThan(2);
+    expect(FANFARE_SECONDS).toBeLessThan(6);
   });
 });

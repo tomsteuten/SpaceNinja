@@ -38,6 +38,11 @@ export interface Sfx {
   collect(step: number, total: number): void;
   success(): void;
   /**
+   * The whole game finished. Longer and bigger than `success`, which every world gets:
+   * the same scale run up through two octaves and left ringing on a chord.
+   */
+  fanfare(): void;
+  /**
    * The engine, while a flight is running. Call every frame with the same throttle the
    * exhaust is drawn from and the same cruise value the view widens on; a throttle of 0
    * fades it out and takes the nodes down. Building and stopping are handled here, so the
@@ -186,6 +191,13 @@ interface Voice {
  * this time constant it arrives well inside a frame, so the sound still tracks the picture.
  */
 const FOLLOW = 0.02;
+
+/** Seconds between the fanfare's steps, and how long its final chord is held. */
+const FANFARE_STEP = 0.09;
+const FANFARE_HOLD = 2.2;
+
+/** How long the fanfare takes to play out, so the finale on screen can be timed to it. */
+export const FANFARE_SECONDS = 10 * FANFARE_STEP + FANFARE_HOLD;
 
 /** Small children, tablet speaker: quiet by default. Everything is mixed under this. */
 const MASTER_GAIN = 0.2;
@@ -427,6 +439,30 @@ export function createSfx(): Sfx {
       });
       // Soft pad underneath so the arpeggio lands on something rather than in silence.
       tone(now, (SCALE[0] ?? 523.25) / 2, 1.1, 0.16);
+    },
+
+    fanfare() {
+      const context = ensure();
+      if (!context) return;
+      const now = context.currentTime;
+      const root = SCALE[0] ?? 523.25;
+      // Up the pentatonic and up it again an octave higher: ten steps, one per place
+      // found plus the top. Same instrument as everything else, just more of it.
+      const run = [...SCALE, ...SCALE.map((f) => f * 2)];
+      run.forEach((frequency, i) => {
+        tone(now + i * FANFARE_STEP, frequency, 0.5, 0.3, 'triangle');
+      });
+      // Then held: root, fifth and octave, so it ends somewhere rather than running out.
+      const landing = now + run.length * FANFARE_STEP;
+      for (const [ratio, peak] of [
+        [1, 0.3],
+        [1.5, 0.22],
+        [2, 0.26],
+      ] as const) {
+        tone(landing, root * ratio, FANFARE_HOLD, peak, 'triangle');
+      }
+      // And the pad the whole way under it, two octaves down, like the sunrise.
+      tone(now, root / 4, landing - now + FANFARE_HOLD, 0.14);
     },
 
     thruster(throttle: number, cruise: number) {

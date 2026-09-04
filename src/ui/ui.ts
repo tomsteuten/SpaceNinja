@@ -7,7 +7,7 @@
 
 import type { Narrator } from '../audio/narration';
 import { DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
-import { STICKERS, loadProgress } from '../state/progress';
+import { STICKERS, foundEverything, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup } from './icons';
 import { createPhotoViewer, findPhoto } from './photos';
 
@@ -49,6 +49,11 @@ export interface GameUI {
    * earlier visit — the party happens either way, only the "new sticker" badge does not.
    */
   completeMission(successLine: string, stickerId: string | null): void;
+  /**
+   * The bigger celebration, for finding every place on every world. Follows the world's
+   * own completion rather than replacing it; `stickerId` works as in `completeMission`.
+   */
+  completeGame(stickerId: string | null): void;
   /**
    * Answer a tap that hit nothing. Not a failure signal - to a small child an
    * unresponsive tap reads as a broken app rather than as a miss.
@@ -92,6 +97,11 @@ export interface UIOptions {
    * a settings control a five-year-old will press.
    */
   onGrownups(): void;
+  /**
+   * The finale has just come on screen. The sound for it belongs to whoever owns sound;
+   * this is the moment to play it, because the overlay waits for the sticker to fade.
+   */
+  onFinale(): void;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -106,7 +116,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 export function createUI(options: UIOptions): GameUI {
-  const { root, narrator, onFly, onExploreAgain, onSpin, onGrownups } = options;
+  const { root, narrator, onFly, onExploreAgain, onSpin, onGrownups, onFinale } = options;
   const timers: number[] = [];
 
   function later(callback: () => void, delay: number) {
@@ -298,6 +308,11 @@ export function createUI(options: UIOptions): GameUI {
   function renderJournal() {
     stickerGrid.replaceChildren();
     const found = loadProgress().discoveries;
+    // A full book says so. A child who cannot read the title can still see there are no
+    // question marks left, which is the same fact in the picture.
+    journalTitle.textContent = foundEverything(found, Object.keys(DISCOVERIES))
+      ? 'Every place found! 🥷'
+      : 'My Discoveries';
     let filled = 0;
     for (const id of found) {
       const discovery = DISCOVERIES[id];
@@ -457,6 +472,75 @@ export function createUI(options: UIOptions): GameUI {
       }, 520);
     }, 2400);
     if (journalOpen) renderJournal();
+  }
+
+  /* --- the finale ---------------------------------------------------------- */
+
+  /*
+   * Finding the ninth place completes the whole game, and it used to get exactly the same
+   * celebration as finding the third. This is the moment the structure was dropping.
+   *
+   * It is the journal, shown full and big: every badge the child has left on every world,
+   * popping in one after another in the order they were found, with the title of the game
+   * as the thing they have become. Nothing on it needs reading. It follows the world's
+   * own sticker rather than fighting it for the top of the screen, and it closes on any
+   * tap or by itself, because a child must never be stuck behind a party.
+   */
+  const FINALE_DELAY_MS = 3200;
+  const FINALE_MS = 14000;
+  let finale: HTMLElement | null = null;
+
+  function closeFinale() {
+    const overlay = finale;
+    if (!overlay) return;
+    finale = null;
+    overlay.classList.add('is-leaving');
+    // By its own animation where there is one; by a timer where reduced motion took it
+    // away and animationend would never come.
+    overlay.addEventListener('animationend', () => overlay.remove(), { once: true });
+    later(() => overlay.remove(), 600);
+  }
+
+  function showFinale(stickerId: string | null) {
+    closeFinale();
+    const overlay = el('div', 'finale');
+    const inner = el('div', 'panel finale__inner');
+
+    const badges = el('div', 'finale__badges');
+    const found = loadProgress().discoveries;
+    // Every place in the game, in the order this child found them — the same order the
+    // journal shows — so the badges are the ones they remember leaving.
+    const ordered = [
+      ...found.map((id) => DISCOVERIES[id]).filter((d): d is Discovery => d !== undefined),
+      ...Object.values(DISCOVERIES).filter((d) => !found.includes(d.id)),
+    ];
+    ordered.forEach((discovery, index) => {
+      const badge = el('span', 'finale__badge', discovery.emoji);
+      badge.style.setProperty('--i', String(index));
+      badge.setAttribute('title', discovery.name);
+      badges.append(badge);
+    });
+
+    const title = el('strong', 'finale__title', 'You found every place!');
+    const line = el('p', 'finale__line');
+    const hero = STICKERS[stickerId ?? ''] ?? STICKERS['space-ninja'];
+    line.append(
+      el('span', 'finale__hero', hero?.emoji ?? '🥷'),
+      el('span', undefined, stickerId ? `New sticker: ${hero?.label ?? 'Space Ninja'}` : 'You are a real Space Ninja'),
+    );
+    const done = el('button', 'btn finale__close', 'Hooray!');
+    done.type = 'button';
+
+    inner.append(badges, title, line, done);
+    overlay.append(inner);
+    overlay.addEventListener('click', closeFinale);
+    root.append(overlay);
+    finale = overlay;
+
+    if (stickerId) journalButton.setAttribute('data-new', 'true');
+    if (journalOpen) renderJournal();
+    onFinale();
+    later(closeFinale, FINALE_MS);
   }
 
   function setHomeAvailable(available: boolean) {
@@ -682,6 +766,12 @@ export function createUI(options: UIOptions): GameUI {
       if (stickerId) celebrate(stickerId);
     },
 
+    completeGame(stickerId: string | null) {
+      // After the world's own sticker has had its 2.4 seconds and faded, not on top of it:
+      // two celebrations at once is one celebration nobody can see.
+      later(() => showFinale(stickerId), FINALE_DELAY_MS);
+    },
+
     showSpin(label: string | null) {
       spinLabel.textContent = label ?? '';
       spinButton.classList.toggle('is-hidden', !label);
@@ -744,6 +834,10 @@ export function createUI(options: UIOptions): GameUI {
       narrator.stop();
       awardCard?.remove();
       awardCard = null;
+      // Straight out, not faded: clearTimers() above has already cancelled the timer that
+      // would finish a fade, and a Fly Home during the party should not leave it hanging.
+      finale?.remove();
+      finale = null;
       setHomeAvailable(false);
       spinButton.classList.add('is-hidden');
       spinButton.disabled = false;

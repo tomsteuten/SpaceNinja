@@ -11,6 +11,20 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <title>Space Ninja — Earth, Moon and Mars</title>
 
+    <!--
+      Installable. Measured off a Surface screenshot, the browser's own furniture (tabs,
+      address bar, bookmarks, taskbar) was eating close to a fifth of the screen — more than
+      every CSS change in the layout pass won back put together. Opened from a home-screen
+      icon it runs standalone, and there is no address bar for a child to tap.
+    -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <!-- iOS ignores the manifest's icons and reads these instead. -->
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Space Ninja" />
+
     <!-- Critical boot styling, inlined so the loading state paints before any JS or CSS loads. -->
     <style>
       html,
@@ -33,12 +47,19 @@
         text-align: center;
         font-family: ui-rounded, "Nunito", "Segoe UI", system-ui, sans-serif;
         background: radial-gradient(120% 90% at 50% 30%, #1c1440 0%, #080619 70%);
-        z-index: 50;
+        /* Above every panel in the interface layer: this is also the crash screen, and a
+           crash has to be visible over whatever was open at the time. */
+        z-index: 70;
         transition: opacity 0.6s ease;
       }
       #boot.is-hidden {
         opacity: 0;
         pointer-events: none;
+        /* Kept in the document as the crash screen, so it has to stop being painted
+           rather than be removed. The delay is only on the way out; showing it again is
+           immediate because the base rule transitions opacity alone. */
+        visibility: hidden;
+        transition: opacity 0.6s ease, visibility 0s 0.6s;
       }
       #boot .boot-moon {
         width: 68px;
@@ -66,11 +87,49 @@
         filter: grayscale(1);
         opacity: 0.4;
       }
-      #boot.has-error .boot-error {
+      #boot.has-error:not(.has-crash) .boot-error--start {
         display: block;
       }
       #boot.has-error .boot-status {
         display: none;
+      }
+      /* Mid-session, the loop threw. Different words, and a way back that a child can
+         press — the page reloads and the journal is still there. */
+      #boot.has-crash .boot-error--crash {
+        display: block;
+      }
+      #boot.has-crash .boot-restart {
+        display: inline-flex;
+      }
+      #boot.has-crash .boot-detail:not(:empty) {
+        display: block;
+      }
+      .boot-restart {
+        display: none;
+        align-items: center;
+        min-height: 62px;
+        padding: 0 1.8rem;
+        border: none;
+        border-radius: 999px;
+        font: inherit;
+        font-weight: 800;
+        font-size: 1.2rem;
+        color: #40200a;
+        background: linear-gradient(180deg, #ffb266 0%, #f4762a 52%, #d2551a 100%);
+        box-shadow: 0 5px 0 #a03c11, 0 14px 24px rgba(6, 4, 20, 0.45);
+        cursor: pointer;
+      }
+      /* For the bug report, not for the child: the one line that says what actually
+         stopped, small and copyable. Selectable on purpose. */
+      .boot-detail {
+        display: none;
+        max-width: min(60ch, 90vw);
+        font-size: 0.75rem;
+        line-height: 1.4;
+        color: rgba(239, 233, 255, 0.5);
+        overflow-wrap: anywhere;
+        user-select: text;
+        -webkit-user-select: text;
       }
       @keyframes bob {
         0%,
@@ -97,10 +156,16 @@
     <div id="boot" role="status">
       <div class="boot-moon" aria-hidden="true"></div>
       <p class="boot-status">Getting the stars ready…</p>
-      <p class="boot-error">
+      <p class="boot-error boot-error--start">
         This little spaceship needs 3D graphics (WebGL) to fly, and this browser could not start
         them. Try a different browser, or check that hardware acceleration is switched on.
       </p>
+      <p class="boot-error boot-error--crash">
+        Oh no — the spaceship stopped. Press the button and it will start again. Everything in
+        your journal is safe.
+      </p>
+      <button class="boot-restart" type="button">🚀 Start again</button>
+      <code class="boot-detail"></code>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

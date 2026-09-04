@@ -8,7 +8,11 @@ close enough to see the surface. Three real places are marked on each world — 
 footprints on the Moon, the volcano on Mars, the Sahara from orbit — and finding one tells
 you about it and puts it in the discovery journal. One of the three is always round the back, so getting it
 means learning to drag. Or just look around and fly home. Either way, having been to the
-Moon widens the view far enough to notice Mars.
+Moon widens the view far enough to notice Mars. Find every place on all three worlds and the
+whole game is won — with a celebration to say so.
+
+It installs to a home screen and works offline once loaded, with nothing ever leaving the
+device.
 
 Built with Vite, TypeScript and Three.js. No backend, no accounts, no build-time assets.
 
@@ -122,9 +126,12 @@ later without touching the flight or UI code.
 ## Structure
 
 ```
-index.html               boot markup + inline loading/error state
+index.html               boot markup + inline loading/error/crash state
+sw/                      service worker (offline): sw.js template + build.ts, built into dist/
+public/manifest.webmanifest  web app manifest — installable, runs standalone
+public/icons/            home-screen icons (icon.svg is the source; PNGs render from it)
 src/
-  main.ts                wiring, frame loop, teardown
+  main.ts                wiring, frame loop, teardown, offline + crash
   config.ts              scene scale, speeds, timings, and the destination copy
   scene/
     Stage.ts             renderer, camera, bloom, resize, adaptive quality
@@ -145,6 +152,27 @@ public/assets/           drop real textures here
 ```
 
 ### Notes on a few decisions
+
+**It installs, and it works offline.** A web app manifest makes Space Ninja add to a home
+screen and run standalone — no address bar, no tabs, just the planet. Measured off a Surface
+screenshot, browser furniture had been eating close to a fifth of the screen, so this is the
+single biggest lever on how big the planet looks, and it is a small file. A service worker
+precaches the app and the globe textures on the first visit, so from the second launch on the
+game opens with no internet at all — which is squarely how a tablet game gets used: in a car,
+on a plane, at a grandparent's with bad wifi. The discovery photographs stay lazy, fetched
+only when a place is found and then kept, so the offline promise costs nothing at startup. The
+worker is built from the bundle rather than hand-written, because Vite hashes its file names;
+`sw/build.ts` is the pure, tested core of that. Nothing runs in development.
+
+**Privacy is a feature, so it is claimed.** No backend, no accounts, no analytics — nothing
+ever leaves the device, and the journal lives in the tablet's own storage. The grown-ups
+panel says so in one line, because that is exactly what a parent wants to know before handing
+a tablet over.
+
+**A crash is made visible.** An exception inside the frame loop used to leave the last good
+frame frozen on screen, which looks fine — the only signal was a child saying it stopped. The
+loop now catches it and shows a friendly "the spaceship stopped" screen with a button that
+reloads (the journal survives), plus the actual error in small print for a bug report.
 
 **Distances are compressed, hard.** At true scale the Moon would be thirty Earth-diameters
 away and invisible. `config.ts` holds the numbers; `FRAMING_RADIUS` is derived from the

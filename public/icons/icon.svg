@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    The home-screen icon. The boot screen's moon in the game's own palette, with the ship
+    crossing it — drawn here rather than rendered from the scene so it is crisp at 48px on a
+    launcher. The PNGs beside this file are rendered from it; edit this, re-render those.
+  -->
+  <defs>
+    <radialGradient id="sky" cx="50%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#241a54"/>
+      <stop offset="1" stop-color="#080619"/>
+    </radialGradient>
+    <radialGradient id="moon" cx="34%" cy="32%" r="72%">
+      <stop offset="0" stop-color="#fffdf6"/>
+      <stop offset="0.55" stop-color="#c9c2e6"/>
+      <stop offset="1" stop-color="#6c63a0"/>
+    </radialGradient>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb266"/>
+      <stop offset="0.52" stop-color="#f4762a"/>
+      <stop offset="1" stop-color="#d2551a"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff1b0"/>
+      <stop offset="1" stop-color="#5fd8ff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#sky)"/>
+
+  <g fill="#fff" opacity="0.9">
+    <circle cx="86" cy="96" r="4"/>
+    <circle cx="412" cy="70" r="3"/>
+    <circle cx="452" cy="176" r="5"/>
+    <circle cx="60" cy="300" r="3"/>
+    <circle cx="120" cy="420" r="4"/>
+    <circle cx="440" cy="404" r="3"/>
+    <circle cx="300" cy="52" r="2.5"/>
+  </g>
+
+  <circle cx="256" cy="268" r="150" fill="#b8b0ff" opacity="0.45" filter="url(#glow)"/>
+  <circle cx="256" cy="268" r="138" fill="url(#moon)"/>
+  <g fill="#8f86bd" opacity="0.35">
+    <circle cx="208" cy="238" r="22"/>
+    <circle cx="298" cy="322" r="30"/>
+    <circle cx="300" cy="212" r="12"/>
+    <circle cx="214" cy="336" r="10"/>
+  </g>
+
+  <!-- The ship, nose up and to the right, the way it leaves in the game. -->
+  <g transform="translate(330 150) rotate(40)">
+    <path d="M0 -78 C 30 -46 34 10 22 62 L -22 62 C -34 10 -30 -46 0 -78 Z" fill="url(#hull)"/>
+    <path d="M-22 22 L -50 66 L -22 62 Z" fill="#6a58ae"/>
+    <path d="M22 22 L 50 66 L 22 62 Z" fill="#6a58ae"/>
+    <circle cx="0" cy="-16" r="15" fill="#5fd8ff" stroke="#fff3dc" stroke-width="5"/>
+    <path d="M-16 64 L 0 122 L 16 64 Z" fill="url(#flame)"/>
+  </g>
+</svg>
