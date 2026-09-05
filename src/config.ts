@@ -245,6 +245,20 @@ export interface DestinationConfig {
    * anything else in this file.
    */
   spin?: { label: string; name: string; fact: string };
+  /**
+   * Don't draw this world until that one has been visited.
+   *
+   * The framing tiers already widen the opening shot to take a world in only once the
+   * previous one has been reached (WIDE_FRAMING_VISIT / WIDER_FRAMING_VISIT) — but the body
+   * was drawn all along, so an outer world a child had not earned yet still loomed into the
+   * shot: Saturn across the bottom of a portrait phone during "Tap the Moon", and Mars
+   * crossing Saturn's rings. Gating the *body* on the same visit the framing gates on makes
+   * the reveal real: the opening is Earth and the Moon, Mars appears once the Moon has been
+   * seen, Saturn once Mars has. A body keeps orbiting while hidden, so revealing it later
+   * does not teleport it. The value is a body id; kept a plain string so config.ts stays free
+   * of a Bodies.ts import. Earth and the Moon set nothing — they are there from the start.
+   */
+  revealAfterVisiting?: string;
   mission: {
     instruction: string;
     huntLine: string;
@@ -395,6 +409,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   mars: {
     flyLabel: 'Fly to Mars',
+    // Revealed once the Moon has been visited — the same gate WIDE_FRAMING_VISIT widens on.
+    revealAfterVisiting: 'moon',
     fact:
       'Mars is red because its dust is full of rust — the same rust that grows on an old ' +
       'bike left out in the rain. The whole planet is a bit rusty!',
@@ -447,6 +463,10 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   saturn: {
     flyLabel: 'Fly to Saturn',
+    // Revealed once Mars has been visited — the same gate WIDER_FRAMING_VISIT widens on. This
+    // is what stops Saturn looming into the opening shot before a child has earned it, and
+    // (until Mars is reached) removes the Mars-through-the-rings overlap entirely.
+    revealAfterVisiting: 'mars',
     fact:
       'Saturn is the planet with the beautiful rings. It is so big that a thousand Earths ' +
       'could fit inside it — and it is so light for its size that it would float in a ' +
@@ -534,3 +554,17 @@ export const DISCOVERIES: Record<string, Discovery> = Object.fromEntries(
  * future destination too, instead of quietly going wrong again the next time one is added.
  */
 export const JOURNAL_SLOTS = Object.keys(DISCOVERIES).length;
+
+/**
+ * Which destinations are drawn, given where a child has been.
+ *
+ * A world with no `revealAfterVisiting` is always shown; one that has it appears only once
+ * that gate world has been visited. Derived from the config rather than written down, so a new
+ * outer world is gated by adding the field and nothing else — and it takes the id list rather
+ * than reading storage, so it is a pure function the scene can be checked against without one.
+ */
+export function revealedDestinations(visited: readonly string[]): string[] {
+  return Object.entries(DESTINATIONS)
+    .filter(([, config]) => !config.revealAfterVisiting || visited.includes(config.revealAfterVisiting))
+    .map(([id]) => id);
+}

@@ -103,6 +103,16 @@ only bites where the *vertical* angle is the binding one: a narrow portrait shot
 width and the inset does nothing to it (see the Mars/Saturn note near the end — the opening
 Saturn loom is a width-bound shot the inset cannot reach).
 
+**An outer world is not drawn until it has been earned.** `World.setRevealed` hides a body and
+drops its tap targets; `applyReveal` in `main.ts` drives it from progress via
+`revealedDestinations`, gating each world on the same visit its framing tier widens on
+(`revealAfterVisiting` in `config.ts`). A hidden body keeps orbiting — it is visibility, not a
+freeze — so revealing it later does not teleport it, and the flight's own avoidance loop still
+positions it. Re-applied from `restart()`, because visiting a world is what unlocks the next and
+the map is next shown on the way home. This is what keeps Saturn out of the opening shot; the
+reveal and the framing tier must stay gated on the same visit or a world is framed for a tap it
+has no body for. See the Mars/Saturn note near the end for what it fixes and what it leaves.
+
 **Destinations are data.** `DESTINATIONS` in `config.ts` holds the copy, `Bodies.ts` holds
 the geometry, `main.ts` matches them by id. Nothing branches per destination. Adding a
 planet should be a config entry plus a body — if you find yourself writing `if (id ===
@@ -576,25 +586,37 @@ at these compressed distances it is large when it does. The arrival steers clear
 the camera then orbits on a shell the Moon's orbit crosses, so dragging far enough round
 still finds it. Moving the Moon out would change every other shot in the game.
 
-**Known and NOT yet addressed — Mars and Saturn share the same on-screen band.** Mars orbits
-at 5.0 and Saturn at 6.6, and Saturn's rings reach out to `2.3 × 1.5 ≈ 3.45` radii, so
-Saturn's near ring edge comes in to about 3.15 from the scene centre — well inside Mars's
-orbit. With their two orbit tilts (`MARS_ORBIT_TILT −0.19`, `SATURN_ORBIT_TILT 0.15`) and the
-projection, Mars passes *through* Saturn's rings on screen: at the current start angles it
-sits at the bottom of the ring system, looking like a moon caught in them. Reported from a
-built deploy (screenshot, Sept 2026). It is a composition bug, not a physics one — the orbits
-are already invented, not real. Two honest fixes, neither done: push the start angles apart so
-the opening never lines them up (cheap, but they still cross as both orbit), or hide/fade the
-outer worlds until their reveal tier is reached (see the framing note below), which removes
-the overlap in every frame a child actually sees. Related and separate: on a *narrow portrait*
-phone the opening shot is framed by width, so Saturn — compressed-large and low in frame —
-looms across the bottom third even at the narrowest "Tap the Moon" tier. The vertical framing
-inset below cannot help a width-bound shot; taming this one needs the reveal-gating or a
-reposition, and is the top open UX item.
+**Reveal-gating, and the Mars/Saturn overlap it does and does not fix.** Mars orbits at 5.0
+and Saturn at 6.6, and Saturn's rings reach out to `2.3 × 1.5 ≈ 3.45` radii, so Saturn's near
+ring edge comes in to about 3.15 from the scene centre — well inside Mars's orbit. With their
+two orbit tilts (`MARS_ORBIT_TILT −0.19`, `SATURN_ORBIT_TILT 0.15`) and the projection, Mars
+passes *through* Saturn's rings on screen, looking like a moon caught in them; and on a narrow
+portrait phone Saturn — compressed-large and low in frame — loomed across the bottom third even
+at the narrowest "Tap the Moon" tier. Both were reported from a built deploy (screenshots, Sept
+2026). Both are composition, not physics: the orbits are already invented.
+
+The fix in the code now is **reveal-gating** (`revealAfterVisiting` in `config.ts`,
+`revealedDestinations`, `World.setRevealed`, `applyReveal` in `main.ts`): an outer world is not
+drawn until the visit its framing tier widens on. So the opening is Earth and the Moon only —
+no Saturn loom, no overlap — Mars appears once the Moon has been visited, and Saturn once Mars
+has. That removes both problems for the whole run up to reaching Mars, which is the first-time
+experience and every state before Saturn is earned.
+
+What it does **not** do is eliminate the crossing once Saturn is revealed: after Mars is
+visited both are in the widest tier, and their orbits genuinely cross in projection, so from
+some angles they still line up. It is much milder there — the widest tier has pulled the camera
+right back to fit the rings, so Mars is a speck rather than a prominent planet — but it is not
+gone. Fully removing the residual needs spatial separation (a wider or more tilted Saturn orbit)
+or fading distant bodies, both of which ripple into other shots (see the Saturn invariants) and
+want on-device tuning, so they are deliberately left as a follow-up rather than guessed at here.
+The vertical framing inset below is a separate lever and cannot help a width-bound portrait
+shot at all; reveal-gating is what fixed that one.
 
 Done since this file was written: Fly Home is now an animated camera pull-back to the map
-(`HomeReturn`) rather than an instant cut, and framing reserves vertical space for the
-interface so the destination clears the dock (`framingHalfAngle` / `framingInset`); Saturn is
+(`HomeReturn`) rather than an instant cut; framing reserves vertical space for the
+interface so the destination clears the dock (`framingHalfAngle` / `framingInset`); the outer
+worlds are reveal-gated so an unearned one no longer looms into the opening shot
+(`revealAfterVisiting` / `World.setRevealed`); Saturn is
 a fourth destination, with rings you can find
 as a discovery in their own plane, reached by a third framing tier once Mars has been
 visited; a new build now refreshes the installed app on the launch that fetches it rather

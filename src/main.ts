@@ -16,6 +16,7 @@ import {
   FRAMING_RADIUS_WIDER,
   WIDE_FRAMING_VISIT,
   WIDER_FRAMING_VISIT,
+  revealedDestinations,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
@@ -166,6 +167,17 @@ async function main() {
     return camera.aspect < 1 ? 0.3 : 0.16;
   }
 
+  /**
+   * Draw only the worlds a child has earned. Same gate the framing tiers widen on, applied to
+   * the bodies themselves so an outer world is not looming into the opening shot before it has
+   * been revealed (Saturn across a portrait phone during "Tap the Moon"), and Mars is not
+   * crossing Saturn's rings until Mars has actually been reached. Re-applied on every return to
+   * the map, since visiting a world is what unlocks the next. See revealedDestinations.
+   */
+  function applyReveal() {
+    world.setRevealed(revealedDestinations(loadProgress().visited) as BodyId[]);
+  }
+
   const controls = createOrbitInput({
     camera,
     element: canvas,
@@ -175,6 +187,7 @@ async function main() {
   controls.setFocusRadius(world.bodies.earth.radius);
   controls.setTarget(new THREE.Vector3(), true);
   controls.frame(framingRadius(), true, framingInset());
+  applyReveal();
 
   const narrator = createNarrator();
   const sfx = createSfx();
@@ -485,6 +498,8 @@ async function main() {
     // Or the last flight's exhaust hangs in space, still out at the destination.
     trail.reset();
     world.reset();
+    // A world visited this run may have unlocked the next one; re-apply before the map shows.
+    applyReveal();
 
     controls.reset();
     controls.setFocusRadius(world.bodies.earth.radius);

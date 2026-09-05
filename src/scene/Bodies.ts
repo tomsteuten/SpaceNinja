@@ -96,7 +96,17 @@ export interface CelestialBody {
 export interface World {
   group: THREE.Group;
   bodies: Record<BodyId, CelestialBody>;
+  /**
+   * The tap targets for the bodies currently on screen. Hidden bodies drop out of it, so a
+   * world that has not been revealed yet cannot be selected through where it would have been.
+   */
   hitMeshes: THREE.Mesh[];
+  /**
+   * Draw only these bodies; hide the rest (and drop their tap targets). A hidden body keeps
+   * orbiting — this is visibility, not a freeze — so revealing it later does not teleport it.
+   * The caller drives this from progress; the world holds no opinion about who has been where.
+   */
+  setRevealed(ids: Iterable<BodyId>): void;
   setSelected(id: BodyId | null): void;
   /** 0 freezes the Moon mid-orbit so the flight has a stationary destination. */
   setOrbitSpeedScale(scale: number): void;
@@ -745,10 +755,45 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     for (const [bodyId, ring] of rings) ring.visible = bodyId === id;
   }
 
+  /*
+   * Reveal-gating. Each body's root group is toggled, and its tap targets go in and out of the
+   * hit list with it, so an unrevealed world is neither drawn nor tappable. Earth sits under
+   * earthAnchor; the orbiting bodies each hang off their own `tilt` group.
+   */
+  const roots: Record<BodyId, THREE.Object3D> = {
+    earth: earthAnchor,
+    moon: moon.tilt,
+    mars: mars.tilt,
+    saturn: saturn.tilt,
+  };
+  const bodyHits: Record<BodyId, THREE.Mesh[]> = {
+    earth: [earthHit],
+    moon: [moon.hit],
+    mars: [mars.hit],
+    saturn: [saturn.hit, saturn.ringHit],
+  };
+  // Everything on screen until told otherwise, so nothing that does not call setRevealed
+  // (tests, and any future caller) sees a change in behaviour.
+  const revealed = new Set<BodyId>(Object.keys(roots) as BodyId[]);
+
+  function setRevealed(ids: Iterable<BodyId>) {
+    const next = new Set<BodyId>(ids);
+    for (const id of Object.keys(roots) as BodyId[]) {
+      roots[id].visible = next.has(id);
+    }
+    revealed.clear();
+    for (const id of next) revealed.add(id);
+  }
+
   return {
     group,
     bodies,
-    hitMeshes: [earthHit, moon.hit, mars.hit, saturn.hit, saturn.ringHit],
+    get hitMeshes() {
+      return (Object.keys(bodyHits) as BodyId[])
+        .filter((id) => revealed.has(id))
+        .flatMap((id) => bodyHits[id]);
+    },
+    setRevealed,
     setSelected,
 
     setOrbitSpeedScale(scale: number) {
