@@ -324,6 +324,15 @@ interface Collectible {
   target: THREE.Group;
   ringMaterial: THREE.MeshBasicMaterial;
   outlineMaterial: THREE.MeshBasicMaterial;
+  /**
+   * The repeating "tap here" pulse: a thin ring that expands out of the target and fades,
+   * over and over, the way an interface says a point is waiting to be pressed. Null under
+   * reduced motion, and not additive — a soft additive disc was the thing read as sunlight,
+   * so this is a moving outline, not a light. It is what turns a small static bullseye into
+   * something a child (and, reported here, an adult) reads as the thing to go and touch.
+   */
+  sonar: THREE.Mesh | null;
+  sonarMaterial: THREE.MeshBasicMaterial | null;
   glow: THREE.Sprite;
   glowMaterial: THREE.SpriteMaterial;
   /** The emoji left on the place once it is found. Hidden until then. */
@@ -366,6 +375,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
   let ringGeometry: THREE.RingGeometry | null = null;
   let innerRingGeometry: THREE.RingGeometry | null = null;
   let outlineGeometry: THREE.RingGeometry | null = null;
+  let sonarGeometry: THREE.RingGeometry | null = null;
   let sparkTexture: THREE.CanvasTexture | null = null;
 
   let active = false;
@@ -376,8 +386,9 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     const geometry = ringGeometry;
     const innerGeometry = innerRingGeometry;
     const backingGeometry = outlineGeometry;
+    const sonarGeom = sonarGeometry;
     const texture = sparkTexture;
-    if (!geometry || !innerGeometry || !backingGeometry || !texture) {
+    if (!geometry || !innerGeometry || !backingGeometry || !sonarGeom || !texture) {
       throw new Error('buildCollectible ran before build()');
     }
 
@@ -424,6 +435,23 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     const innerRing = new THREE.Mesh(innerGeometry, ringMaterial);
     innerRing.position.z = markerRadius * 0.006;
     target.add(innerRing);
+
+    // The repeating expand-and-fade "tap here" pulse. In the target group so it shares the
+    // bullseye's plane — flat on the ground for a surface place, flat in the ring plane for
+    // a Saturn ring one — and behind the ring itself so it reads as coming out from under it.
+    let sonar: THREE.Mesh | null = null;
+    let sonarMaterial: THREE.MeshBasicMaterial | null = null;
+    if (!reducedMotion) {
+      sonarMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffbd45,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      sonar = new THREE.Mesh(sonarGeom, sonarMaterial);
+      target.add(sonar);
+    }
 
     const glowMaterial = new THREE.SpriteMaterial({
       map: texture,
@@ -500,6 +528,8 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       target,
       ringMaterial,
       outlineMaterial,
+      sonar,
+      sonarMaterial,
       glow,
       glowMaterial,
       badge,
@@ -561,6 +591,13 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       markerRadius * 1.12,
       detail.ringSegments,
     );
+    // A thin ring the size of the target, which the idle loop scales outward and fades. One
+    // geometry shared by every collectible, built and freed with the set like the others.
+    sonarGeometry = new THREE.RingGeometry(
+      markerRadius * 0.92,
+      markerRadius * 1.04,
+      detail.ringSegments,
+    );
     sparkTexture = makeGlowTexture(quality.tier === 'low' ? 64 : 128);
 
     const root = new THREE.Group();
@@ -577,6 +614,8 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
   function beginCollect(collectible: Collectible) {
     collectible.state = 'collecting';
     collectible.t = 0;
+    // The "tap here" pulse has done its job the instant the place is tapped.
+    if (collectible.sonar) collectible.sonar.visible = false;
 
     const positions = collectible.particleGeometry.getAttribute('position');
     const array = positions.array as Float32Array;
@@ -620,6 +659,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       collectible.group.removeFromParent();
       collectible.ringMaterial.dispose();
       collectible.outlineMaterial.dispose();
+      collectible.sonarMaterial?.dispose();
       collectible.glowMaterial.dispose();
       collectible.badgeMaterial.dispose();
       // Its own canvas texture, one per discovery, so it is the mission's to free.
@@ -640,6 +680,8 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     innerRingGeometry = null;
     outlineGeometry?.dispose();
     outlineGeometry = null;
+    sonarGeometry?.dispose();
+    sonarGeometry = null;
     sparkTexture?.dispose();
     sparkTexture = null;
   }
@@ -723,11 +765,19 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
             // The ring itself no longer bobs — it is lying on the ground, and something
             // drawn on a place should stay on it. The pulse carries the "tap me" instead.
             const wave = Math.sin(elapsed * 1.9 + collectible.phase);
-            collectible.target.scale.setScalar(1 + wave * 0.07);
+            collectible.target.scale.setScalar(1 + wave * 0.09);
             collectible.ringMaterial.opacity = 0.78 + wave * 0.22;
             collectible.outlineMaterial.opacity = 0.82 + wave * 0.08;
             collectible.glow.scale.setScalar(collectible.glowScale * (1 + wave * 0.08));
             collectible.glowMaterial.opacity = 0.2 + wave * 0.08;
+            // The expanding "tap here" pulse. A sawtooth phase (0→1, repeat) staggered per
+            // marker so they do not all breathe in lockstep; opacity eased out so it starts
+            // as a crisp ring at the target and dissolves as it grows, rather than blinking.
+            if (collectible.sonar && collectible.sonarMaterial) {
+              const s = (elapsed * 0.5 + collectible.phase * 0.3) % 1;
+              collectible.sonar.scale.setScalar(1 + s * 2.1);
+              collectible.sonarMaterial.opacity = 0.5 * (1 - s) * (1 - s);
+            }
           }
           continue;
         }

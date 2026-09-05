@@ -24,6 +24,13 @@ const ICONS = {
     '<path d="M4 18.6A2.6 2.6 0 0 1 6.6 16H18"/>',
   /** The empty mission slot: something is meant to go here. */
   dot: '<circle cx="12" cy="12" r="2.4"/>',
+  /**
+   * The gold target to go and find. A double ring around a centre dot, so the empty slot in
+   * the counter is a small picture of the very thing on the planet the child is hunting for
+   * — the counter and the markers then read as the same object, which is what a pre-reader
+   * has instead of the sentence above them.
+   */
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.4"/>',
   /** On the photo thumbnail: this opens bigger. Four arrows pushing out from the middle. */
   expand:
     '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/>' +

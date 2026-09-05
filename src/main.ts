@@ -330,7 +330,7 @@ async function main() {
 
       const config = DESTINATIONS[destination.id];
       if (!config) return;
-      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact);
+      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji);
 
       // The places to find are simply part of the destination, marked on arrival rather
       // than behind a button. Nothing waits on them: the child can look, find, or fly home.
@@ -413,6 +413,7 @@ async function main() {
           `success-${body.id}`,
           config.mission.successLine,
           isNew ? config.mission.stickerId : null,
+          `${config.emoji}  ${body.label}`,
         );
         // And when this was the last place on the last world, the finale. Same rule as
         // the sticker: the moment happens whenever a completion leaves the book full,

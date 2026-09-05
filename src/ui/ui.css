@@ -518,23 +518,34 @@ body {
   color: #ffd89a;
 }
 
-/* Folded away to just its speaker button, giving the destination the screen back.
-   width:auto is what actually shrinks it: the card is a full-width dock child, so
-   hiding the words alone would have left a full-width empty panel behind. */
+/* Folded down to a small pill that still names where you are: the emoji-and-name title,
+   the labelled "Show words" control (kept in the folded state, as the transcript invariant
+   requires) and the speaker. It used to reduce to the speaker alone, which threw away the
+   one piece of identity a child who cannot read can still use — and, now the separate name
+   pill is gone for the whole visit, would leave nothing on screen saying which world this
+   is. Laid out as a row so it is a compact chip rather than a full-width empty panel. */
 .fact-card.is-collapsed {
   width: auto;
   align-self: center;
-  padding: 0;
-  gap: 0;
-  background: none;
-  border: none;
-  box-shadow: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.5rem 0.4rem 1rem;
 }
 
-.fact-card.is-collapsed .fact-title,
+.fact-card.is-collapsed .fact-title {
+  /* Already at its natural size; just stop it forcing the row taller than the buttons. */
+  line-height: 1.1;
+}
+
 .fact-card.is-collapsed p,
 .fact-card.is-collapsed .fact-photo {
   display: none;
+}
+
+/* The actions no longer stretch across their own line in the folded chip. */
+.fact-card.is-collapsed .fact-actions {
+  gap: 0.4rem;
 }
 
 .fact-card p {
@@ -1122,7 +1133,10 @@ body {
   place-content: center;
   font-size: 1.7rem;
   line-height: 1;
-  border: 3px dashed rgba(243, 238, 255, 0.45);
+  /* Warm gold rather than a cold grey dashed hole: an empty slot is a place still to find,
+     drawn in the same colour as the target on the planet it stands for, not an abstract
+     placeholder. Still dashed, so it reads as empty without relying on colour. */
+  border: 3px dashed rgba(255, 200, 120, 0.5);
   background: rgba(20, 14, 44, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -1130,7 +1144,8 @@ body {
 }
 
 .slot .slot-icon {
-  opacity: 0.4;
+  opacity: 0.75;
+  color: var(--warm);
   font-size: 1.2rem;
   display: inline-flex;
 }

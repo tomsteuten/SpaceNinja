@@ -43,7 +43,7 @@ export interface GameUI {
   enterFlight(steerable?: boolean): void;
   /** The child has dragged the ship, so the temporary gesture demonstration can leave. */
   acknowledgeSteering(): void;
-  showArrival(cueId: string, label: string, fact: string): void;
+  showArrival(cueId: string, label: string, fact: string, emoji: string): void;
   /**
    * Puts up the progress counter. A beat after arrival, so the fact is read first, and
    * *alongside* the fact card rather than instead of it: the rocks are simply there to
@@ -71,7 +71,7 @@ export interface GameUI {
    * The celebration. `stickerId` is null when the sticker was already earned on an
    * earlier visit — the party happens either way, only the "new sticker" badge does not.
    */
-  completeMission(cueId: string, successLine: string, stickerId: string | null): void;
+  completeMission(cueId: string, successLine: string, stickerId: string | null, title: string): void;
   /**
    * The bigger celebration, for finding every place on every world. Follows the world's
    * own completion rather than replacing it; `stickerId` works as in `completeMission`.
@@ -247,10 +247,10 @@ export function createUI(options: UIOptions): GameUI {
     slots = [];
     for (let i = 0; i < total; i++) {
       const slot = el('div', 'slot');
-      // Not colour alone: an empty slot is dashed and holds a faint dot, a filled one is
-      // solid, holds the rock itself and gains a tick.
+      // Not colour alone: an empty slot is dashed and previews the gold target to find, a
+      // filled one is solid, holds the rock and gains a tick.
       const slotIcon = el('span', 'slot-icon');
-      slotIcon.innerHTML = iconMarkup('dot');
+      slotIcon.innerHTML = iconMarkup('target');
       slot.append(slotIcon);
       slotRow.append(slot);
       slots.push(slot);
@@ -864,15 +864,19 @@ export function createUI(options: UIOptions): GameUI {
       hideSteerCue();
     },
 
-    showArrival(cueId: string, label: string, fact: string) {
+    showArrival(cueId: string, label: string, fact: string, emoji: string) {
       hideSteerCue();
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
-      namePill.textContent = label;
-      namePill.classList.remove('is-hidden');
+      // The name is the card's own title now, so a child arrives to "🌍 Earth" rather than
+      // to a "Show words" pill floating with no content — which is what an audio-first card
+      // with no title looked like, and read as broken. The separate name pill would only
+      // repeat it, so it stays out of the way for the whole visit; the card carries the
+      // identity, right down to its folded pill, from here until Fly Home.
+      namePill.classList.add('is-hidden');
       // Speech needs a recent user gesture on mobile; the fly button provided one, but if
       // the platform refuses anyway the button is right there.
-      showFact(fact, undefined, cueId);
+      showFact(fact, `${emoji}  ${label}`, cueId);
     },
 
     beginMission(caption: string, total: number) {
@@ -959,19 +963,20 @@ export function createUI(options: UIOptions): GameUI {
         const filled = index < collected;
         slot.classList.toggle('is-filled', filled);
         const icon = slot.firstElementChild;
-        if (icon) icon.innerHTML = iconMarkup(filled ? 'rock' : 'dot');
+        if (icon) icon.innerHTML = iconMarkup(filled ? 'rock' : 'target');
       }
     },
 
-    completeMission(cueId: string, successLine: string, stickerId: string | null) {
+    completeMission(cueId: string, successLine: string, stickerId: string | null, title: string) {
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       missionHud.classList.remove('fade-in-centred');
-      namePill.classList.remove('is-hidden');
+      // The card keeps carrying the identity — the name pill stays hidden for the whole
+      // visit, as it has been since arrival.
       // Behind the last discovery rather than over it. The sticker and the chime land now;
       // the words wait their turn.
       if (currentFact) {
-        pendingFact = { text: successLine, cueId };
+        pendingFact = { text: successLine, title, cueId };
         // And only their turn. The card's own timer is the eleven-second backstop for a
         // fact nobody is reading aloud, which is the right wait for *finishing* with one
         // and much too long for handing over to the next: the celebration would arrive
@@ -979,7 +984,7 @@ export function createUI(options: UIOptions): GameUI {
         // discovery is guaranteed and no more.
         scheduleCollapse(FACT_MINIMUM_MS);
       } else {
-        showFact(successLine, undefined, cueId);
+        showFact(successLine, title, cueId);
       }
       // The way home has been on screen throughout and stays exactly where it was. It
       // does not need promoting here — finishing is not the moment a child is looking
