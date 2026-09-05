@@ -31,6 +31,27 @@ export function dragAngle(deltaPixels: number, shortEdge: number): number {
   return (deltaPixels * TOUCH_TURN_PER_SHORT_EDGE) / shortEdge;
 }
 
+/**
+ * Half-angle of the field of view a subject is framed against, in radians.
+ *
+ * The tighter of the vertical and horizontal angles decides how far back the camera has to
+ * sit, so a portrait phone (narrow horizontally) frames by width and a wide screen by height.
+ *
+ * `inset` is the fraction of the *vertical* frame the interface eats — the mission prompt up
+ * top and the dock along the bottom. Framing against the whole canvas puts the destination
+ * behind those, worst of all Saturn's rings on a tall phone; shrinking the usable vertical
+ * angle by the inset fits the subject into the clear band between them instead. It only ever
+ * pulls the camera back (subject smaller), never in, and only bites where the vertical angle
+ * is the binding one — on a very narrow portrait the horizontal already dominates and the
+ * inset changes nothing. Clamped so a pathological inset cannot invert the angle.
+ */
+export function framingHalfAngle(fovDegrees: number, aspect: number, inset = 0): number {
+  const vFov = THREE.MathUtils.degToRad(fovDegrees);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+  const usableV = 2 * Math.atan(Math.tan(vFov / 2) * THREE.MathUtils.clamp(1 - inset, 0.35, 1));
+  return Math.min(usableV, hFov) / 2;
+}
+
 export interface InertiaStep {
   angle: number;
   velocity: number;
@@ -63,8 +84,22 @@ export interface OrbitInput {
   setTarget(position: THREE.Vector3, immediate?: boolean): void;
   /** Distance clamp floor, so you cannot fly inside whatever you are looking at. */
   setFocusRadius(radius: number): void;
-  /** Choose a distance that fits a sphere of `radius` in the current viewport. */
-  frame(radius: number, immediate?: boolean): void;
+  /**
+   * Choose a distance that fits a sphere of `radius` in the current viewport. `inset` reserves
+   * that fraction of the vertical frame for the interface, so the subject clears the dock and
+   * the mission prompt rather than hiding behind them — see `framingHalfAngle`.
+   */
+  frame(radius: number, immediate?: boolean, inset?: number): void;
+  /**
+   * Where reset() plus this target and framing would leave the camera, computed without moving
+   * anything. The animated return eases to this and restart() then lands on it exactly, so the
+   * hand-back is invisible; both go through the same framing maths so they cannot drift apart.
+   */
+  restingPose(
+    target: THREE.Vector3,
+    radius: number,
+    inset?: number,
+  ): { position: THREE.Vector3; look: THREE.Vector3 };
   /** Re-derive orbit angles from the camera's actual transform. Call after a cutscene. */
   syncFromCamera(): void;
   /**
@@ -275,12 +310,23 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       desiredRadius = clampRadius(desiredRadius);
     },
 
-    frame(radius: number, immediate = false) {
-      const vFov = THREE.MathUtils.degToRad(camera.fov);
-      const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
-      const half = Math.min(vFov, hFov) / 2;
+    frame(radius: number, immediate = false, inset = 0) {
+      const half = framingHalfAngle(camera.fov, camera.aspect, inset);
       desiredRadius = clampRadius(radius / Math.sin(half));
       if (immediate) spherical.radius = desiredRadius;
+    },
+
+    restingPose(target: THREE.Vector3, radius: number, inset = 0) {
+      const half = framingHalfAngle(camera.fov, camera.aspect, inset);
+      // The opening angles, with only the distance re-derived — exactly what reset() restores
+      // (spherical.copy(openingSpherical)) and frame() then overrides.
+      const resting = new THREE.Spherical(
+        clampRadius(radius / Math.sin(half)),
+        openingSpherical.phi,
+        openingSpherical.theta,
+      );
+      const position = new THREE.Vector3().setFromSpherical(resting).add(target);
+      return { position, look: target.clone() };
     },
 
     syncFromCamera() {

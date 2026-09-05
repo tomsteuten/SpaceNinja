@@ -276,7 +276,10 @@ destination is a definition object rather than new code.
 **Every stateful module owns a `reset()`**, and `main.ts` is the only caller. That is what
 makes **Fly Home** work without reloading the page — the flight, the ship, the trail, the
 world, the camera, the UI and the mission each undo exactly their own state. The bodies keep
-orbiting throughout, so the Moon is deliberately *not* put back where it was.
+orbiting throughout, so the Moon is deliberately *not* put back where it was. **Fly Home**
+first eases the camera back out to the map over about a second (a reverse of the flight, so it
+reads as a journey rather than a jump); the reset runs the moment that pull-back lands, on the
+exact view it lands on, so nothing snaps.
 
 **You can turn a world through a day and watch morning arrive.** Children playing this
 asked about the sunrise, which is better evidence than any of the reasoning elsewhere in

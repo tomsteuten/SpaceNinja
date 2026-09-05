@@ -82,6 +82,27 @@ undoes exactly its own state. That is what makes *Fly Home* work without reloadi
 page. If you add a module that holds state across a flight, give it a `reset()` and call it
 from `restart()` in `main.ts`.
 
+**Fly Home is an animated pull-back, not a cut — but `restart()` is still the one teardown.**
+`FlightSequence` flies out; `HomeReturn` eases the camera back to the opening composition and
+*then* calls `restart()`, which reframes the camera to exactly the pose the ease landed on, so
+the hand-back is invisible. The two share `OrbitInput.restingPose`/`frame` framing maths for
+precisely that reason — if the ease and the reframe drifted apart there would be a snap at the
+end, which is the "sudden jerk" this whole thing exists to remove. `HomeReturn` owns the camera
+while it runs (`homeReturn.active`), so the frame loop suspends orbit control, the resize
+reframe and the hunt arrow for it, exactly as it does during a flight. Under reduced motion
+`start()` declines and `onExploreAgain` cuts straight to `restart()` — a slow sweep would be
+more motion, not less, the same rule as `FLIGHT_DURATION`. It holds no scene state of its own,
+but it is reset from `restart()` anyway so the invariant above stays true with no exceptions.
+
+**Framing reserves vertical space for the interface.** `OrbitInput.frame` takes an `inset`
+(via `framingHalfAngle`): the fraction of the vertical frame the mission prompt and the dock
+eat, so a subject is fitted into the clear band between them rather than the whole canvas and
+does not hide behind the controls on a tall screen. `framingInset()` in `main.ts` sets it (more
+in portrait, where the dock is a full-width stack). It only ever pulls the camera back, and
+only bites where the *vertical* angle is the binding one: a narrow portrait shot is framed by
+width and the inset does nothing to it (see the Mars/Saturn note near the end — the opening
+Saturn loom is a width-bound shot the inset cannot reach).
+
 **Destinations are data.** `DESTINATIONS` in `config.ts` holds the copy, `Bodies.ts` holds
 the geometry, `main.ts` matches them by id. Nothing branches per destination. Adding a
 planet should be a config entry plus a body — if you find yourself writing `if (id ===
@@ -555,7 +576,26 @@ at these compressed distances it is large when it does. The arrival steers clear
 the camera then orbits on a shell the Moon's orbit crosses, so dragging far enough round
 still finds it. Moving the Moon out would change every other shot in the game.
 
-Done since this file was written: Saturn is a fourth destination, with rings you can find
+**Known and NOT yet addressed — Mars and Saturn share the same on-screen band.** Mars orbits
+at 5.0 and Saturn at 6.6, and Saturn's rings reach out to `2.3 × 1.5 ≈ 3.45` radii, so
+Saturn's near ring edge comes in to about 3.15 from the scene centre — well inside Mars's
+orbit. With their two orbit tilts (`MARS_ORBIT_TILT −0.19`, `SATURN_ORBIT_TILT 0.15`) and the
+projection, Mars passes *through* Saturn's rings on screen: at the current start angles it
+sits at the bottom of the ring system, looking like a moon caught in them. Reported from a
+built deploy (screenshot, Sept 2026). It is a composition bug, not a physics one — the orbits
+are already invented, not real. Two honest fixes, neither done: push the start angles apart so
+the opening never lines them up (cheap, but they still cross as both orbit), or hide/fade the
+outer worlds until their reveal tier is reached (see the framing note below), which removes
+the overlap in every frame a child actually sees. Related and separate: on a *narrow portrait*
+phone the opening shot is framed by width, so Saturn — compressed-large and low in frame —
+looms across the bottom third even at the narrowest "Tap the Moon" tier. The vertical framing
+inset below cannot help a width-bound shot; taming this one needs the reveal-gating or a
+reposition, and is the top open UX item.
+
+Done since this file was written: Fly Home is now an animated camera pull-back to the map
+(`HomeReturn`) rather than an instant cut, and framing reserves vertical space for the
+interface so the destination clears the dock (`framingHalfAngle` / `framingInset`); Saturn is
+a fourth destination, with rings you can find
 as a discovery in their own plane, reached by a third framing tier once Mars has been
 visited; a new build now refreshes the installed app on the launch that fetches it rather
 than the one after; the game is now an installable app with a manifest,

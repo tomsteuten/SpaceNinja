@@ -26,6 +26,7 @@ import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
+import { createHomeReturn } from './flight/HomeReturn';
 import {
   createCollectMission,
   facingLatitude,
@@ -152,6 +153,19 @@ async function main() {
     return FRAMING_RADIUS;
   }
 
+  /**
+   * How much of the vertical frame the interface reserves, so the map is fitted into the band
+   * between the top mission prompt and the bottom dock rather than the whole canvas — see
+   * `framingHalfAngle` and OrbitInput.frame. Without it a tall phone crops the widest tier,
+   * Saturn's rings most of all, behind the controls, which reads as the destination sitting
+   * too close and too low. Portrait reserves the most because the dock there is a full-width
+   * stack; landscape lays it into a thin bottom band, so less is taken. Reasoned defaults, to
+   * be watched on the real tablet like the framing tiers themselves.
+   */
+  function framingInset(): number {
+    return camera.aspect < 1 ? 0.3 : 0.16;
+  }
+
   const controls = createOrbitInput({
     camera,
     element: canvas,
@@ -160,7 +174,7 @@ async function main() {
   });
   controls.setFocusRadius(world.bodies.earth.radius);
   controls.setTarget(new THREE.Vector3(), true);
-  controls.frame(framingRadius(), true);
+  controls.frame(framingRadius(), true, framingInset());
 
   const narrator = createNarrator();
   const sfx = createSfx();
@@ -205,7 +219,10 @@ async function main() {
       ui.enterFlight();
     },
     onExploreAgain: () => {
-      restart();
+      // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
+      // reduced motion start() declines and this cuts straight home, exactly as it always did.
+      if (homeReturn.start()) ui.enterFlight();
+      else restart();
     },
     onGrownups: () => grownups.show(),
     // The whole game finished. Played when the overlay lands, not when the last world
@@ -278,6 +295,26 @@ async function main() {
       // task — and the mission holding the surface still is what makes turning it legible.
       ui.showSpin(config.spin?.label ?? null);
     },
+  });
+
+  /*
+   * The animated "Fly Home". It owns the camera for its pull-back the way the flight does,
+   * so the frame loop suspends orbit control while it runs, and restart() — the one teardown
+   * path — happens only once it lands, on exactly the pose it eases to.
+   */
+  const homeFocus = new THREE.Vector3();
+  const homeReturn = createHomeReturn({
+    camera,
+    controls,
+    reducedMotion,
+    restingPose: () =>
+      controls.restingPose(
+        world.bodies.earth.getWorldPosition(homeFocus),
+        framingRadius(),
+        framingInset(),
+      ),
+    currentFocus: () => world.bodies[follow].getWorldPosition(homeFocus),
+    onArrive: () => restart(),
   });
 
   /* --- missions ------------------------------------------------------------ */
@@ -436,6 +473,8 @@ async function main() {
     activeMission = null;
     dayTurn.reset();
     flight.reset();
+    // Idle whether it drove us here or Explore Again cut straight in; it holds no scene state.
+    homeReturn.reset();
     // Both of those were being *driven* by the modules above, so stopping them stops
     // nothing on its own: a Fly Home mid-flight leaves the engine running otherwise.
     sfx.reset();
@@ -450,7 +489,7 @@ async function main() {
     controls.reset();
     controls.setFocusRadius(world.bodies.earth.radius);
     controls.setTarget(world.bodies.earth.getWorldPosition(focusPosition), true);
-    controls.frame(framingRadius(), true);
+    controls.frame(framingRadius(), true, framingInset());
 
     selected = null;
     follow = 'earth';
@@ -480,7 +519,9 @@ async function main() {
      * flight or a day turn, when the camera is not theirs to move.
      */
     const hint =
-      flight.phase === 'flying' || dayTurn.active ? null : (activeMission?.remainingHint() ?? null);
+      flight.phase === 'flying' || dayTurn.active || homeReturn.active
+        ? null
+        : (activeMission?.remainingHint() ?? null);
     ui.setHuntArrow(hint && !hint.visible ? hint.side : null);
 
     if (flight.phase === 'idle') {
@@ -494,8 +535,11 @@ async function main() {
 
     ship.update(dt, elapsed);
     flight.update(dt);
+    // The pull-back owns the camera while it runs, like the flight does; suspend orbit
+    // control for it so the two are not both writing the camera on the same frame.
+    homeReturn.update(dt);
 
-    if (flight.phase !== 'flying') {
+    if (flight.phase !== 'flying' && !homeReturn.active) {
       // Rotating the device changes how much fits on screen, so recompose the shot.
       // Deliberately overrides any manual zoom: a rotated view that cuts off the
       // destination is worse than losing the zoom level.
@@ -503,9 +547,12 @@ async function main() {
         lastAspect = camera.aspect;
         const body = world.bodies[follow];
         // viewRadius so a rotation while at Saturn reframes the whole ring system, not the
-        // sphere alone; it falls back to the plain radius for every other body.
+        // sphere alone; it falls back to the plain radius for every other body. The same
+        // interface inset keeps the subject out from under the dock as it does on the map.
         controls.frame(
           follow === 'earth' ? framingRadius() : (body.viewRadius ?? body.radius) * 2.6,
+          false,
+          framingInset(),
         );
       }
       controls.setTarget(world.bodies[follow].getWorldPosition(focusPosition));
