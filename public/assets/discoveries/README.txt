@@ -4,7 +4,7 @@ DISCOVERY PHOTOS
 A real photograph of each real place a child can find. Entirely optional, one at a
 time: the card checks for the file when a place is found, and a place with no file
 looks exactly as it did before. Nothing here is downloaded until that place is
-actually found, so adding all nine costs the game nothing at startup.
+actually found, so adding all twelve costs the game nothing at startup.
 
 Put the files directly in this folder using these EXACT names. The name is the
 discovery's id in src/config.ts, so if you ever add a place, its photo is named after
@@ -104,15 +104,16 @@ its id and no code changes.
 
   SATURN
 
-  Cassini took the best Saturn images there are; nearly all are public domain
-  (credit NASA/JPL-Caltech/Space Science Institute). None are installed yet.
+  Cassini took the best Saturn images there are. The three installed files below are
+  NASA/JPL Cassini products covered by NASA/JPL image-use policy; their source pages
+  carry the individual credit lines repeated in this file and README.md.
 
   saturn-rings.jpg      A close view of the rings themselves, reading clearly as
                         "billions of separate pieces" rather than a smooth band — a
                         crop across the ring plane with the Cassini Division visible.
                         PIA notes: PIA06175 and PIA08389 are strong ring close-ups.
-  saturn-hexagon.jpg    The north-polar hexagon. PIA20513 (the colour "Rose") and
-                        PIA14944 both show the six-sided storm plainly.
+  saturn-hexagon.jpg    The north-polar hexagon. PIA20513 shows the six-sided storm
+                        plainly in visible and near-infrared light.
   saturn-storm.jpg      A great storm. PIA14905, the 2010-11 Great White Spot storm
                         wrapping round the planet, is the obvious one.
 
@@ -120,7 +121,7 @@ its id and no code changes.
 FILES CURRENTLY INSTALLED
 -------------------------
 
-All nine are in place. Every one is public domain; the credit lines below are courtesy
+All twelve are in place. Every one is public domain; the credit lines below are courtesy
 rather than obligation, and are repeated in README.md.
 
   earth-sahara.jpg      Blue Marble: Next Generation, Africa, March 2005.
@@ -151,6 +152,17 @@ rather than obligation, and are repeated in README.md.
                         Tholus and Albor Tholus either side.
                         Credit: NASA/JPL/USGS.
                         https://www.jpl.nasa.gov/images/pia00412-elysium/
+  saturn-rings.jpg      PIA06175, Panoramic Rings, a natural-colour Cassini mosaic.
+                        Credit: NASA/JPL/Space Science Institute.
+                        https://science.nasa.gov/photojournal/panoramic-rings/
+  saturn-hexagon.jpg    PIA20513, Basking in Light, Saturn's illuminated north-polar
+                        hexagon in visible and near-infrared light.
+                        Credit: NASA/JPL-Caltech/Space Science Institute.
+                        https://science.nasa.gov/photojournal/basking-in-light/
+  saturn-storm.jpg      PIA14905, Chronicling Saturn's Northern Storm, a six-panel
+                        true- and nearly-true-colour Cassini sequence.
+                        Credit: NASA/JPL-Caltech/Space Science Institute.
+                        https://science.nasa.gov/photojournal/chronicling-saturns-northern-storm/
 
 Two of them are worth knowing about before you swap anything:
 

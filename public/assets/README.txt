@@ -1,9 +1,9 @@
 DROP-IN TEXTURES
 ================
 
-The game runs right now with procedurally generated placeholder textures, so you do
-not need any of these files. Add them whenever you like: the loader checks this folder
-at startup and automatically uses a real image if it finds one. No code changes needed.
+The loader checks this folder at startup and automatically uses a real image when it
+finds one, falling back to a generated placeholder for anything missing. No code
+changes are needed when a file is added or replaced.
 
 Put the files directly in this folder (public/assets/) using these EXACT names:
 
@@ -82,6 +82,10 @@ WHERE TO GET THEM
   NASA CGI Moon Kit      https://svs.gsfc.nasa.gov/4720
                          High quality Moon albedo map. Public domain.
 
+  NASA PDS Cassini maps https://atmos.nmsu.edu/data_and_services/atmospheres_data/Cassini/sat_global_map.html
+                         Derived, equirectangular global maps made from Cassini ISS
+                         observations. DOI: 10.17189/rkkb-6y30.
+
   Poly Haven             https://polyhaven.com/hdris/space
                          Space HDRIs. Free (CC0). Convert to .jpg and rename to
                          starfield.jpg if you want to use one as the background.
@@ -95,3 +99,25 @@ loader logs one line per texture saying whether it used the real file or a place
 
 Remember to credit any CC BY sources (like Solar System Scope) in the README. earth.jpg
 is already credited there — add yours to the same list.
+
+
+SATURN FILES CURRENTLY INSTALLED
+--------------------------------
+
+  saturn.jpg      Cassini ISS RGB Saturn global colour map, contrast-enhanced product.
+                  Source: NASA Planetary Data System, Cassini ISS Global Maps of
+                  Jupiter and Saturn, DOI 10.17189/rkkb-6y30.
+                  Authors: Liming Li, Robert West, Xun Jiang and Benjamin Knowles.
+                  The 3601 x 1801 float RGB science map was flipped to north-up, its
+                  duplicate seam row/column removed, then resized to 2048 x 1024 and
+                  encoded as JPEG. Missing observation bands remain black; no cloud
+                  detail was filled or generated.
+                  https://atmos.nmsu.edu/PDS/data/PDS4/co_iss_global-maps/data_derived/
+
+  saturn-rings.png
+                  A radial transect through Cassini natural-colour mosaic PIA06175,
+                  with observed brightness also used as alpha so the dark divisions
+                  remain transparent. Resized to 1024 x 16; inner edge is left and
+                  outer edge is right.
+                  Credit: NASA/JPL/Space Science Institute.
+                  https://science.nasa.gov/photojournal/panoramic-rings/

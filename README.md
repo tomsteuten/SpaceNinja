@@ -84,12 +84,19 @@ account or API key.
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA elevation and
 imagery data.
 
+**Saturn texture and rings** — the colour map is a derived Cassini ISS RGB product from
+the [NASA Planetary Data System](https://atmos.nmsu.edu/data_and_services/atmospheres_data/Cassini/sat_global_map.html)
+(Li, West, Jiang and Knowles, 2023; DOI 10.17189/rkkb-6y30). The radial ring texture is
+derived from Cassini natural-colour mosaic PIA06175, credit NASA/JPL/Space Science Institute.
+Both transformations and source links are documented in `public/assets/README.txt`.
+
 **Discovery photographs** in `public/assets/discoveries/` — Sahara/Africa and Amazon
 River imagery from NASA Earth Observatory; Black Marble 2016 from NASA Goddard Space
 Flight Center; Apollo 11 bootprint from NASA/Buzz Aldrin; Tycho and the lunar far side
 from NASA/JPL/USGS and NASA/GSFC/Arizona State University; and Olympus Mons, Valles
-Marineris and Elysium from NASA/JPL/USGS. All public domain. The source pages and image
-identifiers are listed in
+Marineris and Elysium from NASA/JPL/USGS; and Saturn's rings, north-polar hexagon and
+northern storm from NASA/JPL/Space Science Institute and NASA/JPL-Caltech/Space Science
+Institute. All public domain. The source pages and image identifiers are listed in
 [`public/assets/discoveries/README.txt`](public/assets/discoveries/README.txt).
 
 **Narration** in `src/audio/recordings/` — generated locally with
@@ -114,10 +121,10 @@ you add under a CC BY licence needs crediting in the list above.
 **Photographs of the places a child finds** work the same way, and are the most worthwhile
 thing you can add. Each discovery can show a real photograph of itself — a thumbnail in its
 card, full screen on a tap — from a file named after it in `public/assets/discoveries/`.
-That folder's `README.txt` names the specific NASA image wanted for each of the nine places
+That folder's `README.txt` names the specific NASA image used for each of the twelve places
 and why that one rather than another. They are entirely optional and added one at a time: a
 place with no file simply has no photograph. **Nothing is downloaded until a place is
-actually found**, so all nine cost the game nothing at startup, and a child who finds three
+actually found**, so all twelve cost the game nothing at startup, and a child who finds three
 fetches three.
 
 Earth is the one that needs care, because its colour and roughness maps are only correct
