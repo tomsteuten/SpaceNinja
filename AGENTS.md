@@ -54,12 +54,13 @@ src/
   scene/
     Stage.ts                renderer, camera, bloom, resize, adaptive quality
     quality.ts              device tiering (low / medium / high)
-    Bodies.ts               Sun, Earth + atmosphere + night lights, Moon, Mars, lights
+    Bodies.ts               Sun, Earth + atmosphere + night lights, Moon, Mars, Saturn, lights
     Spaceship.ts            the ship, built from primitives
     EngineTrail.ts          exhaust, one THREE.Points in world space
     Starfield.ts            gradient sky + optional star map + point stars
     textures.ts             load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts    drag to rotate, pinch/wheel to zoom
+  controls/PilotInput.ts    bounded drag steering during the guaranteed flight route
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts the real places to find, for any body
   ui/                       ui.ts, ui.css, icons.ts, grownups.ts (the adult's one
@@ -301,9 +302,9 @@ Three things about it that are load-bearing rather than incidental:
 - **Nothing is fetched until a place is found.** That is what makes photographs affordable
   where sharpening the globe maps is not: sharper maps spend every byte before the title
   screen, and on a device whose pixel ratio is capped at 1.5 most of that detail is never
-  drawn. A child who finds three places fetches three files; the other six are never asked
+  drawn. A child who finds three places fetches three files; the other nine are never asked
   for. Do not preload them, and do not put them in the journal grid without thinking about
-  this — a journal that shows nine thumbnails has just downloaded all nine.
+  this — a journal that shows twelve thumbnails has just downloaded all twelve.
 - **The probe is guarded on the discovery still being on screen.** Facts overlap: a find
   replaces the arrival fact, and the completion line queues behind the last find. A probe
   resolving a moment late would otherwise staple one place's photograph to another's words.
@@ -312,7 +313,7 @@ Three things about it that are load-bearing rather than incidental:
   picture would put that back and more.
 
 **Never generate a stand-in for a discovery photograph, and do not offer to source one from
-inside an assistant environment.** The nine that are installed were fetched and checked by a
+inside an assistant environment.** The twelve that are installed were fetched and checked by a
 person, because every image host — NASA, Wikimedia, all of them — is refused at this
 environment's egress gateway, and `WebFetch` is blocked for them too. An assistant that
 offers to "source them" from in here is about to invent something. That matters more than
@@ -395,7 +396,7 @@ on a successful start rather than removed, and why its `z-index` sits above ever
 crash screen prints the actual error small and selectable for whoever files the report, and
 its one button reloads the page — the journal is in localStorage and survives.
 
-**Finishing everything is its own moment, once.** Finding the ninth place completes the whole
+**Finishing everything is its own moment, once.** Finding the twelfth place completes the whole
 game, and it used to get the same celebration as finding the third. `foundEverything()` in
 `progress.ts` decides it — it takes the id list rather than importing config, so it is pinned
 without a scene — and `main.ts` fires `ui.completeGame()` from a world's completion whenever
@@ -580,15 +581,15 @@ of code substitutes for them.
 Then, in code:
 
 4. **~~Add Saturn.~~** Done — Saturn is a destination, with two surface places and one
-   discovery that lives on the ring plane, plus a generated banded map and a generated ring
-   strip so it runs with no assets. What is **not** done is watching it on the real tablet:
-   the widest framing tier and the compressed size are reasoned defaults, not verdicts (see
-   the Saturn invariants above). Drop a real `saturn.jpg` and `saturn-rings.png` in when
-   there are ones a person has checked. The next new outer world is *not* as cheap as this
-   one was — see the reachability note in the Saturn invariants before adding one.
+   discovery that lives on the ring plane. Its checked Solar System Scope body texture is
+   explicitly disclosed as a visual reconstruction because unmapped gaps use fictional
+   terrain; its rings use a genuine Cassini radial strip. What is **not** done is watching
+   it on the real tablet: browser playthroughs now cover phone portrait and landscape, but
+   the widest framing tier and compressed size still need judgment in a child's hands. The
+   next outer world is *not* as cheap as this one was — see the reachability note above.
 
 5. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
-   ninth place now brings up the finale and the `space-ninja` sticker. Still unwatched with
+   twelfth place now brings up the finale and the `space-ninja` sticker. Still unwatched with
    a child, like everything in this file that has not been.
 
 6. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
@@ -636,7 +637,9 @@ want on-device tuning, so they are deliberately left as a follow-up rather than 
 The vertical framing inset below is a separate lever and cannot help a width-bound portrait
 shot at all; reveal-gating is what fixed that one.
 
-Done since this file was written: Fly Home is now an animated camera pull-back to the map
+Done since this file was written: the grown-ups panel can precisely reset one adventure;
+earned worlds have stable destination buttons and reveal with a short map transition;
+children can steer inside the flight's guaranteed route; Fly Home is now an animated camera pull-back to the map
 (`HomeReturn`) rather than an instant cut; framing reserves vertical space for the
 interface so the destination clears the dock (`framingHalfAngle` / `framingInset`); the outer
 worlds are reveal-gated so an unearned one no longer looms into the opening shot
@@ -658,7 +661,7 @@ of itself, an adult can choose the reading voice and turn the sound off, an arro
 the last place while it is round the back, and the dock no longer stands on the planet in
 landscape or bury it on a phone.
 
-The nine discovery photographs are installed and credited. They had to be sourced outside
+The twelve discovery photographs are installed and credited. They had to be sourced outside
 the assistant environment, which cannot reach a single image host — see the note under
 *Assets are drop-in* before offering to fetch any more.
 

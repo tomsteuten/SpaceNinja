@@ -11,13 +11,18 @@ No browser errors were recorded.
 
 ## Findings
 
-### High — the genuine Saturn map's missing observations looked broken (fixed)
+### High — the genuine Saturn map's missing observations looked broken (superseded)
 
 The NASA PDS equirectangular Cassini map contains broad black latitude bands where the
 rings blocked the camera. On the 3D body they read as two enormous black belts, not as
 scientific no-data regions. Filling them would turn a genuine image into an unlabelled
-fabrication. `saturn.jpg` was removed and the existing generated body fallback restored;
-the genuine ring strip and all three genuine discovery photos remain.
+fabrication. The first fix removed `saturn.jpg` and restored the generated body fallback.
+A later, explicit imagery decision superseded that state: the installed Solar System Scope
+texture uses observation-grounded bands and fills unmapped areas with fictional terrain.
+That compromise looks coherent in play, is better than the visibly broken black archive
+bands, and is disclosed as a visual reconstruction in both `README.md` and
+`public/assets/README.txt`. The genuine Cassini ring strip and all three genuine discovery
+photos remain.
 
 ### High — Saturn could steal taps through empty space (fixed)
 
@@ -49,6 +54,30 @@ the visit orbit to a clearer arc. This is a composition decision, not a safe one
 
 The accessible scene label still named only Earth, the Moon and Mars. It now includes
 Saturn.
+
+## Follow-up usability pass
+
+The recommendations from the later adult UX review are now implemented:
+
+- Earned worlds have stable, 64px picture-and-word destination buttons. The moving bodies
+  remain tappable, but tiny inner worlds in the widest map no longer carry navigation alone.
+- Flights remain guaranteed journeys but accept bounded drag steering through their middle,
+  giving immediate agency without making 3D piloting a prerequisite for reaching a world.
+- Fly Home uses an animated pull-back. The old mission targets and instruction now leave as
+  soon as the return begins instead of hovering over the receding map.
+- Mars and Saturn fade and scale into the settled map when first unlocked. Their large hit
+  regions remain disabled until the reveal is visually complete, and reduced motion skips
+  the animation.
+- The grown-ups panel has a two-press **Start a new adventure** action. It removes only the
+  journal, visits and stickers; sound, first-run guidance and offline assets are preserved.
+- Destination reframing after device rotation now uses the same breathing room as arrival.
+  The previous multiplier shrank Saturn to a thumbnail in phone landscape.
+
+The production build was then played sequentially through Moon, Mars and Saturn at phone
+portrait and landscape sizes. Steering visibly moved the ship, both unlock reveals landed,
+Fly Home returned cleanly, Saturn remained prominent after rotation, and a real Saturn
+target was collected. The reset confirmation state was exercised in the panel and the
+storage mutation is pinned by unit tests. No browser errors were recorded.
 
 ## What held up well
 

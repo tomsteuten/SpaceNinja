@@ -15,7 +15,8 @@ the whole game is won — with a celebration to say so.
 It installs to a home screen and works offline once loaded, with nothing ever leaving the
 device.
 
-Built with Vite, TypeScript and Three.js. No backend, no accounts, no build-time assets.
+Built with Vite, TypeScript and Three.js. No backend or accounts; the checked textures,
+photographs and narration are bundled into the static offline build.
 
 ---
 
@@ -156,7 +157,7 @@ src/
   scene/
     Stage.ts             renderer, camera, bloom, resize, adaptive quality
     quality.ts           device tiering (low / medium / high)
-    Bodies.ts            Sun, Earth + atmosphere, Moon, Mars, lights
+    Bodies.ts            Sun, Earth + atmosphere, Moon, Mars, Saturn, lights
     Spaceship.ts         the ship, built from primitives
     EngineTrail.ts       the exhaust the ship leaves behind it
     Starfield.ts         gradient sky, star map, layered point stars
@@ -169,7 +170,7 @@ src/
   audio/narration.ts     keyed MP3 narrator + manual SpeechSynthesis fallback
   audio/narration-script.json  short child-directed lines for generated narration
   audio/sfx.ts           two synthesised cues, entirely optional
-  state/progress.ts      stickers and visits, persisted in localStorage
+  state/progress.ts      discoveries, stickers and visits, persisted in localStorage
 public/assets/           drop real textures here
 ```
 
@@ -235,13 +236,15 @@ this keeps every destination inside one composable frame. Radii, though, stay tr
 Moon really is 0.27 Earths and Mars really is 0.53 — because relative size is something a
 child can learn from a picture, and relative distance at this scale is unshowable.
 
-**The opening shot only widens once it has earned the right to.** Fitting Mars from the
-first frame shrinks Earth and the Moon to a third of the size, which is a poor first
-impression for a child with no reason to care about Mars yet. *Visiting* the Moon is what
-makes the world visibly get bigger — visiting, not finishing. Flying out, looking at it
-and coming home is the thing this game is about, and gating the rest of the solar system
-behind a tapping game would have said otherwise. `progress.ts` therefore tracks visits
-separately from stickers: where you have been and what you finished are different facts.
+**The map only widens and reveals a world once it has earned the right to.** Fitting every
+destination from the first frame shrinks Earth and the Moon to specks, which is a poor first
+impression for a child with no reason to care about the outer worlds yet. *Visiting* the
+Moon widens the view and reveals Mars; visiting Mars does the same for Saturn. The new world
+fades and grows into the settled home map, alongside its new destination button, rather than
+appearing during a flight. Visiting, not finishing, is the gate: flying out, looking and
+coming home is what this game is about, and locking the solar system behind a tapping task
+would say otherwise. `progress.ts` therefore tracks visits separately from stickers: where
+you have been and what you finished are different facts.
 
 **Collecting is ambient, not modal.** The rocks are simply present when the ship arrives —
 there is no button that starts a mission and no state to be finished before leaving. That
@@ -388,12 +391,12 @@ motion per second, not less, which is the opposite of what the preference is ask
 
 ## Not yet
 
-No planets past Mars, no downloaded models, and no real
+No planets past Saturn, no downloaded models, and no real
 orbital physics. Those are deliberately still out of scope.
 
-Only Earth can be spun through a day. The Moon and Mars have terminators too, and the
+Only Earth can be spun through a day. The Moon, Mars and Saturn have terminators too, and the
 button is a config entry rather than a special case, so they could have one — but "why does
-the Sun come up?" is a question about *here*, and answering it three times would dilute it.
+the Sun come up?" is a question about *here*, and answering it four times would dilute it.
 
 The Moon can wander into the shot while you are exploring Earth, and at these compressed
 distances it is large when it does. The flight steers its *arrival* clear of anything that
