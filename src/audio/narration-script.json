@@ -28,6 +28,12 @@
     "success-earth": "You found all three places on Earth!",
     "success-moon": "You found all three places on the Moon!",
     "success-mars": "You found all three places on Mars!",
-    "spin-earth": "Watch the sunlight move while Earth turns. The bright side is day, and the dark side is night."
+    "spin-earth": "Watch the sunlight move while Earth turns. The bright side is day, and the dark side is night.",
+    "arrival-saturn": "We made it to Saturn! This is the planet with the beautiful rings. Tap a gold target to find something real.",
+    "discovery-saturn-rings": "You found the rings! They are billions of pieces of ice and rock going round Saturn, from tiny crumbs to lumps as big as a house.",
+    "discovery-saturn-hexagon": "You found the six-sided storm! Right at the top of Saturn is a giant cloud shaped like a hexagon, with six straight sides.",
+    "discovery-saturn-storm": "You found a giant storm! Saturn's storms are far bigger than any on Earth, and they can rumble on for months.",
+    "hunt-saturn": "One more is hiding. Swipe Saturn sideways to look around the back.",
+    "success-saturn": "You found all three! You have been all the way out to Saturn."
   }
 }

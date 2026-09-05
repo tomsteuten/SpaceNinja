@@ -31,6 +31,23 @@ Put the files directly in this folder (public/assets/) using these EXACT names:
   moon.jpg        Equirectangular Moon surface map.
                   Recommended: 2048 x 1024.
 
+  mars.jpg        Equirectangular Mars surface map.
+                  Recommended: 2048 x 1024.
+
+  saturn.jpg      Equirectangular Saturn map — the banded gold clouds. No rings in this
+                  one; the rings are a separate file below.
+                  Recommended: 2048 x 1024.
+
+  saturn-rings.png
+                  The rings, as a strip that runs INNER edge (left) to OUTER edge (right)
+                  along its width. This is the one PNG in the list, and it has to be:
+                  the rings need transparency, both for the gaps (the dark Cassini
+                  Division, the space between the planet and the inner edge) and so stars
+                  show through. A tall thin strip is fine — all the structure is across
+                  the width; height barely matters. The loader rewrites the ring mesh's
+                  UVs so the width maps across the radius, which THREE does not do on its
+                  own. Recommended: 1024 x 16 (or taller). Absent gives generated rings.
+
   sun.jpg         Sun surface / granulation map. Optional — the placeholder Sun is a
                   glowing emissive sphere and already looks good.
                   Recommended: 1024 x 512.
@@ -44,8 +61,10 @@ Put the files directly in this folder (public/assets/) using these EXACT names:
                   which is cheaper and honestly quite pretty.
 
 
-IMPORTANT: images must be equirectangular (2:1 width:height) or they will smear across
-the spheres. Use .jpg — .png files of this size are several times larger to download.
+IMPORTANT: the sphere maps must be equirectangular (2:1 width:height) or they will smear
+across the spheres. Use .jpg — .png files of this size are several times larger to
+download. The one exception is saturn-rings.png, which is a radial strip (not a sphere
+map) and needs .png for its transparency.
 
 
 WHERE TO GET THEM

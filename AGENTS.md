@@ -87,6 +87,35 @@ the geometry, `main.ts` matches them by id. Nothing branches per destination. Ad
 planet should be a config entry plus a body — if you find yourself writing `if (id ===
 'mars')`, stop.
 
+**Saturn is where "just a config entry plus a body" stops being the whole truth, on
+purpose.** Four things about it are exceptions, each carrying its reason in the code, and a
+fifth new outer world would hit all of them again:
+
+- *Its radius is not true to life.* Every other body's radius is real, because relative
+  size is a thing a child learns from a picture. Saturn is really 9.1 Earth radii, which at
+  these compressed distances would be bigger than the rendered Sun and dwarf the scene, so
+  `SATURN_RADIUS` is compressed the way the distances already are. It is the one deliberate
+  break, flagged in `config.ts`, and its feel is a thing to watch on the tablet.
+- *One discovery lives on the ring plane, not the sphere.* `Discovery.ring` puts a marker
+  out in the equatorial plane at that many body-radii, lying flat, along `lon` (`lat`
+  ignored). `markerPlacement` in `CollectMission.ts` is where the two cases fork, and it is
+  tested. It is only ever an *in-view* one: the hidden, drag-to-reach discovery stays a real
+  surface feature, because a pole or a ring point does not swing behind the limb the way a
+  longitude does. The polar hexagon is for the same reason an in-view feature, and kept
+  short of the pole so its hit sphere does not foreshorten to nothing (there is a test).
+- *The rings are a lit, flat mesh whose UVs are rewritten* so `u` runs across the radius —
+  `THREE.RingGeometry` maps `u` around the circumference by default, which smears a radial
+  strip round the ring. `createSaturnRing` in `Bodies.ts`, and the classic Saturn gotcha.
+- *The shot has to fit the rings, not the sphere.* `CelestialBody.viewRadius` (Saturn only)
+  is the outer ring; the flight arrival and the resize framing use `viewRadius ?? radius`,
+  everything about the body itself still uses `radius`.
+- *Reaching a fourth, outer world cost a whole framing tier.* `FRAMING_RADIUS_WIDER`, gated
+  on visiting Mars, and `MAX_ORBIT_DISTANCE` was raised from 20 to 36 so that shot fits a
+  portrait phone. The cost is that the inner worlds shrink to specks in that one widest shot
+  — there is no way to keep the tap-the-world-you-see model with an outer planet without it.
+  A fifth world further out would push `MAX_ORBIT_DISTANCE` further again; past a point the
+  right answer is a different way of choosing a destination, not a wider zoom.
+
 **The ship's nose points along +Z.** `Spaceship.orient()` maps that to any direction. A GLB
 replacement must match the same convention or the flight will fly backwards.
 
@@ -494,17 +523,13 @@ of code substitutes for them.
 
 Then, in code:
 
-4. **Add Saturn.** Cheap by design — a config entry with three real places and a body — but
-   with one design decision that is not: a `Discovery` is a lat/lon on the surface mesh, and
-   Saturn's recognisable feature is the rings, which are not a surface coordinate. The polar
-   hexagon cannot be the hidden one either, because the hidden one has to sit ~120° round in
-   *longitude* and a pole does not hide behind the limb that way. Either pick three cloud
-   features spread in longitude, which wastes the reason to add Saturn at all, or let one
-   discovery live on the ring plane at a radius instead of on the sphere — a contained
-   change that keeps the drag rule intact. Assets: an equirectangular `saturn.jpg`, and a
-   ring strip **as a PNG** because it needs alpha, which is the one exception to the
-   "use .jpg" rule. Watch the ring UVs: `THREE.RingGeometry` does not map `u` across the
-   radius by default and rewriting that attribute is the classic Saturn gotcha.
+4. **~~Add Saturn.~~** Done — Saturn is a destination, with two surface places and one
+   discovery that lives on the ring plane, plus a generated banded map and a generated ring
+   strip so it runs with no assets. What is **not** done is watching it on the real tablet:
+   the widest framing tier and the compressed size are reasoned defaults, not verdicts (see
+   the Saturn invariants above). Drop a real `saturn.jpg` and `saturn-rings.png` in when
+   there are ones a person has checked. The next new outer world is *not* as cheap as this
+   one was — see the reachability note in the Saturn invariants before adding one.
 
 5. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
    ninth place now brings up the finale and the `space-ninja` sticker. Still unwatched with
@@ -529,7 +554,10 @@ at these compressed distances it is large when it does. The arrival steers clear
 the camera then orbits on a shell the Moon's orbit crosses, so dragging far enough round
 still finds it. Moving the Moon out would change every other shot in the game.
 
-Done since this file was written: the game is now an installable app with a manifest,
+Done since this file was written: Saturn is a fourth destination, with rings you can find
+as a discovery in their own plane, reached by a third framing tier once Mars has been
+visited; a new build now refreshes the installed app on the launch that fetches it rather
+than the one after; the game is now an installable app with a manifest,
 home-screen icons and an offline service worker; finishing every place on every world is
 its own celebration with its own sticker; the frame loop now shows a crash screen instead of
 a frozen last frame; and the grown-ups panel states the privacy property and explains adding
@@ -547,7 +575,7 @@ The nine discovery photographs are installed and credited. They had to be source
 the assistant environment, which cannot reach a single image host — see the note under
 *Assets are drop-in* before offering to fetch any more.
 
-Not yet in scope: real orbital physics, planets past Mars, downloaded models.
+Not yet in scope: real orbital physics, planets past Saturn, downloaded models.
 
 ---
 

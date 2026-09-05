@@ -13,7 +13,9 @@ import {
   DESTINATIONS,
   FRAMING_RADIUS,
   FRAMING_RADIUS_WIDE,
+  FRAMING_RADIUS_WIDER,
   WIDE_FRAMING_VISIT,
+  WIDER_FRAMING_VISIT,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
@@ -136,15 +138,18 @@ async function main() {
   scene.add(trail.group);
 
   /**
-   * The opening shot only takes in Earth and the Moon until the Moon has been visited.
-   * Fitting Mars from the first frame would shrink the first destination to a speck for
-   * no reason a five-year-old could understand yet; going there is what makes the world
-   * visibly get bigger. Going, not finishing — flying out and looking is enough.
+   * The opening shot only takes in Earth and the Moon until the Moon has been visited, then
+   * widens for Mars, then wider again for Saturn. Fitting an outer world from the first
+   * frame would shrink the first destination to a speck for no reason a five-year-old could
+   * understand yet; going there is what makes the world visibly get bigger. Going, not
+   * finishing — flying out and looking is enough. Newest tier wins, so it does not matter
+   * which order the two gates were passed in.
    */
   function framingRadius(): number {
-    return loadProgress().visited.includes(WIDE_FRAMING_VISIT)
-      ? FRAMING_RADIUS_WIDE
-      : FRAMING_RADIUS;
+    const { visited } = loadProgress();
+    if (visited.includes(WIDER_FRAMING_VISIT)) return FRAMING_RADIUS_WIDER;
+    if (visited.includes(WIDE_FRAMING_VISIT)) return FRAMING_RADIUS_WIDE;
+    return FRAMING_RADIUS;
   }
 
   const controls = createOrbitInput({
@@ -390,15 +395,23 @@ async function main() {
 
   function showOpeningHints() {
     window.clearTimeout(nudge);
-    // Once the shot has widened there is a new thing on screen, so the nudge points at
-    // that rather than at the Moon the child has already finished.
-    const wide = framingRadius() === FRAMING_RADIUS_WIDE;
-    // The gesture pictures carry the instruction for a child who cannot read the words.
-    // Audio cannot do this first job: no user gesture has unlocked playback yet.
-    ui.setHint(wide ? '👀 🔴  A new world is out there' : '☝️ ↔️  Drag to look around');
+    // Once the shot has widened there is a new thing on screen, so the nudge points at the
+    // newest world rather than at the one the child has already been to. The gesture
+    // pictures carry the instruction for a child who cannot read the words; audio cannot do
+    // this first job, because no user gesture has unlocked playback yet.
+    const radius = framingRadius();
+    if (radius === FRAMING_RADIUS_WIDER) {
+      ui.setHint('👀 🪐  A new world is out there');
+    } else if (radius === FRAMING_RADIUS_WIDE) {
+      ui.setHint('👀 🔴  A new world is out there');
+    } else {
+      ui.setHint('☝️ ↔️  Drag to look around');
+    }
     nudge = window.setTimeout(() => {
       if (flight.phase !== 'idle' || selected) return;
-      ui.setHint(wide ? '👆 🔴  Tap Mars' : '👆 🌙  Tap the Moon');
+      if (radius === FRAMING_RADIUS_WIDER) ui.setHint('👆 🪐  Tap Saturn');
+      else if (radius === FRAMING_RADIUS_WIDE) ui.setHint('👆 🔴  Tap Mars');
+      else ui.setHint('👆 🌙  Tap the Moon');
     }, 6500);
   }
 
@@ -488,7 +501,12 @@ async function main() {
       // destination is worse than losing the zoom level.
       if (camera.aspect !== lastAspect) {
         lastAspect = camera.aspect;
-        controls.frame(follow === 'earth' ? framingRadius() : world.bodies[follow].radius * 2.6);
+        const body = world.bodies[follow];
+        // viewRadius so a rotation while at Saturn reframes the whole ring system, not the
+        // sphere alone; it falls back to the plain radius for every other body.
+        controls.frame(
+          follow === 'earth' ? framingRadius() : (body.viewRadius ?? body.radius) * 2.6,
+        );
       }
       controls.setTarget(world.bodies[follow].getWorldPosition(focusPosition));
       controls.update(dt);

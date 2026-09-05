@@ -29,6 +29,48 @@ export const MARS_ORBIT_RADIUS = 5.0;
 export const MARS_ORBIT_TILT = -0.19;
 export const MARS_START_ANGLE = 3.4;
 
+/**
+ * Saturn is the one body whose radius is *not* true to life, and that is deliberate.
+ *
+ * The rule everywhere else — Moon 0.27, Mars 0.53 — is that radii are real, because
+ * relative size is a thing a child can learn from a picture. A gas giant breaks it: Saturn
+ * is really 9.1 Earth radii, which at these compressed distances would be larger than the
+ * rendered Sun (7) and would dwarf every other body and its own orbit. So its size is
+ * compressed the way the *distances* already are. 1.5 still reads clearly as "much the
+ * biggest planet" without swallowing the scene. It is a constant precisely so the one place
+ * the invariant is broken can be found and tuned; the composition it produces is a thing to
+ * watch on the real tablet, not a number to trust from here.
+ */
+export const SATURN_RADIUS = 1.5;
+/**
+ * Just beyond Mars (5.0). Kept as near in as composition allows because a fourth, farther
+ * body is what forced MAX_ORBIT_DISTANCE up: the wider the orbit, the further the camera
+ * has to pull back to show Saturn for tapping, and the smaller the inner worlds get in that
+ * shot. See FRAMING_RADIUS_WIDER.
+ */
+export const SATURN_ORBIT_RADIUS = 6.6;
+export const SATURN_ORBIT_TILT = 0.15;
+/** Chosen to keep Saturn clear of Mars (3.4) and the Moon on screen at the opening. */
+export const SATURN_START_ANGLE = 5.5;
+/** A calm turn, like the others — not the real 10-hour day, which would read as spinning. */
+export const SATURN_SPIN = 0.03;
+/** Slower than Mars: an outer body that raced round would read as wrong. */
+export const SATURN_ORBIT_SPEED = 0.018;
+/**
+ * Axial tilt, ~26.7° in life, and load-bearing here rather than cosmetic: it is the plane
+ * the rings lie in, and the equatorial plane the one ring discovery is placed in. Carried
+ * on a container above the sphere, like Earth's, so it never sits inside the surface's own
+ * y-rotation and quietly moves markers off their coordinates.
+ */
+export const SATURN_AXIAL_TILT = 0.47;
+/**
+ * The ring system, as multiples of Saturn's radius. Real proportions: the bright rings run
+ * from about 1.24 R (inner C/B) to 2.27 R (outer A). The gap near 1.95 is the Cassini
+ * Division, drawn into the ring texture rather than modelled.
+ */
+export const SATURN_RING_INNER_RATIO = 1.28;
+export const SATURN_RING_OUTER_RATIO = 2.3;
+
 export const SUN_RADIUS = 7;
 export const SUN_DISTANCE = 105;
 /** Slightly off-axis so Earth shows a pleasing crescent terminator from the default view. */
@@ -87,12 +129,26 @@ export const FRAMING_RADIUS = MOON_ORBIT_RADIUS + MOON_RADIUS + 0.18;
  * bad first impression for a five-year-old who has not been given a reason to care yet.
  */
 export const FRAMING_RADIUS_WIDE = MARS_ORBIT_RADIUS + MARS_RADIUS + 0.18;
+/**
+ * The widest shot, used once Saturn is worth pointing at. It has to reach past the *outer
+ * ring*, not just the planet, or the thing that makes Saturn Saturn sits off the edge. This
+ * is the tier that costs the most: a fourth, far body can only be framed for tapping on a
+ * narrow portrait phone by pulling right back, which shrinks Earth, the Moon and Mars to
+ * specks in this one shot. That trade was made on purpose (there is no other way to keep the
+ * tap-the-world-you-see model with an outer planet) and it is the composition to watch on
+ * the real tablet.
+ */
+export const FRAMING_RADIUS_WIDER =
+  SATURN_ORBIT_RADIUS + SATURN_RADIUS * SATURN_RING_OUTER_RATIO + 0.18;
 export const MIN_ORBIT_DISTANCE = 0.6;
 /**
- * Raised from 16 so FRAMING_RADIUS_WIDE actually fits on the narrowest phone in
- * portrait, where the horizontal field of view is only about 34 degrees.
+ * Raised from 20 so FRAMING_RADIUS_WIDER fits on the narrowest phone in portrait, where the
+ * horizontal field of view is only about 34 degrees — the previous 20 was set for
+ * FRAMING_RADIUS_WIDE (Mars) and cannot reach Saturn's orbit. The cost is that a child can
+ * now pinch any scene out this far too; the inner scenes already allowed zooming a body down
+ * to a speck, so this extends an existing property rather than introducing a new one.
  */
-export const MAX_ORBIT_DISTANCE = 20;
+export const MAX_ORBIT_DISTANCE = 36;
 
 /**
  * Raised from 5.5. That was five and a half seconds with nothing to look at, which felt
@@ -124,6 +180,14 @@ export const FLIGHT_DURATION = 7; // seconds
 export const WIDE_FRAMING_VISIT = 'moon';
 
 /**
+ * And visiting Mars is what widens the shot again to take in Saturn. Same reasoning as
+ * WIDE_FRAMING_VISIT: tied to *going*, not to finishing a collection, so the next world
+ * appears for a child who flew to Mars and looked around, whether or not they found its
+ * three places.
+ */
+export const WIDER_FRAMING_VISIT = 'mars';
+
+/**
  * A real place on a real body, at its real coordinates.
  *
  * These are not decorations scattered over the surface: `lat`/`lon` are the actual
@@ -146,6 +210,18 @@ export interface Discovery {
   /** Degrees north, and degrees east, on the body itself. */
   lat: number;
   lon: number;
+  /**
+   * Optional: this place is on the ring plane, not the sphere.
+   *
+   * Saturn's whole reason to exist is a feature that is not a surface coordinate. When set,
+   * the marker sits in the body's equatorial plane at this many body-radii from the centre
+   * (so a value between the inner and outer ring ratios lands it *on* the rings), along the
+   * direction `lon` gives, and `lat` is ignored. The one deviation from "a discovery is a
+   * lat/lon on the surface", contained to placement — everything else (the journal, the
+   * hidden-one drag rule, the sticker) treats it like any other. Only ever a non-hidden
+   * one: the last discovery, the one reached by dragging, stays a real surface feature.
+   */
+  ring?: number;
   /** Told on discovery, and kept in the journal. */
   fact: string;
 }
@@ -365,6 +441,71 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'Round the far side of Mars is a second giant volcano, called Elysium Mons. ' +
             'It is not quite as big as Olympus Mons, but it would still be the tallest ' +
             'mountain on Earth twice over.',
+        },
+      ],
+    },
+  },
+  saturn: {
+    flyLabel: 'Fly to Saturn',
+    fact:
+      'Saturn is the planet with the beautiful rings. It is so big that a thousand Earths ' +
+      'could fit inside it — and it is so light for its size that it would float in a ' +
+      'bath, if anyone could find a bath big enough.',
+    mission: {
+      instruction: 'Three things to find out here!',
+      huntLine: 'One more! Drag to spin around Saturn.',
+      successLine: 'You found all three! You have been all the way out to Saturn.',
+      stickerId: 'saturn-explorer',
+      discoveries: [
+        {
+          /*
+           * The rings, and the one discovery that is not a point on the surface. `ring` puts
+           * it out in the equatorial plane at 1.9 body-radii — on the bright rings, between
+           * the inner edge (1.28) and the outer (2.3). `lat` is ignored; `lon` only decides
+           * which way round the plane it sits, and it is an in-view one, so it is brought to
+           * the near side on arrival like the others. See Discovery.ring and CollectMission.
+           */
+          id: 'saturn-rings',
+          name: 'The Rings',
+          emoji: '💍',
+          lat: 0,
+          lon: 25,
+          ring: 1.9,
+          fact:
+            'The rings are made of billions of pieces of ice and rock, going round and ' +
+            'round Saturn. Some are as small as a crumb and some are as big as a house, ' +
+            'and together they are wider than Saturn itself.',
+        },
+        {
+          // The hexagon is Saturn's best fact for a child, and it can be an in-view one but
+          // never the hidden one: it sits high on Saturn, and a near-pole feature does not
+          // swing out of sight behind the limb the way a longitude does. Placed well up but
+          // short of the pole itself — a hit sphere right at the pole foreshortens to nothing
+          // and cannot be tapped (there is a test for that), and the child reads 50°N as "up
+          // near the top" just the same.
+          id: 'saturn-hexagon',
+          name: 'The Six-Sided Storm',
+          emoji: '🔷',
+          lat: 50,
+          lon: -12,
+          fact:
+            'Right at the top of Saturn is a giant cloud shaped like a hexagon — six ' +
+            'straight sides, like a stop sign with one fewer. It is a storm so wide that ' +
+            'several Earths would fit inside it.',
+        },
+        {
+          // Last, so it is the one over the horizon — a real surface feature about 125
+          // degrees round in longitude from the two in-view ones, which is the same drag the
+          // other worlds ask for and within the ~130-degree bound past which a child gives up.
+          id: 'saturn-storm',
+          name: 'The Great Storm',
+          emoji: '🌀',
+          lat: -14,
+          lon: 132,
+          fact:
+            'You had to go round to find this. Saturn has storms far bigger than any on ' +
+            'Earth, with winds much faster than the fastest ones here — and they can rumble ' +
+            'on for months.',
         },
       ],
     },

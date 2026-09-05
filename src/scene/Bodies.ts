@@ -20,6 +20,15 @@ import {
   MOON_ORBIT_TILT,
   MOON_RADIUS,
   MOON_START_ANGLE,
+  SATURN_AXIAL_TILT,
+  SATURN_ORBIT_RADIUS,
+  SATURN_ORBIT_SPEED,
+  SATURN_ORBIT_TILT,
+  SATURN_RADIUS,
+  SATURN_RING_INNER_RATIO,
+  SATURN_RING_OUTER_RATIO,
+  SATURN_SPIN,
+  SATURN_START_ANGLE,
   SUN_DIRECTION,
   SUN_POSITION,
   SUN_RADIUS,
@@ -29,6 +38,8 @@ import {
   makeMarsTexture,
   makeMoonTexture,
   makeRingTexture,
+  makeSaturnRingTexture,
+  makeSaturnTexture,
   makeSunTexture,
   resolveEarthMaps,
   resolveOptionalTexture,
@@ -36,12 +47,20 @@ import {
 } from './textures';
 import type { QualitySettings } from './quality';
 
-export type BodyId = 'earth' | 'moon' | 'mars';
+export type BodyId = 'earth' | 'moon' | 'mars' | 'saturn';
 
 export interface CelestialBody {
   id: BodyId;
   label: string;
   radius: number;
+  /**
+   * The radius the flight and the framing should fit, when it is larger than the body
+   * itself. Only Saturn sets it — its rings reach out to 2.3 radii, and framing on the
+   * sphere alone would put the very thing that makes it Saturn off the edge of the shot.
+   * Everything that is about the *body* (marker size, the hit sphere, the day-turn) still
+   * uses `radius`; callers that are about the *shot* use `viewRadius ?? radius`.
+   */
+  viewRadius?: number;
   /** Object whose world position is the centre of the body. */
   anchor: THREE.Object3D;
   /**
@@ -307,6 +326,125 @@ function createOrbitingBody(options: {
   return { tilt, spin, anchor, mesh, ring, hit, ringScale };
 }
 
+/**
+ * A flat ring lying in the equatorial plane.
+ *
+ * The one real gotcha, called out in AGENTS.md: THREE.RingGeometry runs `u` *around* the
+ * circumference, which smears a radial ring texture round and round instead of across the
+ * width. So the UVs are rewritten to put `u` along the radius — inner edge at 0, outer at
+ * 1 — which is what makeSaturnRingTexture (and any drop-in ring strip) is drawn for.
+ *
+ * Lit rather than unlit, so it darkens with the planet instead of glowing on the night
+ * side, with the same faint emissive floor the bodies use so it never goes fully black; and
+ * `depthWrite: false` so the half of the ring behind the planet is hidden by the planet's
+ * own depth while the near half still draws over it.
+ */
+function createSaturnRing(texture: THREE.Texture, inner: number, outer: number): THREE.Mesh {
+  const geometry = new THREE.RingGeometry(inner, outer, 96, 1);
+  const position = geometry.getAttribute('position') as THREE.BufferAttribute;
+  const uv = geometry.getAttribute('uv') as THREE.BufferAttribute;
+  const point = new THREE.Vector2();
+  for (let i = 0; i < position.count; i++) {
+    point.set(position.getX(i), position.getY(i));
+    const radial = THREE.MathUtils.clamp((point.length() - inner) / (outer - inner), 0, 1);
+    // v runs around the ring; it carries no structure in the 1-D strip but keeps the
+    // texture defined everywhere, and lets a drop-in map add azimuthal variation if it wants.
+    uv.setXY(i, radial, point.angle() / (Math.PI * 2));
+  }
+  uv.needsUpdate = true;
+
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    transparent: true,
+    side: THREE.DoubleSide,
+    roughness: 1,
+    metalness: 0,
+    depthWrite: false,
+    emissiveMap: texture,
+    emissive: new THREE.Color(0xffffff),
+    // Higher than the bodies' 0.055: a flat ring only ever catches the Sun at a grazing
+    // angle, so lit alone it comes out too dim to read as the thing the child came to see.
+    emissiveIntensity: 0.3,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  // RingGeometry lies in the XY plane facing +Z; lay it flat into the equatorial (XZ) plane.
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.renderOrder = 1;
+  return mesh;
+}
+
+interface SaturnBody {
+  tilt: THREE.Group;
+  orbit: THREE.Group;
+  anchor: THREE.Group;
+  /** Axial-tilt container carrying the sphere and the rings. */
+  axis: THREE.Group;
+  mesh: THREE.Mesh;
+  ringMesh: THREE.Mesh;
+  selectionRing: THREE.Sprite;
+  hit: THREE.Mesh;
+  selectionScale: number;
+}
+
+/**
+ * Saturn: an orbiting body like the others, but with an axial tilt and a ring lying in it.
+ *
+ * Built apart from createOrbitingBody because those two things are unique to it. The rig is
+ * the same three-node one — tilt/orbit/anchor — plus an `axis` group between the anchor and
+ * the sphere that carries the axial tilt, so the rings and the sphere share it while the
+ * sphere still spins about its own axis inside. The rings hang off `axis`, not off the
+ * sphere, so they do not spin with the surface texture; the sphere is what `holdSurface`
+ * freezes for a visit, exactly as on Mars.
+ */
+function createSaturn(options: {
+  map: THREE.Texture;
+  ringTexture: THREE.Texture;
+  selectionTexture: THREE.Texture;
+  segments: [number, number];
+}): SaturnBody {
+  const tilt = new THREE.Group();
+  tilt.rotation.x = SATURN_ORBIT_TILT;
+  const orbit = new THREE.Group();
+  orbit.rotation.y = SATURN_START_ANGLE;
+  const anchor = new THREE.Group();
+  anchor.position.x = SATURN_ORBIT_RADIUS;
+
+  const axis = new THREE.Group();
+  axis.rotation.z = SATURN_AXIAL_TILT;
+
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(SATURN_RADIUS, options.segments[0], options.segments[1]),
+    new THREE.MeshStandardMaterial({
+      map: options.map,
+      roughness: 0.9,
+      metalness: 0,
+      emissiveMap: options.map,
+      emissive: new THREE.Color(0xffffff),
+      emissiveIntensity: 0.055,
+    }),
+  );
+
+  const ringMesh = createSaturnRing(
+    options.ringTexture,
+    SATURN_RADIUS * SATURN_RING_INNER_RATIO,
+    SATURN_RADIUS * SATURN_RING_OUTER_RATIO,
+  );
+
+  axis.add(mesh, ringMesh);
+
+  // The selection ring and hit sphere take in the whole ring system, so tapping anywhere on
+  // the ringed shape in the wide view selects Saturn.
+  const selectionScale = SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 2.4;
+  const selectionRing = createSelectionRing(options.selectionTexture, selectionScale);
+  const hit = createHitMesh(SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 1.05);
+  hit.userData.bodyId = 'saturn';
+
+  anchor.add(axis, selectionRing, hit);
+  orbit.add(anchor);
+  tilt.add(orbit);
+  return { tilt, orbit, anchor, axis, mesh, ringMesh, selectionRing, hit, selectionScale };
+}
+
 export async function createWorld(quality: QualitySettings): Promise<World> {
   const group = new THREE.Group();
   const segments = quality.sphereSegments;
@@ -321,26 +459,39 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   // Earth's colour and roughness are resolved together: the generated pair are cut from
   // one noise field, so mixing a real photo with a generated roughness map would put the
   // ocean sheen on the wrong side of every coastline. See resolveEarthMaps.
-  const [earthMaps, earthNightMap, moonMap, marsMap, sunMap] = await Promise.all([
-    resolveEarthMaps(quality.textureSize),
-    // Optional, and there is no sensible way to invent one: absent simply means the night
-    // side stays dark, which is what it did before the map existed.
-    resolveOptionalTexture({ file: 'earth-night.jpg', anisotropy: 8 }),
-    resolveTexture({
-      file: 'moon.jpg',
-      fallback: () => makeMoonTexture(quality.textureSize),
-      anisotropy: 8,
-    }),
-    resolveTexture({
-      file: 'mars.jpg',
-      fallback: () => makeMarsTexture(quality.textureSize),
-      anisotropy: 8,
-    }),
-    resolveTexture({
-      file: 'sun.jpg',
-      fallback: () => makeSunTexture(Math.min(512, quality.textureSize)),
-    }),
-  ]);
+  const [earthMaps, earthNightMap, moonMap, marsMap, saturnMap, saturnRingMap, sunMap] =
+    await Promise.all([
+      resolveEarthMaps(quality.textureSize),
+      // Optional, and there is no sensible way to invent one: absent simply means the night
+      // side stays dark, which is what it did before the map existed.
+      resolveOptionalTexture({ file: 'earth-night.jpg', anisotropy: 8 }),
+      resolveTexture({
+        file: 'moon.jpg',
+        fallback: () => makeMoonTexture(quality.textureSize),
+        anisotropy: 8,
+      }),
+      resolveTexture({
+        file: 'mars.jpg',
+        fallback: () => makeMarsTexture(quality.textureSize),
+        anisotropy: 8,
+      }),
+      resolveTexture({
+        file: 'saturn.jpg',
+        fallback: () => makeSaturnTexture(quality.textureSize),
+        anisotropy: 8,
+      }),
+      // A PNG, not a JPG: the rings need alpha, the one exception to the "use .jpg" rule.
+      resolveTexture({
+        file: 'saturn-rings.png',
+        fallback: () => makeSaturnRingTexture(),
+        fallbackLabel: 'generated rings',
+        anisotropy: 8,
+      }),
+      resolveTexture({
+        file: 'sun.jpg',
+        fallback: () => makeSunTexture(Math.min(512, quality.textureSize)),
+      }),
+    ]);
 
   const ringTexture = makeRingTexture();
   const glowTexture = makeGlowTexture();
@@ -436,7 +587,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     ringTexture,
   });
 
-  group.add(moon.tilt, mars.tilt);
+  const saturn = createSaturn({
+    map: saturnMap,
+    ringTexture: saturnRingMap,
+    selectionTexture: ringTexture,
+    segments: moonSegments,
+  });
+
+  group.add(moon.tilt, mars.tilt, saturn.tilt);
 
   /* --- Assembly ----------------------------------------------------------- */
 
@@ -509,6 +667,30 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       },
       getWorldPosition: (target) => mars.anchor.getWorldPosition(target),
     },
+    saturn: {
+      id: 'saturn',
+      label: 'Saturn',
+      radius: SATURN_RADIUS,
+      // The rings reach out to 2.3 radii, so the shot has to fit that, not the sphere.
+      viewRadius: SATURN_RADIUS * SATURN_RING_OUTER_RATIO,
+      anchor: saturn.anchor,
+      surface: saturn.mesh,
+      hitMesh: saturn.hit,
+      // Local axial spin plus the orbit, its orientation against the stars — the same sum
+      // the Moon and Mars hold, and the same reason: a world-fixed surface is a still one
+      // to explore while the body itself goes on travelling.
+      holdSurface: () => {
+        holds.saturn = saturn.mesh.rotation.y + saturn.orbit.rotation.y;
+      },
+      releaseSurface: () => {
+        delete holds.saturn;
+      },
+      turnSurface: (delta: number) => {
+        const held = holds.saturn;
+        if (held !== undefined) holds.saturn = held + delta;
+      },
+      getWorldPosition: (target) => saturn.anchor.getWorldPosition(target),
+    },
   };
 
   earthHit.userData.bodyId = 'earth';
@@ -519,6 +701,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     ['earth', earthRing, EARTH_RADIUS * 3.1],
     ['moon', moon.ring, moon.ringScale],
     ['mars', mars.ring, mars.ringScale],
+    ['saturn', saturn.selectionRing, saturn.selectionScale],
   ];
 
   function setSelected(id: BodyId | null) {
@@ -528,7 +711,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   return {
     group,
     bodies,
-    hitMeshes: [earthHit, moon.hit, mars.hit],
+    hitMeshes: [earthHit, moon.hit, mars.hit, saturn.hit],
     setSelected,
 
     setOrbitSpeedScale(scale: number) {
@@ -577,6 +760,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       mars.mesh.rotation.y =
         marsHold === undefined ? MARS_SPIN * elapsed : marsHold - mars.spin.rotation.y;
 
+      saturn.orbit.rotation.y += SATURN_ORBIT_SPEED * orbitSpeedScale * dt;
+      const saturnHold = holds.saturn;
+      // Like Mars: it turns on its own axis, and a held surface subtracts the orbit back out
+      // so it stays put in the world. The rings ride the axis group, not the sphere, so they
+      // do not turn with the surface texture whether it is held or spinning.
+      saturn.mesh.rotation.y =
+        saturnHold === undefined ? SATURN_SPIN * elapsed : saturnHold - saturn.orbit.rotation.y;
+
       const pulse = 1 + Math.sin(elapsed * 3.2) * 0.05;
       for (const [, ring, scale] of rings) {
         if (ring.visible) ring.scale.setScalar(scale * pulse);
@@ -597,6 +788,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
         moon.hit,
         mars.mesh,
         mars.hit,
+        saturn.mesh,
+        saturn.ringMesh,
+        saturn.hit,
       ];
       for (const mesh of meshes) {
         mesh.geometry.dispose();
@@ -610,6 +804,8 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
         earthNightMap,
         moonMap,
         marsMap,
+        saturnMap,
+        saturnRingMap,
         sunMap,
         ringTexture,
         glowTexture,

@@ -205,7 +205,8 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       if (other.id === destination.id) continue;
       other.getWorldPosition(bodyPosition).sub(targetPosition);
       const range = bodyPosition.length();
-      if (range < 1e-4 || range > arrivalDistance(destination.radius)) continue;
+      if (range < 1e-4 || range > arrivalDistance(destination.viewRadius ?? destination.radius))
+        continue;
       bodyPosition.divideScalar(range);
       // Only what is on the camera's side of the destination can get in front of it.
       const along = bodyPosition.dot(endDirection);
@@ -222,7 +223,9 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       endDirection.y = Math.tan(THREE.MathUtils.degToRad(aimLatitude)) * horizontal;
       endDirection.normalize();
     }
-    const radius = destination.radius;
+    // The shot has to fit the ring system for Saturn, not just the sphere: viewRadius is the
+    // outer ring where it is larger than the body, and the body's radius everywhere else.
+    const radius = destination.viewRadius ?? destination.radius;
     const framing = arrivalDistance(radius);
     endCamera.copy(targetPosition).addScaledVector(endDirection, framing);
 

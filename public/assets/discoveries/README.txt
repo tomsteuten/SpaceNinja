@@ -102,6 +102,21 @@ its id and no code changes.
                         25N 147E.
 
 
+  SATURN
+
+  Cassini took the best Saturn images there are; nearly all are public domain
+  (credit NASA/JPL-Caltech/Space Science Institute). None are installed yet.
+
+  saturn-rings.jpg      A close view of the rings themselves, reading clearly as
+                        "billions of separate pieces" rather than a smooth band — a
+                        crop across the ring plane with the Cassini Division visible.
+                        PIA notes: PIA06175 and PIA08389 are strong ring close-ups.
+  saturn-hexagon.jpg    The north-polar hexagon. PIA20513 (the colour "Rose") and
+                        PIA14944 both show the six-sided storm plainly.
+  saturn-storm.jpg      A great storm. PIA14905, the 2010-11 Great White Spot storm
+                        wrapping round the planet, is the obvious one.
+
+
 FILES CURRENTLY INSTALLED
 -------------------------
 

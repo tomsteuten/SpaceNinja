@@ -12,9 +12,9 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  FLOAT_RATIO,
   facingLongitude,
   hitRadiusFor,
+  markerPlacement,
   placementAngles,
   surfaceDirection,
   withinVisibleFace,
@@ -24,6 +24,9 @@ import {
   EARTH_RADIUS,
   MARS_RADIUS,
   MOON_RADIUS,
+  SATURN_RADIUS,
+  SATURN_RING_INNER_RATIO,
+  SATURN_RING_OUTER_RATIO,
   type Discovery,
 } from '../config';
 
@@ -47,6 +50,7 @@ const RADII: Record<string, number> = {
   earth: EARTH_RADIUS,
   moon: MOON_RADIUS,
   mars: MARS_RADIUS,
+  saturn: SATURN_RADIUS,
 };
 
 /** Every destination's real discovery list, so a new planet is covered the day it lands. */
@@ -58,14 +62,17 @@ const DESTINATION_CASES: Array<[string, Discovery[], number]> = Object.entries(
   return [id, config.mission.discoveries, radius];
 });
 
-/** Where a discovery ends up, in world units, mirroring what buildCollectible does. */
+/**
+ * Where a discovery's marker ends up, in the surface mesh's local space, straight from
+ * buildCollectible's own placement function. The arrival turn is a rotation of the whole
+ * set, and rotation preserves distances, so these local positions are what the hit-sphere
+ * spacing check needs — and they are ring-aware, which the yaw/pitch reconstruction was not.
+ */
 function placements(discoveries: Discovery[], bodyRadius: number): THREENumberTriple[] {
-  const float = bodyRadius * FLOAT_RATIO;
-  return placementAngles(discoveries).map(([yaw, pitch]) => [
-    Math.sin(yaw) * Math.cos(pitch) * float,
-    Math.sin(pitch) * float,
-    Math.cos(yaw) * Math.cos(pitch) * float,
-  ]);
+  return discoveries.map((discovery) => {
+    const { position } = markerPlacement(discovery, bodyRadius);
+    return [position.x, position.y, position.z];
+  });
 }
 
 type THREENumberTriple = [number, number, number];
@@ -123,6 +130,43 @@ describe('surfaceDirection', () => {
       const bearing = Math.atan2(direction.x, direction.z);
       expect(wrap(bearing - (Math.PI / 2 + (lon * Math.PI) / 180))).toBeCloseTo(0, 9);
     }
+  });
+});
+
+describe('markerPlacement', () => {
+  const surface: Discovery = { id: 's', name: 's', emoji: '', lat: 30, lon: 40, fact: '' };
+  const ring: Discovery = { id: 'r', name: 'r', emoji: '', lat: 0, lon: 40, ring: 1.9, fact: '' };
+
+  it('floats a surface place just off the sphere, facing outward', () => {
+    const { position, faceNormal } = markerPlacement(surface, 1.5);
+    // Just above the surface (FLOAT_RATIO is a hair over 1), and the disc faces along its
+    // own outward radial so it lies on the ground.
+    expect(position.length()).toBeGreaterThan(1.5);
+    expect(position.length()).toBeLessThan(1.52);
+    expect(faceNormal.dot(position.clone().normalize())).toBeCloseTo(1, 6);
+  });
+
+  it('puts a ring place out in the equatorial plane at its radius, lying flat', () => {
+    const bodyRadius = SATURN_RADIUS;
+    const { position, faceNormal } = markerPlacement(ring, bodyRadius);
+    // On the ring band: `ring` body-radii from the centre, between the inner and outer edge.
+    expect(position.length()).toBeCloseTo(1.9 * bodyRadius, 6);
+    expect(1.9).toBeGreaterThan(SATURN_RING_INNER_RATIO);
+    expect(1.9).toBeLessThan(SATURN_RING_OUTER_RATIO);
+    // In the equatorial plane (y = 0) and facing along the axis, so the bullseye lies in the
+    // ring rather than standing up radially out of it.
+    expect(position.y).toBeCloseTo(0, 6);
+    expect(faceNormal.x).toBeCloseTo(0, 6);
+    expect(faceNormal.y).toBeCloseTo(1, 6);
+    expect(faceNormal.z).toBeCloseTo(0, 6);
+  });
+
+  it('sends a ring place round the same way its longitude would on the surface', () => {
+    // lat is ignored for a ring place, but lon still chooses the direction, so it rides the
+    // arrival turn to the near side exactly like a surface marker at the same longitude.
+    const ringDir = markerPlacement(ring, 1).position.clone().normalize();
+    const surfaceDir = surfaceDirection(0, 40);
+    expect(ringDir.dot(surfaceDir)).toBeCloseTo(1, 6);
   });
 });
 

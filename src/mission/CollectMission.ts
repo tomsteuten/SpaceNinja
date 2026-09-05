@@ -281,6 +281,42 @@ export function surfaceDirection(lat: number, lon: number): THREE.Vector3 {
   );
 }
 
+/** The body's own axis, in surface-local space — the way a ring marker's disc faces. */
+const AXIS = new THREE.Vector3(0, 1, 0);
+
+export interface MarkerPlacement {
+  /** Local position in the surface mesh's space. */
+  position: THREE.Vector3;
+  /** Which way the flat bullseye faces: outward for a surface place, along the axis for a
+   *  ring one (so it lies in the ring plane rather than standing up out of it). */
+  faceNormal: THREE.Vector3;
+}
+
+/**
+ * Where a discovery's marker sits, and which way it faces, in the surface mesh's space.
+ *
+ * Two cases, and the ring one is the whole reason this is a function rather than two lines
+ * inline. A surface place floats just above its lat/lon on the sphere and faces outward. A
+ * ring place (Saturn only) is put out in the equatorial plane — `lat` ignored, `lon` only
+ * choosing the direction round — at `ring` body-radii from the centre, lying flat in the
+ * plane. Because it is at latitude zero, the surface's own y-rotation still carries it round
+ * to the camera exactly like every other marker, so nothing downstream has to know.
+ */
+export function markerPlacement(discovery: Discovery, bodyRadius: number): MarkerPlacement {
+  if (discovery.ring !== undefined) {
+    const direction = surfaceDirection(0, discovery.lon);
+    return {
+      position: direction.multiplyScalar(discovery.ring * bodyRadius),
+      faceNormal: AXIS.clone(),
+    };
+  }
+  const direction = surfaceDirection(discovery.lat, discovery.lon);
+  return {
+    position: direction.clone().multiplyScalar(bodyRadius * FLOAT_RATIO),
+    faceNormal: direction,
+  };
+}
+
 interface Collectible {
   discovery: Discovery;
   group: THREE.Group;
@@ -321,7 +357,6 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     : detail.particles;
 
   const markerRadius = body.radius * MARKER_RATIO;
-  const floatRadius = body.radius * FLOAT_RATIO;
   // Generous: aim on a moving tablet, from a five-year-old, is nothing like a mouse.
   const hitRadius = hitRadiusFor(body.radius);
 
@@ -347,11 +382,15 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     }
 
     // Straight from the feature's real coordinates. The marker is a child of the surface
-    // mesh, so this lands it on the actual place in the actual map and keeps it there.
-    _dir.copy(surfaceDirection(discovery.lat, discovery.lon));
+    // mesh, so this lands it on the actual place in the actual map and keeps it there — or,
+    // for a ring discovery, out in the equatorial plane at its radius. See markerPlacement.
+    const placement = markerPlacement(discovery, body.radius);
+    // The radial (outward-in-plane) direction, reused for the target's facing on a surface
+    // marker and for the particle burst on both.
+    _dir.copy(placement.position).normalize();
 
     const node = new THREE.Group();
-    node.position.copy(_dir).multiplyScalar(floatRadius);
+    node.position.copy(placement.position);
 
     /*
      * A target, not a light. The old warm additive ring plus a broad additive halo looked
@@ -360,7 +399,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
      * both day and night sides.
      */
     const target = new THREE.Group();
-    target.quaternion.setFromUnitVectors(FACE, _dir);
+    target.quaternion.setFromUnitVectors(FACE, placement.faceNormal);
     target.renderOrder = 1;
     node.add(target);
 

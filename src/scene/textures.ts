@@ -554,6 +554,111 @@ export function makeMarsTexture(width: number): THREE.CanvasTexture {
   return new THREE.CanvasTexture(el);
 }
 
+/**
+ * A banded gas giant: pale gold latitude stripes, no craters, no continents.
+ *
+ * The same equirectangular shape as the other bodies, but the structure is horizontal
+ * bands rather than a noise field, because that is what reads as "the stripy planet" at a
+ * glance. Fine noise breaks the bands up so they do not look like drawn lines; there is no
+ * polar cap, and no hard feature, because a real Saturn has none a child would recognise —
+ * the recognisable thing is the rings, which are a separate texture and a separate mesh.
+ */
+export function makeSaturnTexture(width: number): THREE.CanvasTexture {
+  const height = width / 2;
+  const [el, ctx] = canvas2d(width, height);
+  const image = ctx.createImageData(width, height);
+  const data = image.data;
+
+  for (let j = 0; j < height; j++) {
+    const lat = (0.5 - (j + 0.5) / height) * Math.PI;
+    const cosLat = Math.cos(lat);
+    const sinLat = Math.sin(lat);
+    // Several soft bands between pole and pole, their edges wobbled by low-frequency noise
+    // so they wander like real cloud belts instead of sitting as ruled stripes.
+    const bandNoise = fbm(cosLat * 2 + 5, sinLat * 6 + 9, 3, 2) - 0.5;
+    const band = Math.sin(sinLat * 9 + bandNoise * 1.6) * 0.5 + 0.5;
+
+    for (let i = 0; i < width; i++) {
+      const lon = ((i + 0.5) / width) * Math.PI * 2;
+      const px = cosLat * Math.cos(lon);
+      const pz = cosLat * Math.sin(lon);
+      const grain = fbm(px * 8 + 2, sinLat * 3, pz * 8 + 2, 3) - 0.5;
+
+      // Two golds, lerped by the band value, with a little grain on top. Warmer and paler
+      // than Mars so the two rusty-vs-buttery planets never read as the same colour.
+      const t = THREE.MathUtils.clamp(band + grain * 0.22, 0, 1);
+      const r = mix(196, 232, t);
+      const g = mix(168, 210, t);
+      const b = mix(116, 158, t);
+
+      const o = (j * width + i) * 4;
+      data[o] = r;
+      data[o + 1] = g;
+      data[o + 2] = b;
+      data[o + 3] = 255;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  return new THREE.CanvasTexture(el);
+}
+
+/**
+ * The rings, as a strip that runs inner edge to outer edge along its width.
+ *
+ * Deliberately 1-D: the caller rewrites the RingGeometry's UVs so `u` runs across the
+ * radius (which THREE does *not* do by default — the classic Saturn gotcha), so all the
+ * structure lives along x here and a single row would do. A few rows of gentle noise only
+ * stop it looking laser-cut. Alpha is part of the map: the Cassini Division and the inner
+ * edge are gaps you can see stars through, which is what a flat opaque disc never gets right.
+ */
+export function makeSaturnRingTexture(width = 1024): THREE.CanvasTexture {
+  const height = 16;
+  const [el, ctx] = canvas2d(width, height);
+  const image = ctx.createImageData(width, height);
+  const data = image.data;
+
+  // Ring structure across the radius, as [start, end, brightness, alpha] in 0..1 of the
+  // strip. Real proportions: a faint inner C ring, the bright B ring, the dark Cassini
+  // Division, then the A ring, fading out at the edge.
+  const bands: Array<[number, number, number, number]> = [
+    [0.0, 0.16, 0.5, 0.25], // C ring: thin and see-through
+    [0.16, 0.58, 1.0, 0.95], // B ring: the bright, dense one
+    [0.58, 0.66, 0.3, 0.12], // Cassini Division: a near-gap
+    [0.66, 0.97, 0.78, 0.72], // A ring
+    [0.97, 1.0, 0.4, 0.0], // outer edge fades to nothing
+  ];
+
+  function sample(u: number): { level: number; alpha: number } {
+    for (const [start, end, level, alpha] of bands) {
+      if (u >= start && u < end) {
+        // Fade the very first and last sliver of each band so edges are soft, not stepped.
+        const edge = Math.min(1, Math.min(u - start, end - u) / 0.015);
+        return { level, alpha: alpha * edge };
+      }
+    }
+    return { level: 0, alpha: 0 };
+  }
+
+  for (let i = 0; i < width; i++) {
+    const u = (i + 0.5) / width;
+    const { level, alpha } = sample(u);
+    for (let j = 0; j < height; j++) {
+      // A whisper of noise along the radius so the bands have grain rather than flat fill.
+      const grain = (fbm(u * 90, j * 0.5, 3, 2) - 0.5) * 0.16;
+      const l = THREE.MathUtils.clamp(level + grain, 0, 1);
+      const o = (j * width + i) * 4;
+      data[o] = mix(120, 226, l);
+      data[o + 1] = mix(104, 206, l);
+      data[o + 2] = mix(78, 168, l);
+      data[o + 3] = Math.round(THREE.MathUtils.clamp(alpha + grain * 0.3, 0, 1) * 255);
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  const texture = new THREE.CanvasTexture(el);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 /** Warm granulated plasma. The Sun is unlit and bloomed, so this is mostly surface interest. */
 export function makeSunTexture(width: number): THREE.CanvasTexture {
   const height = width / 2;
