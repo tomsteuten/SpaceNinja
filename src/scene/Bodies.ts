@@ -383,7 +383,34 @@ interface SaturnBody {
   ringMesh: THREE.Mesh;
   selectionRing: THREE.Sprite;
   hit: THREE.Mesh;
+  ringHit: THREE.Mesh;
   selectionScale: number;
+}
+
+/**
+ * Two honest tap targets for Saturn's two visible shapes.
+ *
+ * This used to be one sphere as wide as the outer rings. In the wide solar-system view
+ * that invisible ball included a huge volume of empty space and could sit in front of
+ * Earth, so tapping the clearly visible Earth selected Saturn instead. A generous sphere
+ * still covers the planet and a flat annulus follows the rings; empty space now stays empty.
+ */
+export function createSaturnHitTargets(): { planet: THREE.Mesh; rings: THREE.Mesh } {
+  const planet = createHitMesh(SATURN_RADIUS * 1.35);
+  const rings = new THREE.Mesh(
+    new THREE.RingGeometry(
+      SATURN_RADIUS * 0.98,
+      SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 1.08,
+      48,
+      1,
+    ),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }),
+  );
+  // RingGeometry faces +Z; Saturn's equatorial plane is XZ.
+  rings.rotation.x = -Math.PI / 2;
+  planet.userData.bodyId = 'saturn';
+  rings.userData.bodyId = 'saturn';
+  return { planet, rings };
 }
 
 /**
@@ -430,19 +457,29 @@ function createSaturn(options: {
     SATURN_RADIUS * SATURN_RING_OUTER_RATIO,
   );
 
-  axis.add(mesh, ringMesh);
+  const hitTargets = createSaturnHitTargets();
+  axis.add(mesh, ringMesh, hitTargets.rings);
 
-  // The selection ring and hit sphere take in the whole ring system, so tapping anywhere on
-  // the ringed shape in the wide view selects Saturn.
+  // The selection ring takes in the whole ring system; its two hit targets follow the
+  // planet and the flat rings rather than filling that outline with an invisible ball.
   const selectionScale = SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 2.4;
   const selectionRing = createSelectionRing(options.selectionTexture, selectionScale);
-  const hit = createHitMesh(SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 1.05);
-  hit.userData.bodyId = 'saturn';
 
-  anchor.add(axis, selectionRing, hit);
+  anchor.add(axis, selectionRing, hitTargets.planet);
   orbit.add(anchor);
   tilt.add(orbit);
-  return { tilt, orbit, anchor, axis, mesh, ringMesh, selectionRing, hit, selectionScale };
+  return {
+    tilt,
+    orbit,
+    anchor,
+    axis,
+    mesh,
+    ringMesh,
+    selectionRing,
+    hit: hitTargets.planet,
+    ringHit: hitTargets.rings,
+    selectionScale,
+  };
 }
 
 export async function createWorld(quality: QualitySettings): Promise<World> {
@@ -711,7 +748,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   return {
     group,
     bodies,
-    hitMeshes: [earthHit, moon.hit, mars.hit, saturn.hit],
+    hitMeshes: [earthHit, moon.hit, mars.hit, saturn.hit, saturn.ringHit],
     setSelected,
 
     setOrbitSpeedScale(scale: number) {

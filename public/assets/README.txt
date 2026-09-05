@@ -101,18 +101,28 @@ Remember to credit any CC BY sources (like Solar System Scope) in the README. ea
 is already credited there — add yours to the same list.
 
 
-SATURN FILES CURRENTLY INSTALLED
---------------------------------
+SATURN ASSET STATUS
+-------------------
 
-  saturn.jpg      Cassini ISS RGB Saturn global colour map, contrast-enhanced product.
-                  Source: NASA Planetary Data System, Cassini ISS Global Maps of
-                  Jupiter and Saturn, DOI 10.17189/rkkb-6y30.
-                  Authors: Liming Li, Robert West, Xun Jiang and Benjamin Knowles.
-                  The 3601 x 1801 float RGB science map was flipped to north-up, its
-                  duplicate seam row/column removed, then resized to 2048 x 1024 and
-                  encoded as JPEG. Missing observation bands remain black; no cloud
-                  detail was filled or generated.
+  saturn.jpg      Intentionally absent; the generated fallback remains in use.
+
+                  The full 3601 x 1801 Cassini ISS RGB map in NASA's PDS was downloaded,
+                  converted and tested in the real scene. It is genuine and correctly
+                  projected, but the rings blocked Cassini's view of broad latitude bands.
+                  Those missing observations are black in the archive product and became
+                  enormous black belts on the globe. Filling them would make the result a
+                  fabricated composite, so the tested file was removed rather than shipped.
+                  Source checked: Cassini ISS Global Maps of Jupiter and Saturn,
+                  DOI 10.17189/rkkb-6y30, by Liming Li, Robert West, Xun Jiang and
+                  Benjamin Knowles.
                   https://atmos.nmsu.edu/PDS/data/PDS4/co_iss_global-maps/data_derived/
+
+                  Solar System Scope was also checked, but its own page says unmapped gaps
+                  are filled with fictional terrain. NASA's published Saturn 3D model was
+                  checked too, but its page does not establish its texture as Cassini
+                  imagery. Neither was substituted for the photographed map.
+                  https://www.solarsystemscope.com/textures/
+                  https://science.nasa.gov/resource/saturn-3d-model/
 
   saturn-rings.png
                   A radial transect through Cassini natural-colour mosaic PIA06175,

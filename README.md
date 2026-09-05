@@ -84,11 +84,12 @@ account or API key.
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA elevation and
 imagery data.
 
-**Saturn texture and rings** — the colour map is a derived Cassini ISS RGB product from
-the [NASA Planetary Data System](https://atmos.nmsu.edu/data_and_services/atmospheres_data/Cassini/sat_global_map.html)
-(Li, West, Jiang and Knowles, 2023; DOI 10.17189/rkkb-6y30). The radial ring texture is
-derived from Cassini natural-colour mosaic PIA06175, credit NASA/JPL/Space Science Institute.
-Both transformations and source links are documented in `public/assets/README.txt`.
+**Saturn's rings** — the radial ring texture is derived from Cassini natural-colour mosaic
+PIA06175, credit NASA/JPL/Space Science Institute. The body still uses its generated
+fallback: the genuine equirectangular Cassini product in NASA's PDS was tested, but its
+unobserved black latitude bands were unacceptable in the scene and were not filled with
+invented detail. The source search and exact limitation are documented in
+`public/assets/README.txt`.
 
 **Discovery photographs** in `public/assets/discoveries/` — Sahara/Africa and Amazon
 River imagery from NASA Earth Observatory; Black Marble 2016 from NASA Goddard Space
