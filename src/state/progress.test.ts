@@ -12,6 +12,8 @@ import {
   foundEverything,
   loadProgress,
   markVisited,
+  recordDiscovery,
+  resetProgress,
 } from './progress';
 
 const KEY = 'spaceninja.progress.v1';
@@ -106,6 +108,36 @@ describe('awardSticker', () => {
     awardSticker('moon-explorer');
     awardSticker('mars-explorer');
     expect(loadProgress().stickers).toEqual(['moon-explorer', 'mars-explorer']);
+  });
+});
+
+describe('resetProgress', () => {
+  it('clears visits, discoveries and stickers without clearing unrelated device choices', () => {
+    const storage = fakeStorage({ 'spaceninja.sound.v1': 'off' });
+    useStorage(storage);
+    markVisited('moon');
+    recordDiscovery('moon-tycho');
+    awardSticker('moon-explorer');
+
+    expect(resetProgress()).toBe(true);
+    expect(loadProgress()).toEqual({ discoveries: [], stickers: [], visited: [] });
+    expect(storage.getItem('spaceninja.sound.v1')).toBe('off');
+  });
+
+  it('fails harmlessly when private browsing refuses the removal', () => {
+    useStorage({
+      getItem() {
+        throw new Error('SecurityError');
+      },
+      removeItem() {
+        throw new Error('SecurityError');
+      },
+    } as unknown as Storage);
+    expect(resetProgress()).toBe(false);
+  });
+
+  it('has a sticker definition for Saturn completion', () => {
+    expect(STICKERS['saturn-explorer']).toBeDefined();
   });
 });
 

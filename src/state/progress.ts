@@ -17,6 +17,7 @@ export const STICKERS: Record<string, StickerDefinition> = {
   'moon-explorer': { id: 'moon-explorer', emoji: '🌙', label: 'Moon Explorer' },
   'mars-explorer': { id: 'mars-explorer', emoji: '🔴', label: 'Mars Explorer' },
   'earth-explorer': { id: 'earth-explorer', emoji: '🌍', label: 'Earth Explorer' },
+  'saturn-explorer': { id: 'saturn-explorer', emoji: '🪐', label: 'Saturn Explorer' },
   /**
    * The last one, for finding every place on every world. The title of the game is the
    * thing a child becomes by finishing it — which is also why it is one sticker rather
@@ -93,6 +94,21 @@ function write(progress: Progress): void {
 
 export function loadProgress(): Progress {
   return read();
+}
+
+/**
+ * Start the adventure over without touching device choices such as sound or the grown-ups
+ * greeting. Clearing all site data would also throw away the offline shell, which turns a
+ * small testing/parental action into a reinstall; the progress record is deliberately one
+ * key so this can be precise. Returns false only when storage itself is unavailable.
+ */
+export function resetProgress(): boolean {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Returns true only the first time a sticker is earned, so the celebration fires once. */

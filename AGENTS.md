@@ -246,6 +246,30 @@ and a turning one carries them out from under a child's finger. The Moon needs b
 spin and its orbit-compensating counter-turn stopped, which is why the hold stores the sum
 rather than the raw rotation.
 
+**Flight steering is agency inside a guaranteed route, not free navigation.**
+`PilotInput` turns a drag anywhere on the canvas into a bounded screen-space offset through
+the middle of `FlightSequence`; the influence fades to zero at departure and arrival. That
+keeps the response immediate and playful without asking a five-year-old to aim through 3D
+space before they are allowed to reach a world. `main.ts` remains the only caller of its
+`reset()`.
+
+**The destination bar is the dependable navigation path.** The moving bodies remain
+tappable, but each revealed world also gets a stable 64px picture-and-word button. This is
+what lets the widest Saturn map keep truthful relative placement without making Earth and
+the Moon unusable specks. Do not remove it merely because canvas hit spheres are generous:
+hit area does not identify which moving dot it belongs to.
+
+**A newly earned world reveals only on the settled home map.** `World.setRevealed()` keeps
+locked bodies orbiting invisibly, then fades and scales a newly unlocked one in after Fly
+Home lands. Its hit meshes stay disabled until the reveal finishes. Reduced motion skips
+the transition rather than shortening it, and the matching destination button carries the
+same announcement.
+
+**Progress reset is narrow and adult-owned.** The two-step action in the grown-ups panel
+removes only `spaceninja.progress.v1`, then calls the normal `restart()` path. It must not
+clear settings, the grown-up greeting or the service-worker caches; those are device state,
+not the child's adventure.
+
 **Only one fold timer for the fact card.** Facts overlap — finding a place replaces the
 arrival fact, and completing a body queues the success line behind the last discovery — and
 a stale timer from the previous fact will otherwise close the new one. There is also a

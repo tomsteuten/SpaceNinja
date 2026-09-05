@@ -1,15 +1,16 @@
 # Space Ninja
 
-A gentle 3D space explorer for young children (roughly ages 5–8). Three destinations so
-far: Earth, the Moon, and Mars.
+A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
+far: Earth, the Moon, Mars, and Saturn.
 
-Tap a destination, press **Fly**, watch a small spaceship arc across space and arrive
+Choose a destination from the big world buttons (or tap it in space), press **Fly**, then
+drag to steer the spaceship along its safe route and arrive
 close enough to see the surface. Three real places are marked on each world — the first
 footprints on the Moon, the volcano on Mars, the Sahara from orbit — and finding one tells
 you about it and puts it in the discovery journal. One of the three is always round the back, so getting it
 means learning to drag. Or just look around and fly home. Either way, having been to the
-Moon widens the view far enough to notice Mars. Find every place on all three worlds and the
-whole game is won — with a celebration to say so.
+Moon reveals Mars, and visiting Mars reveals Saturn. Find every place on all four worlds and
+the whole game is won — with a celebration to say so.
 
 It installs to a home screen and works offline once loaded, with nothing ever leaving the
 device.
@@ -161,6 +162,7 @@ src/
     Starfield.ts         gradient sky, star map, layered point stars
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
+  controls/PilotInput.ts forgiving drag steering during a flight
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts  the places to find, for any body
   ui/                    interface layer (ui.ts + ui.css + icons.ts)
@@ -212,7 +214,14 @@ Pixel ratio and bloom are the levers; geometry and texture sizes are fixed at co
 **The flight owns the camera outright.** Orbit input is disabled and the orbits are frozen
 so the destination holds still. On arrival the ship is re-parented to the destination so it
 rides along, and the orbit controller re-derives its angles from wherever the camera
-finished — so control returns without a snap.
+finished — so control returns without a snap. A child's drag adds a bounded offset through
+the middle of the journey; it fades away before arrival, so steering gives agency without
+making navigation a skill gate.
+
+**The solar-system view is scenery and navigation has dependable controls.** Every earned
+world also has a stable, finger-sized button along the bottom. The moving 3D bodies remain
+tappable, but finding a tiny speck in the widest Saturn shot is no longer the only route to
+the next flight.
 
 **Destinations are data.** `DESTINATIONS` in `config.ts` holds the copy; `Bodies.ts` holds
 the geometry; `main.ts` matches them by id and builds a flight, a fact and a mission for
@@ -364,6 +373,10 @@ five-year-old will press — and the panel says so in writing, which works preci
 the person it is hiding from cannot read it yet. `?grownups` on the end of the address does
 the same thing, which is the way back in if the browser's storage has been cleared
 (`?voices` still works too).
+
+**Start a new adventure lives in that grown-ups panel.** It takes two deliberate presses
+and removes only visits, discoveries and earned stickers. Sound, the one-time grown-up
+greeting and the offline installation remain device choices rather than game progress.
 
 **Reduced motion removes motion rather than speeding it up**: `prefers-reduced-motion`
 skips the exhaust trail and the widening view, removes camera inertia, thins the collect

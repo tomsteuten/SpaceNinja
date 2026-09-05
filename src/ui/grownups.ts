@@ -24,6 +24,7 @@ import {
   type Narrator,
 } from '../audio/narration';
 import { prefersReducedMotion } from '../scene/quality';
+import { loadProgress, resetProgress } from '../state/progress';
 import { loadSoundOn, saveSoundOn } from '../state/settings';
 
 /** Remembered per device, so it greets a new tablet and never nags a familiar one. */
@@ -94,16 +95,22 @@ export interface GrownupsOptions {
   narrator: Narrator;
   /** Sound has been turned on or off. Persisting it is this module's job; obeying it is not. */
   onSoundChange(on: boolean): void;
+  /** The saved adventure was cleared; put the running scene back at its opening map. */
+  onResetProgress(): void;
 }
 
 export function createGrownups(options: GrownupsOptions): Grownups {
-  const { root, narrator, onSoundChange } = options;
+  const { root, narrator, onSoundChange, onResetProgress } = options;
   const panel = el('div', 'grownups');
   const sample = sampleLine();
   let showing = false;
+  let resetArmed = false;
+  let resetFailed = false;
 
   function close() {
     showing = false;
+    resetArmed = false;
+    resetFailed = false;
     narrator.stop();
     panel.remove();
     markSeen();
@@ -196,8 +203,8 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'p',
         'grownups__lead',
         'A quiet solar system for a child of about five to eight. There is nothing to ' +
-          'lose, nothing to get wrong, and no way to get stuck — Fly Home is on screen ' +
-          'the whole time.',
+          'lose, nothing to get wrong, and no way to get stuck — once a world is reached, ' +
+          'Fly Home is always there.',
       ),
     );
 
@@ -286,6 +293,62 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     inner.append(sound);
 
     inner.append(voiceSection());
+
+    /*
+     * A precise reset rather than asking a parent or tester to clear all browser storage.
+     * Site-data clearing also removes the offline shell and device choices; none of those
+     * are the child's adventure. Two deliberate presses protect a completed journal from
+     * an exploratory adult tap without bringing in a browser-native confirmation dialog.
+     */
+    const progress = loadProgress();
+    const hasProgress =
+      progress.discoveries.length > 0 || progress.visited.length > 0 || progress.stickers.length > 0;
+    const progressSection = el('section', 'grownups__section');
+    progressSection.append(el('h3', 'grownups__heading', 'Progress'));
+    const progressCount = progress.discoveries.length;
+    progressSection.append(
+      el(
+        'p',
+        'grownups__note',
+        !hasProgress
+          ? 'This adventure has not saved any visits or discoveries yet.'
+          : `${progressCount} ${progressCount === 1 ? 'place' : 'places'} found · ` +
+              `${progress.visited.length} ${progress.visited.length === 1 ? 'world' : 'worlds'} visited.`,
+      ),
+    );
+    const reset = el('button', 'grownups__auto grownups__reset') as HTMLButtonElement;
+    reset.type = 'button';
+    reset.disabled = !hasProgress;
+    reset.textContent = resetArmed ? 'Tap again to erase the journal' : 'Start a new adventure';
+    reset.classList.toggle('is-confirming', resetArmed);
+    reset.addEventListener('click', () => {
+      if (!resetArmed) {
+        resetArmed = true;
+        resetFailed = false;
+        render();
+        return;
+      }
+      if (!resetProgress()) {
+        resetFailed = true;
+        render();
+        return;
+      }
+      onResetProgress();
+      close();
+    });
+    progressSection.append(reset);
+    if (resetArmed) {
+      progressSection.append(
+        el(
+          'p',
+          'grownups__warning',
+          resetFailed
+            ? 'This browser would not allow the saved journal to be changed.'
+            : 'This permanently removes every visit, discovery and earned sticker.',
+        ),
+      );
+    }
+    inner.append(progressSection);
 
     // Whether the device is asking for reduced motion changes what the game does, and
     // there is no way to see that from inside it. Worth a line, since a tablet can have

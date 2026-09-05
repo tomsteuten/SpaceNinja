@@ -49,6 +49,15 @@ import type { QualitySettings } from './quality';
 
 export type BodyId = 'earth' | 'moon' | 'mars' | 'saturn';
 
+/** Long enough to read as a reveal, short enough not to hold up the next choice. */
+export const WORLD_REVEAL_DURATION = 0.9;
+
+/** Exported because the endpoints and clamp are the parts a silent frame-rate bug breaks. */
+export function worldRevealEase(progress: number): number {
+  const t = THREE.MathUtils.clamp(progress, 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 export interface CelestialBody {
   id: BodyId;
   label: string;
@@ -106,7 +115,11 @@ export interface World {
    * orbiting — this is visibility, not a freeze — so revealing it later does not teleport it.
    * The caller drives this from progress; the world holds no opinion about who has been where.
    */
-  setRevealed(ids: Iterable<BodyId>): void;
+  /**
+   * Show exactly these worlds. Newly shown worlds can arrive as a short, non-blocking
+   * reveal; returns their ids so the interface can announce the same event.
+   */
+  setRevealed(ids: Iterable<BodyId>, animate?: boolean): BodyId[];
   setSelected(id: BodyId | null): void;
   /** 0 freezes the Moon mid-orbit so the flight has a stationary destination. */
   setOrbitSpeedScale(scale: number): void;
@@ -776,13 +789,79 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   // (tests, and any future caller) sees a change in behaviour.
   const revealed = new Set<BodyId>(Object.keys(roots) as BodyId[]);
 
-  function setRevealed(ids: Iterable<BodyId>) {
+  interface MaterialRestingState {
+    material: THREE.Material;
+    opacity: number;
+    transparent: boolean;
+  }
+
+  interface RevealVisual {
+    scale: THREE.Vector3;
+    materials: MaterialRestingState[];
+  }
+
+  const revealVisuals = {} as Record<BodyId, RevealVisual>;
+  for (const id of Object.keys(roots) as BodyId[]) {
+    const materials = new Set<THREE.Material>();
+    roots[id].traverse((object) => {
+      const renderable = object as THREE.Mesh | THREE.Sprite;
+      const assigned = renderable.material;
+      if (Array.isArray(assigned)) assigned.forEach((material) => materials.add(material));
+      else if (assigned) materials.add(assigned);
+    });
+    revealVisuals[id] = {
+      scale: roots[id].scale.clone(),
+      materials: [...materials].map((material) => ({
+        material,
+        opacity: material.opacity,
+        transparent: material.transparent,
+      })),
+    };
+  }
+
+  const revealing = new Map<BodyId, number>();
+
+  function finishReveal(id: BodyId) {
+    const visual = revealVisuals[id];
+    roots[id].scale.copy(visual.scale);
+    for (const resting of visual.materials) {
+      const transparencyChanged = resting.material.transparent !== resting.transparent;
+      resting.material.opacity = resting.opacity;
+      resting.material.transparent = resting.transparent;
+      if (transparencyChanged) resting.material.needsUpdate = true;
+    }
+    revealing.delete(id);
+  }
+
+  function beginReveal(id: BodyId) {
+    const visual = revealVisuals[id];
+    roots[id].scale.copy(visual.scale).multiplyScalar(0.86);
+    for (const resting of visual.materials) {
+      resting.material.opacity = 0;
+      if (!resting.material.transparent) {
+        resting.material.transparent = true;
+        resting.material.needsUpdate = true;
+      }
+    }
+    revealing.set(id, 0);
+  }
+
+  function setRevealed(ids: Iterable<BodyId>, animate = false): BodyId[] {
     const next = new Set<BodyId>(ids);
+    const newlyRevealed = [...next].filter((id) => !revealed.has(id));
     for (const id of Object.keys(roots) as BodyId[]) {
-      roots[id].visible = next.has(id);
+      if (!next.has(id)) {
+        finishReveal(id);
+        roots[id].visible = false;
+        continue;
+      }
+      roots[id].visible = true;
+      if (newlyRevealed.includes(id) && animate) beginReveal(id);
+      else if (!revealing.has(id)) finishReveal(id);
     }
     revealed.clear();
     for (const id of next) revealed.add(id);
+    return newlyRevealed;
   }
 
   return {
@@ -790,7 +869,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     bodies,
     get hitMeshes() {
       return (Object.keys(bodyHits) as BodyId[])
-        .filter((id) => revealed.has(id))
+        // A half-visible planet is an announcement, not yet a target. Waiting until the
+        // fade lands prevents a quick tap passing through the small visual into a huge hit.
+        .filter((id) => revealed.has(id) && !revealing.has(id))
         .flatMap((id) => bodyHits[id]);
     },
     setRevealed,
@@ -802,6 +883,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
     reset() {
       orbitSpeedScale = 1;
+      // A reset may interrupt a reveal (for example, the adult clears progress). Restore
+      // every material before the next setRevealed call decides what remains on screen.
+      for (const id of [...revealing.keys()]) finishReveal(id);
       // A backstop, not the normal path: whoever called holdSurface releases it, and the
       // mission does. This is here because a hold that outlives its owner leaves a planet
       // frozen for the rest of the session, which is a bad enough failure to guard twice.
@@ -812,6 +896,18 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     },
 
     update(dt: number, elapsed: number, camera: THREE.Camera) {
+      for (const [id, previous] of [...revealing]) {
+        const progress = Math.min(1, previous + dt / WORLD_REVEAL_DURATION);
+        const eased = worldRevealEase(progress);
+        const visual = revealVisuals[id];
+        roots[id].scale.copy(visual.scale).multiplyScalar(0.86 + eased * 0.14);
+        for (const resting of visual.materials) {
+          resting.material.opacity = resting.opacity * eased;
+        }
+        if (progress >= 1) finishReveal(id);
+        else revealing.set(id, progress);
+      }
+
       // A held body subtracts its orbit back out, so the surface stays put in the world
       // while the body itself keeps travelling. Earth has no orbit to subtract.
       const earthHold = holds.earth;

@@ -23,11 +23,23 @@ export interface SelectionInfo {
   flyLabel: string | null;
 }
 
+export interface DestinationChoice {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
 export interface GameUI {
   setHint(text: string | null): void;
+  /** Large, stable alternatives to tapping small moving worlds in the canvas. */
+  showDestinations(
+    choices: readonly DestinationChoice[],
+    selectedId?: string | null,
+    newlyRevealedId?: string | null,
+  ): void;
   showSelection(selection: SelectionInfo | null): void;
   /** Called when the flight starts: everything clears out of the way. */
-  enterFlight(): void;
+  enterFlight(steerable?: boolean): void;
   showArrival(cueId: string, label: string, fact: string): void;
   /**
    * Puts up the progress counter. A beat after arrival, so the fact is read first, and
@@ -96,6 +108,7 @@ export interface UIOptions {
   root: HTMLElement;
   narrator: Narrator;
   onFly(): void;
+  onChooseDestination(id: string): void;
   onExploreAgain(): void;
   /** The "turn this world through a day" button. Only offered where config has one. */
   onSpin(): void;
@@ -124,7 +137,16 @@ function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 export function createUI(options: UIOptions): GameUI {
-  const { root, narrator, onFly, onExploreAgain, onSpin, onGrownups, onFinale } = options;
+  const {
+    root,
+    narrator,
+    onFly,
+    onChooseDestination,
+    onExploreAgain,
+    onSpin,
+    onGrownups,
+    onFinale,
+  } = options;
   const timers: number[] = [];
 
   function later(callback: () => void, delay: number) {
@@ -140,6 +162,41 @@ export function createUI(options: UIOptions): GameUI {
 
   const hint = el('p', 'hint');
   root.append(hint);
+
+  /*
+   * The moving 3D bodies remain tappable, but are no longer the only way to choose. In the
+   * widest map the inner worlds are necessarily tiny, and a generous invisible sphere does
+   * not help a child understand which speck it belongs to. These stable, word-and-picture
+   * controls are large enough for a finger and preserve the scene as scenery rather than
+   * asking it to carry the whole navigation system.
+   */
+  const destinationBar = el('nav', 'destination-bar is-hidden');
+  destinationBar.setAttribute('aria-label', 'Choose a world');
+  root.append(destinationBar);
+
+  function showDestinations(
+    choices: readonly DestinationChoice[],
+    selectedId: string | null = null,
+    newlyRevealedId: string | null = null,
+  ) {
+    destinationBar.replaceChildren();
+    destinationBar.style.setProperty('--destination-count', String(choices.length));
+    for (const choice of choices) {
+      const button = el('button', 'destination-choice') as HTMLButtonElement;
+      button.type = 'button';
+      button.setAttribute('aria-label', `Choose ${choice.label}`);
+      button.classList.toggle('is-selected', choice.id === selectedId);
+      button.classList.toggle('is-new', choice.id === newlyRevealedId);
+      button.append(
+        el('span', 'destination-choice__emoji', choice.emoji),
+        el('span', 'destination-choice__label', choice.label),
+      );
+      button.addEventListener('click', () => onChooseDestination(choice.id));
+      destinationBar.append(button);
+    }
+    destinationBar.classList.toggle('is-hidden', choices.length === 0);
+    dock.classList.toggle('is-map-selection', Boolean(selectedId));
+  }
 
   /* --- mission HUD --------------------------------------------------------- */
 
@@ -678,6 +735,7 @@ export function createUI(options: UIOptions): GameUI {
 
   return {
     setHint,
+    showDestinations,
 
     showSelection(selection: SelectionInfo | null) {
       if (!selection) {
@@ -695,17 +753,23 @@ export function createUI(options: UIOptions): GameUI {
       }
     },
 
-    enterFlight() {
+    enterFlight(steerable = false) {
+      destinationBar.classList.add('is-hidden');
+      dock.classList.remove('is-map-selection');
+      // This can be an outbound flight or Fly Home. In the latter case the old mission
+      // rings and instruction otherwise hover over the receding solar-system map.
+      missionHud.classList.add('is-hidden');
       namePill.classList.add('is-hidden');
       flyButton.classList.add('is-hidden');
       spinButton.classList.add('is-hidden');
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
       setHomeAvailable(false);
-      setHint(null);
+      setHint(steerable ? '☝️ ↔️  Steer the ship' : null);
     },
 
     showArrival(cueId: string, label: string, fact: string) {
+      destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
       namePill.textContent = label;
       namePill.classList.remove('is-hidden');
@@ -930,6 +994,9 @@ export function createUI(options: UIOptions): GameUI {
         // Or the animation will not replay the next time the node is shown.
         node.classList.remove('fade-in');
       }
+      destinationBar.classList.add('is-hidden');
+      destinationBar.replaceChildren();
+      dock.classList.remove('is-map-selection');
       missionHud.classList.remove('fade-in-centred');
       dock.classList.remove('is-hidden');
     },

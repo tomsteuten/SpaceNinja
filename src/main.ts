@@ -26,6 +26,7 @@ import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
 import { createOrbitInput } from './controls/OrbitInput';
+import { createPilotInput } from './controls/PilotInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
 import {
@@ -174,8 +175,22 @@ async function main() {
    * crossing Saturn's rings until Mars has actually been reached. Re-applied on every return to
    * the map, since visiting a world is what unlocks the next. See revealedDestinations.
    */
-  function applyReveal() {
-    world.setRevealed(revealedDestinations(loadProgress().visited) as BodyId[]);
+  function visibleDestinationIds(): BodyId[] {
+    return revealedDestinations(loadProgress().visited) as BodyId[];
+  }
+
+  function applyReveal(animate = false): BodyId[] {
+    return world.setRevealed(visibleDestinationIds(), animate && !reducedMotion);
+  }
+
+  function mapChoices() {
+    return visibleDestinationIds().map((id) => ({
+      id,
+      // The full scene name is "The Moon"; a four-choice phone bar has room for the
+      // identity, not the article. Keeping this derivation here avoids duplicate copy.
+      label: world.bodies[id].label.replace(/^The /, ''),
+      emoji: DESTINATIONS[id]?.emoji ?? '✨',
+    }));
   }
 
   const controls = createOrbitInput({
@@ -209,7 +224,9 @@ async function main() {
       sfx.setMuted(!on);
       ui.setSoundOn(on);
     },
+    onResetProgress: () => restart(),
   });
+  const pilot = createPilotInput({ element: canvas });
   if (shouldGreet(asked)) grownups.show();
 
   const ui = createUI({
@@ -229,8 +246,9 @@ async function main() {
       // suspended and only let it resume inside a gesture like this one.
       sfx.resume();
       narrator.resume();
-      ui.enterFlight();
+      ui.enterFlight(true);
     },
+    onChooseDestination: (id) => chooseDestination(id as BodyId),
     onExploreAgain: () => {
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
@@ -280,6 +298,7 @@ async function main() {
     trail,
     world,
     controls,
+    pilot,
     home: world.bodies.earth,
     reducedMotion,
     // The engine, from the same two numbers the exhaust and the widening view are drawn
@@ -417,12 +436,24 @@ async function main() {
     const hit = raycaster.intersectObjects(world.hitMeshes, false)[0];
     const id = hit?.object.userData.bodyId as BodyId | undefined;
 
-    selected = id ?? null;
+    if (!id) {
+      chooseDestination(null);
+      ui.showTapEcho(clientX, clientY);
+      return;
+    }
+    chooseDestination(id);
+  }
+
+  function chooseDestination(id: BodyId | null) {
+    if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
+    if (id && !visibleDestinationIds().includes(id)) return;
+
+    selected = id;
     world.setSelected(selected);
+    ui.showDestinations(mapChoices(), selected);
 
     if (!selected) {
       ui.showSelection(null);
-      ui.showTapEcho(clientX, clientY);
       return;
     }
     ui.setHint(null);
@@ -443,25 +474,41 @@ async function main() {
 
   let nudge = 0;
 
-  function showOpeningHints() {
+  function showOpeningHints(newlyRevealed?: BodyId) {
     window.clearTimeout(nudge);
-    // Once the shot has widened there is a new thing on screen, so the nudge points at the
-    // newest world rather than at the one the child has already been to. The gesture
-    // pictures carry the instruction for a child who cannot read the words; audio cannot do
-    // this first job, because no user gesture has unlocked playback yet.
-    const radius = framingRadius();
-    if (radius === FRAMING_RADIUS_WIDER) {
-      ui.setHint('👀 🪐  A new world is out there');
-    } else if (radius === FRAMING_RADIUS_WIDE) {
-      ui.setHint('👀 🔴  A new world is out there');
-    } else {
+    if (newlyRevealed) {
+      const config = DESTINATIONS[newlyRevealed];
+      const label = world.bodies[newlyRevealed].label;
+      ui.setHint(`✨ ${config?.emoji ?? ''}  ${label} is ready`);
+      nudge = window.setTimeout(() => {
+        if (flight.phase !== 'idle' || selected) return;
+        ui.setHint(`👆 ${config?.emoji ?? ''}  Choose ${label}`);
+      }, 3600);
+      return;
+    }
+    // Point at a place that is genuinely unvisited, furthest earned world first. Once the
+    // outer journey is done this naturally brings Earth back into the story instead of
+    // claiming Saturn is "new" forever. Audio cannot do this first job because no user
+    // gesture has unlocked playback yet, so the gesture pictures still carry the action.
+    const visited = new Set(loadProgress().visited);
+    const visible = visibleDestinationIds();
+    const next =
+      [...visible].reverse().find((id) => id !== 'earth' && !visited.has(id)) ??
+      (visible.includes('earth') && !visited.has('earth') ? 'earth' : null);
+    if (!next) {
+      ui.setHint('👆 Choose a world');
+      return;
+    }
+    const nextBody = world.bodies[next];
+    const nextEmoji = DESTINATIONS[next]?.emoji ?? '✨';
+    if (next === 'moon') {
       ui.setHint('☝️ ↔️  Drag to look around');
+    } else {
+      ui.setHint(`👀 ${nextEmoji}  A new world is out there`);
     }
     nudge = window.setTimeout(() => {
       if (flight.phase !== 'idle' || selected) return;
-      if (radius === FRAMING_RADIUS_WIDER) ui.setHint('👆 🪐  Tap Saturn');
-      else if (radius === FRAMING_RADIUS_WIDE) ui.setHint('👆 🔴  Tap Mars');
-      else ui.setHint('👆 🌙  Tap the Moon');
+      ui.setHint(`👆 ${nextEmoji}  Choose ${nextBody.label.replace(/^The /, '')}`);
     }, 6500);
   }
 
@@ -469,6 +516,7 @@ async function main() {
   const soundOn = loadSoundOn();
   sfx.setMuted(!soundOn);
   ui.setSoundOn(soundOn);
+  ui.showDestinations(mapChoices());
 
   showOpeningHints();
 
@@ -486,6 +534,7 @@ async function main() {
     activeMission = null;
     dayTurn.reset();
     flight.reset();
+    pilot.reset();
     // Idle whether it drove us here or Explore Again cut straight in; it holds no scene state.
     homeReturn.reset();
     // Both of those were being *driven* by the modules above, so stopping them stops
@@ -498,8 +547,9 @@ async function main() {
     // Or the last flight's exhaust hangs in space, still out at the destination.
     trail.reset();
     world.reset();
-    // A world visited this run may have unlocked the next one; re-apply before the map shows.
-    applyReveal();
+    // A world visited this run may have unlocked the next one. It appears only after the
+    // pull-back lands, when the map is stable enough for the reveal to be understood.
+    const newlyRevealed = applyReveal(true);
 
     controls.reset();
     controls.setFocusRadius(world.bodies.earth.radius);
@@ -510,7 +560,8 @@ async function main() {
     follow = 'earth';
 
     ui.reset();
-    showOpeningHints();
+    ui.showDestinations(mapChoices(), null, newlyRevealed[0] ?? null);
+    showOpeningHints(newlyRevealed[0]);
   }
 
   /* --- frame loop ---------------------------------------------------------- */
@@ -549,6 +600,7 @@ async function main() {
     }
 
     ship.update(dt, elapsed);
+    pilot.update(dt);
     flight.update(dt);
     // The pull-back owns the camera while it runs, like the flight does; suspend orbit
     // control for it so the two are not both writing the camera on the same frame.
@@ -565,7 +617,10 @@ async function main() {
         // sphere alone; it falls back to the plain radius for every other body. The same
         // interface inset keeps the subject out from under the dock as it does on the map.
         controls.frame(
-          follow === 'earth' ? framingRadius() : (body.viewRadius ?? body.radius) * 2.6,
+          // Match the arrival composition after rotation. The old 2.6 multiplier treated
+          // frame()'s subject radius like a camera distance and shrank Saturn to a thumbnail
+          // in phone landscape; 1.4 is the same breathing room arrivalDistance authors.
+          follow === 'earth' ? framingRadius() : (body.viewRadius ?? body.radius) * 1.4,
           false,
           framingInset(),
         );
@@ -616,6 +671,7 @@ async function main() {
     window.clearTimeout(nudge);
     document.removeEventListener('visibilitychange', onVisibilityChange);
     controls.dispose();
+    pilot.dispose();
     ui.dispose();
     grownups.dispose();
     narrator.dispose();

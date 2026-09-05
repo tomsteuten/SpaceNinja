@@ -232,6 +232,8 @@ export interface Discovery {
  * generic and takes the body at runtime, so only the copy lives here.
  */
 export interface DestinationConfig {
+  /** Wordless identity used by the large map controls and reveal announcement. */
+  emoji: string;
   /** Text on the button that launches the flight. */
   flyLabel: string;
   /** Shown on arrival. */
@@ -282,6 +284,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
    * direction the Sun already dominates.
    */
   earth: {
+    emoji: '🌍',
     flyLabel: 'Fly to Earth',
     spin: {
       label: 'Spin the Earth',
@@ -353,6 +356,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     },
   },
   moon: {
+    emoji: '🌙',
     flyLabel: 'Fly to the Moon',
     // The footprints used to be this line. They belong to a *place*, so they moved down
     // into it — an arrival fact is about the whole world, and this one now is.
@@ -408,6 +412,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     },
   },
   mars: {
+    emoji: '🔴',
     flyLabel: 'Fly to Mars',
     // Revealed once the Moon has been visited — the same gate WIDE_FRAMING_VISIT widens on.
     revealAfterVisiting: 'moon',
@@ -462,6 +467,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     },
   },
   saturn: {
+    emoji: '🪐',
     flyLabel: 'Fly to Saturn',
     // Revealed once Mars has been visited — the same gate WIDER_FRAMING_VISIT widens on. This
     // is what stops Saturn looming into the opening shot before a child has earned it, and

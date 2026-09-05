@@ -12,6 +12,7 @@
 
 import * as THREE from 'three';
 import type { OrbitInput } from '../controls/OrbitInput';
+import type { PilotInput } from '../controls/PilotInput';
 import type { Spaceship } from '../scene/Spaceship';
 import type { CelestialBody, World } from '../scene/Bodies';
 import type { EngineTrail } from '../scene/EngineTrail';
@@ -50,6 +51,8 @@ export interface FlightOptions {
   trail: EngineTrail;
   world: World;
   controls: OrbitInput;
+  /** Optional child-driven offset layered over the guaranteed route. */
+  pilot?: PilotInput;
   /** Where the ship departs from. The arc is bowed away from this, so it never cuts through it. */
   home: CelestialBody;
   reducedMotion: boolean;
@@ -84,7 +87,7 @@ function smoothBetween(value: number, from: number, to: number): number {
 }
 
 export function createFlightSequence(options: FlightOptions): FlightSequence {
-  const { camera, scene, ship, trail, world, controls, home, reducedMotion, onArrive } = options;
+  const { camera, scene, ship, trail, world, controls, pilot, home, reducedMotion, onArrive } = options;
   const { onThrottle } = options;
   // Deliberately not shortened under reduced motion — see FLIGHT_DURATION in config.ts.
   const duration = FLIGHT_DURATION;
@@ -116,6 +119,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
   const bodyPosition = new THREE.Vector3();
   const facing = new THREE.Vector3();
   const tailPoint = new THREE.Vector3();
+  const pilotedPoint = new THREE.Vector3();
 
   /**
    * How far the camera sits behind the ship, in the chase offset's own units. It closes
@@ -303,6 +307,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       buildPath(destination, aimLatitude);
 
       controls.enabled = false;
+      pilot?.start();
       world.setOrbitSpeedScale(0);
       world.setSelected(null);
       return true;
@@ -327,7 +332,17 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       curve.getPointAt(t, point);
       curve.getTangentAt(t, tangent);
 
-      ship.group.position.copy(point);
+      // The route remains the source of truth, but a drag can move the ship within a
+      // generous corridor through its middle. Fading that freedom at both ends prevents
+      // a child's last-moment swipe from breaking departure or the carefully framed arrival.
+      const pilotInfluence =
+        smoothBetween(progress, 0.04, 0.18) * (1 - smoothBetween(progress, 0.7, 0.94));
+      pilotedPoint
+        .copy(point)
+        .addScaledVector(side, (pilot?.offset.x ?? 0) * 0.75 * chaseScale * pilotInfluence)
+        .addScaledVector(UP, (pilot?.offset.y ?? 0) * 0.55 * chaseScale * pilotInfluence);
+
+      ship.group.position.copy(pilotedPoint);
       // Swing the nose round to face the Moon over the last stretch, so the ship settles
       // broadside to the camera instead of pointing its exhaust straight down the lens.
       facing.copy(tangent).lerp(lateral, smoothBetween(progress, 0.72, 1)).normalize();
@@ -341,7 +356,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       // while the ship flies on. Offset back along the heading by roughly the length of
       // the hull, so it leaves the engines rather than the middle of the ship.
       if (!reducedMotion) {
-        tailPoint.copy(point).addScaledVector(facing, -0.14);
+        tailPoint.copy(pilotedPoint).addScaledVector(facing, -0.14);
         trail.emit(tailPoint, thrust, dt);
       }
 
@@ -355,11 +370,11 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       // three-quarter view rather than as a silhouette around its own exhaust.
       const chaseDistance = THREE.MathUtils.lerp(CHASE_FAR, CHASE_NEAR, cruise);
       chase
-        .copy(point)
+        .copy(pilotedPoint)
         .addScaledVector(tangent, -chaseDistance * chaseScale)
         .addScaledVector(UP, 0.6 * chaseScale)
         .addScaledVector(side, 0.55 * chaseScale);
-      ahead.copy(point).addScaledVector(tangent, 1.1 * chaseScale);
+      ahead.copy(pilotedPoint).addScaledVector(tangent, 1.1 * chaseScale);
 
       // Widen the view at cruise. Measured against the *current* resting FOV rather than
       // one captured at launch, so rotating the device mid-flight still lands correctly.
@@ -377,6 +392,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
 
       /* --- arrival ---------------------------------------------------------- */
       phase = 'arrived';
+      pilot?.stop();
       ship.setThrust(0);
       // The plateau has already fallen to near nothing by here; say so exactly, because
       // "near nothing" is a quiet engine still running for the rest of the visit.
