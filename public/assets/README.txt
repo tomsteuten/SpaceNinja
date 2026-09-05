@@ -71,8 +71,8 @@ WHERE TO GET THEM
 -----------------
 
   Solar System Scope     https://www.solarsystemscope.com/textures/
-                         Earth, Moon, Sun, and a star map. Free for personal and
-                         educational use under CC BY 4.0 — credit "Solar System Scope".
+                         Earth, Moon, Mars, Saturn, Sun, and a star map. Available for
+                         any purpose under CC BY 4.0 — credit "Solar System Scope".
                          This is the easiest one-stop source; grab the 2K versions.
 
   NASA Visible Earth     https://visibleearth.nasa.gov/collection/1484/blue-marble
@@ -97,32 +97,32 @@ AFTER ADDING FILES
 Just reload the page. If a texture does not appear, open the browser console — the
 loader logs one line per texture saying whether it used the real file or a placeholder.
 
-Remember to credit any CC BY sources (like Solar System Scope) in the README. earth.jpg
-is already credited there — add yours to the same list.
+Remember to credit any CC BY sources (like Solar System Scope) in the README. Its installed
+textures are already credited there — add yours to the same list.
 
 
 SATURN ASSET STATUS
 -------------------
 
-  saturn.jpg      Intentionally absent; the generated fallback remains in use.
+  saturn.jpg      Installed Solar System Scope 2K Saturn texture, 2048 x 1024 JPEG.
+                  https://www.solarsystemscope.com/textures/download/2k_saturn.jpg
+                  SHA-256: 54A900CA9BF7AB62E70F862852759ABDF342E6D6436A95A2FE9EBDB6BCD3BBAC
 
-                  The full 3601 x 1801 Cassini ISS RGB map in NASA's PDS was downloaded,
+                  Solar System Scope describes the texture pack as based on NASA imagery
+                  and says unmapped gaps are filled with corresponding fictional terrain;
+                  its colours are also slightly saturated. It is therefore credited as a
+                  visual reconstruction, not represented as a wholly observed photograph.
+                  It replaces a fully generated fallback with an observation-grounded,
+                  seamless map whose bands remain legible to a child.
+
+                  The full 3601 x 1801 Cassini ISS RGB map in NASA's PDS was also downloaded,
                   converted and tested in the real scene. It is genuine and correctly
                   projected, but the rings blocked Cassini's view of broad latitude bands.
                   Those missing observations are black in the archive product and became
-                  enormous black belts on the globe. Filling them would make the result a
-                  fabricated composite, so the tested file was removed rather than shipped.
-                  Source checked: Cassini ISS Global Maps of Jupiter and Saturn,
-                  DOI 10.17189/rkkb-6y30, by Liming Li, Robert West, Xun Jiang and
-                  Benjamin Knowles.
+                  enormous black belts on the globe, so it was not shipped. Source checked:
+                  Cassini ISS Global Maps of Jupiter and Saturn, DOI 10.17189/rkkb-6y30,
+                  by Liming Li, Robert West, Xun Jiang and Benjamin Knowles.
                   https://atmos.nmsu.edu/PDS/data/PDS4/co_iss_global-maps/data_derived/
-
-                  Solar System Scope was also checked, but its own page says unmapped gaps
-                  are filled with fictional terrain. NASA's published Saturn 3D model was
-                  checked too, but its page does not establish its texture as Cassini
-                  imagery. Neither was substituted for the photographed map.
-                  https://www.solarsystemscope.com/textures/
-                  https://science.nasa.gov/resource/saturn-3d-model/
 
   saturn-rings.png
                   A radial transect through Cassini natural-colour mosaic PIA06175,

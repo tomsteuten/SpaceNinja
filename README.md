@@ -78,18 +78,17 @@ account or API key.
 
 ### Credits
 
-**Earth day and night maps, Moon, Mars and the star field** — `earth.jpg`,
-`earth-night.jpg`, `moon.jpg`, `mars.jpg` and `starfield.jpg` in `public/assets/`, from
-[Solar System Scope](https://www.solarsystemscope.com/textures/), licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA elevation and
-imagery data.
+**Planet and sky textures** — `earth.jpg`, `earth-night.jpg`, `moon.jpg`, `mars.jpg`,
+`saturn.jpg` and `starfield.jpg` in `public/assets/`, from [Solar System
+Scope](https://www.solarsystemscope.com/textures/), licensed [CC BY
+4.0](https://creativecommons.org/licenses/by/4.0/). They are based on NASA elevation and
+imagery data. Solar System Scope notes that unmapped areas are artistically completed and
+colours are slightly saturated, so Saturn's body is a visual reconstruction rather than a
+wholly observed global photograph.
 
 **Saturn's rings** — the radial ring texture is derived from Cassini natural-colour mosaic
-PIA06175, credit NASA/JPL/Space Science Institute. The body still uses its generated
-fallback: the genuine equirectangular Cassini product in NASA's PDS was tested, but its
-unobserved black latitude bands were unacceptable in the scene and were not filled with
-invented detail. The source search and exact limitation are documented in
-`public/assets/README.txt`.
+PIA06175, credit NASA/JPL/Space Science Institute. The source search and exact limitations
+of the archival Cassini body map are documented in `public/assets/README.txt`.
 
 **Discovery photographs** in `public/assets/discoveries/` — Sahara/Africa and Amazon
 River imagery from NASA Earth Observatory; Black Marble 2016 from NASA Goddard Space
