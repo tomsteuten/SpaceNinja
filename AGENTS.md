@@ -266,6 +266,17 @@ non-CI build); ask for it with the device report. Registration uses `updateViaCa
 so the worker update check reaches Pages without weakening the shell's cache-first,
 whole-build activation rule.
 
+**A new build lands on the launch that fetched it, not the one after — but only at the
+title.** `registerOffline()` in `main.ts` listens for `controllerchange` (the new worker's
+skipWaiting()/clients.claim() taking over this page) and reloads once. Two guards are
+load-bearing: it does nothing when there was no prior controller (a first install has no
+older shell to escape, so a reload would just flash the boot screen), and it asks
+`canReloadNow()` — false once a flight, selection or day turn is underway — so it never
+yanks the world out from under a child mid-play. When it declines, the update simply waits
+for the next launch, which is the pre-existing behaviour. This is what removes the "open the
+installed app twice" tax that made on-device testing feel like it cached forever; do not
+drop the guards to make it fire harder.
+
 **A media query adds no specificity.** This bit the fact card: a `@media (max-width: 560px)`
 block written *above* the base `.fact-card p` rule loses to it outright, so the card ran at
 full desktop type on a 390px phone — eight lines deep, covering 93% of the planet a child
