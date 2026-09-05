@@ -26,6 +26,11 @@ const requestedVoice = process.argv.find((argument) => argument.startsWith('--vo
 const requestedSpeed = process.argv.find((argument) => argument.startsWith('--speed='));
 const voice = requestedVoice?.slice('--voice='.length) || definition.kokoro.voice;
 const speed = Number(requestedSpeed?.slice('--speed='.length) || definition.kokoro.speed);
+const voiceLocale = voice.startsWith('bf_') || voice.startsWith('bm_')
+  ? 'British English'
+  : voice.startsWith('af_') || voice.startsWith('am_')
+    ? 'US English'
+    : 'English';
 
 if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) {
   throw new Error('Narration speed must be between 0.5 and 2.');
@@ -98,7 +103,7 @@ await writeFile(
       speed,
       modelLicense: 'Apache-2.0',
       modelSource: 'https://huggingface.co/hexgrad/Kokoro-82M',
-      disclosure: 'The included narration uses the open-weight Kokoro AI voice model.',
+      disclosure: `The included narration uses Kokoro's ${voiceLocale} ${voice} AI voice.`,
     },
     null,
     2,

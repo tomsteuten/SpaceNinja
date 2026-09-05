@@ -331,7 +331,7 @@ poor `SpeechSynthesis` voice; that fallback remains available only from the spea
 This makes a partial voice pack safe to ship and keeps silence preferable to bad narration.
 
 `npm run narration:generate` creates the MP3 pack locally with the Apache-licensed
-Kokoro-82M model. The default `af_heart` voice is slowed slightly, then every cue is
+Kokoro-82M model. The default British `bf_emma` voice is slowed slightly, then every cue is
 normalised and compressed by `ffmpeg` for a phone speaker. The first run downloads about
 90MB of model weights into a temporary cache; no script text or audio is sent to a service.
 The command preserves existing files unless passed `--force`, and accepts `--voice=<name>`

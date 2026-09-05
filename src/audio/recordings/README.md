@@ -26,7 +26,8 @@ npm install --no-save kokoro-js   # then: npm run narration:generate
 
 The OpenAI path needs no install at all (it is a plain `fetch`), only `OPENAI_API_KEY` in
 the environment. Kokoro-82M has no Australian voice; American (`af_`/`am_`) and British
-(`bf_`/`bm_`) are the English options — the shipped pack uses `af_heart`.
+(`bf_`/`bm_`) are the English options — the shipped pack uses the British `bf_emma` as the
+closest available fallback.
 
 Both generators write `provenance.json` beside the MP3s to supply the adult-facing AI
 disclosure. A human recording pack may replace it with its own plain-language origin note.

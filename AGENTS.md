@@ -470,13 +470,14 @@ asked to speak; automatic playback is never enabled for a cue without a bundled 
 
 `npm run narration:generate` reads `narration-script.json` and runs the Apache-2.0
 Kokoro-82M model locally. It needs no account or API key. The q8 model is about 90MB in a
-task-specific temporary cache; only the 880KB MP3 pack is shipped. `ffmpeg` normalises every
+task-specific temporary cache; only the 1.15MB MP3 pack is shipped. `ffmpeg` normalises every
 cue to -16 LUFS and encodes 24kHz mono MP3. `kokoro-js` is deliberately **not** a committed
 dependency — its `onnxruntime`/`sharp`/`@huggingface/transformers` tree is hundreds of MB of
 native binaries that `npm ci` would install on every deploy for a step the deploy never runs.
 Install it just for the generation run (`npm install --no-save kokoro-js`); the recordings
 README carries the same note. Kokoro ships no Australian voice (American `af_`/`am_` and
-British `bf_`/`bm_` are the English options); the pack uses `af_heart`. The command preserves existing MP3s unless
+British `bf_`/`bm_` are the English options); the pack uses the British `bf_emma` as the
+closest available fallback. The command preserves existing MP3s unless
 `--force` is passed and accepts `--voice=<name>` / `--speed=<number>`. The older OpenAI path
 remains available as `npm run narration:generate:openai`, but is not needed for the included
 pack. Generated voices must stay clearly disclosed as AI-generated in the grown-ups panel.
@@ -543,7 +544,7 @@ Then, in code:
    which only earns its keep on a notched device. If the game is ever handed to someone with
    an iPad, that is where it will break, and nobody has looked.
 
-7. **Listen to and child-test the narration pack.** The 19 Kokoro clips, keyed loader and
+7. **Listen to and child-test the narration pack.** The 25 Kokoro clips, keyed loader and
    generator are done, but audio measurements do not establish whether a five-year-old
    understands the delivery. Try voice or speed changes in `narration-script.json`,
    regenerate with `--force`, then watch whether the child taps or swipes after the cue
