@@ -9,6 +9,12 @@ import type { Narrator } from '../audio/narration';
 import { DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
 import { STICKERS, foundEverything, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup } from './icons';
+import {
+  guideOnArrival,
+  narrationOnEnd,
+  shouldAutoNarrate,
+  type PendingGuide,
+} from './narrationFlow';
 import { createPhotoViewer, findPhoto } from './photos';
 
 export interface SelectionInfo {
@@ -424,7 +430,7 @@ export function createUI(options: UIOptions): GameUI {
 
   let currentFact = '';
   let currentFactCueId: string | null = null;
-  let pendingGuide: { text: string; cueId: string } | null = null;
+  let pendingGuide: PendingGuide | null = null;
   // Tapping the words puts them away. The card is wide and the destination is now close
   // enough to fill the frame behind it, so a place worth finding can end up underneath it
   // — and a tap that lands on the card instead of on the ring it is covering has to do
@@ -453,17 +459,20 @@ export function createUI(options: UIOptions): GameUI {
   narrator.onChange((speaking) => {
     narrateButton.classList.toggle('is-speaking', speaking);
     narrateButton.setAttribute('aria-label', speaking ? 'Stop reading' : 'Read this out loud');
-    if (!speaking && pendingGuide && soundOn) {
-      const guide = pendingGuide;
-      pendingGuide = null;
-      // A breath after the discovery rather than two recordings joined into one sentence.
-      later(() => {
-        if (soundOn) narrator.speak(guide.text, guide.cueId, false);
-      }, 350);
-    } else if (!speaking) {
-      // Fold away shortly after the reading finishes rather than on a fixed timer, so the
-      // card is never taken away mid-sentence.
-      scheduleCollapse(1600);
+    if (!speaking) {
+      const action = narrationOnEnd(pendingGuide, soundOn);
+      if (action.kind === 'speak-guide') {
+        pendingGuide = null;
+        const { guide } = action;
+        // A breath after the discovery rather than two recordings joined into one sentence.
+        later(() => {
+          if (soundOn) narrator.speak(guide.text, guide.cueId, false);
+        }, 350);
+      } else {
+        // Fold away shortly after the reading finishes rather than on a fixed timer, so the
+        // card is never taken away mid-sentence.
+        scheduleCollapse(1600);
+      }
     }
   });
   /*
@@ -660,7 +669,7 @@ export function createUI(options: UIOptions): GameUI {
     factCard.classList.add('fade-in');
     // Only authored audio starts itself. A partial voice pack never makes the platform's
     // poor fallback begin talking, and the paragraph remains fully visible for that cue.
-    if (soundOn && narrator.hasRecording(currentFactCueId)) {
+    if (shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn)) {
       factCard.classList.add('is-audio-first');
       narrator.speak(text, currentFactCueId, false);
     }
@@ -727,10 +736,13 @@ export function createUI(options: UIOptions): GameUI {
       missionCaption.textContent = text;
       // Wait behind the discovery narration rather than interrupting the reward the child
       // just earned. Without an authored cue the visual hand/arrow remains the instruction.
-      if (cueId && soundOn && narrator.hasRecording(cueId)) {
-        if (narrator.speaking) pendingGuide = { text, cueId };
-        else narrator.speak(text, cueId, false);
-      }
+      const arrival = guideOnArrival({
+        hasRecording: narrator.hasRecording(cueId ?? null),
+        soundOn,
+        speaking: narrator.speaking,
+      });
+      if (arrival === 'queue') pendingGuide = { text, cueId: cueId as string };
+      else if (arrival === 'speak') narrator.speak(text, cueId, false);
     },
 
     showNote(cueId: string, title: string, text: string) {
