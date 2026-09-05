@@ -13,6 +13,7 @@ import {
   guideOnArrival,
   narrationOnEnd,
   shouldAutoNarrate,
+  transcriptControlState,
   type PendingGuide,
 } from './narrationFlow';
 import { createPhotoViewer, findPhoto } from './photos';
@@ -40,6 +41,8 @@ export interface GameUI {
   showSelection(selection: SelectionInfo | null): void;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(steerable?: boolean): void;
+  /** The child has dragged the ship, so the temporary gesture demonstration can leave. */
+  acknowledgeSteering(): void;
   showArrival(cueId: string, label: string, fact: string): void;
   /**
    * Puts up the progress counter. A beat after arrival, so the fact is read first, and
@@ -164,6 +167,34 @@ export function createUI(options: UIOptions): GameUI {
   root.append(hint);
 
   /*
+   * A moving hand rather than another sentence. The static hint still names the action for
+   * a reader, while this briefly demonstrates it for the children who cannot read yet.
+   * It never captures a pointer and leaves on the first real steer (or by itself).
+   */
+  const steerCue = el('div', 'steer-cue is-hidden');
+  steerCue.setAttribute('aria-hidden', 'true');
+  steerCue.append(
+    el('span', 'steer-cue__arrow', '‹'),
+    el('span', 'steer-cue__hand', '☝️'),
+    el('span', 'steer-cue__arrow', '›'),
+  );
+  root.append(steerCue);
+  let steerCueTimer = 0;
+
+  function hideSteerCue() {
+    window.clearTimeout(steerCueTimer);
+    steerCue.classList.add('is-hidden');
+  }
+
+  function showSteerCue(show: boolean) {
+    hideSteerCue();
+    if (!show) return;
+    steerCue.classList.remove('is-hidden');
+    steerCueTimer = window.setTimeout(hideSteerCue, 4200);
+    timers.push(steerCueTimer);
+  }
+
+  /*
    * The moving 3D bodies remain tappable, but are no longer the only way to choose. In the
    * widest map the inner worlds are necessarily tiny, and a generous invisible sphere does
    * not help a child understand which speck it belongs to. These stable, word-and-picture
@@ -243,6 +274,7 @@ export function createUI(options: UIOptions): GameUI {
   // still match three words against the ring they just tapped.
   const factTitle = el('strong', 'fact-title');
   const factText = el('p');
+  factText.id = 'fact-transcript';
   const narrateButton = el('button', 'btn btn--round narrate-btn');
   narrateButton.append(createIcon('speaker'));
   narrateButton.type = 'button';
@@ -269,12 +301,24 @@ export function createUI(options: UIOptions): GameUI {
   factPhoto.append(factPhotoImage, factPhotoZoom);
   factPhoto.classList.add('is-hidden');
 
+  /*
+   * Automatic narration keeps the card compact, but never makes the written fact
+   * unavailable. A visible label is important here: the existing speaker could unfold
+   * the paragraph, but only after starting audio again, and nothing on it said the words
+   * were behind it to a child with hearing loss or one playing in a noisy room.
+   */
+  const transcriptButton = el('button', 'btn btn--quiet transcript-btn is-hidden');
+  transcriptButton.type = 'button';
+  transcriptButton.setAttribute('aria-controls', factText.id);
+  const transcriptLabel = el('span');
+  transcriptButton.append(transcriptLabel);
+
   // The words get their own full width, and the picture and the speaker share the row
   // beneath. Flanking the text with both used to squeeze a long fact into a column so
   // narrow it ran ten lines deep and buried the planet — the very thing a child has just
   // flown to and is being asked to look at.
   const factActions = el('div', 'fact-actions');
-  factActions.append(factPhoto, narrateButton);
+  factActions.append(factPhoto, transcriptButton, narrateButton);
 
   factCard.append(factTitle, factText, factActions);
   factCard.classList.add('is-hidden');
@@ -488,12 +532,47 @@ export function createUI(options: UIOptions): GameUI {
   let currentFact = '';
   let currentFactCueId: string | null = null;
   let pendingGuide: PendingGuide | null = null;
+
+  function wordsVisible() {
+    return (
+      !factCard.classList.contains('is-collapsed') &&
+      (!factCard.classList.contains('is-audio-first') ||
+        factCard.classList.contains('is-transcript-open'))
+    );
+  }
+
+  function updateTranscriptButton() {
+    const enabled = factCard.classList.contains('has-transcript-toggle') && Boolean(currentFact);
+    transcriptButton.classList.toggle('is-hidden', !enabled);
+    if (!enabled) return;
+    const state = transcriptControlState(wordsVisible());
+    transcriptLabel.textContent = state.label;
+    transcriptButton.setAttribute('aria-expanded', state.expanded);
+  }
+
+  transcriptButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (!currentFact) return;
+    if (wordsVisible()) {
+      factCard.classList.add('is-collapsed');
+      factCard.classList.remove('is-transcript-open');
+    } else {
+      factCard.classList.remove('is-collapsed');
+      factCard.classList.add('is-transcript-open');
+      // A child asking for the words gets a fresh reading window, even if narration had
+      // nearly reached the old fold timer when they pressed it.
+      factShownAt = Date.now();
+      scheduleCollapse(FACT_MINIMUM_MS);
+    }
+    updateTranscriptButton();
+  });
+
   // Tapping the words puts them away. The card is wide and the destination is now close
   // enough to fill the frame behind it, so a place worth finding can end up underneath it
   // — and a tap that lands on the card instead of on the ring it is covering has to do
   // something. Folding is the something: the next tap reaches the ring.
   factCard.addEventListener('click', (event) => {
-    if (event.target instanceof Element && event.target.closest('.narrate-btn')) return;
+    if (event.target instanceof Element && event.target.closest('button')) return;
     // Advances rather than simply closing, so a tap during a discovery still gets to the
     // completion line that was queued behind it.
     factTimeUp();
@@ -508,6 +587,8 @@ export function createUI(options: UIOptions): GameUI {
       // Unfolds the card as well as reading it, so the speaker is how you get the words
       // back on screen — one button, doing the one thing a child would expect of it.
       factCard.classList.remove('is-collapsed', 'is-audio-first');
+      factCard.classList.add('is-transcript-open');
+      updateTranscriptButton();
       factShownAt = Date.now();
       narrator.speak(currentFact, currentFactCueId);
       scheduleCollapse(11000);
@@ -681,6 +762,8 @@ export function createUI(options: UIOptions): GameUI {
     }
     if (!currentFact) return;
     factCard.classList.add('is-collapsed');
+    factCard.classList.remove('is-transcript-open');
+    updateTranscriptButton();
   }
 
   /**
@@ -722,14 +805,22 @@ export function createUI(options: UIOptions): GameUI {
     factTitle.textContent = title ?? '';
     factTitle.classList.toggle('is-hidden', !title);
     factText.textContent = text;
-    factCard.classList.remove('is-hidden', 'is-collapsed', 'is-audio-first');
+    factCard.classList.remove(
+      'is-hidden',
+      'is-collapsed',
+      'is-audio-first',
+      'is-transcript-open',
+      'has-transcript-toggle',
+    );
     factCard.classList.add('fade-in');
     // Only authored audio starts itself. A partial voice pack never makes the platform's
     // poor fallback begin talking, and the paragraph remains fully visible for that cue.
-    if (shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn)) {
-      factCard.classList.add('is-audio-first');
+    const autoNarrate = shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn);
+    if (autoNarrate) {
+      factCard.classList.add('is-audio-first', 'has-transcript-toggle');
       narrator.speak(text, currentFactCueId, false);
     }
+    updateTranscriptButton();
     scheduleCollapse(11000);
   }
 
@@ -766,9 +857,15 @@ export function createUI(options: UIOptions): GameUI {
       // Nothing to go home from yet, and the flight owns the camera regardless.
       setHomeAvailable(false);
       setHint(steerable ? '☝️ ↔️  Steer the ship' : null);
+      showSteerCue(steerable);
+    },
+
+    acknowledgeSteering() {
+      hideSteerCue();
     },
 
     showArrival(cueId: string, label: string, fact: string) {
+      hideSteerCue();
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
       namePill.textContent = label;
@@ -832,6 +929,8 @@ export function createUI(options: UIOptions): GameUI {
        */
       window.clearTimeout(collapseTimer);
       factCard.classList.add('is-collapsed');
+      factCard.classList.remove('is-transcript-open');
+      updateTranscriptButton();
     },
 
     showDiscovery(discovery: Discovery) {
@@ -909,6 +1008,13 @@ export function createUI(options: UIOptions): GameUI {
     setSoundOn(on: boolean) {
       soundOn = on;
       if (!on) narrator.stop();
+      if (!on && currentFact && factCard.classList.contains('is-audio-first')) {
+        factCard.classList.remove('is-audio-first', 'is-collapsed');
+        factCard.classList.add('is-transcript-open');
+        factShownAt = Date.now();
+        scheduleCollapse(FACT_MINIMUM_MS);
+        updateTranscriptButton();
+      }
       updateNarrateButton();
     },
 
@@ -954,6 +1060,7 @@ export function createUI(options: UIOptions): GameUI {
 
     reset() {
       clearTimers();
+      hideSteerCue();
       // Clear this before stop(): the narrator's onChange listener otherwise interprets
       // reset as the end of a discovery and queues the hunt line into the fresh home view.
       pendingGuide = null;
@@ -981,7 +1088,13 @@ export function createUI(options: UIOptions): GameUI {
       clearPhoto();
       photoViewer.hide();
       window.clearTimeout(collapseTimer);
-      factCard.classList.remove('is-collapsed');
+      factCard.classList.remove(
+        'is-collapsed',
+        'is-audio-first',
+        'is-transcript-open',
+        'has-transcript-toggle',
+      );
+      transcriptButton.classList.add('is-hidden');
       factTitle.textContent = '';
       factTitle.classList.add('is-hidden');
       factText.textContent = '';

@@ -86,6 +86,11 @@ function smoothBetween(value: number, from: number, to: number): number {
   return smootherstep((value - from) / (to - from));
 }
 
+/** Steering is useful through the journey's middle and exactly absent at either hand-off. */
+export function pilotInfluence(progress: number): number {
+  return smoothBetween(progress, 0.04, 0.18) * (1 - smoothBetween(progress, 0.7, 0.94));
+}
+
 export function createFlightSequence(options: FlightOptions): FlightSequence {
   const { camera, scene, ship, trail, world, controls, pilot, home, reducedMotion, onArrive } = options;
   const { onThrottle } = options;
@@ -335,12 +340,11 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       // The route remains the source of truth, but a drag can move the ship within a
       // generous corridor through its middle. Fading that freedom at both ends prevents
       // a child's last-moment swipe from breaking departure or the carefully framed arrival.
-      const pilotInfluence =
-        smoothBetween(progress, 0.04, 0.18) * (1 - smoothBetween(progress, 0.7, 0.94));
+      const steering = pilotInfluence(progress);
       pilotedPoint
         .copy(point)
-        .addScaledVector(side, (pilot?.offset.x ?? 0) * 0.75 * chaseScale * pilotInfluence)
-        .addScaledVector(UP, (pilot?.offset.y ?? 0) * 0.55 * chaseScale * pilotInfluence);
+        .addScaledVector(side, (pilot?.offset.x ?? 0) * 0.75 * chaseScale * steering)
+        .addScaledVector(UP, (pilot?.offset.y ?? 0) * 0.55 * chaseScale * steering);
 
       ship.group.position.copy(pilotedPoint);
       // Swing the nose round to face the Moon over the last stretch, so the ship settles

@@ -219,6 +219,59 @@ body {
   }
 }
 
+/*
+ * The flight's one wordless lesson: drag sideways and the ship follows. It lasts only
+ * long enough to demonstrate the gesture, disappears on the child's first steer, and
+ * captures no input. Reduced motion keeps the hand and arrows but removes the sweep.
+ */
+.steer-cue {
+  position: absolute;
+  top: calc(var(--pad-top) + 3.5rem);
+  left: 50%;
+  width: 150px;
+  height: 58px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 214, 150, 0.5);
+  color: var(--warm);
+  background: rgba(20, 14, 44, 0.72);
+  box-shadow: 0 8px 24px rgba(6, 4, 20, 0.38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.steer-cue__arrow {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.steer-cue__hand {
+  font-size: 1.75rem;
+  line-height: 1;
+  animation: steerGesture 1.35s ease-in-out 3;
+}
+
+@keyframes steerGesture {
+  0%,
+  100% {
+    transform: translateX(-27px);
+  }
+  50% {
+    transform: translateX(27px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steer-cue__hand {
+    animation: none;
+  }
+}
+
 /* --- destination chooser ------------------------------------------------- */
 
 /*
@@ -505,6 +558,12 @@ body {
   display: none;
 }
 
+/* The child explicitly asked to read it. The card may remain audio-first so the labelled
+   control survives after it opens, but the paragraph is now full-width again. */
+.fact-card.is-audio-first.is-transcript-open p {
+  display: block;
+}
+
 /* The picture and the speaker, together on one row under the words. The speaker is pushed
    to the far end so the picture leads: on this world the photograph is the payoff, and it
    is the one thing a child who cannot read the paragraph can still take from the card. */
@@ -516,6 +575,22 @@ body {
 
 .fact-actions .narrate-btn {
   margin-left: auto;
+}
+
+/* A written label rather than another mystery icon. It is shown only on cards whose
+   automatic narration compacted the paragraph, so silent/manual cards gain no clutter. */
+.transcript-btn {
+  min-height: 54px;
+  padding: 0 1.05rem;
+  font-size: 0.98rem;
+}
+
+.fact-card.has-transcript-toggle .transcript-btn {
+  margin-left: auto;
+}
+
+.fact-card.has-transcript-toggle .narrate-btn {
+  margin-left: 0;
 }
 
 /* The real photograph of the place. Bigger than it was and unmistakably a button: a
@@ -965,6 +1040,15 @@ body {
 
   .dock {
     gap: 0.65rem;
+  }
+
+  .fact-actions {
+    gap: 0.55rem;
+  }
+
+  .transcript-btn {
+    padding-inline: 0.8rem;
+    font-size: 0.9rem;
   }
 }
 

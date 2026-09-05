@@ -252,7 +252,19 @@ rather than the raw rotation.
 the middle of `FlightSequence`; the influence fades to zero at departure and arrival. That
 keeps the response immediate and playful without asking a five-year-old to aim through 3D
 space before they are allowed to reach a world. `main.ts` remains the only caller of its
-`reset()`.
+`reset()`. `UI.enterFlight(true)` also shows a brief wordless hand sweep between two arrows;
+`PilotInput.onSteer` dismisses it on the first deliberate drag, and its CSS animation is
+removed rather than sped up under reduced motion. Keep the static hand and arrows there —
+the text hint is useful but cannot be the only explanation for a pre-reader.
+
+**A visit quiets occluders; it does not erase the solar system.** `World.setFocus` leaves the
+destination solid and multiplies every other earned body's resting opacity by
+`WORLD_CONTEXT_OPACITY`; the parked ship uses its own slightly stronger context opacity.
+This is deliberately a fade, not `visible = false`: the child keeps the sense that the world
+belongs to a larger system, while a nearby Moon, Mars or the ship cannot become an opaque
+wall over a gold target. Focus begins only on arrival and clears as Fly Home starts, before
+the pull-back exposes the map. Reveal opacity and focus opacity multiply, so neither system
+is allowed to restore or overwrite the other.
 
 **The destination bar is the dependable navigation path.** The moving bodies remain
 tappable, but each revealed world also gets a stable 64px picture-and-word button. This is
@@ -276,6 +288,15 @@ arrival fact, and completing a body queues the success line behind the last disc
 a stale timer from the previous fact will otherwise close the new one. There is also a
 floor on how briefly a fact can be shown: speech that fails reports itself finished
 immediately, and the fold hangs off the end of the reading.
+
+**Automatic narration may compact the words, but it may not make them unavailable.** An
+audio-first card keeps a labelled **Show words** control in both its compact and folded
+states. Opening it reveals the paragraph at full width, changes the control to **Hide
+words**, exposes `aria-expanded`, and restarts `FACT_MINIMUM_MS` from the press. Do not turn
+this back into an icon-only affordance: the speaker already was an unlabelled route to the
+words, but it also restarted sound and did not tell a child with hearing loss what was behind
+it. The photo and speaker remain in the row *below* the paragraph; the column invariant
+still wins when the transcript is open.
 
 **The journal holds discoveries, not stickers, and its size is counted rather than set.**
 `JOURNAL_SLOTS` is `Object.keys(DISCOVERIES).length`, so finishing the game fills the grid
@@ -638,6 +659,11 @@ The vertical framing inset below is a separate lever and cannot help a width-bou
 shot at all; reveal-gating is what fixed that one.
 
 Done since this file was written: the grown-ups panel can precisely reset one adventure;
+audio-first fact cards keep a labelled, timed transcript control; unrelated worlds and the
+parked ship fade only during a visit so they cannot hide hunt targets; a brief wordless hand
+cue demonstrates flight steering and leaves on the first real drag; child-facing hunt copy
+now consistently says to swipe sideways and look around rather than claiming the planet is
+being spun;
 earned worlds have stable destination buttons and reveal with a short map transition;
 children can steer inside the flight's guaranteed route; Fly Home is now an animated camera pull-back to the map
 (`HomeReturn`) rather than an instant cut; framing reserves vertical space for the

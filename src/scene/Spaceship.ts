@@ -19,6 +19,8 @@ export interface Spaceship {
   group: THREE.Group;
   /** 0 = idle flicker, 1 = full burn. Drives the engine glow. */
   setThrust(value: number): void;
+  /** Fade the parked ship while the child is looking for places on the world behind it. */
+  setContextDimmed(dimmed: boolean): void;
   orient(direction: THREE.Vector3, rollHint?: number): void;
   update(dt: number, elapsed: number): void;
   /**
@@ -33,6 +35,12 @@ export interface Spaceship {
 /** Where the ship waits before launch. Held here so reset() has one source of truth. */
 const PARK_POSITION = new THREE.Vector3(2.2, 1.35, 1.4);
 const PARK_SCALE = 0.85;
+/** Still recognisably the child's ship, but no longer able to hide a gold target. */
+export const SHIP_CONTEXT_OPACITY = 0.28;
+
+export function shipContextOpacity(dimmed: boolean): number {
+  return dimmed ? SHIP_CONTEXT_OPACITY : 1;
+}
 
 /* Palette, read off the concept sheet. */
 const HULL = 0xf2ece0;
@@ -136,6 +144,11 @@ export function createSpaceship(): Spaceship {
   });
 
   const materials = [hull, accent, trim, metal, core, glass, light];
+  const materialResting = materials.map((material) => ({
+    material,
+    opacity: material.opacity,
+    transparent: material.transparent,
+  }));
   const geometries: THREE.BufferGeometry[] = [];
   const track = <T extends THREE.BufferGeometry>(g: T): T => {
     geometries.push(g);
@@ -255,6 +268,7 @@ export function createSpaceship(): Spaceship {
 
   let thrust = 0;
   let targetThrust = 0;
+  let contextDimmed = false;
   const quaternion = new THREE.Quaternion();
   const normalized = new THREE.Vector3();
   const WORLD_UP = new THREE.Vector3(0, 1, 0);
@@ -262,11 +276,27 @@ export function createSpaceship(): Spaceship {
   const right = new THREE.Vector3();
   const up = new THREE.Vector3();
 
+  function applyContextOpacity() {
+    const amount = shipContextOpacity(contextDimmed);
+    for (const resting of materialResting) {
+      const transparent = resting.transparent || contextDimmed;
+      const transparencyChanged = resting.material.transparent !== transparent;
+      resting.material.opacity = resting.opacity * amount;
+      resting.material.transparent = transparent;
+      if (transparencyChanged) resting.material.needsUpdate = true;
+    }
+  }
+
   return {
     group,
 
     setThrust(value: number) {
       targetThrust = THREE.MathUtils.clamp(value, 0, 1);
+    },
+
+    setContextDimmed(dimmed: boolean) {
+      contextDimmed = dimmed;
+      applyContextOpacity();
     },
 
     orient(direction: THREE.Vector3, rollHint = 0) {
@@ -297,7 +327,8 @@ export function createSpaceship(): Spaceship {
         flame.scale.set(size, size, 1);
         flame.position.z = ENGINE_Z - 0.05 - thrust * 0.04;
       }
-      flameMaterial.opacity = 0.5 + thrust * 0.4;
+      flameMaterial.opacity =
+        (0.5 + thrust * 0.4) * shipContextOpacity(contextDimmed);
 
       // Gentle bob, damped out under thrust so the flight reads as purposeful.
       const calm = 1 - thrust;
@@ -311,6 +342,8 @@ export function createSpaceship(): Spaceship {
       group.quaternion.identity();
       body.position.set(0, 0, 0);
       body.rotation.set(0, 0, 0);
+      contextDimmed = false;
+      applyContextOpacity();
       // Both, so the flame is cold on the next frame rather than easing down from a burn.
       thrust = 0;
       targetThrust = 0;

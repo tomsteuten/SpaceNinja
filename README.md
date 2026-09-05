@@ -217,7 +217,8 @@ so the destination holds still. On arrival the ship is re-parented to the destin
 rides along, and the orbit controller re-derives its angles from wherever the camera
 finished — so control returns without a snap. A child's drag adds a bounded offset through
 the middle of the journey; it fades away before arrival, so steering gives agency without
-making navigation a skill gate.
+making navigation a skill gate. A brief hand sweeps between two arrows when the flight
+starts, then disappears on the first deliberate steer; reduced motion leaves the cue still.
 
 **The solar-system view is scenery and navigation has dependable controls.** Every earned
 world also has a stable, finger-sized button along the bottom. The moving 3D bodies remain
@@ -253,6 +254,11 @@ it was to complete it, which is what made "how do I get back?" the most common r
 the game. **Fly Home** is on screen from arrival onward and never moves. The mission still
 exists, still awards its sticker, and still teaches the drag gesture — it just no longer
 holds the door shut.
+
+**A visit has a visual focus without losing its setting.** The destination stays solid while
+the other earned worlds fade to quiet, still-visible context, and the parked spaceship does
+the same. A Moon or ship that crosses the camera can therefore no longer become an opaque
+wall over a real-coordinate target. Full colour returns as Fly Home pulls back to the map.
 
 **Earth is a destination too.** A child's first instinct is to tap their own planet, and
 for a long time the game answered by not offering a Fly button at all. "Flying" to the
@@ -345,12 +351,14 @@ The two continuous sounds follow a value the picture is already using, frame by 
 rather than starting a timed ramp, so they stay with the picture on a slow device.
 
 **Good narration is the primary guide; the device voice is not.** Exact keyed MP3 cues in
-`src/audio/recordings/` start automatically when sound is on, while the paragraph becomes
-less prominent and the photograph, title and replay button remain. Each instructional cue
-also names a visible action — tap the gold target, or swipe the planet — so a pre-reader is
-not being asked to infer a verb from prose. A missing cue never auto-starts the browser's
-poor `SpeechSynthesis` voice; that fallback remains available only from the speaker button.
-This makes a partial voice pack safe to ship and keeps silence preferable to bad narration.
+`src/audio/recordings/` start automatically when sound is on. The card stays compact while
+they play, but now keeps a labelled **Show words** button beside the photograph and replay
+control; it reveals the full-width paragraph for a fresh reading window and becomes **Hide
+words**. Each instructional cue also names a visible action — tap the gold target, or swipe
+the planet — so a pre-reader is not being asked to infer a verb from prose. A missing cue
+never auto-starts the browser's poor `SpeechSynthesis` voice; that fallback remains available
+only from the speaker button. This makes a partial voice pack safe to ship and keeps silence
+preferable to bad narration.
 
 `npm run narration:generate` creates the MP3 pack locally with the Apache-licensed
 Kokoro-82M model. The default British `bf_emma` voice is slowed slightly, then every cue is

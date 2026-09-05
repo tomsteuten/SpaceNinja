@@ -226,7 +226,6 @@ async function main() {
     },
     onResetProgress: () => restart(),
   });
-  const pilot = createPilotInput({ element: canvas });
   if (shouldGreet(asked)) grownups.show();
 
   const ui = createUI({
@@ -252,8 +251,14 @@ async function main() {
     onExploreAgain: () => {
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
-      if (homeReturn.start()) ui.enterFlight();
-      else restart();
+      if (homeReturn.start()) {
+        // Bring the wider solar-system context back as the camera leaves the destination.
+        // Keeping the visit focus until restart() made every other world pop in only after
+        // the pull-back had already landed.
+        world.setFocus(null);
+        ship.setContextDimmed(false);
+        ui.enterFlight();
+      } else restart();
     },
     onGrownups: () => grownups.show(),
     // The whole game finished. Played when the overlay lands, not when the last world
@@ -271,6 +276,12 @@ async function main() {
       ui.setSpinBusy(true);
       dayTurn.start(body);
     },
+  });
+
+  const pilot = createPilotInput({
+    element: canvas,
+    // The wordless hand has taught its one lesson as soon as the ship answers a real drag.
+    onSteer: () => ui.acknowledgeSteering(),
   });
 
   /*
@@ -310,6 +321,12 @@ async function main() {
       // Arriving is the achievement that opens the rest of the system up. The sticker is
       // still the collection's, and is still awarded by finishing it.
       markVisited(destination.id);
+
+      // The destination and its real-coordinate targets are the subject now. Other earned
+      // worlds and the parked ship remain visible enough to preserve context, but cannot
+      // become opaque foreground objects when a child drags around to the hidden place.
+      world.setFocus(destination.id);
+      ship.setContextDimmed(true);
 
       const config = DESTINATIONS[destination.id];
       if (!config) return;
@@ -502,7 +519,7 @@ async function main() {
     const nextBody = world.bodies[next];
     const nextEmoji = DESTINATIONS[next]?.emoji ?? '✨';
     if (next === 'moon') {
-      ui.setHint('☝️ ↔️  Drag to look around');
+      ui.setHint('☝️ ↔️  Swipe to look around');
     } else {
       ui.setHint(`👀 ${nextEmoji}  A new world is out there`);
     }

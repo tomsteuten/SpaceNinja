@@ -30,6 +30,16 @@ export function shouldAutoNarrate(hasRecording: boolean, soundOn: boolean): bool
   return hasRecording && soundOn;
 }
 
+/** Visible state for the labelled transcript control on an audio-first fact card. */
+export function transcriptControlState(wordsVisible: boolean): {
+  readonly label: string;
+  readonly expanded: 'true' | 'false';
+} {
+  return wordsVisible
+    ? { label: 'Hide words', expanded: 'true' }
+    : { label: 'Show words', expanded: 'false' };
+}
+
 /** What a guide cue does the instant it arrives. */
 export type GuideArrival = 'speak' | 'queue' | 'ignore';
 

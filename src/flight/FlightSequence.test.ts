@@ -17,7 +17,7 @@
 
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
-import { createFlightSequence, smootherstep } from './FlightSequence';
+import { createFlightSequence, pilotInfluence, smootherstep } from './FlightSequence';
 import { FLIGHT_FOV_PUNCH, fovForAspect } from '../config';
 import type { CelestialBody, World } from '../scene/Bodies';
 import type { EngineTrail } from '../scene/EngineTrail';
@@ -54,6 +54,25 @@ describe('smootherstep', () => {
     // Flat approach at each end is the whole point of this curve over a linear ramp.
     expect(smootherstep(0.05)).toBeLessThan(0.01);
     expect(smootherstep(0.95)).toBeGreaterThan(0.99);
+  });
+});
+
+describe('pilotInfluence', () => {
+  it('hands departure and arrival back to the guaranteed route exactly', () => {
+    expect(pilotInfluence(0)).toBe(0);
+    expect(pilotInfluence(0.04)).toBe(0);
+    expect(pilotInfluence(0.18)).toBe(1);
+    expect(pilotInfluence(0.7)).toBe(1);
+    expect(pilotInfluence(0.94)).toBe(0);
+    expect(pilotInfluence(1)).toBe(0);
+  });
+
+  it('never pushes outside the authored steering corridor', () => {
+    for (let step = 0; step <= 1000; step++) {
+      const influence = pilotInfluence(step / 1000);
+      expect(influence).toBeGreaterThanOrEqual(0);
+      expect(influence).toBeLessThanOrEqual(1);
+    }
   });
 });
 

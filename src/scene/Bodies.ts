@@ -52,6 +52,17 @@ export type BodyId = 'earth' | 'moon' | 'mars' | 'saturn';
 /** Long enough to read as a reveal, short enough not to hold up the next choice. */
 export const WORLD_REVEAL_DURATION = 0.9;
 
+/**
+ * A visiting world stays solid while the other earned worlds remain as quiet context.
+ * Low enough that a close Moon cannot cover a target; non-zero so the solar system does
+ * not disappear the moment a child arrives somewhere.
+ */
+export const WORLD_CONTEXT_OPACITY = 0.18;
+
+export function worldFocusOpacity(id: BodyId, focused: BodyId | null): number {
+  return focused === null || id === focused ? 1 : WORLD_CONTEXT_OPACITY;
+}
+
 /** Exported because the endpoints and clamp are the parts a silent frame-rate bug breaks. */
 export function worldRevealEase(progress: number): number {
   const t = THREE.MathUtils.clamp(progress, 0, 1);
@@ -120,6 +131,11 @@ export interface World {
    * reveal; returns their ids so the interface can announce the same event.
    */
   setRevealed(ids: Iterable<BodyId>, animate?: boolean): BodyId[];
+  /**
+   * Keep one visited world solid and fade the others to context. Null restores the map.
+   * Visibility and hit-target reveal rules are unchanged.
+   */
+  setFocus(id: BodyId | null): void;
   setSelected(id: BodyId | null): void;
   /** 0 freezes the Moon mid-orbit so the flight has a stationary destination. */
   setOrbitSpeedScale(scale: number): void;
@@ -820,29 +836,30 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   }
 
   const revealing = new Map<BodyId, number>();
+  let focused: BodyId | null = null;
+
+  function applyOpacity(id: BodyId, revealOpacity = 1) {
+    const amount = revealOpacity * worldFocusOpacity(id, focused);
+    for (const resting of revealVisuals[id].materials) {
+      const transparent = resting.transparent || amount < 1;
+      const transparencyChanged = resting.material.transparent !== transparent;
+      resting.material.opacity = resting.opacity * amount;
+      resting.material.transparent = transparent;
+      if (transparencyChanged) resting.material.needsUpdate = true;
+    }
+  }
 
   function finishReveal(id: BodyId) {
     const visual = revealVisuals[id];
     roots[id].scale.copy(visual.scale);
-    for (const resting of visual.materials) {
-      const transparencyChanged = resting.material.transparent !== resting.transparent;
-      resting.material.opacity = resting.opacity;
-      resting.material.transparent = resting.transparent;
-      if (transparencyChanged) resting.material.needsUpdate = true;
-    }
+    applyOpacity(id);
     revealing.delete(id);
   }
 
   function beginReveal(id: BodyId) {
     const visual = revealVisuals[id];
     roots[id].scale.copy(visual.scale).multiplyScalar(0.86);
-    for (const resting of visual.materials) {
-      resting.material.opacity = 0;
-      if (!resting.material.transparent) {
-        resting.material.transparent = true;
-        resting.material.needsUpdate = true;
-      }
-    }
+    applyOpacity(id, 0);
     revealing.set(id, 0);
   }
 
@@ -864,6 +881,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     return newlyRevealed;
   }
 
+  function setFocus(id: BodyId | null) {
+    focused = id;
+    for (const bodyId of Object.keys(roots) as BodyId[]) {
+      const progress = revealing.get(bodyId);
+      applyOpacity(bodyId, progress === undefined ? 1 : worldRevealEase(progress));
+    }
+  }
+
   return {
     group,
     bodies,
@@ -875,6 +900,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
         .flatMap((id) => bodyHits[id]);
     },
     setRevealed,
+    setFocus,
     setSelected,
 
     setOrbitSpeedScale(scale: number) {
@@ -883,9 +909,12 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
     reset() {
       orbitSpeedScale = 1;
+      // The map is full-strength again before any newly earned world is revealed on it.
+      focused = null;
       // A reset may interrupt a reveal (for example, the adult clears progress). Restore
       // every material before the next setRevealed call decides what remains on screen.
       for (const id of [...revealing.keys()]) finishReveal(id);
+      for (const id of Object.keys(roots) as BodyId[]) applyOpacity(id);
       // A backstop, not the normal path: whoever called holdSurface releases it, and the
       // mission does. This is here because a hold that outlives its owner leaves a planet
       // frozen for the rest of the session, which is a bad enough failure to guard twice.
@@ -901,9 +930,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
         const eased = worldRevealEase(progress);
         const visual = revealVisuals[id];
         roots[id].scale.copy(visual.scale).multiplyScalar(0.86 + eased * 0.14);
-        for (const resting of visual.materials) {
-          resting.material.opacity = resting.opacity * eased;
-        }
+        applyOpacity(id, eased);
         if (progress >= 1) finishReveal(id);
         else revealing.set(id, progress);
       }

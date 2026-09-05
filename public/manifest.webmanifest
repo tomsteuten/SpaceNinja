@@ -1,7 +1,7 @@
 {
   "name": "Space Ninja",
   "short_name": "Space Ninja",
-  "description": "A gentle space journey from Earth to the Moon and Mars, for young explorers.",
+  "description": "A gentle space journey from Earth to the Moon, Mars and Saturn, for young explorers.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

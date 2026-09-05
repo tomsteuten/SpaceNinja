@@ -297,8 +297,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'This is your planet, seen from space. It is the only place anyone has ever found ' +
       'with water you can swim in, air you can breathe, and anybody at all to talk to.',
     mission: {
-      instruction: 'Three places to find down there!',
-      huntLine: 'One more! Drag to spin around Earth.',
+      instruction: 'Tap the 3 gold targets!',
+      huntLine: 'One more! Swipe sideways to look around Earth.',
       successLine: 'You found all three! You know your own planet from space now.',
       stickerId: 'earth-explorer',
       discoveries: [
@@ -364,8 +364,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'The Moon has no air and no weather at all. Nothing moves here, and there is ' +
       'nothing to carry a sound, so it is the quietest place there is.',
     mission: {
-      instruction: 'Three places to find down there!',
-      huntLine: 'One more! Drag to spin around the Moon.',
+      instruction: 'Tap the 3 gold targets!',
+      huntLine: 'One more! Swipe sideways to look around the Moon.',
       successLine: 'You found all three! What a brilliant explorer you are.',
       stickerId: 'moon-explorer',
       discoveries: [
@@ -420,8 +420,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'Mars is red because its dust is full of rust — the same rust that grows on an old ' +
       'bike left out in the rain. The whole planet is a bit rusty!',
     mission: {
-      instruction: 'Three places to find down there!',
-      huntLine: 'One more! Drag to spin around Mars.',
+      instruction: 'Tap the 3 gold targets!',
+      huntLine: 'One more! Swipe sideways to look around Mars.',
       successLine: 'You found all three! You are a real space explorer now.',
       stickerId: 'mars-explorer',
       discoveries: [
@@ -478,8 +478,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'could fit inside it — and it is so light for its size that it would float in a ' +
       'bath, if anyone could find a bath big enough.',
     mission: {
-      instruction: 'Three things to find out here!',
-      huntLine: 'One more! Drag to spin around Saturn.',
+      instruction: 'Tap the 3 gold targets!',
+      huntLine: 'One more! Swipe sideways to look around Saturn.',
       successLine: 'You found all three! You have been all the way out to Saturn.',
       stickerId: 'saturn-explorer',
       discoveries: [

@@ -19,10 +19,18 @@ export interface PilotInput {
 
 export interface PilotInputOptions {
   element: HTMLElement;
+  /** The first deliberate drag in each flight, used to dismiss the wordless gesture cue. */
+  onSteer?(): void;
 }
 
 const MAX_DRAG_FRACTION = 0.28;
 const RESPONSE = 11;
+const STEERING_INTENT = 0.08;
+
+/** Exponential response is equivalent at 30, 60 or 120Hz for the same elapsed time. */
+export function steeringResponse(dt: number): number {
+  return 1 - Math.exp(-RESPONSE * Math.max(0, dt));
+}
 
 /** Converts one pointer's travel into a centred, circular steering input. */
 export function steeringOffset(
@@ -38,12 +46,13 @@ export function steeringOffset(
   return target;
 }
 
-export function createPilotInput({ element }: PilotInputOptions): PilotInput {
+export function createPilotInput({ element, onSteer }: PilotInputOptions): PilotInput {
   const offset = new THREE.Vector2();
   const desired = new THREE.Vector2();
   const origin = new THREE.Vector2();
   let active = false;
   let pointerId: number | null = null;
+  let steered = false;
 
   function onPointerDown(event: PointerEvent) {
     if (!active || pointerId !== null || event.button !== 0) return;
@@ -60,6 +69,10 @@ export function createPilotInput({ element }: PilotInputOptions): PilotInput {
       Math.min(element.clientWidth, element.clientHeight),
       desired,
     );
+    if (!steered && desired.lengthSq() >= STEERING_INTENT * STEERING_INTENT) {
+      steered = true;
+      onSteer?.();
+    }
     event.preventDefault();
   }
 
@@ -81,6 +94,7 @@ export function createPilotInput({ element }: PilotInputOptions): PilotInput {
     start() {
       active = true;
       pointerId = null;
+      steered = false;
       offset.set(0, 0);
       desired.set(0, 0);
     },
@@ -94,13 +108,13 @@ export function createPilotInput({ element }: PilotInputOptions): PilotInput {
     reset() {
       active = false;
       pointerId = null;
+      steered = false;
       offset.set(0, 0);
       desired.set(0, 0);
     },
 
     update(dt: number) {
-      const ease = 1 - Math.exp(-RESPONSE * Math.max(0, dt));
-      offset.lerp(desired, ease);
+      offset.lerp(desired, steeringResponse(dt));
     },
 
     dispose() {

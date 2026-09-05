@@ -3,6 +3,7 @@ import {
   guideOnArrival,
   narrationOnEnd,
   shouldAutoNarrate,
+  transcriptControlState,
   type PendingGuide,
 } from './narrationFlow';
 
@@ -18,6 +19,19 @@ describe('shouldAutoNarrate', () => {
 
   it('stays silent when the parent has turned sound off', () => {
     expect(shouldAutoNarrate(true, false)).toBe(false);
+  });
+});
+
+describe('transcriptControlState', () => {
+  it('names the action and exposes the paragraph state to assistive technology', () => {
+    expect(transcriptControlState(false)).toEqual({
+      label: 'Show words',
+      expanded: 'false',
+    });
+    expect(transcriptControlState(true)).toEqual({
+      label: 'Hide words',
+      expanded: 'true',
+    });
   });
 });
 

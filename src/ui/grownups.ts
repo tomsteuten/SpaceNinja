@@ -222,7 +222,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'The places a child finds are real, at their real latitude and longitude on real ' +
           'NASA maps — the Sahara, the Amazon, the Apollo 11 landing site, Olympus Mons. ' +
           'One on each world is deliberately over the horizon, so reaching it means ' +
-          'learning to turn the planet. Spin the Earth turns it through exactly one day, ' +
+          'learning to look around the world. Spin the Earth turns it through exactly one day, ' +
           'with the city lights coming on as places cross into night.',
       ),
     );

@@ -32,7 +32,7 @@ Saturn. The target is now a generous planet sphere plus a flat ring annulus. A r
 test checks both the empty-space miss and a ring-plane hit. Saturn remained selectable at
 360 × 780 after the change.
 
-### Medium — discovery copy is absent visually during automatic narration (proposed)
+### Medium — discovery copy is absent visually during automatic narration (fixed below)
 
 With sound on, the card intentionally hides its paragraph while the recording plays and
 folds shortly after it ends. The photo, title and voice work well for a pre-reader, but a
@@ -42,7 +42,7 @@ the audio or revealing it for several seconds when narration ends. This was not 
 because it affects card height, planet occlusion and the project's deliberate audio-first
 choice.
 
-### Medium — free orbiting can let other bodies and the ship occlude a hunt (proposed)
+### Medium — free orbiting can let other bodies and the ship occlude a hunt (fixed below)
 
 Long drags can put the ship or another large body across a destination. The target arrows,
 large hit regions and continued dragging always provided a route out, so the game did not
@@ -86,3 +86,68 @@ to the hidden third. The ring-plane target behaved like the surface targets. Pho
 only after discovery and expanded cleanly. Earth lights read clearly during the day turn.
 Fly Home stayed in one place throughout. The twelve-place finale and journal both fit at
 desktop size, and Saturn remained a practical tap target in narrow portrait framing.
+
+## Accessibility and focus pass — 5 September 2026
+
+### Coverage
+
+Tested a new production build, not the development server. The 390 × 844 portrait run flew
+to Earth, the Moon, Mars and Saturn; deliberately steered the Moon flight; found all twelve
+places, including every hidden swipe target and Saturn's ring-plane target; ran Earth's full
+day turn; verified Moon → Mars and Mars → Saturn reveals; and completed the finale. Saturn
+was then rotated to 844 × 390 landscape, and the same visit was reframed at 1024 × 768 as a
+tablet check. Browser errors and warnings remained empty.
+
+The grown-ups reset was exercised end to end after the run. It returned progress to no
+visits or discoveries and narrowed the destination bar back to Earth and Moon, while the
+separate sound setting remained off.
+
+### Narration transcript — fixed
+
+An audio-first card now keeps a visible **Show words** button beside the photograph and
+speaker. It is available while narration is playing and after the card folds. Pressing it
+shows the paragraph at full width, changes the label to **Hide words**, exposes the same
+state through `aria-expanded`, and starts a fresh 6.5-second reading floor. Turning sound off
+mid-reading also reveals the paragraph rather than leaving the audio-first state behind.
+
+At 390 × 844, the arrival card measured 88px high while compact and 192px with Earth's
+paragraph open. The expanded card overlapped approximately the lower 20% of the rendered
+Earth disc; the compact card did not overlap it. At 844 × 390 the open completion line was
+114px high. That explicit reading state crosses the lower part of Saturn, but one press puts
+it back into the compact bottom row; keeping the default compact was the useful trade rather
+than returning every narrated fact to a persistent full-width card.
+
+### Destination focus — fixed
+
+Only the visited destination stays solid. Other earned worlds remain visible at 18% of
+their resting opacity, and the parked ship at 28%, until Fly Home begins. In the Mars arrival
+check Earth actually crossed behind Mars's lower-left limb: it remained recognisable as
+context but the Mars surface and both gold targets stayed dominant. At the Moon the parked
+ship remained visible off the right edge without becoming a foreground obstacle. This was
+clearer than either hiding the system entirely or constraining the orbit needed to reach the
+genuine hidden coordinates.
+
+### Flight steering — clearer
+
+A hand now sweeps briefly between left and right arrows at the start of every outbound
+flight. It captures no input and disappeared immediately when the Moon flight was dragged;
+the static text hint stayed available for readers. Pure tests pin the pointer response to
+the same result at 30, 60 and 120Hz, and pin flight influence to exactly zero at departure
+and arrival. Reduced motion leaves the hand and arrows still instead of shortening or
+speeding the demonstration.
+
+### Flow and wording
+
+Mission captions now say **Tap the 3 gold targets!**, matching the three visible slots and
+the authored arrival narration. Hidden-target lines consistently say **Swipe sideways to
+look around**; they no longer describe the camera orbit as spinning the planet. The opening
+Moon hint uses the same verb. The page title, description and install manifest now include
+Saturn rather than stopping at Mars.
+
+### Still needs a child and the target tablet
+
+The pass establishes that every control is reachable, the responsive compositions hold and
+the new focus treatment prevents opaque occlusion in Chromium. It cannot establish whether
+the hand cue is noticed without prompting, whether 18%/28% feels too ghostly on the older
+tablet's display, or whether the included narration lands well on that speaker. Those remain
+real child/device tests; no claim about narration quality is made here.

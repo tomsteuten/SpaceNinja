@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { steeringOffset } from './PilotInput';
+import { steeringOffset, steeringResponse } from './PilotInput';
 
 describe('steeringOffset', () => {
   it('maps a finger drag to screen-relative steering', () => {
@@ -17,5 +17,26 @@ describe('steeringOffset', () => {
 
   it('fails still when the viewport cannot be measured', () => {
     expect(steeringOffset(30, 20, 0).toArray()).toEqual([0, 0]);
+  });
+});
+
+describe('steeringResponse', () => {
+  function responseAfterOneSecond(fps: number): number {
+    let value = 0;
+    for (let frame = 0; frame < fps; frame++) {
+      value += (1 - value) * steeringResponse(1 / fps);
+    }
+    return value;
+  }
+
+  it('reaches the same place after the same time at different frame rates', () => {
+    const at30 = responseAfterOneSecond(30);
+    expect(responseAfterOneSecond(60)).toBeCloseTo(at30, 10);
+    expect(responseAfterOneSecond(120)).toBeCloseTo(at30, 10);
+  });
+
+  it('does not move for a stopped or backwards clock', () => {
+    expect(steeringResponse(0)).toBe(0);
+    expect(steeringResponse(-1)).toBe(0);
   });
 });
