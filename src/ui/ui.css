@@ -569,6 +569,21 @@ body {
   display: none;
 }
 
+/* With the paragraph hidden, the card is just a name and its controls — so lay them on one
+   row rather than stacking a heading above a right-aligned button cluster with a gap
+   between. The name takes the slack and pushes "Show words" and the speaker to the end. When
+   the child opens the words it drops back to the column below so the paragraph gets its full
+   width. */
+.fact-card.is-audio-first:not(.is-transcript-open) {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.fact-card.is-audio-first:not(.is-transcript-open) .fact-title {
+  flex: 1;
+}
+
 /* The child explicitly asked to read it. The card may remain audio-first so the labelled
    control survives after it opens, but the paragraph is now full-width again. */
 .fact-card.is-audio-first.is-transcript-open p {
