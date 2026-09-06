@@ -5,10 +5,10 @@
  * future GLB replacement only needs to match the same convention.
  *
  * The silhouette follows the concept sheet in `design/spaceship.png`: cream hull, orange
- * swept wings and nose, deep purple trim, a big glass canopy and three engines. Nothing
- * is loaded from that image — it is drawn here in primitives, because at the sizes this
- * ship is ever on screen (roughly 40px parked, 130px at arrival) what reads is the
- * silhouette, the colour blocking and the glow, not panel lines.
+ * swept wings and nose, deep purple trim, a big glass canopy and three engines. Its broad
+ * chamfered modules borrow a little from construction toys without becoming a literal
+ * brick model. Nothing is loaded from the sheet — at roughly 40px parked and 130px in
+ * flight, confident masses, colour blocking and the glow read where panel lines do not.
  */
 
 import * as THREE from 'three';
@@ -56,8 +56,8 @@ const LIGHT = 0x5fd8ff;
  * the arrangement on the sheet, and the one that still reads as three from the side.
  */
 const ENGINE_ANGLES = [Math.PI / 2, Math.PI * (7 / 6), Math.PI * (11 / 6)];
-const ENGINE_RING_RADIUS = 0.046;
-const ENGINE_Z = -0.115;
+const ENGINE_RING_RADIUS = 0.052;
+const ENGINE_Z = -0.155;
 
 interface Wing {
   /** Where it sits around the ship's long axis. */
@@ -74,25 +74,20 @@ interface Wing {
 }
 
 /**
- * Four swept wings in an X, plus a dorsal fin and a shorter ventral one.
- *
- * Spans are deliberately short. On the sheet the hull is the big chunky thing and the
- * wings are trim on it; at half again this size the ship reads from behind as an orange
- * starburst with a small hull somewhere inside it, which is the opposite of the design.
+ * Two broad side wings and a smaller top/bottom pair. Four strong blocks stay readable
+ * from every camera angle without turning the rear view into the old six-point starburst.
  */
 const WINGS: Wing[] = [
-  { angle: Math.PI * 0.25, span: 0.095, chord: 0.05, sweep: 0.5, lit: true },
-  { angle: Math.PI * 0.75, span: 0.095, chord: 0.05, sweep: 0.5, lit: true },
-  { angle: Math.PI * 1.25, span: 0.095, chord: 0.05, sweep: 0.5, lit: true },
-  { angle: Math.PI * 1.75, span: 0.095, chord: 0.05, sweep: 0.5, lit: true },
-  { angle: Math.PI * 0.5, span: 0.085, chord: 0.042, sweep: 0.2, lit: false },
-  { angle: Math.PI * 1.5, span: 0.05, chord: 0.034, sweep: 0.35, lit: false },
+  { angle: 0, span: 0.12, chord: 0.07, sweep: 0.42, lit: true },
+  { angle: Math.PI, span: 0.12, chord: 0.07, sweep: 0.42, lit: true },
+  { angle: Math.PI * 0.5, span: 0.078, chord: 0.058, sweep: 0.3, lit: false },
+  { angle: Math.PI * 1.5, span: 0.058, chord: 0.048, sweep: 0.38, lit: false },
 ];
 
 /** Where a wing root meets the hull. */
-const WING_ROOT = 0.05;
+const WING_ROOT = 0.058;
 /** Wings attach around mid-body and rake back past the engines, as on the sheet. */
-const WING_Z = 0.005;
+const WING_Z = -0.015;
 
 export function createSpaceship(): Spaceship {
   const group = new THREE.Group();
@@ -104,23 +99,27 @@ export function createSpaceship(): Spaceship {
 
   const hull = new THREE.MeshStandardMaterial({
     color: HULL,
-    roughness: 0.46,
+    roughness: 0.42,
     metalness: 0.08,
+    flatShading: true,
   });
   const accent = new THREE.MeshStandardMaterial({
     color: ACCENT,
     roughness: 0.38,
     metalness: 0.06,
+    flatShading: true,
   });
   const trim = new THREE.MeshStandardMaterial({
     color: TRIM,
     roughness: 0.42,
     metalness: 0.12,
+    flatShading: true,
   });
   const metal = new THREE.MeshStandardMaterial({
     color: METAL,
     roughness: 0.28,
     metalness: 0.7,
+    flatShading: true,
   });
   const core = new THREE.MeshStandardMaterial({
     color: CORE,
@@ -155,52 +154,89 @@ export function createSpaceship(): Spaceship {
     return g;
   };
 
+  /**
+   * One-bevel rounded box. The broad flat faces give the ship its block-built character;
+   * the clipped corners keep it friendly and catch a highlight on a small screen.
+   */
+  function chamferedBox(width: number, height: number, depth: number, chamfer: number) {
+    const flatWidth = width - chamfer * 2;
+    const flatHeight = height - chamfer * 2;
+    const shape = new THREE.Shape();
+    const left = -flatWidth / 2;
+    const right = flatWidth / 2;
+    const bottom = -flatHeight / 2;
+    const top = flatHeight / 2;
+    shape.moveTo(left + chamfer, bottom);
+    shape.lineTo(right - chamfer, bottom);
+    shape.quadraticCurveTo(right, bottom, right, bottom + chamfer);
+    shape.lineTo(right, top - chamfer);
+    shape.quadraticCurveTo(right, top, right - chamfer, top);
+    shape.lineTo(left + chamfer, top);
+    shape.quadraticCurveTo(left, top, left, top - chamfer);
+    shape.lineTo(left, bottom + chamfer);
+    shape.quadraticCurveTo(left, bottom, left + chamfer, bottom);
+
+    const innerDepth = depth - chamfer * 2;
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: innerDepth,
+      steps: 1,
+      curveSegments: 1,
+      bevelEnabled: true,
+      bevelSegments: 1,
+      bevelSize: chamfer,
+      bevelThickness: chamfer,
+    });
+    geometry.translate(0, 0, -innerDepth / 2);
+    return track(geometry);
+  }
+
   /* --- fuselage ----------------------------------------------------------- */
 
-  // Capsule is built along Y, so tip it onto Z.
-  const fuselage = new THREE.Mesh(track(new THREE.CapsuleGeometry(0.066, 0.13, 4, 16)), hull);
-  fuselage.rotation.x = Math.PI / 2;
-  body.add(fuselage);
+  const rearModule = new THREE.Mesh(chamferedBox(0.15, 0.125, 0.145, 0.012), hull);
+  rearModule.position.z = -0.066;
+  body.add(rearModule);
 
-  const nose = new THREE.Mesh(track(new THREE.ConeGeometry(0.066, 0.115, 18)), accent);
+  const frontModule = new THREE.Mesh(chamferedBox(0.132, 0.108, 0.105, 0.012), hull);
+  frontModule.position.z = 0.066;
+  body.add(frontModule);
+
+  // Four sides make the orange nose one bold, toy-like cap rather than a smooth missile.
+  const nose = new THREE.Mesh(track(new THREE.ConeGeometry(0.076, 0.11, 4)), accent);
   nose.rotation.x = Math.PI / 2;
-  nose.position.z = 0.158;
+  nose.rotation.z = Math.PI / 4;
+  nose.position.z = 0.17;
   body.add(nose);
 
-  // Purple band where the nose meets the hull, and a metal one at the tail.
-  const collar = new THREE.Mesh(track(new THREE.TorusGeometry(0.067, 0.007, 8, 24)), trim);
-  collar.position.z = 0.088;
-  body.add(collar);
+  // The connector is deliberately proud of both cream modules, like a large brick seam.
+  const connector = new THREE.Mesh(chamferedBox(0.158, 0.133, 0.034, 0.009), trim);
+  connector.position.z = 0.006;
+  body.add(connector);
 
-  const tailBand = new THREE.Mesh(
-    track(new THREE.CylinderGeometry(0.058, 0.05, 0.03, 18)),
-    metal,
-  );
-  tailBand.rotation.x = Math.PI / 2;
-  tailBand.position.z = -0.092;
+  const tailBand = new THREE.Mesh(chamferedBox(0.16, 0.135, 0.032, 0.008), metal);
+  tailBand.position.z = -0.132;
   body.add(tailBand);
 
   /* --- canopy -------------------------------------------------------------- */
 
-  const canopy = new THREE.Mesh(track(new THREE.SphereGeometry(0.058, 20, 14)), glass);
-  canopy.position.set(0, 0.044, 0.05);
-  canopy.scale.set(1, 0.94, 1.15);
+  // A low-poly dome breaks the blocks just enough to keep the ship warm and characterful.
+  const canopy = new THREE.Mesh(
+    track(new THREE.SphereGeometry(0.064, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2)),
+    glass,
+  );
+  canopy.position.set(0, 0.052, 0.058);
+  canopy.scale.set(0.82, 0.9, 1.08);
   body.add(canopy);
 
-  // Purple ring around the canopy base, laid flat on the hull.
-  const canopyFrame = new THREE.Mesh(track(new THREE.TorusGeometry(0.055, 0.01, 8, 24)), trim);
-  canopyFrame.rotation.x = Math.PI / 2;
-  canopyFrame.position.set(0, 0.032, 0.05);
-  canopyFrame.scale.set(1, 1.2, 1);
+  const canopyFrame = new THREE.Mesh(chamferedBox(0.108, 0.016, 0.092, 0.006), trim);
+  canopyFrame.position.set(0, 0.063, 0.058);
   body.add(canopyFrame);
 
   /* --- wings and fins ------------------------------------------------------ */
 
-  // A four-sided cylinder rather than a cone: the cone tapered to a point, which read as
-  // a thorn. Keeping 42% of the chord at the tip gives the blunt swept tip on the sheet.
-  // Unit-sized, so each wing's scale *is* its span, chord and thickness.
-  const wingGeometry = track(new THREE.CylinderGeometry(0.42, 1, 1, 4));
-  const stripGeometry = track(new THREE.BoxGeometry(0.01, 0.005, 0.026));
+  // A four-sided frustum makes a broad trapezoidal block with a deliberately blunt tip.
+  // Unit-sized, so each wing's scale is its chord, span and thickness.
+  const wingGeometry = track(new THREE.CylinderGeometry(0.55, 1, 1, 4));
+  const stripGeometry = track(new THREE.BoxGeometry(0.014, 0.007, 0.032));
 
   for (const wing of WINGS) {
     // A pivot per wing: spinning the pivot about the long axis places the wing, so the
@@ -209,7 +245,7 @@ export function createSpaceship(): Spaceship {
     pivot.rotation.z = wing.angle - Math.PI / 2;
 
     const blade = new THREE.Mesh(wingGeometry, accent);
-    blade.scale.set(wing.chord, wing.span, wing.chord * 0.26);
+    blade.scale.set(wing.chord, wing.span, wing.chord * 0.34);
     blade.position.y = WING_ROOT + wing.span * 0.5;
     blade.position.z = WING_Z;
     blade.rotation.x = -wing.sweep;
@@ -229,8 +265,9 @@ export function createSpaceship(): Spaceship {
 
   /* --- engines ------------------------------------------------------------- */
 
-  const housingGeometry = track(new THREE.CylinderGeometry(0.026, 0.03, 0.058, 14));
-  const coreGeometry = track(new THREE.CylinderGeometry(0.019, 0.019, 0.016, 14));
+  const engineCollarGeometry = track(new THREE.BoxGeometry(0.054, 0.054, 0.026));
+  const housingGeometry = track(new THREE.BoxGeometry(0.043, 0.043, 0.064));
+  const coreGeometry = track(new THREE.BoxGeometry(0.029, 0.029, 0.014));
 
   const flameTexture = makeGlowTexture(128);
   const flameMaterial = new THREE.SpriteMaterial({
@@ -247,19 +284,21 @@ export function createSpaceship(): Spaceship {
     const x = Math.cos(angle) * ENGINE_RING_RADIUS;
     const y = Math.sin(angle) * ENGINE_RING_RADIUS;
 
+    const collar = new THREE.Mesh(engineCollarGeometry, metal);
+    collar.position.set(x, y, ENGINE_Z + 0.022);
+    body.add(collar);
+
     const housing = new THREE.Mesh(housingGeometry, trim);
-    housing.rotation.x = Math.PI / 2;
     housing.position.set(x, y, ENGINE_Z);
     body.add(housing);
 
     const bell = new THREE.Mesh(coreGeometry, core);
-    bell.rotation.x = Math.PI / 2;
-    bell.position.set(x, y, ENGINE_Z - 0.022);
+    bell.position.set(x, y, ENGINE_Z - 0.038);
     body.add(bell);
 
     // One flame per engine, sharing the material so thrust drives all three at once.
     const flame = new THREE.Sprite(flameMaterial);
-    flame.position.set(x, y, ENGINE_Z - 0.05);
+    flame.position.set(x, y, ENGINE_Z - 0.065);
     flames.push(flame);
     body.add(flame);
   }
@@ -325,7 +364,7 @@ export function createSpaceship(): Spaceship {
       const size = 0.05 + thrust * 0.07 + flicker;
       for (const flame of flames) {
         flame.scale.set(size, size, 1);
-        flame.position.z = ENGINE_Z - 0.05 - thrust * 0.04;
+        flame.position.z = ENGINE_Z - 0.065 - thrust * 0.04;
       }
       flameMaterial.opacity =
         (0.5 + thrust * 0.4) * shipContextOpacity(contextDimmed);

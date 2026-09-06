@@ -26,7 +26,6 @@ import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
 import { createOrbitInput } from './controls/OrbitInput';
-import { createPilotInput } from './controls/PilotInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
 import {
@@ -246,7 +245,7 @@ async function main() {
       // suspended and only let it resume inside a gesture like this one.
       sfx.resume();
       narrator.resume();
-      ui.enterFlight(true);
+      ui.enterFlight();
     },
     onChooseDestination: (id) => chooseDestination(id as BodyId),
     onExploreAgain: () => {
@@ -286,12 +285,6 @@ async function main() {
     },
   });
 
-  const pilot = createPilotInput({
-    element: canvas,
-    // The wordless hand has taught its one lesson as soon as the ship answers a real drag.
-    onSteer: () => ui.acknowledgeSteering(),
-  });
-
   /*
    * Turning a destination through one day, which is the thing children asked about.
    *
@@ -317,7 +310,6 @@ async function main() {
     trail,
     world,
     controls,
-    pilot,
     home: world.bodies.earth,
     reducedMotion,
     // The engine, from the same two numbers the exhaust and the widening view are drawn
@@ -710,7 +702,6 @@ async function main() {
     activeMission = null;
     dayTurn.reset();
     flight.reset();
-    pilot.reset();
     // Idle whether it drove us here or Explore Again cut straight in; it holds no scene state.
     homeReturn.reset();
     // Both of those were being *driven* by the modules above, so stopping them stops
@@ -794,7 +785,6 @@ async function main() {
     }
 
     ship.update(dt, elapsed);
-    pilot.update(dt);
     flight.update(dt);
     // The pull-back owns the camera while it runs, like the flight does; suspend orbit
     // control for it so the two are not both writing the camera on the same frame.
@@ -867,7 +857,6 @@ async function main() {
     canvas.removeEventListener('pointerup', onIntroSkipTap);
     document.removeEventListener('visibilitychange', onVisibilityChange);
     controls.dispose();
-    pilot.dispose();
     ui.dispose();
     grownups.dispose();
     narrator.dispose();

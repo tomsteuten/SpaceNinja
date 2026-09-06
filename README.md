@@ -4,8 +4,8 @@ A gentle 3D space explorer for young children (roughly ages 5–8). Four destina
 far: Earth, the Moon, Mars, and Saturn.
 
 Choose a destination from the big world buttons (or tap it in space), press **Fly**, then
-drag to steer the spaceship along its safe route and arrive
-close enough to see the surface. Three real places are marked on each world — the first
+ride with the spaceship along its safe route and arrive close enough to see the surface.
+Three real places are marked on each world — the first
 footprints on the Moon, the volcano on Mars, the Sahara from orbit — and finding one tells
 you about it and puts it in the discovery journal. One of the three is always round the back, so getting it
 means learning to drag. Or just look around and fly home. Either way, having been to the
@@ -163,7 +163,6 @@ src/
     Starfield.ts         gradient sky, star map, layered point stars
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
-  controls/PilotInput.ts forgiving drag steering during a flight
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts  the places to find, for any body
   ui/                    interface layer (ui.ts + ui.css + icons.ts)
@@ -215,10 +214,11 @@ Pixel ratio and bloom are the levers; geometry and texture sizes are fixed at co
 **The flight owns the camera outright.** Orbit input is disabled and the orbits are frozen
 so the destination holds still. On arrival the ship is re-parented to the destination so it
 rides along, and the orbit controller re-derives its angles from wherever the camera
-finished — so control returns without a snap. A child's drag adds a bounded offset through
-the middle of the journey; it fades away before arrival, so steering gives agency without
-making navigation a skill gate. A brief hand sweeps between two arrows when the flight
-starts, then disappears on the first deliberate steer; reduced motion leaves the cue still.
+finished — so control returns without a snap. The journey is deliberately cinematic: a
+drag used to add a safe sideways offset, but the chase camera followed that offset and made
+the ship appear almost stationary while its contrail wiggled. Removing that unexplained
+gesture leaves the child free to watch the destination approach and keeps interaction for
+the world itself, where a drag has an immediate purpose.
 
 **The solar-system view is scenery and navigation has dependable controls.** Every earned
 world also has a stable, finger-sized button along the bottom. The moving 3D bodies remain

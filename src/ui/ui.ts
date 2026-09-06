@@ -39,9 +39,7 @@ export interface GameUI {
   ): void;
   showSelection(selection: SelectionInfo | null): void;
   /** Called when the flight starts: everything clears out of the way. */
-  enterFlight(steerable?: boolean): void;
-  /** The child has dragged the ship, so the temporary gesture demonstration can leave. */
-  acknowledgeSteering(): void;
+  enterFlight(): void;
   showArrival(cueId: string, label: string, fact: string, emoji: string): void;
   /** Take the fact card away entirely (not just fold it). Used when the day/night intro's
    *  card has done its job and the hunt is starting — a lingering card is clutter. */
@@ -167,34 +165,6 @@ export function createUI(options: UIOptions): GameUI {
 
   const hint = el('p', 'hint');
   root.append(hint);
-
-  /*
-   * A moving hand rather than another sentence. The static hint still names the action for
-   * a reader, while this briefly demonstrates it for the children who cannot read yet.
-   * It never captures a pointer and leaves on the first real steer (or by itself).
-   */
-  const steerCue = el('div', 'steer-cue is-hidden');
-  steerCue.setAttribute('aria-hidden', 'true');
-  steerCue.append(
-    el('span', 'steer-cue__arrow', '‹'),
-    el('span', 'steer-cue__hand', '☝️'),
-    el('span', 'steer-cue__arrow', '›'),
-  );
-  root.append(steerCue);
-  let steerCueTimer = 0;
-
-  function hideSteerCue() {
-    window.clearTimeout(steerCueTimer);
-    steerCue.classList.add('is-hidden');
-  }
-
-  function showSteerCue(show: boolean) {
-    hideSteerCue();
-    if (!show) return;
-    steerCue.classList.remove('is-hidden');
-    steerCueTimer = window.setTimeout(hideSteerCue, 4200);
-    timers.push(steerCueTimer);
-  }
 
   /*
    * The moving 3D bodies remain tappable, but are no longer the only way to choose. In the
@@ -843,7 +813,7 @@ export function createUI(options: UIOptions): GameUI {
       }
     },
 
-    enterFlight(steerable = false) {
+    enterFlight() {
       destinationBar.classList.add('is-hidden');
       dock.classList.remove('is-map-selection');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
@@ -854,19 +824,10 @@ export function createUI(options: UIOptions): GameUI {
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
       setHomeAvailable(false);
-      setHint(steerable ? '☝️ ↔️  Steer the ship' : null);
-      showSteerCue(steerable);
-    },
-
-    acknowledgeSteering() {
-      hideSteerCue();
+      setHint(null);
     },
 
     showArrival(cueId: string, label: string, fact: string, emoji: string) {
-      hideSteerCue();
-      // The flight's "Steer the ship" hint is done the moment we arrive. It used to be
-      // cleared by beginMission, which now waits behind the day/night intro, so clear it here
-      // or it lingers over the whole intro.
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
@@ -1090,7 +1051,6 @@ export function createUI(options: UIOptions): GameUI {
 
     reset() {
       clearTimers();
-      hideSteerCue();
       // Clear this before stop(): the narrator's onChange listener otherwise interprets
       // reset as the end of a discovery and queues the hunt line into the fresh home view.
       pendingGuide = null;

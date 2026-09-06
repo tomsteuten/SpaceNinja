@@ -60,7 +60,6 @@ src/
     Starfield.ts            gradient sky + optional star map + point stars
     textures.ts             load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts    drag to rotate, pinch/wheel to zoom
-  controls/PilotInput.ts    bounded drag steering during the guaranteed flight route
   flight/FlightSequence.ts  the scripted flight out to any destination
   mission/CollectMission.ts the real places to find, for any body
   ui/                       ui.ts, ui.css, icons.ts, grownups.ts (the adult's one
@@ -247,15 +246,14 @@ and a turning one carries them out from under a child's finger. The Moon needs b
 spin and its orbit-compensating counter-turn stopped, which is why the hold stores the sum
 rather than the raw rotation.
 
-**Flight steering is agency inside a guaranteed route, not free navigation.**
-`PilotInput` turns a drag anywhere on the canvas into a bounded screen-space offset through
-the middle of `FlightSequence`; the influence fades to zero at departure and arrival. That
-keeps the response immediate and playful without asking a five-year-old to aim through 3D
-space before they are allowed to reach a world. `main.ts` remains the only caller of its
-`reset()`. `UI.enterFlight(true)` also shows a brief wordless hand sweep between two arrows;
-`PilotInput.onSteer` dismisses it on the first deliberate drag, and its CSS animation is
-removed rather than sped up under reduced motion. Keep the static hand and arrows there —
-the text hint is useful but cannot be the only explanation for a pre-reader.
+**The outward flight is a cinematic, not an unexplained mini-game.** A bounded drag-steering
+layer used to run through the middle of `FlightSequence`, with a large hand-and-arrows cue.
+Because the chase camera followed the same offset and the ship kept facing the authored
+route, the ship barely moved in frame; the strongest result was a sideways kink in the
+world-space contrail. The instruction was more prominent than its consequence and added no
+goal, so both input and cue were removed. Keep the guaranteed authored route and exhaust;
+if flight interaction returns, it needs a visible ship response and something meaningful
+to steer toward rather than a larger version of the same cosmetic offset.
 
 **A visit quiets occluders; it does not erase the solar system.** `World.setFocus` leaves the
 destination solid and multiplies every other earned body's resting opacity by
@@ -660,12 +658,11 @@ shot at all; reveal-gating is what fixed that one.
 
 Done since this file was written: the grown-ups panel can precisely reset one adventure;
 audio-first fact cards keep a labelled, timed transcript control; unrelated worlds and the
-parked ship fade only during a visit so they cannot hide hunt targets; a brief wordless hand
-cue demonstrates flight steering and leaves on the first real drag; child-facing hunt copy
+parked ship fade only during a visit so they cannot hide hunt targets; child-facing hunt copy
 now consistently says to swipe sideways and look around rather than claiming the planet is
 being spun;
 earned worlds have stable destination buttons and reveal with a short map transition;
-children can steer inside the flight's guaranteed route; Fly Home is now an animated camera pull-back to the map
+the outbound flight is a clean cinematic without cosmetic steering; Fly Home is now an animated camera pull-back to the map
 (`HomeReturn`) rather than an instant cut; framing reserves vertical space for the
 interface so the destination clears the dock (`framingHalfAngle` / `framingInset`); the outer
 worlds are reveal-gated so an unearned one no longer looms into the opening shot
