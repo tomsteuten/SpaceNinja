@@ -45,6 +45,13 @@ export interface CollectMission {
   /** Live list for the raycaster. Entries leave it the instant they are collected. */
   readonly hitMeshes: THREE.Mesh[];
   start(): void;
+  /**
+   * Bring the targets onto the planet and make them tappable. Split out from `start()` so
+   * the surface can be held (and the day/night intro can turn it) before any target is on
+   * screen: the intro plays over a clean world, then the gold targets drop in for the hunt.
+   * A world with no intro simply calls this immediately after `start()`. Idempotent.
+   */
+  reveal(): void;
   /** Feed a raycast hit. Returns true if it was one of ours and was collected. */
   collectFrom(object: THREE.Object3D): boolean;
   /**
@@ -379,6 +386,10 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
   let sparkTexture: THREE.CanvasTexture | null = null;
 
   let active = false;
+  let revealed = false;
+  // Ramps 0 → 1 over the first half-second after reveal, so the targets grow and fade in
+  // rather than snapping on. Non-reduced-motion only; reduced motion has them simply present.
+  let revealT = 0;
   let collected = 0;
   let completionTimer = -1;
 
@@ -604,7 +615,10 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     for (const [index, discovery] of discoveries.entries()) {
       const collectible = buildCollectible(index, discovery);
       collectibles.push(collectible);
-      hitMeshes.push(collectible.hit);
+      // Hidden and un-tappable until reveal(): the surface is held and turning through its
+      // day for the intro, and a target on screen during it would be an answer given away
+      // before the hunt begins. reveal() shows them and adds them to the raycast list.
+      collectible.group.visible = false;
       root.add(collectible.group);
     }
     group = root;
@@ -701,9 +715,22 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     start() {
       if (active) return;
       active = true;
+      revealed = false;
+      revealT = 0;
       collected = 0;
       completionTimer = -1;
       build();
+    },
+
+    reveal() {
+      if (!active || revealed) return;
+      revealed = true;
+      revealT = 0;
+      for (const collectible of collectibles) {
+        collectible.group.visible = true;
+        // Only ones still there to find go into the raycast list.
+        if (collectible.state === 'idle') hitMeshes.push(collectible.hit);
+      }
     },
 
     collectFrom(object: THREE.Object3D) {
@@ -726,7 +753,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     },
 
     remainingHint() {
-      if (!active) return null;
+      if (!active || !revealed) return null;
       const left = collectibles.filter((collectible) => collectible.state === 'idle');
       const last = left.length === 1 ? left[0] : undefined;
       if (!last) return null;
@@ -755,7 +782,9 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     },
 
     update(dt: number, elapsed: number) {
-      if (!active) return;
+      if (!active || !revealed) return;
+      if (revealT < 1) revealT = Math.min(1, revealT + dt / 0.5);
+      const appear = smootherstep(revealT);
 
       for (const collectible of collectibles) {
         if (collectible.state === 'gone') continue;
@@ -765,18 +794,20 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
             // The ring itself no longer bobs — it is lying on the ground, and something
             // drawn on a place should stay on it. The pulse carries the "tap me" instead.
             const wave = Math.sin(elapsed * 1.9 + collectible.phase);
-            collectible.target.scale.setScalar(1 + wave * 0.09);
-            collectible.ringMaterial.opacity = 0.78 + wave * 0.22;
-            collectible.outlineMaterial.opacity = 0.82 + wave * 0.08;
+            // `appear` grows the target in and fades it up over the first half-second after
+            // reveal, so the gold drops onto the planet rather than blinking into being.
+            collectible.target.scale.setScalar((1 + wave * 0.09) * (0.35 + appear * 0.65));
+            collectible.ringMaterial.opacity = (0.78 + wave * 0.22) * appear;
+            collectible.outlineMaterial.opacity = (0.82 + wave * 0.08) * appear;
             collectible.glow.scale.setScalar(collectible.glowScale * (1 + wave * 0.08));
-            collectible.glowMaterial.opacity = 0.2 + wave * 0.08;
+            collectible.glowMaterial.opacity = (0.2 + wave * 0.08) * appear;
             // The expanding "tap here" pulse. A sawtooth phase (0→1, repeat) staggered per
             // marker so they do not all breathe in lockstep; opacity eased out so it starts
             // as a crisp ring at the target and dissolves as it grows, rather than blinking.
             if (collectible.sonar && collectible.sonarMaterial) {
               const s = (elapsed * 0.5 + collectible.phase * 0.3) % 1;
               collectible.sonar.scale.setScalar(1 + s * 2.1);
-              collectible.sonarMaterial.opacity = 0.5 * (1 - s) * (1 - s);
+              collectible.sonarMaterial.opacity = 0.5 * (1 - s) * (1 - s) * appear;
             }
           }
           continue;
@@ -845,6 +876,8 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     reset() {
       teardown();
       active = false;
+      revealed = false;
+      revealT = 0;
       collected = 0;
       completionTimer = -1;
     },

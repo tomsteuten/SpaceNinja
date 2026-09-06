@@ -358,6 +358,13 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   moon: {
     emoji: '🌙',
     flyLabel: 'Fly to the Moon',
+    spin: {
+      label: 'Spin the Moon',
+      name: 'Day and Night',
+      fact:
+        'The Moon has day and night too, but they are very long. It gets about two ' +
+        'weeks of sunshine, and then about two weeks of dark, before the Sun comes up again.',
+    },
     // The footprints used to be this line. They belong to a *place*, so they moved down
     // into it — an arrival fact is about the whole world, and this one now is.
     fact:
@@ -416,6 +423,13 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     flyLabel: 'Fly to Mars',
     // Revealed once the Moon has been visited — the same gate WIDE_FRAMING_VISIT widens on.
     revealAfterVisiting: 'moon',
+    spin: {
+      label: 'Spin Mars',
+      name: 'Day and Night',
+      fact:
+        'A day on Mars is almost exactly as long as a day on Earth — just forty minutes ' +
+        'longer. If you lived there, morning would come at nearly the same time as it does for you.',
+    },
     fact:
       'Mars is red because its dust is full of rust — the same rust that grows on an old ' +
       'bike left out in the rain. The whole planet is a bit rusty!',
@@ -473,6 +487,15 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     // is what stops Saturn looming into the opening shot before a child has earned it, and
     // (until Mars is reached) removes the Mars-through-the-rings overlap entirely.
     revealAfterVisiting: 'mars',
+    // The animated turn is a calm one like the others (SATURN_SPIN_RATE), not the real
+    // ten-hour whirl — the fact tells the truth the picture would only make dizzying.
+    spin: {
+      label: 'Spin Saturn',
+      name: 'Day and Night',
+      fact:
+        'Saturn spins very, very fast. One whole day and night there is only about ' +
+        'ten hours long — you would have breakfast, lunch, and bedtime all before an Earth day was half done.',
+    },
     fact:
       'Saturn is the planet with the beautiful rings. It is so big that a thousand Earths ' +
       'could fit inside it — and it is so light for its size that it would float in a ' +

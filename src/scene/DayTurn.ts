@@ -52,6 +52,13 @@ export interface DayTurn {
   /** Begins a turn. Ignored while one is already running. */
   start(body: CelestialBody): void;
   update(dt: number): void;
+  /**
+   * Ends the turn early, as a full completion rather than an abandonment: it applies
+   * whatever turn is left in one step, so every marker still lands on its real coordinates,
+   * settles the camera square-on where a natural finish leaves it, and fires `onFinish`.
+   * This is the "tap to skip" a child gives when they would rather get on and hunt.
+   */
+  skip(): void;
   /** Stops where it is and gives the camera back. Does not report a finish. */
   reset(): void;
 }
@@ -181,6 +188,21 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
         release();
         onFinish();
       }
+    },
+
+    skip() {
+      const body = turning;
+      if (!body) return;
+      // Whatever is left of the one turn, applied at once — a partial turn would leave every
+      // marker off its real coordinates, which is the whole thing the clamp above protects.
+      body.turnSurface(FULL_TURN - turned);
+      turned = FULL_TURN;
+      // End on the square-on pose a natural finish leaves, so the hunt starts from the same
+      // composition whether the turn ran out or was skipped.
+      placeCamera(1);
+      onProgress?.(1);
+      release();
+      onFinish();
     },
 
     reset() {

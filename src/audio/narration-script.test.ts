@@ -65,11 +65,19 @@ describe('narration script', () => {
     // audio simply keeps the visual guidance and never auto-plays the poor device voice — so
     // a newly added world pending its recordings is a valid state. What must not happen is a
     // *half*-recorded world, where one discovery in a visit speaks and the next does not.
+    //
+    // The day/night intro (`spin-*`) is deliberately outside this rule: it is a visual lesson
+    // — the light moving across the world *is* the content — and the code runs it silently and
+    // shows its fact as text when there is no recording, exactly as intended for a world whose
+    // spin audio has not been generated yet. So a world may have every hunt cue recorded and a
+    // still-silent day turn; that is not the half-narrated hunt this guard is about. The
+    // "no stray recordings" check below still covers a recorded-but-orphaned spin cue.
     for (const [bodyId, cues] of Object.entries(cuesByBody())) {
-      const have = cues.filter((cue) => recorded.has(cue));
+      const hunt = cues.filter((cue) => !cue.startsWith('spin-'));
+      const have = hunt.filter((cue) => recorded.has(cue));
       expect(
-        have.length === 0 || have.length === cues.length,
-        `${bodyId} has ${have.length}/${cues.length} cues recorded — record all or none`,
+        have.length === 0 || have.length === hunt.length,
+        `${bodyId} has ${have.length}/${hunt.length} hunt cues recorded — record all or none`,
       ).toBe(true);
     }
 

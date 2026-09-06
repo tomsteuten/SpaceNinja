@@ -180,10 +180,6 @@ export function createUI(options: UIOptions): GameUI {
   );
   root.append(steerCue);
   let steerCueTimer = 0;
-  // The day/night offer fades in a beat after arrival rather than in the same instant, so
-  // the world and its places register first. Tracked so leaving (Fly Home, reset) can cancel
-  // a pending show before it lands over the receding map.
-  let spinTimer = 0;
 
   function hideSteerCue() {
     window.clearTimeout(steerCueTimer);
@@ -856,8 +852,6 @@ export function createUI(options: UIOptions): GameUI {
       missionHud.classList.add('is-hidden');
       namePill.classList.add('is-hidden');
       flyButton.classList.add('is-hidden');
-      // Cancel a spin fade-in still pending from arrival, or it would land over the map.
-      window.clearTimeout(spinTimer);
       spinButton.classList.add('is-hidden');
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
@@ -872,6 +866,10 @@ export function createUI(options: UIOptions): GameUI {
 
     showArrival(cueId: string, label: string, fact: string, emoji: string) {
       hideSteerCue();
+      // The flight's "Steer the ship" hint is done the moment we arrive. It used to be
+      // cleared by beginMission, which now waits behind the day/night intro, so clear it here
+      // or it lingers over the whole intro.
+      setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
       // The name is the card's own title now, so a child arrives to "🌍 Earth" rather than
@@ -1006,23 +1004,12 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     showSpin(label: string | null) {
-      window.clearTimeout(spinTimer);
+      // A replay control, offered once the day/night intro has played and the hunt is live —
+      // so a child who loved watching the light move can do it again. The arrival is no
+      // longer cluttered by it, because the turn happens on its own on the way in.
       spinLabel.textContent = label ?? '';
-      if (!label) {
-        spinButton.classList.add('is-hidden');
-        return;
-      }
-      // Offered from arrival, but a beat behind it — the same staging the counter uses. A
-      // child meets the planet and its gold targets first; the "turn it through a day" offer
-      // then fades in as a secondary thing, rather than being one more button in the wall
-      // they land into. This is sequencing, not gating: it does not wait on the hunt.
-      spinButton.classList.add('is-hidden');
-      spinButton.classList.remove('fade-in');
-      spinTimer = window.setTimeout(() => {
-        spinButton.classList.remove('is-hidden');
-        spinButton.classList.add('fade-in');
-      }, 1800);
-      timers.push(spinTimer);
+      spinButton.classList.toggle('is-hidden', !label);
+      if (label) spinButton.classList.add('fade-in');
     },
 
     setSpinBusy(busy: boolean) {
@@ -1097,7 +1084,6 @@ export function createUI(options: UIOptions): GameUI {
       finale?.remove();
       finale = null;
       setHomeAvailable(false);
-      window.clearTimeout(spinTimer);
       spinButton.classList.add('is-hidden');
       spinButton.disabled = false;
       spinButton.classList.remove('is-busy', 'fade-in');
