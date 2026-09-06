@@ -44,6 +44,9 @@ export interface GameUI {
   /** The child has dragged the ship, so the temporary gesture demonstration can leave. */
   acknowledgeSteering(): void;
   showArrival(cueId: string, label: string, fact: string, emoji: string): void;
+  /** Take the fact card away entirely (not just fold it). Used when the day/night intro's
+   *  card has done its job and the hunt is starting — a lingering card is clutter. */
+  clearFact(): void;
   /**
    * Puts up the progress counter. A beat after arrival, so the fact is read first, and
    * *alongside* the fact card rather than instead of it: the rocks are simply there to
@@ -403,15 +406,15 @@ export function createUI(options: UIOptions): GameUI {
   homeButton.classList.add('is-hidden');
 
   /*
-   * Above Fly Home rather than beside it. The dock is a column, and the exit has to stay
-   * exactly where it has always been — it is the answer to "how do I get out of here" and
-   * a button that moves teaches that buttons move. So the new one goes on top of the
-   * stack, and the one that matters most keeps the bottom.
+   * A small round replay, not a full-width bar. The day/night turn now plays as the arrival
+   * intro, so this is only "show me that again" — a secondary wish, not a headline action —
+   * and a big labelled button for it was the clutter the dock was drowning in. Icon-only, its
+   * name on the aria-label. It sits above Fly Home in the column, so the exit keeps the
+   * bottom (a button that moves teaches that buttons move) and nothing is displaced.
    */
-  const spinButton = el('button', 'btn btn--secondary spin-btn');
+  const spinButton = el('button', 'btn btn--round btn--secondary spin-btn');
   spinButton.type = 'button';
-  const spinLabel = el('span');
-  spinButton.append(createIcon('sun'), spinLabel);
+  spinButton.append(createIcon('sun'));
   spinButton.classList.add('is-hidden');
 
   dock.append(namePill, factCard, flyButton, spinButton, homeButton);
@@ -792,7 +795,7 @@ export function createUI(options: UIOptions): GameUI {
     timers.push(collapseTimer);
   }
 
-  function showFact(text: string, title?: string, cueId?: string) {
+  function showFact(text: string, title?: string, cueId?: string, allowNarrate = true) {
     currentFact = text;
     currentFactCueId = cueId ?? null;
     pendingGuide = null;
@@ -815,7 +818,11 @@ export function createUI(options: UIOptions): GameUI {
     factCard.classList.add('fade-in');
     // Only authored audio starts itself. A partial voice pack never makes the platform's
     // poor fallback begin talking, and the paragraph remains fully visible for that cue.
-    const autoNarrate = shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn);
+    // `allowNarrate` is the caller's veto: the arrival welcome suppresses its recording, whose
+    // "tap a gold target" line is now premature — the targets do not appear until after the
+    // day/night intro — so the welcome is shown, not spoken, and the spin carries the voice.
+    const autoNarrate =
+      allowNarrate && shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn);
     if (autoNarrate) {
       factCard.classList.add('is-audio-first', 'has-transcript-toggle');
       narrator.speak(text, currentFactCueId, false);
@@ -878,9 +885,10 @@ export function createUI(options: UIOptions): GameUI {
       // repeat it, so it stays out of the way for the whole visit; the card carries the
       // identity, right down to its folded pill, from here until Fly Home.
       namePill.classList.add('is-hidden');
-      // Speech needs a recent user gesture on mobile; the fly button provided one, but if
-      // the platform refuses anyway the button is right there.
-      showFact(fact, `${emoji}  ${label}`, cueId);
+      // Shown, not spoken: the day/night intro that follows is the moving, spoken welcome,
+      // and the arrival recording's "tap a gold target" would be heard before any target
+      // exists. The displayed fact carries no such instruction, so the card is fine to show.
+      showFact(fact, `${emoji}  ${label}`, cueId, false);
     },
 
     beginMission(caption: string, total: number) {
@@ -916,6 +924,28 @@ export function createUI(options: UIOptions): GameUI {
 
     showNote(cueId: string, title: string, text: string) {
       showFact(text, title, cueId);
+    },
+
+    clearFact() {
+      window.clearTimeout(collapseTimer);
+      currentFact = '';
+      currentFactCueId = null;
+      pendingFact = null;
+      pendingGuide = null;
+      photoFor = null;
+      clearPhoto();
+      factTitle.textContent = '';
+      factTitle.classList.add('is-hidden');
+      factText.textContent = '';
+      transcriptButton.classList.add('is-hidden');
+      factCard.classList.add('is-hidden');
+      factCard.classList.remove(
+        'is-collapsed',
+        'is-audio-first',
+        'is-transcript-open',
+        'has-transcript-toggle',
+        'fade-in',
+      );
     },
 
     foldFact(forceWhileSpeaking = false) {
@@ -1006,8 +1036,9 @@ export function createUI(options: UIOptions): GameUI {
     showSpin(label: string | null) {
       // A replay control, offered once the day/night intro has played and the hunt is live —
       // so a child who loved watching the light move can do it again. The arrival is no
-      // longer cluttered by it, because the turn happens on its own on the way in.
-      spinLabel.textContent = label ?? '';
+      // longer cluttered by it, because the turn happens on its own on the way in. Icon-only
+      // now, so its name lives on the aria-label rather than in a full-width bar.
+      spinButton.setAttribute('aria-label', label ?? 'See day and night again');
       spinButton.classList.toggle('is-hidden', !label);
       if (label) spinButton.classList.add('fade-in');
     },
