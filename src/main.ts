@@ -37,6 +37,7 @@ import {
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
+import { shouldAutoNarrate } from './ui/narrationFlow';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
   FINALE_STICKER,
@@ -447,25 +448,30 @@ async function main() {
    * child meets the planet and its day/night — the question they actually bring — before a
    * single control competes for attention. Then the gold targets drop in.
    *
-   * `awaitingIntro` spans the brief welcome beat; `introPlaying` spans the turn itself. A tap
-   * during either skips straight to the hunt, and Fly Home is on screen the whole time — so
-   * this is a staged opening that flows into the ambient hunt, never a mode a child is trapped
-   * in.
+   * `awaitingIntro` spans the spoken welcome (or a brief silent-device beat); `introPlaying`
+   * spans the turn itself. A tap during either skips straight to the hunt, and Fly Home is on
+   * screen the whole time — so this is a staged opening that flows into the ambient hunt,
+   * never a mode a child is trapped in.
    */
   let awaitingIntro = false;
   let introPlaying = false;
   let introTimer = 0;
   /** Long enough to take in the planet and its name before it begins to turn. */
   const WELCOME_MS = 2600;
+  /** A failed audio end event must not strand the child in the welcome forever. */
+  const WELCOME_NARRATION_TIMEOUT_MS = 8000;
 
   function scheduleIntro() {
     awaitingIntro = true;
     introPlaying = false;
     window.clearTimeout(introTimer);
-    // A short, quiet beat rather than waiting on a welcome narration — the welcome is silent
-    // now (its recording's "tap a gold target" line belongs after the intro, not before it),
-    // and the day/night turn is what speaks.
-    introTimer = window.setTimeout(startDayIntro, WELCOME_MS);
+    // A recorded welcome gets to finish before the world starts moving. A silent device,
+    // sound-off or a missing cue still gets a short visual beat; the longer guard is only for
+    // a playback backend that started but never reports that it ended.
+    introTimer = window.setTimeout(
+      startDayIntro,
+      narrator.speaking ? WELCOME_NARRATION_TIMEOUT_MS : WELCOME_MS,
+    );
   }
 
   function startDayIntro() {
@@ -517,6 +523,12 @@ async function main() {
     ui.beginMission(config.mission.instruction, config.mission.discoveries.length);
     // A quiet round replay, offered once the hunt is live rather than at the raw arrival.
     ui.showSpin(config.spin?.label ?? null);
+    // The counter and target silhouettes carry this visually; the authored cue carries it
+    // for a pre-reader. Never auto-start the platform voice when a partial pack is installed.
+    const cueId = `find-${follow}`;
+    if (shouldAutoNarrate(narrator.hasRecording(cueId), soundOn)) {
+      narrator.speak(config.mission.instruction, cueId, false);
+    }
   }
 
   function skipIntro() {
@@ -542,6 +554,13 @@ async function main() {
     if (dayTurn.active) skipIntro();
   }
   canvas.addEventListener('pointerup', onIntroSkipTap);
+
+  // The welcome recording owns the hand-off when it speaks. Guarded by awaitingIntro so the
+  // end of a discovery or hunt cue cannot start another day turn; scheduleIntro's timer is the
+  // silent-device and failed-playback fallback.
+  narrator.onChange((speaking) => {
+    if (!speaking && awaitingIntro) startDayIntro();
+  });
 
   function handleTap(clientX: number, clientY: number) {
     if (flight.phase === 'flying') return;
@@ -594,7 +613,6 @@ async function main() {
     ui.setHint(null);
     const config = DESTINATIONS[selected];
     ui.showSelection({
-      label: world.bodies[selected].label,
       flyLabel: config && flight.phase === 'idle' ? config.flyLabel : null,
     });
   }

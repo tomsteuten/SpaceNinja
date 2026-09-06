@@ -450,10 +450,14 @@ body {
  * big buttons stacked over the Atlantic.
  *
  * Laid out as one band along the bottom instead, the same controls clear the disc
- * entirely. Nothing is removed and nothing shrinks: a five-year-old's finger needs every
- * one of these targets at the size it is.
+ * entirely. No control is removed and every tap target keeps its full height: a
+ * five-year-old's finger needs every one of them at the size it is.
  */
-@media (min-width: 760px) and (orientation: landscape) {
+/* A 640px-wide older tablet or small phone is still unmistakably landscape: leaving the
+   old 760px floor in place stacked the folded fact, replay and Fly Home straight through
+   Saturn's middle. Flex wrapping below is already the narrow-screen fallback, so let every
+   practical landscape viewport use the bottom band. */
+@media (min-width: 600px) and (orientation: landscape) {
   .dock {
     width: min(1040px, calc(100vw - var(--pad-left) - var(--pad-right)));
     flex-flow: row wrap;
@@ -474,27 +478,11 @@ body {
     flex: 0 0 auto;
   }
 
-  .name-pill {
-    order: 1;
-  }
-
   .fly-btn,
   .spin-btn,
   .home-btn {
     order: 3;
   }
-}
-
-.name-pill {
-  padding: 0.5rem 1.4rem;
-  border-radius: 999px;
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  background: rgba(20, 14, 44, 0.72);
-  border: 1px solid var(--panel-edge);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 /* A column: the name, then the words at full width, then a row with the picture and the
@@ -1097,6 +1085,35 @@ body {
   }
   .dock {
     gap: 0.6rem;
+  }
+}
+
+/* The compact landscape band also shares its row with the fixed journal corner. Preserve
+   every 54px tap target, but spend less horizontal padding and shift the dock into the free
+   space; otherwise the book sits on top of the fact title at 640px wide. */
+@media (min-width: 600px) and (max-width: 759px) and (orientation: landscape) and (max-height: 480px) {
+  .dock {
+    left: calc(50% + 32px);
+    width: calc(100vw - var(--pad-left) - var(--pad-right) - 64px);
+    gap: 0.4rem;
+  }
+
+  .fact-card.is-collapsed {
+    gap: 0.35rem;
+    padding-left: 0.7rem;
+  }
+
+  .fact-card.is-collapsed .fact-actions {
+    gap: 0.25rem;
+  }
+
+  .dock .transcript-btn {
+    padding-inline: 0.55rem;
+    font-size: 0.88rem;
+  }
+
+  .dock .home-btn {
+    padding-inline: 0.55rem;
   }
 }
 

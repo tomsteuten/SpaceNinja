@@ -25,6 +25,7 @@ function cuesByBody(): Record<string, string[]> {
       bodyId,
       [
         `arrival-${bodyId}`,
+        `find-${bodyId}`,
         ...destination.mission.discoveries.map((discovery) => `discovery-${discovery.id}`),
         `hunt-${bodyId}`,
         `success-${bodyId}`,
@@ -52,6 +53,13 @@ describe('narration script', () => {
     expect(script.kokoro.speed).toBeGreaterThanOrEqual(0.5);
     expect(script.kokoro.speed).toBeLessThanOrEqual(2);
     expect(Object.values(script.cues).every((line) => line.trim().length > 0)).toBe(true);
+  });
+
+  it('welcomes before the intro and saves the target instruction for the hunt', () => {
+    for (const bodyId of Object.keys(DESTINATIONS)) {
+      expect(script.cues[`arrival-${bodyId}`]).not.toMatch(/\b(?:tap|target)\b/i);
+      expect(script.cues[`find-${bodyId}`]).toMatch(/\btap\b.*\bgold\b|\bgold\b.*\btap\b/i);
+    }
   });
 
   it('keeps every committed world complete, per world', () => {

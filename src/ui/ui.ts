@@ -19,7 +19,6 @@ import {
 import { createPhotoViewer, findPhoto } from './photos';
 
 export interface SelectionInfo {
-  label: string;
   /** Text for the launch button, or null when this body is not a destination. */
   flyLabel: string | null;
 }
@@ -48,9 +47,9 @@ export interface GameUI {
    *  card has done its job and the hunt is starting — a lingering card is clutter. */
   clearFact(): void;
   /**
-   * Puts up the progress counter. A beat after arrival, so the fact is read first, and
-   * *alongside* the fact card rather than instead of it: the rocks are simply there to
-   * be found, not a mode the child has entered and has to finish to leave.
+   * Puts up the progress counter a beat after the gold places appear. The targets get the
+   * first look, then the counter names the ambient hunt without becoming a mode the child
+   * has to finish before leaving.
    */
   beginMission(caption: string, total: number): void;
   setMissionCaption(text: string, cueId?: string): void;
@@ -260,11 +259,9 @@ export function createUI(options: UIOptions): GameUI {
     }
   }
 
-  /* --- dock: name + buttons + fact card ------------------------------------ */
+  /* --- dock: buttons + fact card ------------------------------------------- */
 
   const dock = el('div', 'dock');
-  const namePill = el('div', 'name-pill');
-  namePill.classList.add('is-hidden');
 
   const flyButton = el('button', 'btn fly-btn');
   flyButton.type = 'button';
@@ -417,7 +414,7 @@ export function createUI(options: UIOptions): GameUI {
   spinButton.append(createIcon('sun'));
   spinButton.classList.add('is-hidden');
 
-  dock.append(namePill, factCard, flyButton, spinButton, homeButton);
+  dock.append(factCard, flyButton, spinButton, homeButton);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
@@ -818,9 +815,8 @@ export function createUI(options: UIOptions): GameUI {
     factCard.classList.add('fade-in');
     // Only authored audio starts itself. A partial voice pack never makes the platform's
     // poor fallback begin talking, and the paragraph remains fully visible for that cue.
-    // `allowNarrate` is the caller's veto: the arrival welcome suppresses its recording, whose
-    // "tap a gold target" line is now premature — the targets do not appear until after the
-    // day/night intro — so the welcome is shown, not spoken, and the spin carries the voice.
+    // `allowNarrate` is a narrow caller veto for a visual moment that needs silence; arrival
+    // welcomes are authored for their new place in the sequence and speak normally.
     const autoNarrate =
       allowNarrate && shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn);
     if (autoNarrate) {
@@ -837,13 +833,9 @@ export function createUI(options: UIOptions): GameUI {
 
     showSelection(selection: SelectionInfo | null) {
       if (!selection) {
-        namePill.classList.add('is-hidden');
         flyButton.classList.add('is-hidden');
         return;
       }
-      namePill.textContent = selection.label;
-      namePill.classList.remove('is-hidden');
-      namePill.classList.add('fade-in');
       flyButton.classList.toggle('is-hidden', !selection.flyLabel);
       if (selection.flyLabel) {
         flyButtonLabel.textContent = selection.flyLabel;
@@ -857,7 +849,6 @@ export function createUI(options: UIOptions): GameUI {
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
       missionHud.classList.add('is-hidden');
-      namePill.classList.add('is-hidden');
       flyButton.classList.add('is-hidden');
       spinButton.classList.add('is-hidden');
       factCard.classList.add('is-hidden');
@@ -880,15 +871,11 @@ export function createUI(options: UIOptions): GameUI {
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
       // The name is the card's own title now, so a child arrives to "🌍 Earth" rather than
-      // to a "Show words" pill floating with no content — which is what an audio-first card
-      // with no title looked like, and read as broken. The separate name pill would only
-      // repeat it, so it stays out of the way for the whole visit; the card carries the
-      // identity, right down to its folded pill, from here until Fly Home.
-      namePill.classList.add('is-hidden');
-      // Shown, not spoken: the day/night intro that follows is the moving, spoken welcome,
-      // and the arrival recording's "tap a gold target" would be heard before any target
-      // exists. The displayed fact carries no such instruction, so the card is fine to show.
-      showFact(fact, `${emoji}  ${label}`, cueId, false);
+      // to a "Show words" pill floating with no content. It keeps carrying that identity,
+      // right down to its folded pill, until Fly Home.
+      // The authored arrival cue is a pure welcome. Its end hands off to the day/night intro;
+      // the instruction to tap is a separate cue held until the targets actually appear.
+      showFact(fact, `${emoji}  ${label}`, cueId);
     },
 
     beginMission(caption: string, total: number) {
@@ -896,9 +883,9 @@ export function createUI(options: UIOptions): GameUI {
       buildSlots(total);
       missionCaption.textContent = caption;
 
-      // A beat behind the arrival, so the fact gets read before a second thing appears.
-      // The fact card and the name pill stay exactly where they are: the counter lives at
-      // the top of the screen and the dock owns the bottom, so nothing has to move aside.
+      // A beat behind the target reveal, so the places themselves arrive before a counter
+      // asks the child to count them. The counter lives at the top and the dock owns the
+      // bottom, so nothing has to move aside.
       later(() => {
         missionHud.classList.remove('is-hidden');
         // Its own keyframe, not .fade-in: that one animates transform and would drop the
@@ -1145,7 +1132,7 @@ export function createUI(options: UIOptions): GameUI {
       slotRow.replaceChildren();
       slots = [];
 
-      for (const node of [namePill, flyButton, factCard, homeButton]) {
+      for (const node of [flyButton, factCard, homeButton]) {
         node.classList.add('is-hidden');
         // Or the animation will not replay the next time the node is shown.
         node.classList.remove('fade-in');
