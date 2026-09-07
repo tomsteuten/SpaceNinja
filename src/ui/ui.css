@@ -1660,11 +1660,86 @@ body {
   color: #b9b2e0;
 }
 
+/* The day/night button's face: a small globe of the world you are at, half in night, with
+   the terminator crawling across it.
+
+   It replaced a stroked sun. A sun is a symbol of the *topic*; it does not say "turn this
+   world so morning arrives", and in a row of identical round buttons nothing marked out the
+   one that changes the planet. This is a working model of the action at the size of an icon
+   — the same 62px the button always occupied, which matters because the dock is the most
+   contested space on the screen. */
+.spin-globe {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  /* Lit warm from the upper left, like every body in the scene — and warm on purpose. The
+     lit half has to read as *sunlit*, because that is the half of the idea a drawn sun used
+     to carry; a neutrally lit ball is just a ball. --world is set per destination from
+     config, so this is that world's globe rather than a generic one. */
+  background:
+    radial-gradient(circle at 30% 26%, rgba(255, 246, 226, 0.92), rgba(255, 226, 178, 0.4) 42%, transparent 66%),
+    var(--world, #6f6ab0);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+    0 0 10px rgba(255, 214, 150, 0.32);
+}
+
+/* Twice the disc's width and carrying two night bands, so translating it by exactly half
+   its own width loops with no seam and no pop — the terminator simply keeps crossing. A
+   hard-edged half would read as a shadow cast on it; a soft one reads as the curve of a
+   world turning. */
+.spin-globe__night {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  background: linear-gradient(
+    90deg,
+    rgba(2, 1, 9, 0.88) 0%,
+    rgba(2, 1, 9, 0.88) 17%,
+    rgba(2, 1, 9, 0) 47%,
+    rgba(2, 1, 9, 0) 53%,
+    rgba(2, 1, 9, 0.88) 83%,
+    rgba(2, 1, 9, 0.88) 100%
+  );
+  /* The resting pose is half-lit, which is the whole idea stated in one frame — so the
+     button still says it under reduced motion, and while the animation is paused. */
+  transform: translateX(-25%);
+  animation: spinGlobeTurn 5s linear infinite;
+}
+
+@keyframes spinGlobeTurn {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* Disabled while a day is turning. Faded rather than hidden: a button that vanishes
-   under the finger that just pressed it reads as a broken app at this age. */
+   under the finger that just pressed it reads as a broken app at this age. And its own
+   globe stops turning, because the big one is turning instead — two of them going at
+   different rates is the button contradicting the planet. */
 .spin-btn.is-busy {
   opacity: 0.55;
   filter: saturate(0.6);
+}
+
+.spin-btn.is-busy .spin-globe__night {
+  animation-play-state: paused;
+}
+
+/* Removes the motion, keeps the meaning: a globe frozen half in night still says what the
+   button does, which a stroked sun never did. */
+@media (prefers-reduced-motion: reduce) {
+  .spin-globe__night {
+    animation: none;
+  }
 }
 
 /* --- the idle coach ------------------------------------------------------- */

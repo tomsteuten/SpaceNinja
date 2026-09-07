@@ -105,8 +105,11 @@ export interface GameUI {
   showFindLabel(clientX: number, clientY: number, emoji: string, name: string): void;
   /**
    * Offer to turn the destination through a day, or take the offer away. Null hides it.
+   *
+   * `tint` colours the small globe on the button so it is recognisably *this* world's day
+   * rather than a generic one.
    */
-  showSpin(label: string | null): void;
+  showSpin(label: string | null, tint?: string): void;
   /** Greys the spin button out while a turn is running, so a press cannot stack. */
   setSpinBusy(busy: boolean): void;
   /** Sound off also stops and hides the read-aloud button, which is the only sound the UI owns. */
@@ -409,15 +412,26 @@ export function createUI(options: UIOptions): GameUI {
   homeButton.classList.add('is-hidden');
 
   /*
-   * A small round replay, not a full-width bar. The day/night turn now plays as the arrival
-   * intro, so this is only "show me that again" — a secondary wish, not a headline action —
-   * and a big labelled button for it was the clutter the dock was drowning in. Icon-only, its
-   * name on the aria-label. It sits above Fly Home in the column, so the exit keeps the
-   * bottom (a button that moves teaches that buttons move) and nothing is displaced.
+   * A small round button carrying a working model of what it does.
+   *
+   * It was a stroked sun, and a sun is a symbol of the *topic* rather than a picture of the
+   * *action*: ☀ means "sun", it does not mean "turn this world so you can watch morning
+   * arrive". Worse, it sat in a row of identical round buttons — the same shape and weight
+   * as the speaker and the journal — so nothing marked out the one that changes the planet.
+   * It is now a tiny globe of that world, half in night, with the terminator crawling across
+   * it: the button is a small version of the thing it will do to the big one.
+   *
+   * Deliberately the same 62px it always was. The dock is the most contested space on the
+   * screen and this buys legibility with none of it.
+   *
+   * It sits above Fly Home in the column, so the exit keeps the bottom (a button that moves
+   * teaches that buttons move) and nothing is displaced.
    */
   const spinButton = el('button', 'btn btn--round btn--secondary spin-btn');
   spinButton.type = 'button';
-  spinButton.append(createIcon('sun'));
+  const spinGlobe = el('span', 'spin-globe');
+  spinGlobe.append(el('span', 'spin-globe__night'));
+  spinButton.append(spinGlobe);
   spinButton.classList.add('is-hidden');
 
   dock.append(factCard, spinButton, homeButton);
@@ -1061,12 +1075,12 @@ export function createUI(options: UIOptions): GameUI {
       later(() => showFinale(stickerId), FINALE_DELAY_MS);
     },
 
-    showSpin(label: string | null) {
-      // A replay control, offered once the day/night intro has played and the hunt is live —
-      // so a child who loved watching the light move can do it again. The arrival is no
-      // longer cluttered by it, because the turn happens on its own on the way in. Icon-only
-      // now, so its name lives on the aria-label rather than in a full-width bar.
-      spinButton.setAttribute('aria-label', label ?? 'See day and night again');
+    showSpin(label: string | null, tint?: string) {
+      // Offered from the moment the hunt is live: the turn no longer plays on its own, so
+      // this is the whole way in to it. Its name lives on the aria-label rather than in a
+      // full-width bar; the globe on its face is what says so without words.
+      spinButton.setAttribute('aria-label', label ?? 'Turn this world through a day');
+      if (tint) spinGlobe.style.setProperty('--world', tint);
       spinButton.classList.toggle('is-hidden', !label);
       if (label) spinButton.classList.add('fade-in');
     },

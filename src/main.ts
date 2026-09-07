@@ -491,8 +491,9 @@ async function main() {
     // The instruction cue queues behind the arrival welcome rather than talking over it.
     // Never auto-start the platform voice when a partial pack is installed.
     ui.beginMission(config.mission.instruction, config.mission.discoveries.length, `find-${follow}`);
-    // The day turn, offered rather than imposed.
-    ui.showSpin(config.spin?.label ?? null);
+    // The day turn, offered rather than imposed — and the button wears this world's own
+    // globe, so what it will do is legible without a word on it.
+    ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
   }
 
   /*

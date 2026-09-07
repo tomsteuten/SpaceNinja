@@ -264,7 +264,21 @@ export interface DestinationConfig {
    * times over. Each world's title now says what is different about its day, so pressing it
    * on Saturn is not a re-run of pressing it on Earth.
    */
-  spin?: { label: string; name: string; fact: string };
+  spin?: {
+    label: string;
+    name: string;
+    fact: string;
+    /**
+     * This world's colour, for the small day/night disc on its own button.
+     *
+     * The button used to be a stroked sun, which is a symbol of the *topic* rather than a
+     * picture of the *action*: ☀ means "sun", not "turn this world so morning arrives". It
+     * is now a tiny half-lit globe with the terminator crawling across it — a working model
+     * of what pressing it does — and the tint is what makes it that world's globe rather
+     * than a generic one. Data, like every other per-destination string here.
+     */
+    tint: string;
+  };
   /**
    * Don't draw this world until that one has been visited.
    *
@@ -305,6 +319,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     emoji: '🌍',
     spin: {
       label: 'Spin the Earth',
+      tint: '#3f7fb8',
       name: 'Your Day and Night',
       fact:
         'The Sun does not move. Earth turns! When your part of it turns towards the Sun ' +
@@ -382,6 +397,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     emoji: '🌙',
     spin: {
       label: 'Spin the Moon',
+      tint: '#9a958f',
       name: 'Two Weeks of Sunshine',
       fact:
         'The Moon has day and night too, but they are very long. It gets about two ' +
@@ -452,6 +468,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     revealAfterVisiting: 'moon',
     spin: {
       label: 'Spin Mars',
+      tint: '#b4593a',
       name: 'A Day Almost Like Yours',
       fact:
         'A day on Mars is almost exactly as long as a day on Earth — just forty minutes ' +
@@ -523,6 +540,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     // ten-hour whirl — the fact tells the truth the picture would only make dizzying.
     spin: {
       label: 'Spin Saturn',
+      tint: '#c2a366',
       name: 'The Fastest Day',
       fact:
         'Saturn spins very, very fast. One whole day and night there is only about ' +
