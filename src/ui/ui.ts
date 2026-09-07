@@ -85,9 +85,14 @@ export interface GameUI {
   completeMission(cueId: string, successLine: string, stickerId: string | null, title: string): void;
   /**
    * The bigger celebration, for finding every place on every world. Follows the world's
-   * own completion rather than replacing it; `stickerId` works as in `completeMission`.
+   * own completion rather than replacing it.
+   *
+   * Unlike `completeMission`, this happens exactly once per save: it rides on the finale
+   * sticker actually being awarded, so there is no already-earned case to carry. It used to
+   * fire on any completion that left the book full, which meant every replay re-ran the
+   * victory party for nothing.
    */
-  completeGame(stickerId: string | null): void;
+  completeGame(stickerId: string): void;
   /**
    * Answer a tap that hit nothing. Not a failure signal - to a small child an
    * unresponsive tap reads as a broken app rather than as a miss.
@@ -710,7 +715,7 @@ export function createUI(options: UIOptions): GameUI {
     later(() => overlay.remove(), 600);
   }
 
-  function showFinale(stickerId: string | null) {
+  function showFinale(stickerId: string) {
     closeFinale();
     const overlay = el('div', 'finale');
     const inner = el('div', 'panel finale__inner');
@@ -732,10 +737,10 @@ export function createUI(options: UIOptions): GameUI {
 
     const title = el('strong', 'finale__title', 'You found every place!');
     const line = el('p', 'finale__line');
-    const hero = STICKERS[stickerId ?? ''] ?? STICKERS['space-ninja'];
+    const hero = STICKERS[stickerId] ?? STICKERS['space-ninja'];
     line.append(
       el('span', 'finale__hero', hero?.emoji ?? '🥷'),
-      el('span', undefined, stickerId ? `New sticker: ${hero?.label ?? 'Space Ninja'}` : 'You are a real Space Ninja'),
+      el('span', undefined, `New sticker: ${hero?.label ?? 'Space Ninja'}`),
     );
     const done = el('button', 'btn finale__close', 'Hooray!');
     done.type = 'button';
@@ -1030,7 +1035,7 @@ export function createUI(options: UIOptions): GameUI {
       if (stickerId) celebrate(stickerId);
     },
 
-    completeGame(stickerId: string | null) {
+    completeGame(stickerId: string) {
       // After the world's own sticker has had its 2.4 seconds and faded, not on top of it:
       // two celebrations at once is one celebration nobody can see.
       later(() => showFinale(stickerId), FINALE_DELAY_MS);

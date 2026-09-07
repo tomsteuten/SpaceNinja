@@ -417,12 +417,22 @@ async function main() {
           isNew ? config.mission.stickerId : null,
           `${config.emoji}  ${body.label}`,
         );
-        // And when this was the last place on the last world, the finale. Same rule as
-        // the sticker: the moment happens whenever a completion leaves the book full,
-        // the badge only the first time.
-        if (foundEverything(loadProgress().discoveries, Object.keys(DISCOVERIES))) {
-          const first = awardSticker(FINALE_STICKER);
-          ui.completeGame(first ? FINALE_STICKER : null);
+        /*
+         * And when this was the last place on the last world, the finale — once.
+         *
+         * It used to fire on *any* completion that left the book full, badge or no badge.
+         * Since nothing about a world is remembered between visits, every later visit
+         * re-completed it, so the reward for playing again was the victory party again,
+         * meaning nothing: replay was not merely absent, it was actively spoiled. The
+         * sticker award is already the "first time" test — it returns true once per save —
+         * so the moment now rides on it rather than sitting beside it. A grown-ups reset
+         * clears the sticker with everything else, so a fresh adventure earns it again.
+         */
+        if (
+          foundEverything(loadProgress().discoveries, Object.keys(DISCOVERIES)) &&
+          awardSticker(FINALE_STICKER)
+        ) {
+          ui.completeGame(FINALE_STICKER);
         }
       },
     });
