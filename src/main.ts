@@ -182,14 +182,32 @@ async function main() {
     return world.setRevealed(visibleDestinationIds(), animate && !reducedMotion);
   }
 
+  /**
+   * Every world gets a button, earned or not — the un-earned ones padlocked.
+   *
+   * The bar used to list only revealed worlds, which meant a first run showed two buttons
+   * and gave a child no reason to believe there was anywhere else at all. The *bodies* stay
+   * reveal-gated (that fixes two real composition failures — see DestinationChoice.locked),
+   * so this puts the future in the one place it costs nothing: a padlocked chip that names
+   * the world and does not draw it.
+   */
   function mapChoices() {
-    return visibleDestinationIds().map((id) => ({
+    const visible = new Set(visibleDestinationIds());
+    return (Object.keys(DESTINATIONS) as BodyId[]).map((id) => ({
       id,
       // The full scene name is "The Moon"; a four-choice phone bar has room for the
       // identity, not the article. Keeping this derivation here avoids duplicate copy.
       label: world.bodies[id].label.replace(/^The /, ''),
       emoji: DESTINATIONS[id]?.emoji ?? '✨',
+      locked: !visible.has(id),
+      unlockedBy: gateLabel(id),
     }));
+  }
+
+  /** The world a locked one is waiting on, named the way a child hears it spoken. */
+  function gateLabel(id: BodyId): string | undefined {
+    const gate = DESTINATIONS[id]?.revealAfterVisiting;
+    return gate ? world.bodies[gate as BodyId]?.label : undefined;
   }
 
   const controls = createOrbitInput({
@@ -529,7 +547,18 @@ async function main() {
   function launch(id: BodyId | null) {
     if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
-    if (!visibleDestinationIds().includes(id)) return;
+    if (!visibleDestinationIds().includes(id)) {
+      // A locked world is pressable and answers. Never silence: an unanswered press reads
+      // as a broken app at this age.
+      const gate = gateLabel(id);
+      ui.nudgeDestination(id);
+      ui.setHint(gate ? `🔒 Visit ${gate} first` : '🔒 Not yet');
+      window.clearTimeout(nudge);
+      nudge = window.setTimeout(() => {
+        if (flight.phase === 'idle') showOpeningHints();
+      }, 2600);
+      return;
+    }
     const destination = world.bodies[id];
     if (!destination) return;
     // The flight is told which latitude to arrive over; it does not know why. Matching

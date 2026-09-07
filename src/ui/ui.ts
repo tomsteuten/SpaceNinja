@@ -22,6 +22,19 @@ export interface DestinationChoice {
   id: string;
   label: string;
   emoji: string;
+  /**
+   * Earned, but not yet. A locked world is shown in the bar and still *not drawn* in the
+   * scene — see `revealedDestinations`. Reveal-gating the bodies fixes two composition
+   * failures reported from a real deploy (Saturn looming across the bottom of a portrait
+   * phone during "Tap the Moon"; Mars crossing Saturn's rings and reading as a moon caught
+   * in them), so the bodies stay gated. What it also did, though, was hide the fact that
+   * there is anywhere else to go at all: the first-run map is Earth and the Moon and gives
+   * a child no reason to believe in a Mars. A padlocked button says "there is more" without
+   * putting an un-earned planet in the shot.
+   */
+  locked?: boolean;
+  /** What to say when a locked one is pressed: the world that unlocks it. */
+  unlockedBy?: string;
 }
 
 export interface GameUI {
@@ -100,6 +113,12 @@ export interface GameUI {
    * discovery is round the back: it is the drag lesson, made visible.
    */
   setHuntArrow(side: -1 | 1 | null): void;
+  /**
+   * Shake a destination button. The wordless half of answering a press on a locked world —
+   * the hint line says which world unlocks it, and a child who cannot read gets the shake
+   * and the padlock.
+   */
+  nudgeDestination(id: string): void;
   /** Back to the opening state, without rebuilding any of the DOM. */
   reset(): void;
   dispose(): void;
@@ -186,16 +205,27 @@ export function createUI(options: UIOptions): GameUI {
       button.type = 'button';
       // "Fly to", not "Choose": one press on this button is the whole journey now, and the
       // label a screen reader speaks should say what the press actually does.
-      button.setAttribute('aria-label', `Fly to ${choice.label}`);
+      button.setAttribute(
+        'aria-label',
+        choice.locked
+          ? `${choice.label} — visit ${choice.unlockedBy ?? 'another world'} first`
+          : `Fly to ${choice.label}`,
+      );
+      button.classList.toggle('is-locked', Boolean(choice.locked));
+      // Deliberately not `disabled`. A disabled button answers a five-year-old's press with
+      // nothing at all, which reads as a broken app — the same reason `showTapEcho` exists
+      // for a tap that hits empty space. It stays pressable, shakes, and says why.
+      if (choice.locked) button.setAttribute('aria-disabled', 'true');
       // A suggestion, not a selection — nothing is ever in a chosen-but-not-acted-on state
       // any more. It marks the world the map is pointing at, alongside the ring in the
       // scene and the parked ship's nose.
       button.classList.toggle('is-suggested', choice.id === suggestedId);
       button.classList.toggle('is-new', choice.id === newlyRevealedId);
       button.append(
-        el('span', 'destination-choice__emoji', choice.emoji),
+        el('span', 'destination-choice__emoji', choice.locked ? '🔒' : choice.emoji),
         el('span', 'destination-choice__label', choice.label),
       );
+      button.dataset.destination = choice.id;
       button.addEventListener('click', () => onChooseDestination(choice.id));
       destinationBar.append(button);
     }
@@ -993,6 +1023,16 @@ export function createUI(options: UIOptions): GameUI {
         updateTranscriptButton();
       }
       updateNarrateButton();
+    },
+
+    nudgeDestination(id: string) {
+      const button = destinationBar.querySelector(`[data-destination="${id}"]`);
+      if (!button) return;
+      // Restart the animation on a repeat press rather than ignoring it: a child who presses
+      // a locked world twice is asking twice and should be answered twice.
+      button.classList.remove('is-refused');
+      void (button as HTMLElement).offsetWidth;
+      button.classList.add('is-refused');
     },
 
     setHuntArrow(side: -1 | 1 | null) {

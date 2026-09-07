@@ -284,6 +284,45 @@ body {
   animation: destinationReveal 1.05s cubic-bezier(0.2, 1.35, 0.4, 1) both;
 }
 
+/* Earned, but not yet. Quiet enough not to compete with the worlds that can be pressed,
+   legible enough to say "there is more out there" — which the bar could not say at all
+   while it listed only revealed worlds. The body itself stays undrawn; see
+   DestinationChoice.locked. */
+.destination-choice.is-locked {
+  border-color: rgba(150, 138, 198, 0.3);
+  background: linear-gradient(180deg, rgba(44, 34, 74, 0.7), rgba(30, 22, 56, 0.7));
+  box-shadow: 0 2px 0 rgba(30, 20, 54, 0.6);
+  color: rgba(226, 219, 255, 0.5);
+}
+
+.destination-choice.is-locked .destination-choice__emoji {
+  opacity: 0.72;
+  font-size: 1.15rem;
+}
+
+/* The wordless half of the answer to pressing one. The hint line names the world that
+   unlocks it for whoever can read; this is what a five-year-old gets. */
+.destination-choice.is-refused {
+  animation: destinationRefused 0.42s ease both;
+}
+
+@keyframes destinationRefused {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  45% {
+    transform: translateX(4px);
+  }
+  70% {
+    transform: translateX(-2px);
+  }
+}
+
+
 .destination-choice.is-new::after {
   content: "";
   position: absolute;
@@ -334,6 +373,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* The refusal still has to be visible without moving: the padlock and the hint carry it,
+     and a held border says the press landed. */
+  .destination-choice.is-refused {
+    animation: none;
+    border-color: rgba(255, 150, 150, 0.75);
+  }
+
   .destination-choice.is-new {
     animation: none;
     border-color: var(--warm);
