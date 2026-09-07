@@ -239,6 +239,13 @@ whole day, then the targets — which put more than twenty seconds between press
 being allowed to touch anything, on every visit. A tap skipped it, and needing a skip was the
 tell. The day turn is a button again.
 
+**The day/night button wears the thing it does.** Its face is a small globe of the world you
+are at, half in night, with the terminator crawling across it — a working model of the action
+at the size of an icon, in the same space a drawn sun used to take. While a real turn runs
+that little globe is driven by the real one, so they turn together and finish together. And
+once every place on a world is found and nothing is happening, it pulses to say it is still
+there.
+
 **A hand shows the gesture when nothing is happening.** After six seconds with nothing
 touched, a finger appears on a gold place and taps it; once only the hidden one is left, it
 sweeps across the planet instead. Every instruction here had become a caption written for

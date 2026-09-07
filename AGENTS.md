@@ -226,6 +226,29 @@ about its own day rather than all four reading "Day and Night". If an arrival ev
 ceremony again, it has to be something a child can touch through, not something they wait
 out.
 
+**Making it *chosen* then made it findable's problem.** Three things answer that, and all
+three deliberately cost nothing on a screen where the dock is the most contested space:
+
+- *The button carries a working model of what it does.* It was a stroked sun, which is a
+  symbol of the topic — ☀ means "sun", not "turn this world so morning arrives" — sitting in
+  a row of identical round buttons where nothing marked out the one that changes the planet.
+  It is now a small globe of that world (`spin.tint` is per-destination data), half in night,
+  terminator crawling across it. Its night band is twice the disc's width with two dark
+  edges, so translating by half its own width loops seamlessly, and its resting transform is
+  the half-lit pose so the whole idea still reads in one frame while paused or under reduced
+  motion. The lit side is warm because "sunlit" is the half of the meaning the drawn sun used
+  to carry.
+- *While a real turn runs, that globe is driven by it.* `setSpinProgress` takes `DayTurn`'s
+  own reported progress — never a timer, for the same reason `sfx.dawn` does not use one — so
+  the small thing pressed and the big thing on screen turn together and finish together. The
+  disabled fade is only 0.72 because this is a live miniature during the turn, not a dead
+  control.
+- *And once the hunt is finished and the child has gone idle, it asks.* `shouldInviteSpin`
+  in `coach.ts` (pure, tested) gates a gentle pulse on the hunt being **complete**, so it can
+  never compete with finding places. Deliberately not a `CoachCue`: the hand belongs over the
+  canvas on the thing a gesture applies to, and a hand flying to the dock would need button
+  positions plumbed between modules that each own their own DOM.
+
 **The places are real, and so are their coordinates.** `Discovery` in `config.ts` carries a
 genuine latitude and longitude, and `surfaceDirection` puts the marker there on the body's
 own surface mesh. The ring is therefore *on* the feature in the actual NASA map. Do not
