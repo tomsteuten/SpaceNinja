@@ -239,10 +239,13 @@ export interface DestinationConfig {
   /**
    * Optional: this destination can be turned through one whole day where it stands.
    *
-   * Data rather than a special case for Earth, so nothing branches on an id — but only
-   * Earth has it, because "why does the Sun come up?" is a question about *here*. It is
-   * also the question children playing this actually asked, which is better evidence than
-   * anything else in this file.
+   * Data rather than a special case for Earth, so nothing branches on an id. It is the
+   * question children playing this actually asked, which is better evidence than anything
+   * else in this file — and it is a *toy*, offered by its own button once the hunt is live.
+   * It was briefly promoted to an automatic arrival introduction on every world, which put
+   * eleven seconds of watching between arriving and being allowed to touch anything, four
+   * times over. Each world's title now says what is different about its day, so pressing it
+   * on Saturn is not a re-run of pressing it on Earth.
    */
   spin?: { label: string; name: string; fact: string };
   /**
@@ -285,7 +288,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     emoji: '🌍',
     spin: {
       label: 'Spin the Earth',
-      name: 'Day and Night',
+      name: 'Your Day and Night',
       fact:
         'The Sun does not move. Earth turns! When your part of it turns towards the Sun ' +
         'that is morning, and when it turns away the sky goes dark and the lights come on.',
@@ -356,7 +359,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     emoji: '🌙',
     spin: {
       label: 'Spin the Moon',
-      name: 'Day and Night',
+      name: 'Two Weeks of Sunshine',
       fact:
         'The Moon has day and night too, but they are very long. It gets about two ' +
         'weeks of sunshine, and then about two weeks of dark, before the Sun comes up again.',
@@ -420,7 +423,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     revealAfterVisiting: 'moon',
     spin: {
       label: 'Spin Mars',
-      name: 'Day and Night',
+      name: 'A Day Almost Like Yours',
       fact:
         'A day on Mars is almost exactly as long as a day on Earth — just forty minutes ' +
         'longer. If you lived there, morning would come at nearly the same time as it does for you.',
@@ -485,7 +488,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     // ten-hour whirl — the fact tells the truth the picture would only make dizzying.
     spin: {
       label: 'Spin Saturn',
-      name: 'Day and Night',
+      name: 'The Fastest Day',
       fact:
         'Saturn spins very, very fast. One whole day and night there is only about ' +
         'ten hours long — you would have breakfast, lunch, and bedtime all before an Earth day was half done.',

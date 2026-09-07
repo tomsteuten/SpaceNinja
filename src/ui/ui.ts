@@ -42,8 +42,12 @@ export interface GameUI {
    * Puts up the progress counter a beat after the gold places appear. The targets get the
    * first look, then the counter names the ambient hunt without becoming a mode the child
    * has to finish before leaving.
+   *
+   * `cueId` is the spoken instruction, and it queues behind the arrival welcome rather than
+   * talking over it — the hunt now begins while that welcome is still being read, so the two
+   * cues genuinely overlap in time for the first time.
    */
-  beginMission(caption: string, total: number): void;
+  beginMission(caption: string, total: number, cueId?: string): void;
   setMissionCaption(text: string, cueId?: string): void;
   /** A place has been found: name it, and put it in the journal. */
   showDiscovery(discovery: Discovery): void;
@@ -812,7 +816,7 @@ export function createUI(options: UIOptions): GameUI {
       showFact(fact, `${emoji}  ${label}`, cueId);
     },
 
-    beginMission(caption: string, total: number) {
+    beginMission(caption: string, total: number, cueId?: string) {
       setHint(null);
       buildSlots(total);
       missionCaption.textContent = caption;
@@ -826,8 +830,17 @@ export function createUI(options: UIOptions): GameUI {
         // translateX(-50%) that centres this, sliding the slots off to one side.
         missionHud.classList.add('fade-in-centred');
       }, 1400);
-      // Deliberately not narrated. The fact is already being read aloud, and two voices
-      // at once is worse than one — the caption is a picture prompt, not a line of script.
+      // The spoken instruction waits behind the arrival welcome — two voices at once is
+      // worse than one, and it is the welcome that is mid-sentence. Same queue the hunt
+      // line uses to wait behind a discovery. Without an authored cue the target
+      // silhouettes and the counter are the instruction, as they have always been.
+      const arrival = guideOnArrival({
+        hasRecording: narrator.hasRecording(cueId ?? null),
+        soundOn,
+        speaking: narrator.speaking,
+      });
+      if (arrival === 'queue') pendingGuide = { text: caption, cueId: cueId as string };
+      else if (arrival === 'speak') narrator.speak(caption, cueId, false);
     },
 
     setMissionCaption(text: string, cueId?: string) {

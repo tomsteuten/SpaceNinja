@@ -36,7 +36,6 @@ import {
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
-import { shouldAutoNarrate } from './ui/narrationFlow';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
   FINALE_STICKER,
@@ -233,11 +232,8 @@ async function main() {
     narrator,
     onChooseDestination: (id) => launch(id as BodyId),
     onExploreAgain: () => {
-      // A Fly Home during the intro or a day turn: stop the turn first so it is not still
-      // writing the camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
-      window.clearTimeout(introTimer);
-      awaitingIntro = false;
-      introPlaying = false;
+      // A Fly Home during a day turn: stop the turn first so it is not still writing the
+      // camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
       cameraReturn = null;
       dayTurn.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
@@ -259,6 +255,10 @@ async function main() {
       const body = world.bodies[follow];
       const spin = DESTINATIONS[follow]?.spin;
       if (!spin || dayTurn.active) return;
+      // Where the child was looking from before the turn swung the camera side-on, so it can
+      // be handed back to them there. Relative to the body, which keeps orbiting throughout.
+      body.getWorldPosition(focusPosition);
+      preTurnCameraOffset.copy(camera.position).sub(focusPosition);
       // Put the explanation one speaker-tap away before the camera starts moving. This is
       // the one lesson whose content is entirely visual, and a full-width card during the
       // 2.2s swing pulled the child's eyes away before the sunlight even began to move.
@@ -315,19 +315,17 @@ async function main() {
 
       const config = DESTINATIONS[destination.id];
       if (!config) return;
-      // The welcome: the world's name and what it is. When its narration finishes (or a
-      // fallback timer fires) the day/night intro begins — see scheduleIntro.
+      // The welcome: the world's name and what it is, read over a screen that already has
+      // the gold targets on it. It no longer gates anything.
       ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji);
 
       const mission = missions[destination.id];
       if (!mission) return;
       activeMission = mission;
-      // Builds the targets and holds the surface still, but keeps the targets hidden. The
-      // intro turns the held surface through one of its days first; reveal() then drops the
-      // gold in for the ambient hunt. A world with no intro reveals straight away.
+      // Builds the targets and holds the surface still, then puts the gold on screen at
+      // once. There is nothing between arriving and having something to touch.
       mission.start();
-      if (config.spin) scheduleIntro();
-      else revealHunt();
+      revealHunt();
     },
   });
 
@@ -424,134 +422,69 @@ async function main() {
   let suggested: BodyId | null = null;
   let follow: BodyId = 'earth';
 
-  /* --- arrival intro ------------------------------------------------------- */
+  /* --- the hunt ------------------------------------------------------------ */
 
   /*
-   * A world says hello by turning through one of its own days before the hunt begins, so a
-   * child meets the planet and its day/night — the question they actually bring — before a
-   * single control competes for attention. Then the gold targets drop in.
+   * Arriving used to be a sequence: a spoken welcome, then the world turning through one
+   * whole day, then the gold targets. Every world has a `spin`, so it ran on every arrival,
+   * every time — 2.6s of welcome, a 2.2s camera swing and a 9s turn on top of the 7s
+   * flight. Better than 21 seconds could pass between pressing a world and being allowed to
+   * touch anything, and it repeated on the twelfth visit exactly as on the first.
    *
-   * `awaitingIntro` spans the spoken welcome (or a brief silent-device beat); `introPlaying`
-   * spans the turn itself. A tap during either skips straight to the hunt, and Fly Home is on
-   * screen the whole time — so this is a staged opening that flows into the ambient hunt,
-   * never a mode a child is trapped in.
+   * A tap skipped it. That it needed a skip was the tell: the default was the thing you
+   * skipped, and a five-year-old does not discover an unsignposted one.
+   *
+   * So the day turn is a toy again rather than a toll — offered by its own button from the
+   * moment the hunt is live (see `showSpin`), which is where it was before it was promoted
+   * to an introduction. The lesson is unchanged and the child now chooses it, which is
+   * worth more than being shown it. The welcome fact still speaks; it simply speaks over a
+   * screen that already has something on it to touch.
    */
-  let awaitingIntro = false;
-  let introPlaying = false;
-  let introTimer = 0;
-  /** Long enough to take in the planet and its name before it begins to turn. */
-  const WELCOME_MS = 2600;
-  /** A failed audio end event must not strand the child in the welcome forever. */
-  const WELCOME_NARRATION_TIMEOUT_MS = 8000;
-
-  function scheduleIntro() {
-    awaitingIntro = true;
-    introPlaying = false;
-    window.clearTimeout(introTimer);
-    // A recorded welcome gets to finish before the world starts moving. A silent device,
-    // sound-off or a missing cue still gets a short visual beat; the longer guard is only for
-    // a playback backend that started but never reports that it ended.
-    introTimer = window.setTimeout(
-      startDayIntro,
-      narrator.speaking ? WELCOME_NARRATION_TIMEOUT_MS : WELCOME_MS,
-    );
-  }
-
-  function startDayIntro() {
-    if (!awaitingIntro) return;
-    awaitingIntro = false;
-    window.clearTimeout(introTimer);
-    const config = DESTINATIONS[follow];
-    const body = world.bodies[follow];
-    const spin = config?.spin;
-    if (!spin || !body || dayTurn.active) {
-      revealHunt();
-      return;
-    }
-    introPlaying = true;
-    // Remember the arrival composition so the hunt can start from it, not from the side-on
-    // pose the turn ends in. Captured relative to the body, which is still orbiting.
-    body.getWorldPosition(focusPosition);
-    introCameraOffset.copy(camera.position).sub(focusPosition);
-    // The day-length fact, then folded away so the words do not cover the turning globe —
-    // the same handover the manual spin uses (foldFact's override exists for exactly this).
-    ui.showNote(`spin-${follow}`, spin.name, spin.fact);
-    ui.foldFact(true);
-    dayTurn.start(body);
-  }
-
+  /**
+   * A day turn has finished (or been tapped through). Hand the camera back where the child
+   * was looking from, rather than leaving them side-on to the Sun with the targets they were
+   * reaching for round the side of the world. An ease, not a cut: cutting read as a jerk on
+   * the tablet.
+   */
   function onDayTurnFinish() {
     ui.setSpinBusy(false);
-    // Only the arrival intro reveals the hunt on finishing; a later replay just ends.
-    if (!introPlaying) return;
-    introPlaying = false;
-    // The turn leaves the camera side-on, which is the wrong pose to hunt from. Ease it back
-    // to the arrival composition rather than cutting, and reveal the targets now so they fade
-    // in as the camera settles — one calm motion instead of a snap followed by things popping.
     const body = world.bodies[follow];
     body.getWorldPosition(focusPosition);
     cameraReturn = { from: camera.position.clone().sub(focusPosition), t: 0 };
     controls.enabled = false;
-    revealHunt();
   }
 
   function revealHunt() {
     const config = DESTINATIONS[follow];
     const mission = missions[follow];
     if (!config || !mission) return;
-    // The day/night card has said its piece; take it away so the hunt is not started under a
-    // stale "Day and Night" panel. The card comes back only when a place is found.
-    ui.clearFact();
     mission.reveal();
-    ui.beginMission(config.mission.instruction, config.mission.discoveries.length);
-    // A quiet round replay, offered once the hunt is live rather than at the raw arrival.
+    // The instruction cue queues behind the arrival welcome rather than talking over it.
+    // Never auto-start the platform voice when a partial pack is installed.
+    ui.beginMission(config.mission.instruction, config.mission.discoveries.length, `find-${follow}`);
+    // The day turn, offered rather than imposed.
     ui.showSpin(config.spin?.label ?? null);
-    // The counter and target silhouettes carry this visually; the authored cue carries it
-    // for a pre-reader. Never auto-start the platform voice when a partial pack is installed.
-    const cueId = `find-${follow}`;
-    if (shouldAutoNarrate(narrator.hasRecording(cueId), soundOn)) {
-      narrator.speak(config.mission.instruction, cueId, false);
-    }
-  }
-
-  function skipIntro() {
-    window.clearTimeout(introTimer);
-    if (dayTurn.active) {
-      // Ends the turn as a completion (markers land on their coordinates); onDayTurnFinish
-      // then reveals the hunt.
-      dayTurn.skip();
-    } else if (awaitingIntro || introPlaying) {
-      awaitingIntro = false;
-      introPlaying = false;
-      revealHunt();
-    }
   }
 
   /*
-   * Tap-to-skip during the turn itself. The welcome phase already skips through onTap (orbit
-   * control is live then), but the turn disables orbit control, so its tap path is dead — this
-   * covers exactly that window. On pointerup, not down, so OrbitInput's own (disabled, no-op)
-   * handler runs first and this gesture cannot also land as a collect.
+   * Tap-to-skip during a day turn. The turn disables orbit control, so OrbitInput's tap path
+   * is dead for its whole duration — this covers exactly that window. On pointerup, not down,
+   * so OrbitInput's own (disabled, no-op) handler runs first and this gesture cannot also
+   * land as a collect.
    */
-  function onIntroSkipTap() {
-    if (dayTurn.active) skipIntro();
+  function onDayTurnSkipTap() {
+    if (dayTurn.active) dayTurn.skip();
   }
-  canvas.addEventListener('pointerup', onIntroSkipTap);
-
-  // The welcome recording owns the hand-off when it speaks. Guarded by awaitingIntro so the
-  // end of a discovery or hunt cue cannot start another day turn; scheduleIntro's timer is the
-  // silent-device and failed-playback fallback.
-  narrator.onChange((speaking) => {
-    if (!speaking && awaitingIntro) startDayIntro();
-  });
+  canvas.addEventListener('pointerup', onDayTurnSkipTap);
 
   function handleTap(clientX: number, clientY: number) {
     if (flight.phase === 'flying') return;
-    // A tap during the arrival intro is "I'm ready — bring the targets in": skip to the hunt
-    // rather than falling through to a raycast that finds nothing (there is nothing to tap
-    // yet) and reads as an unresponsive app.
-    if (awaitingIntro || introPlaying || dayTurn.active) {
-      skipIntro();
+    // A tap during a day turn is "I have seen enough": end the turn as a completion, so the
+    // markers land back on their real coordinates, rather than raycasting at a swinging
+    // camera. The turn is always a deliberate press now, but a child is allowed to change
+    // their mind about one.
+    if (dayTurn.active) {
+      dayTurn.skip();
       return;
     }
 
@@ -619,13 +552,17 @@ async function main() {
   const focusPosition = new THREE.Vector3();
   const shipHeading = new THREE.Vector3();
   /*
-   * The camera's offset from the destination at the moment the intro turn begins — i.e. the
-   * arrival composition the hunt framing was authored for (two targets in view, one past the
-   * limb). The day turn deliberately ends side-on to the Sun (it is tested to), which is the
-   * wrong pose to start a hunt from, so this is restored when the turn finishes, relative to
-   * the body's *current* position since it keeps orbiting through the turn.
+   * The camera's offset from the destination at the moment a day turn begins. The turn
+   * deliberately ends side-on to the Sun (it is tested to), which is the wrong pose to be
+   * handed back mid-hunt: the targets a child was reaching for are round the side of the
+   * world by then. Captured relative to the body's *current* position, since it keeps
+   * orbiting through the turn, and eased back to when the turn finishes.
+   *
+   * This used to be captured only for the automatic arrival turn, so a *manual* replay left
+   * the camera wherever it had swung to. Now that every turn is a manual one, every turn
+   * gets the ease back.
    */
-  const introCameraOffset = new THREE.Vector3();
+  const preTurnCameraOffset = new THREE.Vector3();
   /*
    * The smooth hand-back from the side-on day-turn pose to the arrival composition. Rather
    * than cutting (which read as a jerk on the tablet), the camera eases its offset from where
@@ -717,11 +654,6 @@ async function main() {
    * and the next flight simply aims at wherever the destination is now.
    */
   function restart() {
-    // Cancel any arrival intro in flight, so a Fly Home mid-intro does not leave a timer or
-    // a pending turn to fire into the fresh map.
-    window.clearTimeout(introTimer);
-    awaitingIntro = false;
-    introPlaying = false;
     cameraReturn = null;
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
@@ -788,8 +720,8 @@ async function main() {
       cameraReturn.t = Math.min(1, cameraReturn.t + (dt * 1000) / CAMERA_RETURN_MS);
       const e = cameraReturn.t * cameraReturn.t * (3 - 2 * cameraReturn.t);
       world.bodies[follow].getWorldPosition(focusPosition);
-      const length = THREE.MathUtils.lerp(cameraReturn.from.length(), introCameraOffset.length(), e);
-      returnOffset.copy(cameraReturn.from).lerp(introCameraOffset, e).setLength(length);
+      const length = THREE.MathUtils.lerp(cameraReturn.from.length(), preTurnCameraOffset.length(), e);
+      returnOffset.copy(cameraReturn.from).lerp(preTurnCameraOffset, e).setLength(length);
       camera.position.copy(focusPosition).add(returnOffset);
       camera.lookAt(focusPosition);
       if (cameraReturn.t >= 1) {
@@ -879,8 +811,7 @@ async function main() {
 
   function dispose() {
     window.clearTimeout(nudge);
-    window.clearTimeout(introTimer);
-    canvas.removeEventListener('pointerup', onIntroSkipTap);
+    canvas.removeEventListener('pointerup', onDayTurnSkipTap);
     document.removeEventListener('visibilitychange', onVisibilityChange);
     controls.dispose();
     ui.dispose();
