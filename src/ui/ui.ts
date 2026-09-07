@@ -835,6 +835,20 @@ export function createUI(options: UIOptions): GameUI {
     currentFact = text;
     currentFactCueId = cueId ?? null;
     pendingGuide = null;
+    /*
+     * A fact shown *now* supersedes one that was merely queued.
+     *
+     * Without this, pressing **Spin** inside the window where the completion line is
+     * waiting behind the last discovery put the day/night lesson up, then swapped the
+     * completion line in over the top of it a couple of seconds later — the words landing
+     * on the one moment in the game whose entire content is watching the light move.
+     *
+     * It could not happen while the day turn was the arrival introduction, because there
+     * was never a queued completion during one; making the turn a thing a child presses
+     * whenever they like is what put the two in the same window. Safe for the completion
+     * path itself, which sets `pendingFact` *after* any showFact call of its own.
+     */
+    pendingFact = null;
     factShownAt = Date.now();
     // Every fact clears the photo; showDiscovery is the only one that puts one back, and
     // it does so after calling this. Otherwise the arrival fact or the success line would
