@@ -63,6 +63,16 @@ export interface CollectMission {
    * arrow still pointing at something already on screen is just clutter.
    */
   remainingHint(): { side: -1 | 1; visible: boolean } | null;
+  /**
+   * Where an unfound place is on screen right now, for the idle coach to point a finger at.
+   *
+   * NDC (-1..1, y up), the same unit and for the same reason as `onCollect`'s `at`: this
+   * module holds a camera and has no idea how big the canvas is. Only ever a target on the
+   * visible face — the coach demonstrates a tap, and a tap through the body is rejected — so
+   * `null` means "nothing here to tap", which is exactly when the drag is what needs
+   * demonstrating instead.
+   */
+  nextTarget(): { x: number; y: number } | null;
   update(dt: number, elapsed: number): void;
   /** Tears the mission down completely and disposes everything it built. */
   reset(): void;
@@ -750,6 +760,22 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
 
       beginCollect(collectible);
       return true;
+    },
+
+    nextTarget() {
+      if (!active || !revealed) return null;
+      body.getWorldPosition(_center);
+      _view.copy(camera.position).sub(_center);
+      const distance = _view.length();
+      _view.divideScalar(distance);
+      for (const collectible of collectibles) {
+        if (collectible.state !== 'idle') continue;
+        collectible.hit.getWorldPosition(_dir).sub(_center).normalize();
+        if (!withinVisibleFace(_dir.dot(_view), body.radius, distance)) continue;
+        collectible.group.getWorldPosition(_screen).project(camera);
+        return { x: _screen.x, y: _screen.y };
+      }
+      return null;
     },
 
     remainingHint() {

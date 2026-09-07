@@ -1631,3 +1631,80 @@ body {
   opacity: 0.55;
   filter: saturate(0.6);
 }
+
+/* --- the idle coach ------------------------------------------------------- */
+
+/* A hand that shows the gesture on the thing the gesture applies to. Every instruction in
+   this game was a caption written for an audience that cannot read; narration answered that
+   once per cue, and a child looking out of the window at that moment got nothing. The drag
+   is the worst case — an arrow means "look over there", never "put your finger down and
+   slide it" — so this demonstrates it.
+
+   pointer-events: none is load-bearing: the hand sits directly over the target it is
+   pointing at, and it must never intercept the tap it is asking for. */
+.coach {
+  position: fixed;
+  z-index: 26;
+  margin-left: -18px;
+  margin-top: -6px;
+  font-size: 2.3rem;
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 8px rgba(6, 4, 20, 0.75));
+  will-change: transform;
+}
+
+.coach.is-tap {
+  animation: coachTap 1.5s ease-in-out infinite;
+}
+
+.coach.is-drag {
+  animation: coachDrag 2.1s ease-in-out infinite;
+}
+
+/* Removes the motion, keeps the instruction. Taking the hand away entirely under reduced
+   motion would remove the only wordless instruction in the game from the children most
+   likely to need it; the same rule the flight and the day turn follow. */
+.coach.is-still {
+  animation: none;
+}
+
+@keyframes coachTap {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.95;
+  }
+  45% {
+    transform: translateY(-13px) scale(1.06);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(0) scale(0.9);
+  }
+}
+
+/* Starts in the middle and sweeps towards the side the hidden place lies round, which is
+   the direction the finger goes: dragging right brings what is round to the left into
+   view. --coach-sweep carries the signed distance. */
+@keyframes coachDrag {
+  0%,
+  100% {
+    transform: translateX(calc(var(--coach-sweep) * -0.5));
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  85%,
+  100% {
+    transform: translateX(calc(var(--coach-sweep) * 0.5));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach {
+    animation: none;
+  }
+}

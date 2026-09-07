@@ -36,6 +36,7 @@ import {
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
+import { createCoach } from './ui/coach';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
   FINALE_STICKER,
@@ -606,6 +607,33 @@ async function main() {
 
   let nudge = 0;
 
+  /*
+   * The idle coach. Shows the gesture on the thing the gesture applies to, after a while
+   * with nothing touched — see ui/coach.ts for why an arrow and a sentence were not enough.
+   */
+  const coach = createCoach({
+    root: uiRoot,
+    measure: () => {
+      const rect = canvas.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    },
+    reducedMotion,
+  });
+
+  let idleFor = 0;
+  /*
+   * Any press at all, anywhere, is the child doing something — a tap on a target, a drag, a
+   * pinch, a dock button. Listened for on the window in the capture phase rather than wired
+   * through OrbitInput, because a drag that the controls are ignoring (during a day turn,
+   * say) is still a child trying, and a coach that kept demonstrating over it would be
+   * telling them they had not moved.
+   */
+  function onAnyPress() {
+    idleFor = 0;
+    coach.clear();
+  }
+  window.addEventListener('pointerdown', onAnyPress, true);
+
   /**
    * The one world the map is pointing at: genuinely unvisited, furthest earned one first.
    *
@@ -684,6 +712,8 @@ async function main() {
    */
   function restart() {
     cameraReturn = null;
+    coach.clear();
+    idleFor = 0;
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
@@ -736,11 +766,29 @@ async function main() {
      * property of where the camera is now, not of an event. Nothing to point at during a
      * flight or a day turn, when the camera is not theirs to move.
      */
-    const hint =
-      flight.phase === 'flying' || dayTurn.active || homeReturn.active || cameraReturn
-        ? null
-        : (activeMission?.remainingHint() ?? null);
-    ui.setHuntArrow(hint && !hint.visible ? hint.side : null);
+    const cameraIsOurs =
+      flight.phase !== 'flying' && !dayTurn.active && !homeReturn.active && !cameraReturn;
+    const hint = cameraIsOurs ? (activeMission?.remainingHint() ?? null) : null;
+    const hiddenSide = hint && !hint.visible ? hint.side : null;
+    ui.setHuntArrow(hiddenSide);
+
+    /*
+     * And the hand, on the same terms as the arrow: only while the camera is the child's to
+     * move. Idle time accumulates only then too, so a seven-second flight does not arrive
+     * with the coach already convinced nobody is playing.
+     */
+    if (cameraIsOurs && activeMission?.active) {
+      idleFor += dt;
+      coach.update({
+        idleFor,
+        huntActive: true,
+        target: activeMission.nextTarget(),
+        hiddenSide,
+      });
+    } else {
+      idleFor = 0;
+      coach.update({ idleFor: 0, huntActive: false, target: null, hiddenSide: null });
+    }
 
     // Ease the camera from the side-on day-turn pose back to the arrival composition. Owns
     // the camera while it runs (orbit control is suspended below), interpolating the offset
@@ -840,6 +888,8 @@ async function main() {
 
   function dispose() {
     window.clearTimeout(nudge);
+    window.removeEventListener('pointerdown', onAnyPress, true);
+    coach.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
     document.removeEventListener('visibilitychange', onVisibilityChange);
     controls.dispose();
