@@ -117,6 +117,21 @@ export interface GameUI {
    * idle. See `shouldInviteSpin` — the decision is there, this only draws it.
    */
   setSpinAttention(on: boolean): void;
+  /**
+   * Drive the button's own globe from the real turn, 0 → 1, or `null` to hand it back to its
+   * idle crawl.
+   *
+   * The small globe and the big planet then turn together, at the same rate, finishing
+   * together — so the child watches the thing they pressed doing exactly what the world is
+   * doing. That mapping between a control and its effect is the whole difficulty with this
+   * feature, and this is the one moment it can be shown outright rather than implied.
+   *
+   * Fed from `DayTurn`'s own progress rather than a timer of its own, for the reason
+   * everything else in this game follows the picture: a struggling tablet stretches the turn
+   * well past its nominal duration, and anything scheduled against the clock would finish
+   * early and leave the button still while the planet was still moving.
+   */
+  setSpinProgress(progress: number | null): void;
   /** Sound off also stops and hides the read-aloud button, which is the only sound the UI owns. */
   setSoundOn(on: boolean): void;
   /**
@@ -1096,6 +1111,11 @@ export function createUI(options: UIOptions): GameUI {
       spinButton.classList.toggle('is-inviting', on);
     },
 
+    setSpinProgress(progress: number | null) {
+      spinGlobe.classList.toggle('is-turning', progress !== null);
+      if (progress !== null) spinGlobe.style.setProperty('--turn', String(progress));
+    },
+
     setSpinBusy(busy: boolean) {
       spinButton.disabled = busy;
       spinButton.classList.toggle('is-busy', busy);
@@ -1181,6 +1201,7 @@ export function createUI(options: UIOptions): GameUI {
       spinButton.classList.add('is-hidden');
       spinButton.disabled = false;
       spinButton.classList.remove('is-busy', 'is-inviting', 'fade-in');
+      spinGlobe.classList.remove('is-turning');
       for (const echo of root.querySelectorAll('.tap-echo')) echo.remove();
 
       setJournalOpen(false);

@@ -1721,6 +1721,15 @@ body {
   }
 }
 
+/* While a real turn is running the globe stops idling and is *driven* by it: --turn is the
+   turn's own reported progress, and one full turn walks the night through exactly one loop
+   of the same travel the idle animation uses. The button and the planet then turn together
+   and finish together. */
+.spin-globe.is-turning .spin-globe__night {
+  animation: none;
+  transform: translateX(calc(-50% + 50% * var(--turn, 0)));
+}
+
 /* Asking to be noticed, once the hunt is finished and the child has gone idle. The button
    pulses where it already is rather than a hand flying down to the dock to press it: the
    coach's hand belongs over the canvas, on the thing a gesture applies to, and this costs
@@ -1758,17 +1767,15 @@ body {
   }
 }
 
-/* Disabled while a day is turning. Faded rather than hidden: a button that vanishes
-   under the finger that just pressed it reads as a broken app at this age. And its own
-   globe stops turning, because the big one is turning instead — two of them going at
-   different rates is the button contradicting the planet. */
-.spin-btn.is-busy {
-  opacity: 0.55;
-  filter: saturate(0.6);
-}
+/* Disabled while a day is turning. Faded rather than hidden: a button that vanishes under
+   the finger that just pressed it reads as a broken app at this age.
 
-.spin-btn.is-busy .spin-globe__night {
-  animation-play-state: paused;
+   Only lightly faded, though — 0.72 rather than the 0.55 it started at, and no desaturation.
+   While the turn runs this is not a dead control, it is a live miniature of what the planet
+   is doing, and dimming it to unreadability would throw away the one moment the link between
+   the button and its effect can be shown rather than implied. */
+.spin-btn.is-busy {
+  opacity: 0.72;
 }
 
 /* Removes the motion, keeps the meaning: a globe frozen half in night still says what the

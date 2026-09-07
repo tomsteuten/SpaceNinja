@@ -302,7 +302,11 @@ async function main() {
     // The quietest thing in the game gets the sound that most needs one. Driven by the
     // turn's own progress rather than started and left to run, so the light and the sound
     // arrive together however slowly the frames are coming.
-    onProgress: (progress) => sfx.dawn(progress),
+    onProgress: (progress) => {
+      sfx.dawn(progress);
+      // The button's own globe, driven by the same number the picture and the sound are.
+      ui.setSpinProgress(progress);
+    },
     onFinish: () => onDayTurnFinish(),
   });
 
@@ -477,6 +481,7 @@ async function main() {
    */
   function onDayTurnFinish() {
     ui.setSpinBusy(false);
+    ui.setSpinProgress(null);
     const body = world.bodies[follow];
     body.getWorldPosition(focusPosition);
     cameraReturn = { from: camera.position.clone().sub(focusPosition), t: 0 };
