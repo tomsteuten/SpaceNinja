@@ -134,8 +134,8 @@ describe('surfaceDirection', () => {
 });
 
 describe('markerPlacement', () => {
-  const surface: Discovery = { id: 's', name: 's', emoji: '', lat: 30, lon: 40, fact: '' };
-  const ring: Discovery = { id: 'r', name: 'r', emoji: '', lat: 0, lon: 40, ring: 1.9, fact: '' };
+  const surface: Discovery = { id: 's', name: 's', emoji: '', lat: 30, lon: 40, short: '', fact: '' };
+  const ring: Discovery = { id: 'r', name: 'r', emoji: '', lat: 0, lon: 40, ring: 1.9, short: '', fact: '' };
 
   it('floats a surface place just off the sphere, facing outward', () => {
     const { position, faceNormal } = markerPlacement(surface, 1.5);
@@ -180,16 +180,16 @@ describe('facingLongitude', () => {
   it('averages longitudes as directions, not as numbers', () => {
     // The arithmetic mean of these is 0, which is the opposite side of the body to both.
     const across: Discovery[] = [
-      { id: 'a', name: 'a', emoji: '', lat: 0, lon: 170, fact: '' },
-      { id: 'b', name: 'b', emoji: '', lat: 0, lon: -170, fact: '' },
-      { id: 'hidden', name: 'hidden', emoji: '', lat: 0, lon: 0, fact: '' },
+      { id: 'a', name: 'a', emoji: '', lat: 0, lon: 170, short: '', fact: '' },
+      { id: 'b', name: 'b', emoji: '', lat: 0, lon: -170, short: '', fact: '' },
+      { id: 'hidden', name: 'hidden', emoji: '', lat: 0, lon: 0, short: '', fact: '' },
     ];
     expect(Math.abs(facingLongitude(across))).toBeCloseTo(180, 6);
   });
 
   it('faces a lone discovery directly', () => {
     const only: Discovery[] = [
-      { id: 'only', name: 'only', emoji: '', lat: 12, lon: 44, fact: '' },
+      { id: 'only', name: 'only', emoji: '', lat: 12, lon: 44, short: '', fact: '' },
     ];
     // Nothing to teach a drag with, and hiding the only one would open on an empty screen.
     expect(facingLongitude(only)).toBeCloseTo(44, 6);

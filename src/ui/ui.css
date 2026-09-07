@@ -766,6 +766,13 @@ body {
 }
 
 .sticker {
+  /* A button now — pressing one tells the whole story of that place. Resets the UA button
+     styling the grid was never written against. */
+  appearance: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
   aspect-ratio: 1;
   border-radius: 22px;
   display: grid;
@@ -784,6 +791,22 @@ body {
   color: var(--ink-soft);
   max-width: 9ch;
   line-height: 1.2;
+}
+
+/* The long fact, for whoever is reading it out. One at a time and text only: the discovery
+   photographs are fetched only when a place is found, which is what makes twelve of them
+   cost nothing at startup, and a journal showing twelve thumbnails would have fetched all
+   twelve. */
+.journal-detail {
+  margin: 0.7rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--panel-edge);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  text-align: left;
 }
 
 .sticker--empty {

@@ -423,9 +423,20 @@ export function createUI(options: UIOptions): GameUI {
   journalPanel.classList.add('is-hidden');
   const journalTitle = el('h2', undefined, 'My Discoveries');
   const stickerGrid = el('div', 'sticker-grid');
+  /*
+   * Where the long fact lives now that the card in play carries the short one.
+   *
+   * Deliberately text, and deliberately one at a time: the discovery photographs are fetched
+   * only when a place is found and kept after, which is what makes twelve of them cost the
+   * game nothing at startup. A journal that showed twelve thumbnails would have downloaded
+   * all twelve. This is also the first thing in the game that makes the journal worth
+   * opening for its own sake rather than as a scoreboard.
+   */
+  const journalDetail = el('p', 'journal-detail');
+  journalDetail.hidden = true;
   const closeJournal = el('button', 'btn btn--quiet', 'Close');
   closeJournal.type = 'button';
-  journalPanel.append(journalTitle, stickerGrid, closeJournal);
+  journalPanel.append(journalTitle, stickerGrid, journalDetail, closeJournal);
 
   root.append(journalButton, journalPanel);
 
@@ -443,11 +454,15 @@ export function createUI(options: UIOptions): GameUI {
       // A discovery that no longer exists — an id retired between releases — is skipped
       // rather than shown blank, and its slot goes back to being a question mark.
       if (!discovery) continue;
-      const tile = el('div', 'sticker');
+      // A button, because it does something: it tells you the whole story of the place.
+      const tile = el('button', 'sticker') as HTMLButtonElement;
+      tile.type = 'button';
+      tile.setAttribute('aria-label', `${discovery.name} — read more`);
       tile.append(
         el('div', undefined, discovery.emoji),
         el('span', undefined, discovery.name),
       );
+      tile.addEventListener('click', () => showJournalDetail(discovery));
       stickerGrid.append(tile);
       filled++;
     }
@@ -456,9 +471,31 @@ export function createUI(options: UIOptions): GameUI {
     }
   }
 
+  /** The open tile, so pressing the same one again closes it rather than doing nothing. */
+  let detailFor: string | null = null;
+
+  function showJournalDetail(discovery: Discovery) {
+    if (detailFor === discovery.id) {
+      detailFor = null;
+      journalDetail.hidden = true;
+      journalDetail.textContent = '';
+      return;
+    }
+    detailFor = discovery.id;
+    journalDetail.textContent = `${discovery.emoji}  ${discovery.fact}`;
+    journalDetail.hidden = false;
+  }
+
+  function clearJournalDetail() {
+    detailFor = null;
+    journalDetail.hidden = true;
+    journalDetail.textContent = '';
+  }
+
   let journalOpen = false;
   function setJournalOpen(open: boolean) {
     journalOpen = open;
+    clearJournalDetail();
     if (open) renderJournal();
     journalPanel.classList.toggle('is-hidden', !open);
     journalButton.classList.toggle('is-hidden', open);
@@ -943,8 +980,10 @@ export function createUI(options: UIOptions): GameUI {
       // The emoji is in the title so the card, the badge now left on the planet and the
       // journal entry are visibly the same thing. For a child who cannot read the name,
       // that picture is the only part of the title that carries.
+      // The short line, not the long one. The long one is the journal's, where an adult can
+      // read it out; see Discovery.short for why one card cannot serve both audiences.
       showFact(
-        discovery.fact,
+        discovery.short,
         `${discovery.emoji} ${discovery.name}`,
         `discovery-${discovery.id}`,
       );

@@ -222,8 +222,25 @@ export interface Discovery {
    * one: the last discovery, the one reached by dragging, stays a real surface feature.
    */
   ring?: number;
-  /** Told on discovery, and kept in the journal. */
+  /**
+   * The whole story. Kept in the journal, where a grown-up can read it out.
+   */
   fact: string;
+  /**
+   * What the card says at the moment the place is found — one sentence, the child's own
+   * register, and the only version they see while playing.
+   *
+   * These facts are lovely and they are written for an adult reading aloud: forty to fifty
+   * words, in an adult's sentence shapes. The card carrying them sits across the bottom of
+   * the screen over the planet a child has just flown to, and the design says that child is
+   * playing alone. One card cannot serve both audiences, so it stops trying: the short line
+   * plays, the long one waits in the journal for whoever wants it.
+   *
+   * It does not desync the audio. The recording is keyed by cue id, not by this text, and
+   * the authored narration was always the short register — this brings the words into line
+   * with the voice rather than the other way round.
+   */
+  short: string;
 }
 
 /**
@@ -310,6 +327,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🏜️',
           lat: 23,
           lon: 13,
+          short:
+            'That huge patch of sand is the Sahara, the biggest hot desert in the world.',
           fact:
             'That huge patch of sand is the Sahara. It is the biggest hot desert in the ' +
             'world — almost as wide as the whole of America — and it is one of the ' +
@@ -321,6 +340,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🌳',
           lat: -3,
           lon: -60,
+          short:
+            'All that green is the Amazon. More kinds of animal live there than anywhere else.',
           fact:
             'All that green is the Amazon rainforest. More kinds of animal live there ' +
             'than anywhere else on Earth, and its trees help make the air you are ' +
@@ -347,6 +368,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🌃',
           lat: 13.75,
           lon: 100.5,
+          short:
+            'Over here it is night. Every little glow is a town full of people.',
           fact:
             'Half of Earth is always in the dark. Over here it is night, and all those ' +
             'little glows are the lights of towns and cities — every one of them full ' +
@@ -382,6 +405,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           // Apollo 11, in Mare Tranquillitatis.
           lat: 0.67,
           lon: 23.47,
+          short:
+            'The first two people ever to stand on the Moon landed right here.',
           fact:
             'Two astronauts landed right here, the first people ever to stand on the ' +
             'Moon. With no wind and no rain to wash them away, their footprints are ' +
@@ -393,6 +418,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '✨',
           lat: -43.3,
           lon: -11.4,
+          short:
+            'A rock crashed here and splashed pale dust right across the Moon.',
           fact:
             'A rock crashed into the Moon here and splashed pale dust right across it. ' +
             'The bright streaks reaching away from this crater are that splash, and it ' +
@@ -409,6 +436,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🌑',
           lat: -20.4,
           lon: 129.1,
+          short:
+            'You went round the back! Nobody had ever seen this side until a spacecraft did.',
           fact:
             'You had to go round the back to find this. The Moon always keeps the same ' +
             'face turned towards Earth, so nobody had ever seen this side at all until a ' +
@@ -443,6 +472,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🌋',
           lat: 18.65,
           lon: -133.8,
+          short:
+            'The biggest volcano in the whole solar system is right here.',
           fact:
             'The biggest volcano in the whole solar system is right here. Olympus Mons ' +
             'is so wide that if you stood on top of it, its edges would be further away ' +
@@ -454,6 +485,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🏞️',
           lat: -14,
           lon: -59,
+          short:
+            'This giant crack is longer than Australia is wide, and deep enough to lose a mountain in.',
           fact:
             'This enormous crack across Mars is called Valles Marineris. It is longer ' +
             'than Australia is wide, and deep enough to lose a mountain in.',
@@ -470,6 +503,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🗻',
           lat: 25,
           lon: 147,
+          short:
+            'Round the back is a second giant volcano, taller than any mountain on Earth.',
           fact:
             'Round the far side of Mars is a second giant volcano, called Elysium Mons. ' +
             'It is not quite as big as Olympus Mons, but it would still be the tallest ' +
@@ -517,6 +552,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           lat: 0,
           lon: 25,
           ring: 1.9,
+          short:
+            'The rings are billions of pieces of ice and rock, going round and round.',
           fact:
             'The rings are made of billions of pieces of ice and rock, going round and ' +
             'round Saturn. Some are as small as a crumb and some are as big as a house, ' +
@@ -534,6 +571,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🔷',
           lat: 50,
           lon: -12,
+          short:
+            'A storm at the top of Saturn, shaped like a hexagon. Six straight sides!',
           fact:
             'Right at the top of Saturn is a giant cloud shaped like a hexagon — six ' +
             'straight sides, like a stop sign with one fewer. It is a storm so wide that ' +
@@ -548,6 +587,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           emoji: '🌀',
           lat: -14,
           lon: 132,
+          short:
+            'You went round to find this. Saturn has storms far bigger than any on Earth.',
           fact:
             'You had to go round to find this. Saturn has storms far bigger than any on ' +
             'Earth, with winds much faster than the fastest ones here — and they can rumble ' +
