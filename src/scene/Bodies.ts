@@ -353,7 +353,16 @@ function createOrbitingBody(options: {
       emissiveIntensity: 0.055,
     }),
   );
-  const ringScale = options.radius * 6.4;
+  /*
+   * Was 6.4. The ring marked a *selection* then — a state a child had just put the game
+   * into by tapping, held for as long as it took them to find the Fly button, and worth
+   * shouting about. There is no selection any more: it marks the world the map is
+   * suggesting, so it is on the whole time the child is at the map, and at 6.4 radii it
+   * dominated the shot and clipped off the edge of a portrait phone whenever the Moon was
+   * out at the side of its orbit — which the opening framing puts it at routinely.
+   * 4.2 still reads as a ring around a small body without becoming the subject.
+   */
+  const ringScale = options.radius * 4.2;
   const ring = createSelectionRing(options.ringTexture, ringScale);
   // Floored, because a small body far from the camera is otherwise a pixel-hunt.
   const hit = createHitMesh(Math.max(0.72, options.radius * 2.6));
@@ -501,7 +510,9 @@ function createSaturn(options: {
 
   // The selection ring takes in the whole ring system; its two hit targets follow the
   // planet and the flat rings rather than filling that outline with an invisible ball.
-  const selectionScale = SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 2.4;
+  // Was 2.4, lowered with the others for the same reason — and Saturn needs it least, since
+  // this is a multiple of the *outer ring* rather than of the body.
+  const selectionScale = SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 1.7;
   const selectionRing = createSelectionRing(options.selectionTexture, selectionScale);
 
   anchor.add(axis, selectionRing, hitTargets.planet);

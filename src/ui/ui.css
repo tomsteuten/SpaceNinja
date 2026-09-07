@@ -296,8 +296,20 @@ body {
 }
 
 .destination-choice.is-locked .destination-choice__emoji {
-  opacity: 0.72;
-  font-size: 1.15rem;
+  opacity: 0.55;
+}
+
+/* The padlock sits over the world's own picture rather than replacing it: the picture is
+   the reason to want to go there, and a child who cannot read "Saturn" can still want the
+   one with the rings. */
+.destination-choice.is-locked::after {
+  content: '🔒';
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 0.72rem;
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 /* The wordless half of the answer to pressing one. The hint line names the world that
@@ -1668,8 +1680,12 @@ body {
 .coach {
   position: fixed;
   z-index: 26;
+  /* The fingertip of 👆 is at the top of the glyph, so the hand hangs *below* the point it
+     is indicating and reaches up to it — at the peak of the tap animation the fingertip
+     lands on the target. Centred on it instead, the hand simply covered the thing it was
+     asking the child to press. */
   margin-left: -18px;
-  margin-top: -6px;
+  margin-top: 8px;
   font-size: 2.3rem;
   line-height: 1;
   pointer-events: none;

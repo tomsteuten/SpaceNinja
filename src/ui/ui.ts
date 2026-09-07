@@ -216,18 +216,24 @@ export function createUI(options: UIOptions): GameUI {
           ? `${choice.label} — visit ${choice.unlockedBy ?? 'another world'} first`
           : `Fly to ${choice.label}`,
       );
+      /*
+       * Deliberately neither `disabled` nor `aria-disabled`. A disabled button answers a
+       * five-year-old's press with nothing at all, which reads as a broken app — the same
+       * reason `showTapEcho` exists for a tap that hits empty space — and `aria-disabled`
+       * tells assistive technology the same lie, that there is nothing here to press. There
+       * is: it shakes, and it says which world unlocks it, and its label says so up front.
+       */
       button.classList.toggle('is-locked', Boolean(choice.locked));
-      // Deliberately not `disabled`. A disabled button answers a five-year-old's press with
-      // nothing at all, which reads as a broken app — the same reason `showTapEcho` exists
-      // for a tap that hits empty space. It stays pressable, shakes, and says why.
-      if (choice.locked) button.setAttribute('aria-disabled', 'true');
       // A suggestion, not a selection — nothing is ever in a chosen-but-not-acted-on state
       // any more. It marks the world the map is pointing at, alongside the ring in the
       // scene and the parked ship's nose.
       button.classList.toggle('is-suggested', choice.id === suggestedId);
       button.classList.toggle('is-new', choice.id === newlyRevealedId);
+      // The world keeps its own picture even while locked — that picture is the whole
+      // reason to want to go there, and a child who cannot read "Saturn" can want the one
+      // with the rings. The padlock is a corner badge over it rather than a replacement.
       button.append(
-        el('span', 'destination-choice__emoji', choice.locked ? '🔒' : choice.emoji),
+        el('span', 'destination-choice__emoji', choice.emoji),
         el('span', 'destination-choice__label', choice.label),
       );
       button.dataset.destination = choice.id;
