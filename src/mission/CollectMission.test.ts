@@ -13,17 +13,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   facingLongitude,
-  hitRadiusFor,
   markerPlacement,
   placementAngles,
   surfaceDirection,
   withinVisibleFace,
 } from './CollectMission';
+import { authoredSet } from './selection';
 import {
   DESTINATIONS,
-  EARTH_RADIUS,
-  MARS_RADIUS,
-  MOON_RADIUS,
   SATURN_RADIUS,
   SATURN_RING_INNER_RATIO,
   SATURN_RING_OUTER_RATIO,
@@ -39,47 +36,16 @@ import {
  */
 const LIMB = 1.25; // radians, ~72°
 
-const MOON = DESTINATIONS.moon?.mission.discoveries ?? [];
-
 /**
- * Radii by id. The hit-sphere spacing below scales with the body, so a destination that
- * fell through to a default would be checked against the wrong one — silently, and in the
- * safe direction for a small body, which is the direction that hides a real overlap.
+ * The Moon's own authored triple — the opening places plus the last one, which is the hidden
+ * entry by the convention every world's list follows. Not the whole list: worlds now carry
+ * more places than they show, and a *set* is chosen per visit. Whether a chosen set composes
+ * is `selection.test.ts`'s job; this file tests the maths underneath it.
  */
-const RADII: Record<string, number> = {
-  earth: EARTH_RADIUS,
-  moon: MOON_RADIUS,
-  mars: MARS_RADIUS,
-  saturn: SATURN_RADIUS,
-};
+const MOON = authoredSet(DESTINATIONS.moon?.mission.discoveries ?? []);
 
-/** Every destination's real discovery list, so a new planet is covered the day it lands. */
-const DESTINATION_CASES: Array<[string, Discovery[], number]> = Object.entries(
-  DESTINATIONS,
-).map(([id, config]) => {
-  const radius = RADII[id];
-  if (radius === undefined) throw new Error(`No radius for destination "${id}" in this test.`);
-  return [id, config.mission.discoveries, radius];
-});
-
-/**
- * Where a discovery's marker ends up, in the surface mesh's local space, straight from
- * buildCollectible's own placement function. The arrival turn is a rotation of the whole
- * set, and rotation preserves distances, so these local positions are what the hit-sphere
- * spacing check needs — and they are ring-aware, which the yaw/pitch reconstruction was not.
- */
-function placements(discoveries: Discovery[], bodyRadius: number): THREENumberTriple[] {
-  return discoveries.map((discovery) => {
-    const { position } = markerPlacement(discovery, bodyRadius);
-    return [position.x, position.y, position.z];
-  });
-}
-
+/** A local position, compared component-wise so a wrong axis is named rather than summed. */
 type THREENumberTriple = [number, number, number];
-
-function distance(a: THREENumberTriple, b: THREENumberTriple): number {
-  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-}
 
 describe('surfaceDirection', () => {
   /*
@@ -197,86 +163,15 @@ describe('facingLongitude', () => {
   });
 });
 
-describe('placementAngles, on the real destinations', () => {
-  for (const [name, discoveries] of DESTINATION_CASES) {
-    it(`produces one angle pair per discovery on ${name}`, () => {
-      expect(placementAngles(discoveries)).toHaveLength(discoveries.length);
-    });
-
-    it(`leaves something in view on arrival at ${name}`, () => {
-      const visible = placementAngles(discoveries).filter(([yaw]) => Math.abs(yaw) < LIMB);
-      expect(visible.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it(`hides the last one past the limb at ${name}`, () => {
-      const angles = placementAngles(discoveries);
-      const last = angles[angles.length - 1];
-      expect(last).toBeDefined();
-      expect(Math.abs(last?.[0] ?? 0)).toBeGreaterThan(LIMB);
-    });
-
-    it(`keeps the hidden one at ${name} within a single drag`, () => {
-      // The other half of the rule, and the half that is easy to lose. Past the limb
-      // teaches the gesture; *far* past it is a half-turn of dragging on a dark
-      // hemisphere, which a five-year-old abandons. The Moon's far side sat at 180 and
-      // needed about 100 degrees of drag before this bound existed; the collectible this
-      // replaced sat at 116, needing about 45, which is the feel being preserved.
-      const angles = placementAngles(discoveries);
-      const last = angles[angles.length - 1];
-      expect(Math.abs(last?.[0] ?? 0)).toBeLessThan(2.3); // ~132 degrees
-    });
-
-    it(`hides only the last one at ${name}`, () => {
-      // More than one over the horizon and the arrival shot starts looking empty.
-      const hidden = placementAngles(discoveries).filter(([yaw]) => Math.abs(yaw) > LIMB);
-      expect(hidden).toHaveLength(1);
-    });
-
-    it(`keeps ${name} clear of the poles, where a hit sphere foreshortens away`, () => {
-      for (const [, pitch] of placementAngles(discoveries)) {
-        expect(Math.abs(pitch)).toBeLessThan(Math.PI / 2 - 0.6);
-      }
-    });
-
-    it(`separates the ones in view on ${name} rather than stacking them`, () => {
-      const visible = placementAngles(discoveries)
-        .filter(([yaw]) => Math.abs(yaw) < LIMB)
-        .map(([yaw]) => yaw);
-      for (let i = 1; i < visible.length; i++) {
-        expect(Math.abs((visible[i] ?? 0) - (visible[i - 1] ?? 0))).toBeGreaterThan(0.3);
-      }
-    });
-  }
-});
-
-/**
- * The hit spheres are invisible and generously oversized, so two of them growing into
- * each other is a bug nobody would see — the tap simply scores the wrong place, and only
- * sometimes.
+/*
+ * The per-destination composition and hit-spacing suites that used to live here have moved to
+ * `selection.test.ts`, along with the helpers they needed.
  *
- * It now depends on real coordinates rather than on a spacing rule, so it is genuinely
- * possible to break by writing a plausible-looking config entry. The tightest pair in the
- * game is the Moon's footprints and its bright crater, which clear each other by about
- * nine per cent: worth knowing before adding a fourth place to a small body.
+ * They asserted that a world's *whole list* composed as an arrival, which was the same thing
+ * as its chosen set while every world carried exactly three places. Worlds now carry six and
+ * a set is picked per visit, so the property worth checking is that *every set the picker can
+ * produce* composes — strictly stronger, and covering combinations no person ever looked at.
  */
-describe('hit sphere spacing', () => {
-  for (const [name, discoveries, radius] of DESTINATION_CASES) {
-    it(`keeps every pair of ${name} discoveries clear of each other`, () => {
-      const points = placements(discoveries, radius);
-      const minimum = hitRadiusFor(radius) * 2;
-      for (let i = 0; i < points.length; i++) {
-        for (let j = i + 1; j < points.length; j++) {
-          const a = points[i];
-          const b = points[j];
-          expect(a).toBeDefined();
-          expect(b).toBeDefined();
-          if (!a || !b) continue;
-          expect(distance(a, b)).toBeGreaterThan(minimum);
-        }
-      }
-    });
-  }
-});
 
 /**
  * Whether a marker can be tapped *through* the body it is on.

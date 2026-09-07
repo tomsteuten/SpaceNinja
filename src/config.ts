@@ -196,9 +196,26 @@ export const WIDER_FRAMING_VISIT = 'mars';
  * That is the whole point of the change from collectibles — a rock could be anywhere and
  * therefore taught nothing about where you were.
  *
- * Order matters. Every entry but the last is expected to be facing the camera on arrival;
- * the last is the one deliberately left over the horizon, so reaching it needs a drag.
- * See `placementAngles`, which turns these into view angles, and its test.
+ * A world carries more of these than it shows: `mission/selection.ts` picks three per visit,
+ * so a second trip to the Moon is a different Moon. Order still matters, in two ways. The
+ * list is the *pool*, and the picker's job is to draw a set from it that composes as an
+ * arrival — some in view, exactly one over the horizon so reaching it needs a drag. And the
+ * authored order is the fallback: the opening entries plus the **last** one, which is the
+ * triple this game shipped with and the one a person actually looked at. Keep writing new
+ * lists that way — near-side places first, the drag-for-it place last.
+ *
+ * Two constraints are easy to miss when adding one, and both are enforced by
+ * `selection.test.ts` rather than by care:
+ *
+ * - **Nothing above about 55 degrees of latitude.** `POLE_GUARD` is `PI/2 - 0.6`, which is
+ *   55.6 degrees and not the 80 it looks like; a hit sphere nearer the pole than that
+ *   foreshortens to nothing and cannot be tapped. Greenland at 72 north was added here and
+ *   was silently unreachable — in no playable set, so the journal could never be filled.
+ * - **Every place must appear in some playable set.** `JOURNAL_SLOTS` counts them all and
+ *   `foundEverything` requires them all, so one that can never be chosen makes the game
+ *   impossible to finish with nothing anywhere reporting a problem.
+ *
+ * See `placementAngles`, which turns these into view angles, and `selection.ts`.
  */
 export interface Discovery {
   /** Stable key. Written into the journal, so renaming one forgets a child's find. */
@@ -363,6 +380,52 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'breathing right now.',
         },
         {
+          id: 'earth-lakes',
+          name: 'The Great Lakes',
+          emoji: '💧',
+          /*
+           * Greenland was here first, at 72 north, and was unreachable: POLE_GUARD is
+           * PI/2 - 0.6, which is 55.6 degrees, not the 80 it looks like at a glance. A
+           * discovery above that latitude can never appear in a playable set, so the
+           * journal could never be filled and the game could never be finished — caught by
+           * the reachability test, which exists for exactly this. Nothing above ~55
+           * degrees can be a discovery here.
+           */
+          lat: 45.5,
+          lon: -84,
+          short: 'Five huge lakes, holding more fresh water than almost anywhere.',
+          fact:
+            'Those five joined-up lakes are so big you cannot see across them, and ' +
+            'together they hold more fresh water than almost anywhere else on Earth. ' +
+            'They were dug out by ice, back when a sheet of it covered all of this.',
+        },
+        {
+          id: 'earth-himalaya',
+          name: 'The Tallest Mountains',
+          emoji: '🏔️',
+          // Everest. Close to the night-side place in longitude, so the two are never
+          // chosen together — the picker settles that rather than the coordinates.
+          lat: 28,
+          lon: 86.9,
+          short: 'The tallest mountains on Earth are down there, still growing.',
+          fact:
+            'Those are the Himalayas, and the tallest mountain on Earth is in them. ' +
+            'They are made of two pieces of the world pushing into each other, and ' +
+            'they are still being pushed — so they are still getting taller.',
+        },
+        {
+          id: 'earth-reef',
+          name: 'The Biggest Reef',
+          emoji: '🐠',
+          lat: -18.3,
+          lon: 147.7,
+          short: 'The biggest reef in the world, built by tiny animals.',
+          fact:
+            'Along that coast is the Great Barrier Reef, the biggest coral reef in the ' +
+            'world. Every bit of it was built by tiny animals smaller than your ' +
+            'fingernail, and thousands of kinds of fish live in it.',
+        },
+        {
           /*
            * Last, so it is the one over the horizon — and placed over Bangkok, which is
            * not arbitrary: it is the point that is both properly in darkness and still
@@ -442,6 +505,44 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'is called Tycho.',
         },
         {
+          id: 'moon-procellarum',
+          name: 'The Ocean of Storms',
+          emoji: '🌊',
+          lat: 18.4,
+          lon: -57.4,
+          short: 'A huge dark plain. People once thought it was a real sea.',
+          fact:
+            'This enormous dark patch is called the Ocean of Storms. There is no water ' +
+            'in it at all — it is a flat plain of old cooled rock — but people looking ' +
+            'up long ago thought the dark parts were seas, and the names stuck.',
+        },
+        {
+          id: 'moon-crisium',
+          name: 'The Egg-Shaped Sea',
+          emoji: '🥚',
+          lat: 17,
+          lon: 59.1,
+          short: 'A neat oval dark patch, punched out by a huge rock.',
+          fact:
+            'This tidy oval is the Sea of Crises. A gigantic rock smashed into the Moon ' +
+            'here and left a hole so deep that melted rock filled it right up, which is ' +
+            'why it is smooth and dark and such a neat shape.',
+        },
+        {
+          id: 'moon-orientale',
+          name: 'The Bullseye',
+          emoji: '🎯',
+          // Mare Orientale, on the western limb and mostly round the back — a genuine
+          // multi-ring basin that really does look like a target from above.
+          lat: -19.4,
+          lon: -92.8,
+          short: 'A giant bullseye of rings, right round on the edge.',
+          fact:
+            'This is Orientale, and it really is shaped like a bullseye — rings of ' +
+            'mountains inside rings of mountains. It was made by one enormous crash, ' +
+            'and the ripples in the ground froze exactly where they were.',
+        },
+        {
           // Last, so it is the one over the horizon. Tsiolkovskiy crater, which is
           // genuinely round the back — the near side runs out at about 90 degrees — but
           // at 129 rather than at the far side's centre, which would be 180 and a
@@ -507,6 +608,44 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
           fact:
             'This enormous crack across Mars is called Valles Marineris. It is longer ' +
             'than Australia is wide, and deep enough to lose a mountain in.',
+        },
+        {
+          id: 'mars-hellas',
+          name: 'The Giant Hole',
+          emoji: '🕳️',
+          lat: -42.4,
+          lon: 70.5,
+          short: 'A hole so deep you could drop the tallest mountain into it.',
+          fact:
+            'This is Hellas, a hole left by a colossal crash long ago. It is so deep ' +
+            'that if you put the biggest mountain on Earth inside it, the top would ' +
+            'still be below the ground around the edge.',
+        },
+        {
+          id: 'mars-jezero',
+          name: 'Where the Helicopter Flew',
+          emoji: '🚁',
+          // Jezero crater: Perseverance's landing site, and where Ingenuity flew.
+          lat: 18.4,
+          lon: 77.7,
+          short: 'A little helicopter really flew here, on another planet.',
+          fact:
+            'A robot landed in this crater, and it brought a tiny helicopter with it. ' +
+            'That helicopter flew dozens of times — the first flying machine ever to fly ' +
+            'anywhere that is not Earth. Long ago this crater held a lake.',
+        },
+        {
+          id: 'mars-gale',
+          name: 'Where the Robot Landed',
+          emoji: '🤖',
+          // Gale crater: Curiosity's landing site.
+          lat: -5.4,
+          lon: 137.8,
+          short: 'A robot the size of a car has been driving around down here.',
+          fact:
+            'A robot the size of a small car landed in this crater and has been driving ' +
+            'about ever since, drilling into rocks to see what they are made of. It ' +
+            'found that there really was water here, a very long time ago.',
         },
         {
           // Last, so it is the one over the horizon. Both of the others are in Mars's
@@ -595,6 +734,50 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'Right at the top of Saturn is a giant cloud shaped like a hexagon — six ' +
             'straight sides, like a stop sign with one fewer. It is a storm so wide that ' +
             'several Earths would fit inside it.',
+        },
+        {
+          /*
+           * A second ring place, out in the Cassini Division — the dark gap the ring
+           * texture already draws near 1.95 body-radii, between the bright B ring inside
+           * it and the A ring outside. Like the other ring place it can only ever be an
+           * in-view one; `isPlayableSet` enforces that, because a ring point does not
+           * swing behind the limb the way a longitude does and so cannot teach the drag.
+           */
+          id: 'saturn-division',
+          name: 'The Big Gap',
+          emoji: '〰️',
+          lat: 0,
+          lon: -70,
+          ring: 1.95,
+          short: 'A gap in the rings wide enough to fit a whole country through.',
+          fact:
+            'There is a gap in the rings here, and it is not empty by accident: one of ' +
+            "Saturn's moons keeps sweeping it clear, over and over. The gap is wide " +
+            'enough to drop a country into.',
+        },
+        {
+          id: 'saturn-jet',
+          name: 'The Fastest Wind',
+          emoji: '💨',
+          lat: 2,
+          lon: -40,
+          short: 'The wind here blows faster than any wind on Earth.',
+          fact:
+            'Right around the middle of Saturn the wind never stops blowing, and it is ' +
+            'far faster than the very worst storm on Earth — quicker than a jet plane. ' +
+            'There is no ground for it to blow across, only more and more cloud.',
+        },
+        {
+          id: 'saturn-bands',
+          name: 'The Stripes',
+          emoji: '🎗️',
+          lat: -30,
+          lon: -95,
+          short: 'Saturn is covered in stripes, and every stripe is moving.',
+          fact:
+            'Those pale and dark stripes are bands of cloud, and each one is racing ' +
+            'around Saturn at its own speed. Where two of them rub past each other you ' +
+            'get swirls and curls, a bit like cream stirred into coffee.',
         },
         {
           // Last, so it is the one over the horizon — a real surface feature about 125

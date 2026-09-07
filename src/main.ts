@@ -36,6 +36,8 @@ import {
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
+import { chooseDiscoveries } from './mission/selection';
+import { narrateWholeVisit } from './ui/narrationFlow';
 import { createCoach, shouldInviteSpin } from './ui/coach';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
@@ -342,7 +344,8 @@ async function main() {
       // the gold targets on it. It no longer gates anything.
       ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji);
 
-      const mission = missions[destination.id];
+      // Built now, not at boot: which places exist is a property of this arrival.
+      const mission = buildMission(destination.id);
       if (!mission) return;
       activeMission = mission;
       // Builds the targets and holds the surface still, then puts the gold on screen at
@@ -374,16 +377,39 @@ async function main() {
 
   /* --- missions ------------------------------------------------------------ */
 
-  // One per destination, built up front. Construction is only bookkeeping; a mission
-  // creates no geometry until it is started.
+  /*
+   * Built per *visit*, not once up front.
+   *
+   * A world carries more places than it shows and `chooseDiscoveries` picks a playable set
+   * each time — so which places exist is no longer a property of the destination, it is a
+   * property of this arrival. A mission built at boot would pin one set for the session and
+   * hand back the same three every time, which is the thing this whole change exists to stop.
+   *
+   * Construction is only bookkeeping: a mission creates no geometry until `start()`, and the
+   * previous one is disposed before the next is made, so nothing accumulates across flights.
+   */
   const missions: Partial<Record<BodyId, CollectMission>> = {};
   let activeMission: CollectMission | null = null;
+  /** Whether this visit's set is fully recorded; see narrateWholeVisit. */
+  let narrateVisit = true;
 
-  for (const [id, config] of Object.entries(DESTINATIONS)) {
-    const body = world.bodies[id as BodyId] as CelestialBody | undefined;
-    if (!body) continue;
-    missions[body.id] = createCollectMission({
-      definition: { body, ...config.mission },
+  function buildMission(id: BodyId): CollectMission | null {
+    const config = DESTINATIONS[id];
+    const body = world.bodies[id] as CelestialBody | undefined;
+    if (!config || !body) return null;
+    missions[id]?.dispose();
+    const discoveries = chooseDiscoveries(
+      config.mission.discoveries,
+      loadProgress().discoveries,
+      body.radius,
+    );
+    // All or none across the set: a spoken find beside a silent one in the same hunt teaches
+    // a child the game reads to them and then stops.
+    narrateVisit = narrateWholeVisit(
+      discoveries.map((discovery) => narrator.hasRecording(`discovery-${discovery.id}`)),
+    );
+    const mission = createCollectMission({
+      definition: { body, ...config.mission, discoveries },
       camera,
       quality: stage.quality,
       reducedMotion,
@@ -404,7 +430,7 @@ async function main() {
         // What the place is, read out, replacing the arrival fact in the same card. The
         // hunt line would talk over it, so it waits for the last one instead — and when
         // it is the last one, the success line is already about to say the same thing.
-        ui.showDiscovery(discovery);
+        ui.showDiscovery(discovery, narrateVisit);
         // Only the hidden one left: name the gesture now that the child needs it.
         if (found === total - 1) {
           ui.setMissionCaption(config.mission.huntLine, `hunt-${body.id}`);
@@ -412,9 +438,19 @@ async function main() {
       },
       onComplete: () => {
         sfx.success();
-        // The celebration keys off finishing, not off the award: a child who earned this
-        // sticker on an earlier visit still gets the party, just not a second sticker.
-        const isNew = awardSticker(config.mission.stickerId);
+        /*
+         * Finding this visit's three is always the party. The world's *badge* now waits for
+         * every place the world carries, across however many visits that takes.
+         *
+         * It used to be the same event, because a world had exactly three places and showed
+         * all of them. Now it shows three of six, and awarding "Moon Explorer" for half the
+         * Moon would make the badge mean less each time a place is added — and would leave a
+         * child with nothing to come back for, which is the whole problem being fixed. The
+         * moment-to-moment reward is unchanged: the celebration still fires every visit.
+         */
+        const found = loadProgress().discoveries;
+        const worldComplete = config.mission.discoveries.every((d) => found.includes(d.id));
+        const isNew = worldComplete && awardSticker(config.mission.stickerId);
         ui.completeMission(
           `success-${body.id}`,
           config.mission.successLine,
@@ -440,6 +476,8 @@ async function main() {
         }
       },
     });
+    missions[id] = mission;
+    return mission;
   }
 
   /* --- selection ----------------------------------------------------------- */

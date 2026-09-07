@@ -6,12 +6,15 @@ far: Earth, the Moon, Mars, and Saturn.
 Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
 there. One tap, one journey: ride with the spaceship along its safe route and arrive close
 enough to see the surface.
-Three real places are marked on each world — the first
-footprints on the Moon, the volcano on Mars, the Sahara from orbit — and finding one tells
-you about it and puts it in the discovery journal. One of the three is always round the back, so getting it
-means learning to drag. Or just look around and fly home. Either way, having been to the
-Moon reveals Mars, and visiting Mars reveals Saturn. Find every place on all four worlds and
-the whole game is won — with a celebration to say so.
+Three real places are marked on each world — the first footprints on the Moon, the volcano on
+Mars, the Sahara from orbit — and finding one tells you about it and puts it in the discovery
+journal. One of the three is always round the back, so getting it means learning to drag. Or
+just look around and fly home.
+
+Each world holds **six** real places and shows three of them, picked fresh each visit and
+weighted towards the ones you have not found, so going back to the Moon is not the same Moon.
+Having been there reveals Mars, and visiting Mars reveals Saturn. Find every place on all four
+worlds and the whole game is won — with a celebration to say so.
 
 It installs to a home screen and works offline once loaded, with nothing ever leaving the
 device.
@@ -124,10 +127,10 @@ you add under a CC BY licence needs crediting in the list above.
 **Photographs of the places a child finds** work the same way, and are the most worthwhile
 thing you can add. Each discovery can show a real photograph of itself — a thumbnail in its
 card, full screen on a tap — from a file named after it in `public/assets/discoveries/`.
-That folder's `README.txt` names the specific NASA image used for each of the twelve places
-and why that one rather than another. They are entirely optional and added one at a time: a
+That folder's `README.txt` names the specific NASA image used for each of the original twelve
+places and why that one rather than another; the places added since have no file yet. They are entirely optional and added one at a time: a
 place with no file simply has no photograph. **Nothing is downloaded until a place is
-actually found**, so all twelve cost the game nothing at startup, and a child who finds three
+actually found**, so they cost the game nothing at startup, and a child who finds three
 fetches three.
 
 Earth is the one that needs care, because its colour and roughness maps are only correct

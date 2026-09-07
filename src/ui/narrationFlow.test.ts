@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   guideOnArrival,
+  narrateWholeVisit,
   narrationOnEnd,
   shouldAutoNarrate,
   transcriptControlState,
@@ -69,5 +70,24 @@ describe('narrationOnEnd', () => {
   it('drops a queued guide if sound went off while the discovery was reading', () => {
     // Turning sound off mid-discovery must not leave the hunt line to fire afterwards.
     expect(narrationOnEnd(guide, false)).toEqual({ kind: 'collapse' });
+  });
+});
+
+describe('narrateWholeVisit', () => {
+  it('narrates a set that is fully recorded', () => {
+    expect(narrateWholeVisit([true, true, true])).toBe(true);
+  });
+
+  it('silences a set where even one place has no recording', () => {
+    // The case this exists for. A world carries more places than it shows, so a partly
+    // recorded world can hand a visit two spoken finds and one silent one — which teaches a
+    // child the game reads to them and then stops. Worse than never having started.
+    expect(narrateWholeVisit([true, true, false])).toBe(false);
+    expect(narrateWholeVisit([false, true, true])).toBe(false);
+  });
+
+  it('silences a set with nothing recorded, rather than treating empty as unanimous', () => {
+    expect(narrateWholeVisit([])).toBe(false);
+    expect(narrateWholeVisit([false, false, false])).toBe(false);
   });
 });

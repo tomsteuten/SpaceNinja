@@ -135,7 +135,7 @@ export function recordDiscovery(id: string): boolean {
  * Takes the list of ids rather than importing config, so it can be pinned in a test
  * without a scene: `all` is `Object.keys(DISCOVERIES)` in the game. Extra ids in the save
  * — a place retired between releases — count for nothing, and order does not matter.
- * Finding the ninth place completes the whole game, and it used to get exactly the same
+ * Finding the last place completes the whole game, and it used to get exactly the same
  * celebration as finding the third.
  */
 export function foundEverything(found: readonly string[], all: readonly string[]): boolean {

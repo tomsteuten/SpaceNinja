@@ -69,23 +69,25 @@ describe('narration script', () => {
         .map((name) => name.slice(0, -'.mp3'.length)),
     );
 
-    // Per world, not per game. narration.ts is built for a partial pack — a world with no
-    // audio simply keeps the visual guidance and never auto-plays the poor device voice — so
-    // a newly added world pending its recordings is a valid state. What must not happen is a
-    // *half*-recorded world, where one discovery in a visit speaks and the next does not.
-    //
-    // The day/night intro (`spin-*`) is deliberately outside this rule: it is a visual lesson
-    // — the light moving across the world *is* the content — and the code runs it silently and
-    // shows its fact as text when there is no recording, exactly as intended for a world whose
-    // spin audio has not been generated yet. So a world may have every hunt cue recorded and a
-    // still-silent day turn; that is not the half-narrated hunt this guard is about. The
-    // "no stray recordings" check below still covers a recorded-but-orphaned spin cue.
-    for (const [bodyId, cues] of Object.entries(cuesByBody())) {
-      const hunt = cues.filter((cue) => !cue.startsWith('spin-'));
-      const have = hunt.filter((cue) => recorded.has(cue));
+    /*
+     * The rule this used to enforce — all or none per *world* — was the right rule when a
+     * world had exactly three places and showed all three. Worlds now carry more than they
+     * show and a set is chosen per visit, so the unit that matters is the visit, and it is
+     * enforced at runtime instead: `narrateWholeVisit` silences a set that is not fully
+     * recorded, so a spoken find can never sit beside a silent one in the same hunt. That is
+     * strictly stronger than a file check could be, because the file cannot know which three
+     * places a given arrival will pick.
+     *
+     * What is still worth pinning here is the *framing* pair. The arrival welcome and the
+     * find instruction are per-world and always both play, so one recorded without the other
+     * is a half-narrated arrival with no runtime fallback to catch it.
+     */
+    for (const bodyId of Object.keys(DESTINATIONS)) {
+      const framing = [`arrival-${bodyId}`, `find-${bodyId}`];
+      const have = framing.filter((cue) => recorded.has(cue));
       expect(
-        have.length === 0 || have.length === hunt.length,
-        `${bodyId} has ${have.length}/${hunt.length} hunt cues recorded — record all or none`,
+        have.length === 0 || have.length === framing.length,
+        `${bodyId} has ${have.length}/2 framing cues recorded — record both or neither`,
       ).toBe(true);
     }
 

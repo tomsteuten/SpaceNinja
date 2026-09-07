@@ -62,8 +62,14 @@ export interface GameUI {
    */
   beginMission(caption: string, total: number, cueId?: string): void;
   setMissionCaption(text: string, cueId?: string): void;
-  /** A place has been found: name it, and put it in the journal. */
-  showDiscovery(discovery: Discovery): void;
+  /**
+   * A place has been found: name it, and put it in the journal.
+   *
+   * `narrate` is false when this visit's set is not fully recorded — see `narrateWholeVisit`.
+   * The card then shows its words rather than hiding them behind the audio-first state, which
+   * is what `showFact` already does for any cue without a recording.
+   */
+  showDiscovery(discovery: Discovery, narrate?: boolean): void;
   /**
    * Something worth saying that is not a find — it uses the same card and the same
    * speaker button, but nothing goes into the journal, because nothing was collected.
@@ -1031,7 +1037,7 @@ export function createUI(options: UIOptions): GameUI {
       updateTranscriptButton();
     },
 
-    showDiscovery(discovery: Discovery) {
+    showDiscovery(discovery: Discovery, narrate = true) {
       // Straight into the fact card. Authored audio reads it aloud; the platform fallback
       // remains opt-in. This is the whole payoff for
       // going and looking: the old collectible answered a tap with a counter going up.
@@ -1045,6 +1051,7 @@ export function createUI(options: UIOptions): GameUI {
         discovery.short,
         `${discovery.emoji} ${discovery.name}`,
         `discovery-${discovery.id}`,
+        narrate,
       );
       // And the real photograph, if one has been dropped in for this place. Started after
       // the words rather than waited on: the card must not hang on a network probe.

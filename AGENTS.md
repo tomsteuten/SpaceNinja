@@ -108,12 +108,14 @@ Three things follow, and they are the ones to check a change against:
   The idle coach (`ui/coach.ts`) is the standing answer: a hand that does the thing, on the
   thing, after six seconds of nothing happening.
 
-And the thing the game is still *missing*, so nobody has to rediscover it: **there is no
-reason to play it twice.** `CollectMission` does not read `loadProgress()`, so every visit
-re-presents the same three places at the same coordinates with the same words, and the
-arrival composition is deliberately pinned identical. Twelve discoveries, one tap each, is
-the whole game. Fixing that is content and a subset-picker, not architecture — see
-*Suggested next steps*.
+**A world carries more places than it shows.** Six each, three per visit, chosen by
+`mission/selection.ts` — so a second visit to the Moon is a different Moon. This was the
+largest gap in the game: `CollectMission` never read progress, every visit re-presented the
+same three places at the same coordinates with the same words, and twelve discoveries at one
+tap each was the whole thing. What makes it safe is that the picker is checked against the
+same arrival rules a person used to check by hand, and against one property a person never
+could — that every place a world carries can actually be reached. See the selection
+invariants below.
 
 ---
 
@@ -262,8 +264,47 @@ camera to the band they sit in. Neither moves a feature relative to another. Wit
 second one the Sun dominates the arrival direction, the camera looks down from 33 degrees
 up, and everything near the equator projects onto the bottom limb underneath the dock.
 
-**The last discovery in the list is the hidden one**, past the limb, so reaching it needs a
-drag. There is a bound on *how far* past: much beyond ~130 degrees is half a turn of
+**A world shows a chosen set, not its whole list — and `selection.ts` is what makes that
+safe.** `chooseDiscoveries` draws `PLACES_PER_VISIT` from the pool each arrival, weighted
+towards places not yet found, and `main.ts` builds the mission *per visit* rather than at boot
+(a mission built once would pin one set for the session, which is the thing this exists to
+stop). Four things about it are load-bearing:
+
+- *`placementAngles` is the oracle, not a reimplementation of it.* The composition rules used
+  to be guaranteed by a person writing three places and a test confirming they happened to
+  compose. They now have to hold for a combination nobody chose in advance, so `isPlayableSet`
+  asks the real arrival maths rather than restating it — if that maths changes, the picker
+  changes with it.
+- *Every place must be reachable, and this is the invisible one.* `JOURNAL_SLOTS` counts every
+  discovery and `foundEverything` requires them all, so a place that appears in no playable set
+  makes the journal impossible to fill and the game impossible to finish, with nothing anywhere
+  reporting a problem. There is a test per world. It has already caught one: Greenland at 72
+  north, because `POLE_GUARD` is `PI/2 - 0.6` — 55.6 degrees, not the 80 it looks like.
+- *Unfound-first, never unfound-only.* A child with three places left may not be able to fill
+  an arrival from them: three specific places need not compose, and one certainly cannot. Being
+  shown a place you already found is not a failure — the badge is still on it.
+- *A ring place can never be the hidden one.* A ring point does not swing behind the limb the
+  way a longitude does, so the drag it asked for would reveal nothing. This was previously a
+  matter of Saturn's list having been written carefully; it is now enforced.
+
+**The world sticker waits for every place the world carries; the celebration does not.**
+Finishing a visit's three is always the party. `moon-explorer` now lands only when all six
+Moon places are in the journal, across however many visits that takes — awarding it for half
+the Moon would make the badge mean less every time a place is added, and would leave nothing
+to come back for.
+
+**A visit narrates all of its places or none of them.** `narrateWholeVisit` in
+`narrationFlow.ts`: if any place in the chosen set has no recording, none of them auto-narrate
+and the cards show their words instead. A partly recorded world could otherwise put a spoken
+find and a silent one side by side in the same hunt, which teaches a child that the game reads
+to them and then stops — worse than never having started. This replaced a file-level
+all-or-none-per-world check in `narration-script.test.ts`, which was the right unit only while
+a world showed every place it had; that test now pins the *framing* pair (`arrival-` and
+`find-`), which always both play and have no runtime fallback. It is also what keeps a partial
+pack shippable: a new place with no MP3 costs its visit the audio, not the world.
+
+**The last discovery in the authored list is the hidden one**, past the limb, so reaching it
+needs a drag. That is the convention every list follows and the fallback `authoredSet` uses. There is a bound on *how far* past: much beyond ~130 degrees is half a turn of
 dragging over an unlit hemisphere, which a small child gives up on. Both halves of that are
 tested, because both have been got wrong.
 
@@ -435,8 +476,8 @@ fallback. The authored narration was always the short register, so this brought 
 into line with the voice rather than the other way round.
 
 The journal detail is text and one at a time, deliberately. Nothing is fetched until a place
-is found, which is what makes twelve photographs cost nothing at startup — a journal showing
-twelve thumbnails would have downloaded all twelve.
+is found, which is what makes the photographs cost nothing at startup — a journal showing
+every thumbnail would have downloaded every one of them.
 
 **Only one fold timer for the fact card.** Facts overlap — finding a place replaces the
 arrival fact, and completing a body queues the success line behind the last discovery — and
@@ -478,9 +519,9 @@ Three things about it that are load-bearing rather than incidental:
 - **Nothing is fetched until a place is found.** That is what makes photographs affordable
   where sharpening the globe maps is not: sharper maps spend every byte before the title
   screen, and on a device whose pixel ratio is capped at 1.5 most of that detail is never
-  drawn. A child who finds three places fetches three files; the other nine are never asked
-  for. Do not preload them, and do not put them in the journal grid without thinking about
-  this — a journal that shows twelve thumbnails has just downloaded all twelve.
+  drawn. A child who finds three places fetches three files; the other twenty-one are never
+  asked for. Do not preload them, and do not put them in the journal grid without thinking about
+  this — a journal that shows every thumbnail has just downloaded every photograph.
 - **The probe is guarded on the discovery still being on screen.** Facts overlap: a find
   replaces the arrival fact, and the completion line queues behind the last find. A probe
   resolving a moment late would otherwise staple one place's photograph to another's words.
@@ -489,8 +530,7 @@ Three things about it that are load-bearing rather than incidental:
   picture would put that back and more.
 
 **Never generate a stand-in for a discovery photograph, and do not offer to source one from
-inside an assistant environment.** The twelve that are installed were fetched and checked by a
-person, because every image host — NASA, Wikimedia, all of them — is refused at this
+inside an assistant environment.** The installed ones were fetched and checked by a person, because every image host — NASA, Wikimedia, all of them — is refused at this
 environment's egress gateway, and `WebFetch` is blocked for them too. An assistant that
 offers to "source them" from in here is about to invent something. That matters more than
 usual here: the game tells a child *this is the real Sahara*, and a synthesised picture
@@ -766,44 +806,42 @@ loop was rebuilt this week and nobody has watched a child use the rebuilt one.
    - Does the day turn still get pressed now that it is offered rather than played
      automatically? If nobody presses it, the button is wrong, not the decision.
 
-4. **Give it a reason to be played twice.** The largest remaining gap, and the reason the
-   game is ~20 minutes long once. Ordered by effect over cost, and none of it needs new
-   architecture:
-   - **More places than are shown.** Six to eight discoveries per world, three marked per
-     visit, unfound-first then random. A `Discovery` is a config entry with real
-     coordinates and a fact — the cheapest content in the codebase. `CollectMission` would
-     take the chosen subset rather than the whole list.
-   - **The hidden-one rule has to survive the randomising.** The chosen subset must still
-     end with one place ~100–130 degrees from the arrival bearing, or the drag lesson goes
-     with it. This is the actual engineering: it generalises `placementAngles`, and it
-     wants a test.
-   - **Vary the arrival.** `facingLongitude`/`facingLatitude` already derive from the
-     discovery list, so a different subset gives a different picture almost for free. Both
-     free variables are currently spent on pinning one identical composition.
-   - **Make the stickers visible.** They are earned, celebrated and then never seen again.
-     Applying them to the *spaceship* — a decal, a colour, an emblem — puts the reward on
-     the object that is on screen for the whole flight and parked at every world, and
-     gives the existing sticker state a job. Cheaper than a character, and `Spaceship.ts`
-     is primitives.
-   - **One toy per world, not one lesson four times.** Saturn's rings tilting to edge-on is
-     cheap and spectacular and reuses the axial-tilt container; a Mars dust storm is not
-     cheap. Do not price these as equal.
+4. **~~Give it a reason to be played twice.~~** Mostly done. Each world carries six places
+   and shows three, picked per visit and weighted towards the unfound, so a second trip is a
+   different trip; the world badge now waits for all six. What is **not** done:
+   - *The twelve new places have no photographs.* Every image host is refused at this
+     environment's egress gateway, so they have to be fetched by a person — see the note under
+     *Assets are drop-in*, and never offer to generate one.
+   - *And no recordings.* `narration-script.json` has all twenty-four discovery cues written,
+     but `huggingface.co` is blocked here too (403 at the gateway), so the MP3s need
+     `npm run narration:generate` on a real machine. Until then any visit that includes a new
+     place plays silently and shows its words, by design.
+   - *Nobody has watched a child replay a world.* The open question is whether a set that
+     includes a place they have already found reads as a reward or as a repeat.
 
-Then, in code:
+5. **Make the stickers visible.** Still the best remaining idea and still not built. They are
+   earned, celebrated and then never seen again. Applying them to the *spaceship* — a decal, a
+   colour, an emblem — puts the reward on the object that is on screen for the whole flight and
+   parked at every world, and gives the existing sticker state a job. Cheaper than a character,
+   and `Spaceship.ts` is primitives.
 
-5. **~~Add Saturn.~~** Done — Saturn is a destination, with two surface places and one
-   discovery that lives on the ring plane. Its checked Solar System Scope body texture is
+6. **One toy per world, not one lesson four times.** Saturn's rings tilting to edge-on is
+   cheap and spectacular and reuses the axial-tilt container; a Mars dust storm is not cheap.
+   Do not price these as equal.
+
+7. **~~Add Saturn.~~** Done — Saturn is a destination, with two surface places and one
+   discoveries that live on the ring plane (the bright rings, and the gap in them). Its checked Solar System Scope body texture is
    explicitly disclosed as a visual reconstruction because unmapped gaps use fictional
    terrain; its rings use a genuine Cassini radial strip. What is **not** done is watching
    it on the real tablet: browser playthroughs now cover phone portrait and landscape, but
    the widest framing tier and compressed size still need judgment in a child's hands. The
    next outer world is *not* as cheap as this one was — see the reachability note above.
 
-6. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
+8. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
    twelfth place now brings up the finale and the `space-ninja` sticker. Still unwatched with
    a child, like everything in this file that has not been.
 
-7. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
+9. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
    played on Android and a Surface. Safari differs in the places this game leans on: audio
    context unlocking, `backdrop-filter` (used on nearly every surface — the `-webkit-`
    prefixes are there, but untested), `localStorage` throwing in private mode (guarded, also
@@ -811,7 +849,7 @@ Then, in code:
    which only earns its keep on a notched device. If the game is ever handed to someone with
    an iPad, that is where it will break, and nobody has looked.
 
-8. **Listen to and child-test the narration pack.** The 25 Kokoro clips, keyed loader and
+10. **Listen to and child-test the narration pack.** The 25 Kokoro clips, keyed loader and
    generator are done, but audio measurements do not establish whether a five-year-old
    understands the delivery. Try voice or speed changes in `narration-script.json`,
    regenerate with `--force`, then watch whether the child taps or swipes after the cue
@@ -848,7 +886,14 @@ want on-device tuning, so they are deliberately left as a follow-up rather than 
 The vertical framing inset below is a separate lever and cannot help a width-bound portrait
 shot at all; reveal-gating is what fixed that one.
 
-Done since this file was written: the loop was rebuilt around the child's first thirty
+Done since this file was written: worlds now carry six real places each and show three,
+picked per visit and weighted towards the ones not yet found, so going back to a world is not
+the same world — with the arrival rules checked against every set the picker can produce, and
+against the property a person could not check by hand, that every place can be reached at all;
+the world badge waits for all six while the celebration still fires every visit; a visit
+narrates all of its places or none of them; the day/night button carries a small globe of its
+own world, driven by the real turn while one runs, and asks to be noticed once the hunt is
+done; the loop was rebuilt around the child's first thirty
 seconds — one tap flies, the automatic day/night arrival intro is gone and the day turn is a
 button again, the targets are live the moment the ship lands, an idle hand demonstrates the
 tap and the drag, the locked worlds appear as padlocked chips, a discovery says one short
@@ -883,8 +928,10 @@ of itself, an adult can choose the reading voice and turn the sound off, an arro
 the last place while it is round the back, and the dock no longer stands on the planet in
 landscape or bury it on a phone.
 
-The twelve discovery photographs are installed and credited. They had to be sourced outside
-the assistant environment, which cannot reach a single image host — see the note under
+The original twelve discovery photographs are installed and credited; the twelve places added
+since have none yet, which is a supported state — a place with no file simply has no
+photograph. They had to be sourced outside the assistant environment, which cannot reach a
+single image host — see the note under
 *Assets are drop-in* before offering to fetch any more.
 
 Not yet in scope: real orbital physics, planets past Saturn, downloaded models.

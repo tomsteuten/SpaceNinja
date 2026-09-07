@@ -771,10 +771,23 @@ body {
   font-weight: 800;
 }
 
+/* Fits its rows to the width rather than insisting on three.
+   The journal doubled from twelve slots to twenty-four when worlds started carrying more
+   places than they show, and twenty-four tiles at three columns ran about 818px tall — off
+   the bottom of a 844px phone, taking the Close button with it. Auto-fit gives three on the
+   narrowest phone and four with any room to spare, and the cap keeps the panel on screen
+   whatever the count grows to next. */
 .sticker-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+  gap: 0.65rem;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  /* Room for the scrollbar so the last column is not clipped by it, and momentum scrolling
+     on the tablet this is played on. */
+  padding-right: 0.2rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .sticker {
@@ -903,15 +916,22 @@ body {
 
 /* The full book, three by three like the journal itself, so it is recognisably the
    same thing — only bigger, and with no question marks left. */
+/* Same reasoning as the journal grid: the finale shows every place found, and that is now
+   twenty-four rather than twelve. It fits its columns to the width and scrolls past the cap
+   instead of growing the overlay off the screen. */
 .finale__badges {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  gap: 0.5rem;
+  max-height: min(46vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .finale__badge {
-  width: 74px;
-  height: 74px;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 74px;
   display: grid;
   place-content: center;
   font-size: 2.3rem;

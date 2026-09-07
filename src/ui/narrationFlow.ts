@@ -40,6 +40,24 @@ export function transcriptControlState(wordsVisible: boolean): {
     : { label: 'Show words', expanded: 'false' };
 }
 
+/**
+ * Whether this visit's discoveries narrate themselves.
+ *
+ * All or none, across the whole set — never some. Worlds now carry more places than they
+ * show and a set is chosen per visit, so a partly recorded world could otherwise put a
+ * spoken find and a silent one side by side in the same hunt: the child learns the game
+ * reads to them, and then it stops, which is worse than it never having started. A visit is
+ * either narrated or read.
+ *
+ * That is also what keeps a partial pack shippable, which the design has always required — a
+ * newly added place with no recording yet costs its *visit* the audio, not the world and not
+ * the game. The speaker button still works either way, and a visit that does not auto-narrate
+ * shows its words instead of hiding them behind "Show words".
+ */
+export function narrateWholeVisit(hasRecordings: readonly boolean[]): boolean {
+  return hasRecordings.length > 0 && hasRecordings.every(Boolean);
+}
+
 /** What a guide cue does the instant it arrives. */
 export type GuideArrival = 'speak' | 'queue' | 'ignore';
 

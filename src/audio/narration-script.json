@@ -32,8 +32,17 @@
     "success-moon": "You found all three places on the Moon!",
     "success-mars": "You found all three places on Mars!",
     "spin-earth": "Watch the sunlight move while Earth turns. The bright side is day, and the dark side is night.",
+    "discovery-earth-lakes": "You found the Great Lakes! Five huge lakes joined together, holding more fresh water than almost anywhere on Earth.",
+    "discovery-earth-himalaya": "You found the Himalayas! The tallest mountains on Earth are down there, and they are still getting taller.",
+    "discovery-earth-reef": "You found the Great Barrier Reef! It is the biggest reef in the world, and tiny animals built every bit of it.",
     "spin-moon": "Watch day come to the Moon. Its days are very long: two weeks of sunshine, then two weeks of dark.",
+    "discovery-moon-procellarum": "You found the Ocean of Storms! There is no water in it at all. It is a huge flat plain of old cooled rock.",
+    "discovery-moon-crisium": "You found the Sea of Crises! A gigantic rock smashed in here, and melted rock filled the hole right up.",
+    "discovery-moon-orientale": "You found Orientale! It really is shaped like a bullseye, with rings of mountains inside rings of mountains.",
     "spin-mars": "Watch day come to Mars. A day here is almost exactly as long as a day on Earth.",
+    "discovery-mars-hellas": "You found Hellas! It is a hole so deep that Earth's biggest mountain would fit right inside it.",
+    "discovery-mars-jezero": "You found Jezero crater! A robot landed here with a tiny helicopter, the first one ever to fly on another world.",
+    "discovery-mars-gale": "You found Gale crater! A robot the size of a car has been driving around down here, drilling into the rocks.",
     "spin-saturn": "Watch day come to Saturn. It spins so fast that a whole day here is only about ten hours long.",
     "arrival-saturn": "We made it to Saturn! This is the planet with the beautiful rings.",
     "find-saturn": "Now, can you find the three gold places? Tap each one you see.",
@@ -41,6 +50,9 @@
     "discovery-saturn-hexagon": "You found the six-sided storm! Right at the top of Saturn is a giant cloud shaped like a hexagon, with six straight sides.",
     "discovery-saturn-storm": "You found a giant storm! Saturn's storms are far bigger than any on Earth, and they can rumble on for months.",
     "hunt-saturn": "One more is hiding. Swipe Saturn sideways to look around the back.",
-    "success-saturn": "You found all three! You have been all the way out to Saturn."
+    "success-saturn": "You found all three! You have been all the way out to Saturn.",
+    "discovery-saturn-division": "You found the big gap in the rings! One of Saturn's moons keeps sweeping it clear, over and over.",
+    "discovery-saturn-jet": "You found Saturn's fastest wind! Round the middle it never stops blowing, quicker than a jet plane.",
+    "discovery-saturn-bands": "You found the stripes! Each stripe is a band of cloud, and every one races round Saturn at its own speed."
   }
 }
