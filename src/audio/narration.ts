@@ -18,7 +18,7 @@ export interface Narrator {
   readonly speaking: boolean;
   /** True when this exact cue has authored audio and is therefore safe to start automatically. */
   hasRecording(cueId: string | null): boolean;
-  /** Unlock file playback inside the Fly press before an arrival tries to speak. */
+  /** Unlock file playback inside the launching press before an arrival tries to speak. */
   resume(): void;
   speak(text: string, cueId?: string | null, allowPlatformFallback?: boolean): void;
   stop(): void;

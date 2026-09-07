@@ -75,6 +75,48 @@ design/                     reference art that is NOT shipped
 
 ---
 
+## What the child is doing, minute by minute
+
+**This section outranks the invariants below where the two conflict.** Every rule in this
+file is a prohibition — a thing that went wrong once and must not go wrong again — and the
+list is genuinely valuable. But a codebase that only records what must not break optimises
+for not being wrong, and nothing here optimised for the game being good to play. It shows.
+The reported verdict on the built game was "looks great, plays shit", and every individual
+decision that produced it was defensible.
+
+So: what the game is trying to be, so a change can be judged against something other than
+a list of past mistakes.
+
+**One obvious invitation, immediate response, no obligation.** At any moment there is one
+thing the game is plainly suggesting, it answers the first touch, and ignoring it costs
+nothing.
+
+Three things follow, and they are the ones to check a change against:
+
+- **Something to touch within ten seconds of pressing a world, every time.** Not on the
+  first visit — every time. This is the measurement that matters most and it is easy to
+  take: drive the built app headlessly, click a destination, wait for `.mission-hud` to
+  appear. It was 25.2 seconds and is now 9.1 (software rendering stretches both; the
+  nominal figures are ~21.8 and ~7). Anything that adds a beat to an arrival is spending
+  from this budget and has to say so.
+- **A tap must never do nothing.** A five-year-old reads an unanswered press as a broken
+  app, not as a miss. `showTapEcho` exists for a tap on empty space, the locked
+  destination chips shake and say why rather than being `disabled`, and neither may be
+  "simplified" into silence. `aria-disabled` counts as silence.
+- **Show the gesture, do not name it.** Every instruction in this game had become a caption
+  written for an audience that cannot read it. Narration answers that exactly once per cue.
+  The idle coach (`ui/coach.ts`) is the standing answer: a hand that does the thing, on the
+  thing, after six seconds of nothing happening.
+
+And the thing the game is still *missing*, so nobody has to rediscover it: **there is no
+reason to play it twice.** `CollectMission` does not read `loadProgress()`, so every visit
+re-presents the same three places at the same coordinates with the same words, and the
+arrival composition is deliberately pinned identical. Twelve discoveries, one tap each, is
+the whole game. Fixing that is content and a subset-picker, not architecture — see
+*Suggested next steps*.
+
+---
+
 ## Invariants — break these and something subtle goes wrong
 
 **`main.ts` is the only caller of `reset()`.** Every stateful module owns a `reset()` that
@@ -163,11 +205,26 @@ two independent `resolveTexture` calls.
 **Rendering always goes through `EffectComposer`**, even when bloom is off, so tone mapping
 and colour conversion happen in one place for every material including the custom shaders.
 
-**Finding is ambient, not modal.** The markers are simply present on arrival; there is no
-button to start a mission and nothing to finish before leaving. *Fly Home* is on screen
-from arrival onward and never moves. This was a deliberate reversal — the mission used to
-be a mode whose only signposted exit was completing it, which made "how do I get back?" the
-most common reaction to the game.
+**Finding is ambient, not modal — and the arrival is not a sequence.** The markers are
+simply present on arrival; there is no button to start a mission and nothing to finish
+before leaving. *Fly Home* is on screen from arrival onward and never moves. This was a
+deliberate reversal — the mission used to be a mode whose only signposted exit was
+completing it, which made "how do I get back?" the most common reaction to the game.
+
+The same rule then had to be applied a second time, to the arrival itself. Landing briefly
+played a *staged introduction*: a spoken welcome, then the world turning through one whole
+day, then the targets. Every world has a `spin`, so it ran on every arrival, every time —
+2.6s of welcome, a 2.2s camera swing and a 9s turn on top of the 7s flight, unchanged on the
+twelfth visit as on the first. A tap skipped it, and **that it needed a skip was the tell**:
+the default was the thing you skip, and a five-year-old does not discover an unsignposted
+one. `revealHunt()` now runs the moment the ship lands.
+
+The day turn is not lost, it is *chosen*: `showSpin` offers it from the moment the hunt is
+live, which is where it was before it was promoted. Pressing it yourself is worth more than
+being shown the same camera move four times, and each world's card names what is different
+about its own day rather than all four reading "Day and Night". If an arrival ever wants
+ceremony again, it has to be something a child can touch through, not something they wait
+out.
 
 **The places are real, and so are their coordinates.** `Discovery` in `config.ts` carries a
 genuine latitude and longitude, and `surfaceDirection` puts the marker there on the body's
@@ -224,6 +281,15 @@ camera high, where the day/night line lies across the disc and an east-west rota
 everything along it instead of over it. Both halves are tested; the second one looked
 right until it was watched.
 
+**Every day turn is handed back where it started.** The turn ends side-on to the Sun (it is
+tested to), which is the wrong pose to be given back: the targets the child was reaching for
+are round the side of the world by then. `main.ts` captures `preTurnCameraOffset` when the
+turn starts and eases back to it over `CAMERA_RETURN_MS` when it finishes — an ease, not a
+cut, which read as a jerk on the tablet. This used to be captured only for the automatic
+arrival intro, so a *manual* replay left the child looking at the wrong side of the world.
+That mattered little when the only turn came before the hunt; it matters now that every turn
+happens during one.
+
 **The day/night words leave before the lesson starts.** `onSpin` deliberately calls
 `foldFact(true)` before `DayTurn.start()`, even if authored narration is still speaking.
 The small replay button can remain, but the full-width card competes with the only evidence
@@ -264,11 +330,38 @@ wall over a gold target. Focus begins only on arrival and clears as Fly Home sta
 the pull-back exposes the map. Reveal opacity and focus opacity multiply, so neither system
 is allowed to restore or overwrite the other.
 
-**The destination bar is the dependable navigation path.** The moving bodies remain
-tappable, but each revealed world also gets a stable 64px picture-and-word button. This is
-what lets the widest Saturn map keep truthful relative placement without making Earth and
-the Moon unusable specks. Do not remove it merely because canvas hit spheres are generous:
-hit area does not identify which moving dot it belongs to.
+**One tap is one journey, and there is no selected state.** Touching a world — the
+destination chip or the body in the scene — starts the flight. There is no Fly button and no
+`showSelection`; `launch()` in `main.ts` is the single path in.
+
+It used to take two presses: a tap put a highlight on the body and revealed the verb
+*somewhere else on screen*, so the natural response to "I touched Mars and nothing happened"
+was to touch Mars again, to the same effect. The noun and the verb were in different places.
+This was the most reliably counter-intuitive thing in the build and it defeated adults, not
+just children.
+
+The accepted cost is that a stray press launches a flight. It is small: `OrbitInput` calls
+`onTap` only for a clean single-finger press under 12px and 400ms, so looking around cannot
+fire it, and Fly Home is on screen from arrival onward. If this ever needs undoing, undo it
+towards *one* press, not back to two.
+
+What was `selected` is now `suggested` — not a state the child puts the game into but the
+one world the map is pointing at, derived from progress by `suggestedDestination()` and
+applied by `applySuggestion()` to three things at once: the ring in the scene, the
+highlighted chip, and the parked ship's nose. They are applied together because they used to
+be able to disagree.
+
+**The destination bar is the dependable navigation path, and it shows the locked worlds
+too.** The moving bodies remain tappable, but every world — earned or not — gets a stable
+64px picture-and-word button. This is what lets the widest Saturn map keep truthful relative
+placement without making Earth and the Moon unusable specks. Do not remove it merely because
+canvas hit spheres are generous: hit area does not identify which moving dot it belongs to.
+
+A locked chip keeps its world's own emoji (that picture is the reason to want to go there;
+a child who cannot read "Saturn" can still want the one with the rings) under a small
+padlock badge, and it is deliberately neither `disabled` nor `aria-disabled` — both answer a
+press with nothing, and the second tells assistive technology the same lie. It shakes, and
+the hint names the world that unlocks it.
 
 **A newly earned world reveals only on the settled home map.** `World.setRevealed()` keeps
 locked bodies orbiting invisibly, then fades and scales a newly unlocked one in after Fly
@@ -280,6 +373,47 @@ same announcement.
 removes only `spaceninja.progress.v1`, then calls the normal `restart()` path. It must not
 clear settings, the grown-up greeting or the service-worker caches; those are device state,
 not the child's adventure.
+
+**The coach shows the gesture; it never becomes another caption.** `ui/coach.ts` puts a hand
+on screen after six seconds with nothing touched: a tap on a place that is on screen, or —
+once the visible places are gone and the hunt arrow is up — the sideways drag that reaches
+the hidden one. Four things about it are load-bearing.
+
+`coachCue` is pure and total: called every frame with four facts, returning the whole
+answer, so there is no coach state to get stuck in. A tap beats a drag whenever anything is
+tappable, because both can be true at once (the last place can swing into view while the
+child sits still) and a tap is the smaller ask. `cueChanged` ignores sub-threshold drift —
+the body keeps orbiting under a held surface, so a target moves a fraction every frame, and
+restarting the animation on that would pin the hand at frame zero forever. Both are tested.
+
+The hand is `pointer-events: none` and hangs *below* the point it indicates: 👆 has its
+fingertip at the top of the glyph, so it reaches up and lands on the target at the peak of
+the animation. Centred on the target it simply covered the thing it was asking for.
+
+Idle time accrues only while the camera is the child's — not during a flight, a day turn or
+the pull-back — so a seven-second flight does not arrive with the coach already convinced
+nobody is playing. Reduced motion gets a *still* hand rather than none: removing it would
+take the only wordless instruction in the game away from the children most likely to need
+it, the same rule the flight and the day turn follow.
+
+Six seconds, not two. Two fires while the arrival camera is still settling and while a child
+is doing the most valuable thing in the game, which is looking at a planet.
+
+**A discovery has two texts, for two different people.** `Discovery.short` is one sentence in
+the child's register and is the only version seen in play; `Discovery.fact` is the whole
+story and lives in the journal, behind a press on its tile. The facts are good and they are
+written for an adult reading aloud — forty to fifty words in an adult's sentence shapes — on
+a card that sits over the planet a child has just flown to, in a game whose design says that
+child is playing alone. One card cannot serve both audiences.
+
+Changing the displayed text does not desync the audio: a recording is keyed by cue id, never
+by the text, and `narrator.speak`'s text argument only ever reaches the `SpeechSynthesis`
+fallback. The authored narration was always the short register, so this brought the words
+into line with the voice rather than the other way round.
+
+The journal detail is text and one at a time, deliberately. Nothing is fetched until a place
+is found, which is what makes twelve photographs cost nothing at startup — a journal showing
+twelve thumbnails would have downloaded all twelve.
 
 **Only one fold timer for the fact card.** Facts overlap — finding a place replaces the
 arrival fact, and completing a body queues the success line behind the last discovery — and
@@ -415,12 +549,16 @@ on a successful start rather than removed, and why its `z-index` sits above ever
 crash screen prints the actual error small and selectable for whoever files the report, and
 its one button reloads the page — the journal is in localStorage and survives.
 
-**Finishing everything is its own moment, once.** Finding the twelfth place completes the whole
-game, and it used to get the same celebration as finding the third. `foundEverything()` in
-`progress.ts` decides it — it takes the id list rather than importing config, so it is pinned
-without a scene — and `main.ts` fires `ui.completeGame()` from a world's completion whenever
-the book is now full, awarding the `space-ninja` sticker the first time only, exactly like
-every other sticker. The finale is the journal shown full and big, badges popping in the
+**Finishing everything is its own moment, once — and once means once per save.**
+`foundEverything()` in `progress.ts` decides it (it takes the id list rather than importing
+config, so it is pinned without a scene), and `main.ts` fires `ui.completeGame()` only when
+`awardSticker(FINALE_STICKER)` actually returns true.
+
+It used to fire on *any* completion that left the book full. Nothing about a world is
+remembered between visits, so every later visit re-completed it and re-ran the whole victory
+party, over the top of a child who had already been told they had finished — replay was not
+merely absent from this game, it was actively spoiled by it. Riding on the sticker leaves no
+already-earned case, which is why `completeGame` takes a definite sticker id. The finale is the journal shown full and big, badges popping in the
 order they were found; it follows the world's own sticker rather than fighting it for the top
 of the screen (a 3.2s delay), and closes on any tap or by itself. Adding a destination needs
 no change here: the total is counted, not written down.
@@ -575,7 +713,8 @@ over a tablet reads one screen; the child-facing interaction must still work wit
 Ordered. The reasoning matters more than the order.
 
 The first three need a person and a device, not a session. They are first because no amount
-of code substitutes for them.
+of code substitutes for them — and item 3 has just become the gate on item 4, because the
+loop was rebuilt this week and nobody has watched a child use the rebuilt one.
 
 1. **Listen to the sound on the real device.** The engine and the sunrise are in and the
    graph is measured, but nobody has *heard* them: the development machine has no audio,
@@ -592,14 +731,44 @@ of code substitutes for them.
    reload all behave. The grown-ups panel now tells a parent how to add it and detects
    whether they already have. iOS is the untested platform here as everywhere (see below).
 
-3. **Watch a child use it again.** Every genuinely valuable change in this project came
-   from that and not from reading the code: the sunrise, the drag lesson, the badges on the
-   markers. The open question is whether finding places still feels clunky now the dock has
-   moved off the planet.
+3. **Watch a child use it again — this is now the gate on everything below.** Every
+   genuinely valuable change in this project came from that and not from reading the code:
+   the sunrise, the drag lesson, the badges on the markers. The loop has just been rebuilt
+   around getting a child to something touchable in a third of the time, and three specific
+   questions can only be answered by watching one:
+   - Does one-tap-to-fly cause accidental launches in practice, or does the tap/drag
+     threshold hold? (If it does cause them, fix towards *one* press, not back to two.)
+   - Is six seconds the right wait before the coach's hand appears — and does a child
+     actually copy the drag it demonstrates, which is the gesture nothing has ever shown?
+   - Does the day turn still get pressed now that it is offered rather than played
+     automatically? If nobody presses it, the button is wrong, not the decision.
+
+4. **Give it a reason to be played twice.** The largest remaining gap, and the reason the
+   game is ~20 minutes long once. Ordered by effect over cost, and none of it needs new
+   architecture:
+   - **More places than are shown.** Six to eight discoveries per world, three marked per
+     visit, unfound-first then random. A `Discovery` is a config entry with real
+     coordinates and a fact — the cheapest content in the codebase. `CollectMission` would
+     take the chosen subset rather than the whole list.
+   - **The hidden-one rule has to survive the randomising.** The chosen subset must still
+     end with one place ~100–130 degrees from the arrival bearing, or the drag lesson goes
+     with it. This is the actual engineering: it generalises `placementAngles`, and it
+     wants a test.
+   - **Vary the arrival.** `facingLongitude`/`facingLatitude` already derive from the
+     discovery list, so a different subset gives a different picture almost for free. Both
+     free variables are currently spent on pinning one identical composition.
+   - **Make the stickers visible.** They are earned, celebrated and then never seen again.
+     Applying them to the *spaceship* — a decal, a colour, an emblem — puts the reward on
+     the object that is on screen for the whole flight and parked at every world, and
+     gives the existing sticker state a job. Cheaper than a character, and `Spaceship.ts`
+     is primitives.
+   - **One toy per world, not one lesson four times.** Saturn's rings tilting to edge-on is
+     cheap and spectacular and reuses the axial-tilt container; a Mars dust storm is not
+     cheap. Do not price these as equal.
 
 Then, in code:
 
-4. **~~Add Saturn.~~** Done — Saturn is a destination, with two surface places and one
+5. **~~Add Saturn.~~** Done — Saturn is a destination, with two surface places and one
    discovery that lives on the ring plane. Its checked Solar System Scope body texture is
    explicitly disclosed as a visual reconstruction because unmapped gaps use fictional
    terrain; its rings use a genuine Cassini radial strip. What is **not** done is watching
@@ -607,11 +776,11 @@ Then, in code:
    the widest framing tier and compressed size still need judgment in a child's hands. The
    next outer world is *not* as cheap as this one was — see the reachability note above.
 
-5. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
+6. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
    twelfth place now brings up the finale and the `space-ninja` sticker. Still unwatched with
    a child, like everything in this file that has not been.
 
-6. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
+7. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
    played on Android and a Surface. Safari differs in the places this game leans on: audio
    context unlocking, `backdrop-filter` (used on nearly every surface — the `-webkit-`
    prefixes are there, but untested), `localStorage` throwing in private mode (guarded, also
@@ -619,7 +788,7 @@ Then, in code:
    which only earns its keep on a notched device. If the game is ever handed to someone with
    an iPad, that is where it will break, and nobody has looked.
 
-7. **Listen to and child-test the narration pack.** The 25 Kokoro clips, keyed loader and
+8. **Listen to and child-test the narration pack.** The 25 Kokoro clips, keyed loader and
    generator are done, but audio measurements do not establish whether a five-year-old
    understands the delivery. Try voice or speed changes in `narration-script.json`,
    regenerate with `--force`, then watch whether the child taps or swipes after the cue
@@ -656,7 +825,14 @@ want on-device tuning, so they are deliberately left as a follow-up rather than 
 The vertical framing inset below is a separate lever and cannot help a width-bound portrait
 shot at all; reveal-gating is what fixed that one.
 
-Done since this file was written: the grown-ups panel can precisely reset one adventure;
+Done since this file was written: the loop was rebuilt around the child's first thirty
+seconds — one tap flies, the automatic day/night arrival intro is gone and the day turn is a
+button again, the targets are live the moment the ship lands, an idle hand demonstrates the
+tap and the drag, the locked worlds appear as padlocked chips, a discovery says one short
+line in play and keeps the whole story for the journal, and the finale happens once instead
+of on every re-completion (measured tap-to-first-target 25.2s → 9.1s under software
+rendering, against the pre-change build on the same machine);
+the grown-ups panel can precisely reset one adventure;
 audio-first fact cards keep a labelled, timed transcript control; unrelated worlds and the
 parked ship fade only during a visit so they cannot hide hunt targets; child-facing hunt copy
 now consistently says to swipe sideways and look around rather than claiming the planet is

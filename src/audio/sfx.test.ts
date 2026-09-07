@@ -207,7 +207,7 @@ function oscillators() {
   return context().of('oscillator') as FakeOscillator[];
 }
 
-/** Sets up sound and returns it already resumed, as the Fly button does. */
+/** Sets up sound and returns it already resumed, as launching a flight does. */
 function started() {
   const sfx = createSfx();
   sfx.resume();

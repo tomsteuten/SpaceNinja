@@ -316,7 +316,7 @@ async function main() {
     home: world.bodies.earth,
     reducedMotion,
     // The engine, from the same two numbers the exhaust and the widening view are drawn
-    // from. The context was created by the Fly press that started this flight.
+    // from. The context was created by the press that started this flight.
     onThrottle: (throttle, cruise) => sfx.thruster(throttle, cruise),
     onArrive: (destination) => {
       follow = destination.id;

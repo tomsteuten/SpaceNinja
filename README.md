@@ -3,8 +3,9 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
 far: Earth, the Moon, Mars, and Saturn.
 
-Choose a destination from the big world buttons (or tap it in space), press **Fly**, then
-ride with the spaceship along its safe route and arrive close enough to see the surface.
+Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
+there. One tap, one journey: ride with the spaceship along its safe route and arrive close
+enough to see the surface.
 Three real places are marked on each world — the first
 footprints on the Moon, the volcano on Mars, the Sahara from orbit — and finding one tells
 you about it and puts it in the discovery journal. One of the three is always round the back, so getting it
@@ -220,10 +221,29 @@ the ship appear almost stationary while its contrail wiggled. Removing that unex
 gesture leaves the child free to watch the destination approach and keeps interaction for
 the world itself, where a drag has an immediate purpose.
 
-**The solar-system view is scenery and navigation has dependable controls.** Every earned
-world also has a stable, finger-sized button along the bottom. The moving 3D bodies remain
-tappable, but finding a tiny speck in the widest Saturn shot is no longer the only route to
-the next flight.
+**The solar-system view is scenery and navigation has dependable controls.** Every world has
+a stable, finger-sized button along the bottom. The moving 3D bodies remain tappable, but
+finding a tiny speck in the widest Saturn shot is no longer the only route to the next
+flight.
+
+**One tap is one journey.** Touching a world starts the flight — there is no separate Fly
+button. It used to take two presses, and the second one was somewhere else on screen, so the
+natural response to "I touched Mars and nothing happened" was to touch Mars again. That
+defeated adults as reliably as children. The worlds not yet earned still appear in the bar,
+padlocked: the bodies stay reveal-gated so an un-earned planet cannot loom into the shot, but
+hiding them completely also hid the fact that there was anywhere else to go.
+
+**The arrival is not a sequence.** The gold places are on screen the moment the ship lands.
+Landing briefly played a staged introduction — a welcome, then the world turning through a
+whole day, then the targets — which put more than twenty seconds between pressing a world and
+being allowed to touch anything, on every visit. A tap skipped it, and needing a skip was the
+tell. The day turn is a button again.
+
+**A hand shows the gesture when nothing is happening.** After six seconds with nothing
+touched, a finger appears on a gold place and taps it; once only the hidden one is left, it
+sweeps across the planet instead. Every instruction here had become a caption written for
+somebody who cannot read, and narration answers that once. An arrow at the edge of the screen
+has never meant "put your finger down and slide it".
 
 **Destinations are data.** `DESTINATIONS` in `config.ts` holds the copy; `Bodies.ts` holds
 the geometry; `main.ts` matches them by id and builds a flight, a fact and a mission for
@@ -261,7 +281,7 @@ the same. A Moon or ship that crosses the camera can therefore no longer become 
 wall over a real-coordinate target. Full colour returns as Fly Home pulls back to the map.
 
 **Earth is a destination too.** A child's first instinct is to tap their own planet, and
-for a long time the game answered by not offering a Fly button at all. "Flying" to the
+for a long time the game answered by doing nothing at all when they did. "Flying" to the
 planet you are already at is not a contradiction: the opening shot is a wide view of the
 whole neighbourhood, and this drops you into low orbit over it, close enough to pick out
 the Sahara. It needed no special case in the flight — home and destination being the same
@@ -344,9 +364,9 @@ is the body's orientation against the stars, and the mission releases it on the 
 
 **Sound is synthesised and optional by design.** Two cues, the flight's engine and the day
 turn's sunrise — all generated at runtime, no audio files. The AudioContext is created from
-the Fly button press, because mobile browsers start audio suspended and only allow it to
-resume inside a user gesture — and that press is the last one guaranteed to happen before
-the ship reaches somewhere with sounds to make. If Web Audio is missing the calls no-op.
+the press that launches a flight, because mobile browsers start audio suspended and only
+allow it to resume inside a user gesture — and that press is the last one guaranteed to
+happen before the ship reaches somewhere with sounds to make. If Web Audio is missing the calls no-op.
 The two continuous sounds follow a value the picture is already using, frame by frame,
 rather than starting a timed ramp, so they stay with the picture on a slow device.
 
@@ -402,9 +422,14 @@ motion per second, not less, which is the opposite of what the preference is ask
 No planets past Saturn, no downloaded models, and no real
 orbital physics. Those are deliberately still out of scope.
 
-Only Earth can be spun through a day. The Moon, Mars and Saturn have terminators too, and the
-button is a config entry rather than a special case, so they could have one — but "why does
-the Sun come up?" is a question about *here*, and answering it four times would dilute it.
+All four worlds can be spun through a day — the button is a config entry rather than a
+special case. This was once true of Earth alone, on the reasoning that "why does the Sun come
+up?" is a question about *here* and answering it four times would dilute it. The dilution is
+real, so each world's card now names what is different about its own day (a fortnight of
+sunshine on the Moon, ten hours on Saturn) rather than all four reading "Day and Night". It
+is offered by its own button and never plays on its own; it was briefly an automatic arrival
+introduction on every world, which put eleven seconds of watching between arriving and being
+allowed to touch anything, four times over.
 
 The Moon can wander into the shot while you are exploring Earth, and at these compressed
 distances it is large when it does. The flight steers its *arrival* clear of anything that

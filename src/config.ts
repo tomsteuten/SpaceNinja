@@ -293,7 +293,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   /*
    * Earth is a destination like any other, which is the point: a five-year-old's first
    * instinct is to tap their own planet, and until this entry existed the game answered
-   * by not offering a Fly button at all.
+   * by doing nothing at all when they did.
    *
    * "Flying" to the planet you are already at is not a contradiction here — the opening
    * shot is a wide view of the whole neighbourhood, and this drops you into low orbit
