@@ -18,11 +18,6 @@ import {
 } from './narrationFlow';
 import { createPhotoViewer, findPhoto } from './photos';
 
-export interface SelectionInfo {
-  /** Text for the launch button, or null when this body is not a destination. */
-  flyLabel: string | null;
-}
-
 export interface DestinationChoice {
   id: string;
   label: string;
@@ -34,10 +29,9 @@ export interface GameUI {
   /** Large, stable alternatives to tapping small moving worlds in the canvas. */
   showDestinations(
     choices: readonly DestinationChoice[],
-    selectedId?: string | null,
+    suggestedId?: string | null,
     newlyRevealedId?: string | null,
   ): void;
-  showSelection(selection: SelectionInfo | null): void;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
   showArrival(cueId: string, label: string, fact: string, emoji: string): void;
@@ -110,7 +104,7 @@ export interface GameUI {
 export interface UIOptions {
   root: HTMLElement;
   narrator: Narrator;
-  onFly(): void;
+  /** One tap, one journey: this launches the flight, it does not select anything. */
   onChooseDestination(id: string): void;
   onExploreAgain(): void;
   /** The "turn this world through a day" button. Only offered where config has one. */
@@ -143,7 +137,6 @@ export function createUI(options: UIOptions): GameUI {
   const {
     root,
     narrator,
-    onFly,
     onChooseDestination,
     onExploreAgain,
     onSpin,
@@ -179,7 +172,7 @@ export function createUI(options: UIOptions): GameUI {
 
   function showDestinations(
     choices: readonly DestinationChoice[],
-    selectedId: string | null = null,
+    suggestedId: string | null = null,
     newlyRevealedId: string | null = null,
   ) {
     destinationBar.replaceChildren();
@@ -187,8 +180,13 @@ export function createUI(options: UIOptions): GameUI {
     for (const choice of choices) {
       const button = el('button', 'destination-choice') as HTMLButtonElement;
       button.type = 'button';
-      button.setAttribute('aria-label', `Choose ${choice.label}`);
-      button.classList.toggle('is-selected', choice.id === selectedId);
+      // "Fly to", not "Choose": one press on this button is the whole journey now, and the
+      // label a screen reader speaks should say what the press actually does.
+      button.setAttribute('aria-label', `Fly to ${choice.label}`);
+      // A suggestion, not a selection — nothing is ever in a chosen-but-not-acted-on state
+      // any more. It marks the world the map is pointing at, alongside the ring in the
+      // scene and the parked ship's nose.
+      button.classList.toggle('is-suggested', choice.id === suggestedId);
       button.classList.toggle('is-new', choice.id === newlyRevealedId);
       button.append(
         el('span', 'destination-choice__emoji', choice.emoji),
@@ -198,7 +196,6 @@ export function createUI(options: UIOptions): GameUI {
       destinationBar.append(button);
     }
     destinationBar.classList.toggle('is-hidden', choices.length === 0);
-    dock.classList.toggle('is-map-selection', Boolean(selectedId));
   }
 
   /* --- mission HUD --------------------------------------------------------- */
@@ -232,12 +229,6 @@ export function createUI(options: UIOptions): GameUI {
   /* --- dock: buttons + fact card ------------------------------------------- */
 
   const dock = el('div', 'dock');
-
-  const flyButton = el('button', 'btn fly-btn');
-  flyButton.type = 'button';
-  const flyButtonLabel = el('span');
-  flyButton.append(createIcon('rocket'), flyButtonLabel);
-  flyButton.classList.add('is-hidden');
 
   const factCard = el('div', 'panel fact-card');
   // Named above the text rather than inside it: a child who cannot read the paragraph can
@@ -384,7 +375,7 @@ export function createUI(options: UIOptions): GameUI {
   spinButton.append(createIcon('sun'));
   spinButton.classList.add('is-hidden');
 
-  dock.append(factCard, flyButton, spinButton, homeButton);
+  dock.append(factCard, spinButton, homeButton);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
@@ -494,10 +485,6 @@ export function createUI(options: UIOptions): GameUI {
   renderJournal();
 
   /* --- behaviour ----------------------------------------------------------- */
-
-  flyButton.addEventListener('click', () => {
-    onFly();
-  });
 
   let currentFact = '';
   let currentFactCueId: string | null = null;
@@ -801,25 +788,11 @@ export function createUI(options: UIOptions): GameUI {
     setHint,
     showDestinations,
 
-    showSelection(selection: SelectionInfo | null) {
-      if (!selection) {
-        flyButton.classList.add('is-hidden');
-        return;
-      }
-      flyButton.classList.toggle('is-hidden', !selection.flyLabel);
-      if (selection.flyLabel) {
-        flyButtonLabel.textContent = selection.flyLabel;
-        flyButton.classList.add('fade-in');
-      }
-    },
-
     enterFlight() {
       destinationBar.classList.add('is-hidden');
-      dock.classList.remove('is-map-selection');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
       missionHud.classList.add('is-hidden');
-      flyButton.classList.add('is-hidden');
       spinButton.classList.add('is-hidden');
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
@@ -1092,14 +1065,13 @@ export function createUI(options: UIOptions): GameUI {
       slotRow.replaceChildren();
       slots = [];
 
-      for (const node of [flyButton, factCard, homeButton]) {
+      for (const node of [factCard, homeButton]) {
         node.classList.add('is-hidden');
         // Or the animation will not replay the next time the node is shown.
         node.classList.remove('fade-in');
       }
       destinationBar.classList.add('is-hidden');
       destinationBar.replaceChildren();
-      dock.classList.remove('is-map-selection');
       missionHud.classList.remove('fade-in-centred');
       dock.classList.remove('is-hidden');
     },

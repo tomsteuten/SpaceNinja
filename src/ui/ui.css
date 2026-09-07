@@ -271,7 +271,7 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-.destination-choice.is-selected {
+.destination-choice.is-suggested {
   border-color: var(--warm);
   background: linear-gradient(180deg, rgba(116, 87, 147, 0.98), rgba(67, 48, 111, 0.98));
   box-shadow:
@@ -308,12 +308,6 @@ body {
   white-space: nowrap;
 }
 
-/* Selection adds the large Fly button above the stable chooser instead of replacing it;
-   changing one's mind is therefore another obvious planet press, not a tap on empty space. */
-.dock.is-map-selection {
-  bottom: calc(var(--pad-bottom) + 78px);
-}
-
 @keyframes destinationReveal {
   from {
     opacity: 0;
@@ -337,9 +331,6 @@ body {
     font-size: 1.25rem;
   }
 
-  .dock.is-map-selection {
-    bottom: calc(var(--pad-bottom) + 66px);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -425,7 +416,6 @@ body {
     flex: 0 0 auto;
   }
 
-  .fly-btn,
   .spin-btn,
   .home-btn {
     order: 3;

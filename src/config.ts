@@ -234,8 +234,6 @@ export interface Discovery {
 export interface DestinationConfig {
   /** Wordless identity used by the large map controls and reveal announcement. */
   emoji: string;
-  /** Text on the button that launches the flight. */
-  flyLabel: string;
   /** Shown on arrival. */
   fact: string;
   /**
@@ -285,7 +283,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
    */
   earth: {
     emoji: '🌍',
-    flyLabel: 'Fly to Earth',
     spin: {
       label: 'Spin the Earth',
       name: 'Day and Night',
@@ -357,7 +354,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   moon: {
     emoji: '🌙',
-    flyLabel: 'Fly to the Moon',
     spin: {
       label: 'Spin the Moon',
       name: 'Day and Night',
@@ -420,7 +416,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   mars: {
     emoji: '🔴',
-    flyLabel: 'Fly to Mars',
     // Revealed once the Moon has been visited — the same gate WIDE_FRAMING_VISIT widens on.
     revealAfterVisiting: 'moon',
     spin: {
@@ -482,7 +477,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   saturn: {
     emoji: '🪐',
-    flyLabel: 'Fly to Saturn',
     // Revealed once Mars has been visited — the same gate WIDER_FRAMING_VISIT widens on. This
     // is what stops Saturn looming into the opening shot before a child has earned it, and
     // (until Mars is reached) removes the Mars-through-the-rings overlap entirely.

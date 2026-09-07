@@ -231,23 +231,7 @@ async function main() {
   const ui = createUI({
     root: uiRoot,
     narrator,
-    onFly: () => {
-      const destination = selected ? world.bodies[selected] : null;
-      if (!destination) return;
-      // The flight is told which latitude to arrive over; it does not know why. Matching
-      // destinations to their copy is this file's job, exactly as it is for the fact and
-      // the mission.
-      const discoveries = DESTINATIONS[destination.id]?.mission.discoveries;
-      const aim = discoveries ? facingLatitude(discoveries) : undefined;
-      if (!flight.start(destination, aim)) return;
-      // The first reliable user gesture of the session, and the last one before the ship
-      // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
-      // suspended and only let it resume inside a gesture like this one.
-      sfx.resume();
-      narrator.resume();
-      ui.enterFlight();
-    },
-    onChooseDestination: (id) => chooseDestination(id as BodyId),
+    onChooseDestination: (id) => launch(id as BodyId),
     onExploreAgain: () => {
       // A Fly Home during the intro or a day turn: stop the turn first so it is not still
       // writing the camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
@@ -317,7 +301,8 @@ async function main() {
     onThrottle: (throttle, cruise) => sfx.thruster(throttle, cruise),
     onArrive: (destination) => {
       follow = destination.id;
-      selected = null;
+      suggested = null;
+      world.setSelected(null);
       // Arriving is the achievement that opens the rest of the system up. The sticker is
       // still the collection's, and is still awarded by finishing it.
       markVisited(destination.id);
@@ -430,7 +415,13 @@ async function main() {
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
-  let selected: BodyId | null = null;
+  /**
+   * The world the map is currently pointing a child at — not a selection, since there is no
+   * longer such a thing. It drives the ring in the scene, the highlighted destination button
+   * and the parked ship's nose, so all three agree on one suggestion instead of the hint text
+   * naming a world while the ship points at another.
+   */
+  let suggested: BodyId | null = null;
   let follow: BodyId = 'earth';
 
   /* --- arrival intro ------------------------------------------------------- */
@@ -583,30 +574,43 @@ async function main() {
     const id = hit?.object.userData.bodyId as BodyId | undefined;
 
     if (!id) {
-      chooseDestination(null);
       ui.showTapEcho(clientX, clientY);
       return;
     }
-    chooseDestination(id);
+    launch(id);
   }
 
-  function chooseDestination(id: BodyId | null) {
+  /**
+   * Touch a world, go to that world. One tap, one journey.
+   *
+   * This used to be two steps — a tap selected a body and revealed a *separately placed*
+   * Fly button, so a child who touched Mars watched something glow and nothing happen, and
+   * tapped it again to the same effect. It was the most reliably counter-intuitive thing in
+   * the build, for adults as well as children: the verb was in a different place from the
+   * noun. Both routes in (the destination bar and the body itself) now launch directly.
+   *
+   * A stray launch is the accepted cost, and it is a small one: OrbitInput only calls
+   * `onTap` for a clean single-finger press under 12px and 400ms, so looking around never
+   * fires this, and Fly Home is on screen from the moment the ship arrives.
+   */
+  function launch(id: BodyId | null) {
+    if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
-    if (id && !visibleDestinationIds().includes(id)) return;
-
-    selected = id;
-    world.setSelected(selected);
-    ui.showDestinations(mapChoices(), selected);
-
-    if (!selected) {
-      ui.showSelection(null);
-      return;
-    }
-    ui.setHint(null);
-    const config = DESTINATIONS[selected];
-    ui.showSelection({
-      flyLabel: config && flight.phase === 'idle' ? config.flyLabel : null,
-    });
+    if (!visibleDestinationIds().includes(id)) return;
+    const destination = world.bodies[id];
+    if (!destination) return;
+    // The flight is told which latitude to arrive over; it does not know why. Matching
+    // destinations to their copy is this file's job, exactly as it is for the fact and
+    // the mission.
+    const discoveries = DESTINATIONS[id]?.mission.discoveries;
+    const aim = discoveries ? facingLatitude(discoveries) : undefined;
+    if (!flight.start(destination, aim)) return;
+    // The first reliable user gesture of the session, and the last one before the ship
+    // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
+    // suspended and only let it resume inside a gesture like this one.
+    sfx.resume();
+    narrator.resume();
+    ui.enterFlight();
   }
 
   /* --- scratch ------------------------------------------------------------- */
@@ -636,6 +640,32 @@ async function main() {
 
   let nudge = 0;
 
+  /**
+   * The one world the map is pointing at: genuinely unvisited, furthest earned one first.
+   *
+   * Once the outer journey is done this naturally brings Earth back into the story rather
+   * than claiming Saturn is "new" forever, and when everywhere has been visited it returns
+   * null — there is no next, and the map should stop insisting there is.
+   */
+  function suggestedDestination(): BodyId | null {
+    const visited = new Set(loadProgress().visited);
+    const visible = visibleDestinationIds();
+    return (
+      [...visible].reverse().find((id) => id !== 'earth' && !visited.has(id)) ??
+      (visible.includes('earth') && !visited.has('earth') ? 'earth' : null)
+    );
+  }
+
+  /**
+   * Put the suggestion on screen in all three places at once — the ring in the scene, the
+   * highlighted button in the bar and the parked ship's nose — so they cannot disagree.
+   */
+  function applySuggestion(newlyRevealed: BodyId | null = null) {
+    suggested = suggestedDestination();
+    world.setSelected(suggested);
+    ui.showDestinations(mapChoices(), suggested, newlyRevealed);
+  }
+
   function showOpeningHints(newlyRevealed?: BodyId) {
     window.clearTimeout(nudge);
     if (newlyRevealed) {
@@ -643,22 +673,16 @@ async function main() {
       const label = world.bodies[newlyRevealed].label;
       ui.setHint(`✨ ${config?.emoji ?? ''}  ${label} is ready`);
       nudge = window.setTimeout(() => {
-        if (flight.phase !== 'idle' || selected) return;
-        ui.setHint(`👆 ${config?.emoji ?? ''}  Choose ${label}`);
+        if (flight.phase !== 'idle') return;
+        ui.setHint(`👆 ${config?.emoji ?? ''}  Tap ${label}`);
       }, 3600);
       return;
     }
-    // Point at a place that is genuinely unvisited, furthest earned world first. Once the
-    // outer journey is done this naturally brings Earth back into the story instead of
-    // claiming Saturn is "new" forever. Audio cannot do this first job because no user
-    // gesture has unlocked playback yet, so the gesture pictures still carry the action.
-    const visited = new Set(loadProgress().visited);
-    const visible = visibleDestinationIds();
-    const next =
-      [...visible].reverse().find((id) => id !== 'earth' && !visited.has(id)) ??
-      (visible.includes('earth') && !visited.has('earth') ? 'earth' : null);
+    // Audio cannot do this first job because no user gesture has unlocked playback yet, so
+    // the gesture pictures still carry the action.
+    const next = suggested;
     if (!next) {
-      ui.setHint('👆 Choose a world');
+      ui.setHint('👆 Tap a world to go there');
       return;
     }
     const nextBody = world.bodies[next];
@@ -668,9 +692,11 @@ async function main() {
     } else {
       ui.setHint(`👀 ${nextEmoji}  A new world is out there`);
     }
+    // "Tap", not "Choose": choosing was the old two-step, and the word outlived it. One
+    // press on that world is now the whole journey.
     nudge = window.setTimeout(() => {
-      if (flight.phase !== 'idle' || selected) return;
-      ui.setHint(`👆 ${nextEmoji}  Choose ${nextBody.label.replace(/^The /, '')}`);
+      if (flight.phase !== 'idle') return;
+      ui.setHint(`👆 ${nextEmoji}  Tap ${nextBody.label.replace(/^The /, '')}`);
     }, 6500);
   }
 
@@ -678,8 +704,7 @@ async function main() {
   const soundOn = loadSoundOn();
   sfx.setMuted(!soundOn);
   ui.setSoundOn(soundOn);
-  ui.showDestinations(mapChoices());
-
+  applySuggestion();
   showOpeningHints();
 
   /* --- restart ------------------------------------------------------------- */
@@ -723,11 +748,10 @@ async function main() {
     controls.setTarget(world.bodies.earth.getWorldPosition(focusPosition), true);
     controls.frame(framingRadius(), true, framingInset());
 
-    selected = null;
     follow = 'earth';
 
     ui.reset();
-    ui.showDestinations(mapChoices(), null, newlyRevealed[0] ?? null);
+    applySuggestion(newlyRevealed[0] ?? null);
     showOpeningHints(newlyRevealed[0]);
   }
 
@@ -776,9 +800,11 @@ async function main() {
     }
 
     if (flight.phase === 'idle') {
-      // The idle ship keeps its nose pointed at whichever destination is selected, and
-      // at the Moon otherwise, so it never sits blankly side-on.
-      const aim = selected && selected !== 'earth' ? selected : 'moon';
+      // The idle ship keeps its nose pointed at the world the map is suggesting, so it
+      // never sits blankly side-on — and so the ship, the ring and the hint all point the
+      // same way. The Moon whenever the suggestion is Earth or absent: a ship aimed at the
+      // planet it is parked beside reads as pointing at nothing.
+      const aim = suggested && suggested !== 'earth' ? suggested : 'moon';
       world.bodies[aim].getWorldPosition(aimPosition);
       shipHeading.subVectors(aimPosition, ship.group.position);
       ship.orient(shipHeading);
@@ -820,7 +846,7 @@ async function main() {
       // Now and not at load, so installing the worker never competes with the textures
       // for the connection while the first frame is still being got ready. The guard lets
       // a fresh build refresh the page only at the title, never over a flight or day turn.
-      registerOffline(() => flight.phase === 'idle' && !selected && !dayTurn.active);
+      registerOffline(() => flight.phase === 'idle' && !dayTurn.active);
     }
   });
 
