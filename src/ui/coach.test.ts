@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { COACH_DRAG_DELAY, COACH_TAP_DELAY, coachCue, cueChanged } from './coach';
+import {
+  COACH_DRAG_DELAY,
+  COACH_TAP_DELAY,
+  SPIN_INVITE_DELAY,
+  coachCue,
+  cueChanged,
+  shouldInviteSpin,
+} from './coach';
 
 const hunting = { huntActive: true, target: null, hiddenSide: null } as const;
 
@@ -84,5 +91,29 @@ describe('cueChanged', () => {
   it('notices the drag turning round', () => {
     expect(cueChanged({ kind: 'drag', side: 1 }, { kind: 'drag', side: -1 })).toBe(true);
     expect(cueChanged({ kind: 'drag', side: 1 }, { kind: 'drag', side: 1 })).toBe(false);
+  });
+});
+
+describe('shouldInviteSpin', () => {
+  const done = { huntComplete: true, spinOffered: true, spinBusy: false };
+
+  it('waits out its own delay, which is longer than either coach cue', () => {
+    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY - 0.01 })).toBe(false);
+    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY })).toBe(true);
+    expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_DRAG_DELAY);
+  });
+
+  it('never competes with an unfinished hunt', () => {
+    // Finding places is the thing; a button asking to be pressed over the top of it would
+    // be the game interrupting its own instruction.
+    expect(shouldInviteSpin({ ...done, huntComplete: false, idleFor: 600 })).toBe(false);
+  });
+
+  it('stays quiet on a world with no day turn to offer', () => {
+    expect(shouldInviteSpin({ ...done, spinOffered: false, idleFor: 600 })).toBe(false);
+  });
+
+  it('stays quiet while the turn it asks for is already running', () => {
+    expect(shouldInviteSpin({ ...done, spinBusy: true, idleFor: 600 })).toBe(false);
   });
 });

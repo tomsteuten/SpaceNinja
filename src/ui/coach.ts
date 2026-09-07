@@ -48,6 +48,15 @@ export const COACH_TAP_DELAY = 6;
  * have earned a moment to try it themselves first.
  */
 export const COACH_DRAG_DELAY = 8;
+/**
+ * And longer still before the day/night button asks to be noticed.
+ *
+ * Only once the hunt is finished, so it never competes with it — at that point the world's
+ * own celebration has landed (2.4s of sticker, and up to 3.2s more if the finale follows)
+ * and the remaining offers are turn a day, open the journal, or go home. The day turn is
+ * the one with anything in it, and it is the one a child has no way of guessing at.
+ */
+export const SPIN_INVITE_DELAY = 9;
 
 /**
  * What the coach should be showing, if anything.
@@ -68,6 +77,29 @@ export function coachCue(input: CoachInput): CoachCue | null {
     return input.idleFor >= COACH_DRAG_DELAY ? { kind: 'drag', side: input.hiddenSide } : null;
   }
   return null;
+}
+
+/**
+ * Whether the day/night button should ask to be noticed.
+ *
+ * Deliberately not a `CoachCue`: the hand belongs over the canvas, on the thing the gesture
+ * applies to, and a hand flying down to the dock to press a button would be a different and
+ * worse idea — the button can simply pulse where it already is, which costs no space and no
+ * position plumbing between modules. The *decision* lives here with the other coaching
+ * decisions so it is pure and tested; `ui.setSpinAttention` does the drawing.
+ *
+ * Gated on the hunt being finished so it can never compete with finding places, and on the
+ * turn not already running, because a button asking to be pressed while doing the thing it
+ * was pressed for is nonsense.
+ */
+export function shouldInviteSpin(opts: {
+  idleFor: number;
+  huntComplete: boolean;
+  spinOffered: boolean;
+  spinBusy: boolean;
+}): boolean {
+  if (!opts.spinOffered || opts.spinBusy || !opts.huntComplete) return false;
+  return opts.idleFor >= SPIN_INVITE_DELAY;
 }
 
 /** True when the two cues would put the hand in a different place or mode. */

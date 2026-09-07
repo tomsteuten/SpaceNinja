@@ -112,6 +112,11 @@ export interface GameUI {
   showSpin(label: string | null, tint?: string): void;
   /** Greys the spin button out while a turn is running, so a press cannot stack. */
   setSpinBusy(busy: boolean): void;
+  /**
+   * Let the day/night button ask to be noticed, once the hunt is done and the child has gone
+   * idle. See `shouldInviteSpin` — the decision is there, this only draws it.
+   */
+  setSpinAttention(on: boolean): void;
   /** Sound off also stops and hides the read-aloud button, which is the only sound the UI owns. */
   setSoundOn(on: boolean): void;
   /**
@@ -1085,9 +1090,16 @@ export function createUI(options: UIOptions): GameUI {
       if (label) spinButton.classList.add('fade-in');
     },
 
+    setSpinAttention(on: boolean) {
+      // Called every frame, so it has to be idempotent and cheap. A class already set costs
+      // nothing to set again — the same bargain setHuntArrow makes.
+      spinButton.classList.toggle('is-inviting', on);
+    },
+
     setSpinBusy(busy: boolean) {
       spinButton.disabled = busy;
       spinButton.classList.toggle('is-busy', busy);
+      if (busy) spinButton.classList.remove('is-inviting');
     },
 
     setSoundOn(on: boolean) {
@@ -1168,7 +1180,7 @@ export function createUI(options: UIOptions): GameUI {
       setHomeAvailable(false);
       spinButton.classList.add('is-hidden');
       spinButton.disabled = false;
-      spinButton.classList.remove('is-busy', 'fade-in');
+      spinButton.classList.remove('is-busy', 'is-inviting', 'fade-in');
       for (const echo of root.querySelectorAll('.tap-echo')) echo.remove();
 
       setJournalOpen(false);

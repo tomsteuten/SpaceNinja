@@ -36,7 +36,7 @@ import {
 import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
-import { createCoach } from './ui/coach';
+import { createCoach, shouldInviteSpin } from './ui/coach';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
   FINALE_STICKER,
@@ -796,9 +796,23 @@ async function main() {
         target: activeMission.nextTarget(),
         hiddenSide,
       });
+      /*
+       * And once every place is found, the one remaining offer with anything in it. The
+       * child has just been celebrated and the alternatives are the journal and going home;
+       * the day turn is the only thing here they have no way of guessing at.
+       */
+      ui.setSpinAttention(
+        shouldInviteSpin({
+          idleFor,
+          huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
+          spinOffered: Boolean(DESTINATIONS[follow]?.spin),
+          spinBusy: dayTurn.active,
+        }),
+      );
     } else {
       idleFor = 0;
       coach.update({ idleFor: 0, huntActive: false, target: null, hiddenSide: null });
+      ui.setSpinAttention(false);
     }
 
     // Ease the camera from the side-on day-turn pose back to the arrival composition. Owns
