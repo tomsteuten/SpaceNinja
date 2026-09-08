@@ -12,6 +12,7 @@
  */
 
 import * as THREE from 'three';
+import { createShipDecals } from './shipDecals';
 import { makeGlowTexture } from './textures';
 
 export interface Spaceship {
@@ -21,6 +22,8 @@ export interface Spaceship {
   setThrust(value: number): void;
   /** Fade the parked ship while the child is looking for places on the world behind it. */
   setContextDimmed(dimmed: boolean): void;
+  /** Put every earned mission emblem onto the hull; unknown save entries are ignored. */
+  setStickers(ids: readonly string[]): void;
   orient(direction: THREE.Vector3, rollHint?: number): void;
   update(dt: number, elapsed: number): void;
   /**
@@ -96,6 +99,9 @@ export function createSpaceship(): Spaceship {
   // Inner node carries the idle bob so the outer transform stays purely flight-driven.
   const body = new THREE.Group();
   group.add(body);
+
+  const decals = createShipDecals();
+  body.add(decals.group);
 
   const hull = new THREE.MeshStandardMaterial({
     color: HULL,
@@ -324,6 +330,7 @@ export function createSpaceship(): Spaceship {
       resting.material.transparent = transparent;
       if (transparencyChanged) resting.material.needsUpdate = true;
     }
+    decals.setOpacity(amount);
   }
 
   return {
@@ -336,6 +343,10 @@ export function createSpaceship(): Spaceship {
     setContextDimmed(dimmed: boolean) {
       contextDimmed = dimmed;
       applyContextOpacity();
+    },
+
+    setStickers(ids: readonly string[]) {
+      decals.setEarned(ids);
     },
 
     orient(direction: THREE.Vector3, rollHint = 0) {
@@ -393,6 +404,7 @@ export function createSpaceship(): Spaceship {
       for (const material of materials) material.dispose();
       flameMaterial.dispose();
       flameTexture.dispose();
+      decals.dispose();
     },
   };
 }

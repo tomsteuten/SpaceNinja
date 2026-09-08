@@ -113,6 +113,11 @@ as AI-generated on the grown-ups screen.
 The Sun, the spaceship and everything else on screen is generated at runtime or built
 from Three.js primitives.
 
+World-completion stickers also stay in the world: each earned reward becomes a bold,
+runtime-drawn decal on the spaceship, and finding everything adds the Space Ninja crest.
+They follow the saved progress record, so restarting a scene keeps the livery while **Start
+a new adventure** removes it with the other earned rewards.
+
 `design/` holds reference art that is *not* shipped — it deliberately sits outside
 `public/`, because everything under `public/` is copied into the deployed build whether
 anything loads it or not.

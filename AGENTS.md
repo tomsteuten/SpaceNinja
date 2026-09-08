@@ -819,11 +819,12 @@ loop was rebuilt this week and nobody has watched a child use the rebuilt one.
    - *Nobody has watched a child replay a world.* The open question is whether a set that
      includes a place they have already found reads as a reward or as a repeat.
 
-5. **Make the stickers visible.** Still the best remaining idea and still not built. They are
-   earned, celebrated and then never seen again. Applying them to the *spaceship* — a decal, a
-   colour, an emblem — puts the reward on the object that is on screen for the whole flight and
-   parked at every world, and gives the existing sticker state a job. Cheaper than a character,
-   and `Spaceship.ts` is primitives.
+5. **~~Make the stickers visible.~~** Done. Each earned world sticker is now a bold,
+   runtime-drawn decal on the primitive spaceship, and the finale adds a Space Ninja crest to
+   both sides of the nose. The livery reads directly from the existing progress record: scene
+   resets preserve it, while **Start a new adventure** removes it. The marks use simple Canvas
+   shapes rather than emoji or a downloaded sheet so they stay deterministic, offline and
+   legible at the ship's parked size. It still needs judgment on the real tablet.
 
 6. **One toy per world, not one lesson four times.** Saturn's rings tilting to edge-on is
    cheap and spectacular and reuses the axial-tilt container; a Mars dust storm is not cheap.

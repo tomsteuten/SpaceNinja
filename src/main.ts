@@ -135,6 +135,8 @@ async function main() {
   scene.add(world.group);
 
   const ship = createSpaceship();
+  const syncShipStickers = () => ship.setStickers(loadProgress().stickers);
+  syncShipStickers();
   scene.add(ship.group);
 
   // World space, not parented to the ship: exhaust has to stay where it was laid down
@@ -451,6 +453,7 @@ async function main() {
         const found = loadProgress().discoveries;
         const worldComplete = config.mission.discoveries.every((d) => found.includes(d.id));
         const isNew = worldComplete && awardSticker(config.mission.stickerId);
+        if (isNew) syncShipStickers();
         ui.completeMission(
           `success-${body.id}`,
           config.mission.successLine,
@@ -472,6 +475,7 @@ async function main() {
           foundEverything(loadProgress().discoveries, Object.keys(DISCOVERIES)) &&
           awardSticker(FINALE_STICKER)
         ) {
+          syncShipStickers();
           ui.completeGame(FINALE_STICKER);
         }
       },
@@ -781,6 +785,8 @@ async function main() {
     // back before the ship can restore its own parked transform.
     scene.attach(ship.group);
     ship.reset();
+    // A normal Explore Again keeps the earned livery; a grown-ups progress reset removes it.
+    syncShipStickers();
     // Or the last flight's exhaust hangs in space, still out at the destination.
     trail.reset();
     world.reset();

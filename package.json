@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "A gentle 3D solar-system explorer for young children. Vertical slice: Earth to the Moon.",
+  "description": "A gentle 3D solar-system explorer for young children, from Earth to Saturn.",
   "scripts": {
     "dev": "vite",
     "host": "vite --host",
