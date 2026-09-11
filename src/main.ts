@@ -123,6 +123,17 @@ async function main() {
   }
   const canvas: HTMLCanvasElement = canvasElement;
 
+  // The assisted free-flight prototype, reached at `?freeflight`. Deliberately a separate
+  // path with nothing below it running: it is a sandbox for a control scheme the shipped
+  // loop does not use, and a dynamic import keeps its code out of the normal bundle entirely
+  // (Vite splits it into its own chunk, fetched only when the flag is present). See
+  // flight/freeFlightMode.ts for why it exists and what it is trying to prove.
+  if (/[?&]freeflight\b/.test(window.location.search)) {
+    const { startFreeFlight } = await import('./flight/freeFlightMode');
+    await startFreeFlight(canvas, uiRoot);
+    return;
+  }
+
   const reducedMotion = prefersReducedMotion();
   const stage = createStage(canvas, detectQuality());
   const { scene, camera } = stage;
