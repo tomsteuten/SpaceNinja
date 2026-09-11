@@ -140,6 +140,11 @@ export interface CoachOptions {
   reducedMotion: boolean;
 }
 
+/** Pull the hidden side into view, using the same sign convention as OrbitInput. */
+export function coachSweep(side: -1 | 1, width: number): number {
+  return -side * Math.min(width * 0.24, 130);
+}
+
 export function createCoach(options: CoachOptions): Coach {
   const { root, measure, reducedMotion } = options;
 
@@ -155,6 +160,7 @@ export function createCoach(options: CoachOptions): Coach {
   function place(cue: CoachCue) {
     const rect = measure();
     if (cue.kind === 'tap') {
+      hand.textContent = '👆';
       hand.style.left = `${rect.left + ((cue.x + 1) / 2) * rect.width}px`;
       hand.style.top = `${rect.top + ((1 - cue.y) / 2) * rect.height}px`;
       return;
@@ -166,9 +172,10 @@ export function createCoach(options: CoachOptions): Coach {
      * would be demonstrating the wrong way round. Matches the hunt arrow, which points at
      * the edge the child should be pulling from.
      */
+    hand.textContent = cue.side === -1 ? '👆 →' : '← 👆';
     hand.style.left = `${rect.left + rect.width / 2}px`;
     hand.style.top = `${rect.top + rect.height / 2}px`;
-    hand.style.setProperty('--coach-sweep', `${cue.side * Math.min(rect.width * 0.24, 130)}px`);
+    hand.style.setProperty('--coach-sweep', `${coachSweep(cue.side, rect.width)}px`);
   }
 
   return {

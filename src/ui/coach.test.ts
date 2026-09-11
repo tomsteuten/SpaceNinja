@@ -1,3 +1,4 @@
+import { dragAngle } from '../controls/OrbitInput';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -5,6 +6,7 @@ import {
   COACH_TAP_DELAY,
   SPIN_INVITE_DELAY,
   coachCue,
+  coachSweep,
   cueChanged,
   shouldInviteSpin,
 } from './coach';
@@ -115,5 +117,15 @@ describe('shouldInviteSpin', () => {
 
   it('stays quiet while the turn it asks for is already running', () => {
     expect(shouldInviteSpin({ ...done, spinBusy: true, idleFor: 600 })).toBe(false);
+  });
+});
+
+
+describe('coach drag direction', () => {
+  it('moves the camera toward the hidden side using the real drag mapping', () => {
+    for (const side of [-1, 1] as const) {
+      const cameraTurn = -dragAngle(coachSweep(side, 390), 390);
+      expect(Math.sign(cameraTurn)).toBe(side);
+    }
   });
 });

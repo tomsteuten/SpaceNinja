@@ -37,7 +37,6 @@ import { createNarrator } from './audio/narration';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
 import { chooseDiscoveries } from './mission/selection';
-import { narrateWholeVisit } from './ui/narrationFlow';
 import { createCoach, shouldInviteSpin } from './ui/coach';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
@@ -346,8 +345,8 @@ async function main() {
       // the gold targets on it. It no longer gates anything.
       ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji);
 
-      // Built now, not at boot: which places exist is a property of this arrival.
-      const mission = buildMission(destination.id);
+      // The departure chose this visit already, so the camera and targets share one set.
+      const mission = missions[destination.id];
       if (!mission) return;
       activeMission = mission;
       // Builds the targets and holds the surface still, then puts the gold on screen at
@@ -392,8 +391,6 @@ async function main() {
    */
   const missions: Partial<Record<BodyId, CollectMission>> = {};
   let activeMission: CollectMission | null = null;
-  /** Whether this visit's set is fully recorded; see narrateWholeVisit. */
-  let narrateVisit = true;
 
   function buildMission(id: BodyId): CollectMission | null {
     const config = DESTINATIONS[id];
@@ -404,11 +401,6 @@ async function main() {
       config.mission.discoveries,
       loadProgress().discoveries,
       body.radius,
-    );
-    // All or none across the set: a spoken find beside a silent one in the same hunt teaches
-    // a child the game reads to them and then stops.
-    narrateVisit = narrateWholeVisit(
-      discoveries.map((discovery) => narrator.hasRecording(`discovery-${discovery.id}`)),
     );
     const mission = createCollectMission({
       definition: { body, ...config.mission, discoveries },
@@ -432,7 +424,7 @@ async function main() {
         // What the place is, read out, replacing the arrival fact in the same card. The
         // hunt line would talk over it, so it waits for the last one instead — and when
         // it is the last one, the success line is already about to say the same thing.
-        ui.showDiscovery(discovery, narrateVisit);
+        ui.showDiscovery(discovery);
         // Only the hidden one left: name the gesture now that the child needs it.
         if (found === total - 1) {
           ui.setMissionCaption(config.mission.huntLine, `hunt-${body.id}`);
@@ -460,6 +452,11 @@ async function main() {
           isNew ? config.mission.stickerId : null,
           `${config.emoji}  ${body.label}`,
         );
+        const next = suggestedDestination();
+        const nextConfig = next ? DESTINATIONS[next] : undefined;
+        ui.setHint(nextConfig && next !== body.id
+          ? `✓ ✓ ✓  Found! 🚀 Home → ${nextConfig.emoji} ${world.bodies[next!].label}`
+          : '✓ ✓ ✓  Found! 📖 Look in your book · 🚀 Fly Home');
         /*
          * And when this was the last place on the last world, the finale — once.
          *
@@ -537,7 +534,7 @@ async function main() {
     mission.reveal();
     // The instruction cue queues behind the arrival welcome rather than talking over it.
     // Never auto-start the platform voice when a partial pack is installed.
-    ui.beginMission(config.mission.instruction, config.mission.discoveries.length, `find-${follow}`);
+    ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`);
     // The day turn, offered rather than imposed — and the button wears this world's own
     // globe, so what it will do is legible without a word on it.
     ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
@@ -623,7 +620,7 @@ async function main() {
     // The flight is told which latitude to arrive over; it does not know why. Matching
     // destinations to their copy is this file's job, exactly as it is for the fact and
     // the mission.
-    const discoveries = DESTINATIONS[id]?.mission.discoveries;
+    const discoveries = buildMission(id)?.definition.discoveries;
     const aim = discoveries ? facingLatitude(discoveries) : undefined;
     if (!flight.start(destination, aim)) return;
     // The first reliable user gesture of the session, and the last one before the ship
@@ -739,11 +736,7 @@ async function main() {
     }
     const nextBody = world.bodies[next];
     const nextEmoji = DESTINATIONS[next]?.emoji ?? '✨';
-    if (next === 'moon') {
-      ui.setHint('☝️ ↔️  Swipe to look around');
-    } else {
-      ui.setHint(`👀 ${nextEmoji}  A new world is out there`);
-    }
+    ui.setHint(`👆 ${nextEmoji}  Tap ${nextBody.label.replace(/^The /, '')}`);
     // "Tap", not "Choose": choosing was the old two-step, and the word outlived it. One
     // press on that world is now the whole journey.
     nudge = window.setTimeout(() => {
@@ -913,7 +906,7 @@ async function main() {
           // Match the arrival composition after rotation. The old 2.6 multiplier treated
           // frame()'s subject radius like a camera distance and shrank Saturn to a thumbnail
           // in phone landscape; 1.4 is the same breathing room arrivalDistance authors.
-          follow === 'earth' ? framingRadius() : (body.viewRadius ?? body.radius) * 1.4,
+          flight.phase === 'idle' ? framingRadius() : (body.viewRadius ?? body.radius) * 1.4,
           false,
           framingInset(),
         );

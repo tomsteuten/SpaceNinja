@@ -151,3 +151,26 @@ the new focus treatment prevents opaque occlusion in Chromium. It cannot establi
 the hand cue is noticed without prompting, whether 18%/28% feels too ghostly on the older
 tablet's display, or whether the included narration lands well on that speaker. Those remain
 real child/device tests; no claim about narration quality is made here.
+
+
+## Discovery-flow implementation check — 11 September 2026
+
+Played a local production build in the desktop app browser at 319 × 561 with reduced
+motion enabled. Verified the 3D Moon, three unclipped progress slots, two tappable arrival
+targets above the revised dock, a hidden target reached by sideways dragging, and completion
+with a persistent checkmark/Home/Mars invitation. The selected visit mixed recorded and
+unrecorded discoveries: recorded finds entered the speaking UI state while an unrecorded
+find kept Show words available without expanding a paragraph over the globe. This checks
+playback state, not audible delivery quality.
+
+Opened the journal's Tycho detail and its photo, closed the photo, exercised narration replay,
+closed the journal and returned home to the Mars unlock. The detail, media buttons and Close
+control fit within the narrow screen. Spin and Fly Home now share the bottom row with the
+existing book corner; the photo remains available when the fact folds. A further small
+follow-up adds the journal speaker's play/stop state. Unit checks pin the corrected coach
+sweep against OrbitInput's real drag sign. Earth resize now distinguishes home-map framing
+from an Earth visit; arrival latitude and HUD use the visit chosen before departure.
+
+Not established by this pass: normal-motion flight feel, audible narration quality, exhaustive
+arrival combinations, Saturn ring presentation, or older Android device performance. No free
+flight was added. Remaining authored discoveries without photographs still have none.

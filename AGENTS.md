@@ -3,6 +3,19 @@
 Context for an AI assistant picking this project up cold. `AGENTS.md` is the
 cross-assistant convention; `CLAUDE.md` points here so Claude Code finds it too.
 
+## September 11 playtest revision
+
+This revision supersedes the older narration, journal and fact-card rules below.
+A visit selects its three places before departure; flight latitude, mission and HUD use
+that same selection. Available recordings play per discovery. A missing clip must never
+silence another discovery or automatically invoke the device voice. Cards start compact,
+with Show words available in every audio mode, and keep a 56px photo/replay strip after
+folding. Journal details can load the selected found place's photo and replay its narration;
+never fetch all photographs when opening the book. The phone puts spin and Fly Home on
+one row beside the existing book corner, protecting the lower globe. Completion keeps a
+small checkmark invitation at the top until leaving. Coach arrows show finger movement,
+opposite the side where a hidden target lies.
+
 Read `README.md` as well — it explains *why* the scene is built the way it is. This file
 covers how to work on it without breaking things.
 

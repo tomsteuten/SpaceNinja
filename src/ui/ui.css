@@ -521,8 +521,7 @@ body {
   line-height: 1.1;
 }
 
-.fact-card.is-collapsed p,
-.fact-card.is-collapsed .fact-photo {
+.fact-card.is-collapsed p {
   display: none;
 }
 
@@ -607,8 +606,8 @@ body {
 .fact-photo {
   position: relative;
   flex: 0 0 auto;
-  width: 108px;
-  height: 108px;
+  width: 56px;
+  height: 56px;
   padding: 0;
   border-radius: 14px;
   border: 2px solid rgba(255, 214, 150, 0.6);
@@ -1893,4 +1892,33 @@ body {
   .coach {
     animation: none;
   }
+}
+
+/* Keep the reward photograph and replay available without covering the world. */
+.fact-card.is-audio-first:not(.is-transcript-open),
+.fact-card.is-collapsed {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 420px;
+  gap: 0.35rem;
+  padding: 0.45rem 0.65rem;
+}
+.fact-card.is-collapsed .fact-actions { display: flex; }
+.fact-card .fact-actions { gap: 0.4rem; }
+.fact-card .fact-title { font-size: 0.95rem; line-height: 1.15; }
+.fact-card .transcript-btn { padding-inline: 0.65rem; font-size: 0.85rem; }
+.fact-card .narrate-btn { width: 54px; height: 54px; min-height: 54px; }
+.journal-panel { max-height: calc(100dvh - var(--pad-top) - var(--pad-bottom)); overflow-y: auto; }
+.journal-panel .sticker-grid { flex: 1 1 auto; min-height: 100px; }
+.journal-panel .journal-detail { flex-shrink: 0; }
+.journal-panel > .btn { flex-shrink: 0; }
+
+/* Phone controls share one bottom row; the book keeps its existing left corner. */
+@media (max-width: 599px), (orientation: portrait) {
+  .dock { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; gap: 8px; }
+  .dock .fact-card { grid-column: 1 / -1; max-width: none; }
+  .dock .home-btn { grid-column: 2; grid-row: 2; min-width: 0; padding-inline: 6px; font-size: 1rem; }
+  .dock .spin-btn { grid-column: 3; grid-row: 2; width: 64px; height: 64px; }
 }

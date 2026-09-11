@@ -456,3 +456,13 @@ The included narration pack still needs a real-device listen and child playtest.
 format, levels, duration and offline bundling are checked, but only a child can establish
 whether the delivery actually prompts the intended tap or swipe. `SpeechSynthesis` remains
 the manual fallback for any future cue whose MP3 has not yet been generated.
+
+## September 11 discovery flow update
+
+Each visit now selects three places before departure and uses the same set for arrival
+framing and its three progress slots. Recordings play individually when available. Cards
+start compact with an explicit Show words button and retain their photo after folding;
+the journal can reopen a found place's photo and replay its short narration. A completed
+visit leaves checkmarks and a home/next-world invitation. On phones, spin and Fly Home
+share the bottom row beside the journal, leaving more of the globe clear. These changes
+supersede the earlier all-or-none narration and text-only journal notes.

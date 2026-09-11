@@ -65,9 +65,8 @@ export interface GameUI {
   /**
    * A place has been found: name it, and put it in the journal.
    *
-   * `narrate` is false when this visit's set is not fully recorded — see `narrateWholeVisit`.
-   * The card then shows its words rather than hiding them behind the audio-first state, which
-   * is what `showFact` already does for any cue without a recording.
+   * Available recordings play independently; missing recordings remain manual.
+   * Show words remains available even when a recording is absent.
    */
   showDiscovery(discovery: Discovery, narrate?: boolean): void;
   /**
@@ -477,7 +476,7 @@ export function createUI(options: UIOptions): GameUI {
   /*
    * Where the long fact lives now that the card in play carries the short one.
    *
-   * Deliberately text, and deliberately one at a time: the discovery photographs are fetched
+   * One detail at a time: the discovery photographs are fetched
    * only when a place is found and kept after, which is what makes twelve of them cost the
    * game nothing at startup. A journal that showed twelve thumbnails would have downloaded
    * all twelve. This is also the first thing in the game that makes the journal worth
@@ -485,9 +484,33 @@ export function createUI(options: UIOptions): GameUI {
    */
   const journalDetail = el('p', 'journal-detail');
   journalDetail.hidden = true;
+  const journalActions = el('div', 'fact-actions is-hidden');
+  const journalPhoto = el('button', 'fact-photo is-hidden');
+  journalPhoto.type = 'button';
+  journalPhoto.setAttribute('aria-label', 'See a photo of this discovery');
+  const journalImage = document.createElement('img');
+  journalImage.alt = '';
+  journalPhoto.append(journalImage, el('span', 'fact-photo__zoom', '⛶'));
+  const journalAudio = el('button', 'btn btn--round narrate-btn');
+  journalAudio.type = 'button';
+  journalAudio.setAttribute('aria-label', 'Read this discovery out loud');
+  journalAudio.append(createIcon('speaker'));
+  journalActions.append(journalPhoto, journalAudio);
+  let journalPhotoUrl: string | null = null;
+  journalPhoto.addEventListener('click', () => {
+    const discovery = detailFor ? DISCOVERIES[detailFor] : undefined;
+    if (journalPhotoUrl && discovery) photoViewer.show(journalPhotoUrl, `${discovery.emoji} ${discovery.name}`);
+  });
+  journalAudio.addEventListener('click', () => {
+    const discovery = detailFor ? DISCOVERIES[detailFor] : undefined;
+    if (!discovery) return;
+    pendingGuide = null;
+    if (narrator.speaking) narrator.stop();
+    else narrator.speak(discovery.short, `discovery-${discovery.id}`);
+  });
   const closeJournal = el('button', 'btn btn--quiet', 'Close');
   closeJournal.type = 'button';
-  journalPanel.append(journalTitle, stickerGrid, journalDetail, closeJournal);
+  journalPanel.append(journalTitle, stickerGrid, journalDetail, journalActions, closeJournal);
 
   root.append(journalButton, journalPanel);
 
@@ -527,20 +550,35 @@ export function createUI(options: UIOptions): GameUI {
 
   function showJournalDetail(discovery: Discovery) {
     if (detailFor === discovery.id) {
-      detailFor = null;
-      journalDetail.hidden = true;
-      journalDetail.textContent = '';
+      clearJournalDetail();
       return;
     }
+    clearJournalDetail();
     detailFor = discovery.id;
     journalDetail.textContent = `${discovery.emoji}  ${discovery.fact}`;
     journalDetail.hidden = false;
+    journalActions.classList.remove('is-hidden');
+    journalAudio.classList.toggle('is-hidden', !soundOn || !narrator.available);
+    void findPhoto(discovery.id).then((url) => {
+      if (detailFor !== discovery.id || !url) return;
+      journalPhotoUrl = url;
+      journalImage.src = url;
+      journalPhoto.classList.remove('is-hidden');
+    });
   }
 
   function clearJournalDetail() {
+    if (detailFor) {
+      pendingGuide = null;
+      narrator.stop();
+    }
     detailFor = null;
     journalDetail.hidden = true;
     journalDetail.textContent = '';
+    journalActions.classList.add('is-hidden');
+    journalPhoto.classList.add('is-hidden');
+    journalImage.removeAttribute('src');
+    journalPhotoUrl = null;
   }
 
   let journalOpen = false;
@@ -663,10 +701,8 @@ export function createUI(options: UIOptions): GameUI {
       pendingGuide = null;
       narrator.stop();
     } else if (currentFact) {
-      // Unfolds the card as well as reading it, so the speaker is how you get the words
-      // back on screen — one button, doing the one thing a child would expect of it.
-      factCard.classList.remove('is-collapsed', 'is-audio-first');
-      factCard.classList.add('is-transcript-open');
+      // Replay leaves the planet clear; Show words owns the paragraph.
+      factCard.classList.remove('is-collapsed');
       updateTranscriptButton();
       factShownAt = Date.now();
       narrator.speak(currentFact, currentFactCueId);
@@ -674,6 +710,8 @@ export function createUI(options: UIOptions): GameUI {
     }
   });
   narrator.onChange((speaking) => {
+    journalAudio.classList.toggle('is-speaking', speaking);
+    journalAudio.setAttribute('aria-label', speaking ? 'Stop reading discovery' : 'Read this discovery out loud');
     narrateButton.classList.toggle('is-speaking', speaking);
     narrateButton.setAttribute('aria-label', speaking ? 'Stop reading' : 'Read this out loud');
     if (!speaking) {
@@ -907,13 +945,14 @@ export function createUI(options: UIOptions): GameUI {
     );
     factCard.classList.add('fade-in');
     // Only authored audio starts itself. A partial voice pack never makes the platform's
-    // poor fallback begin talking, and the paragraph remains fully visible for that cue.
+    // fallback begin talking. Show words is available for every cue.
     // `allowNarrate` is a narrow caller veto for a visual moment that needs silence; arrival
     // welcomes are authored for their new place in the sequence and speak normally.
     const autoNarrate =
       allowNarrate && shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn);
+    // Words are always available by choice, even when this particular recording is absent.
+    factCard.classList.add('is-audio-first', 'has-transcript-toggle');
     if (autoNarrate) {
-      factCard.classList.add('is-audio-first', 'has-transcript-toggle');
       narrator.speak(text, currentFactCueId, false);
     }
     updateTranscriptButton();
