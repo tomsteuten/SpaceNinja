@@ -255,9 +255,34 @@ function inView(discoveries: Discovery[]): Discovery[] {
  * whole disc.
  */
 export function facingLatitude(discoveries: Discovery[]): number {
+  return arrivalComposition(discoveries).latitude;
+}
+
+/** Score the actual spherical face angles, including the hidden target and ring plane. */
+export function arrivalComposition(discoveries: Discovery[]): { latitude: number; clearance: number } {
   const visible = inView(discoveries);
-  if (visible.length === 0) return 0;
-  return visible.reduce((total, d) => total + d.lat, 0) / visible.length;
+  if (!visible.length) return { latitude: 0, clearance: 1 };
+  const longitude = facingLongitude(discoveries);
+  const directions = discoveries.map(d => {
+    const lat = THREE.MathUtils.degToRad(d.ring === undefined ? d.lat : 0);
+    const yaw = THREE.MathUtils.degToRad(d.lon - longitude);
+    return { horizontal: Math.cos(lat) * Math.cos(yaw), vertical: Math.sin(lat) };
+  });
+  const hasRing = visible.some(d => d.ring !== undefined);
+  let best = { latitude: 0, clearance: -1 };
+  for (let latitude = -50; latitude <= 50; latitude += 1) {
+    // Rings need a visible ellipse instead of an edge-on line.
+    if (hasRing && Math.abs(latitude) < 24) continue;
+    const radians = THREE.MathUtils.degToRad(latitude);
+    const c = Math.cos(radians), s = Math.sin(radians);
+    const dot = (d: {horizontal:number; vertical:number}) => d.horizontal * c + d.vertical * s;
+    const hidden = directions.length > 1 ? directions[directions.length - 1] : undefined;
+    if (hidden && dot(hidden) > 0.2) continue;
+    let clearance = 1;
+    for (let i = 0; i < visible.length; i++) clearance = Math.min(clearance, dot(directions[i]!));
+    if (clearance > best.clearance) best = { latitude, clearance };
+  }
+  return best;
 }
 
 /**

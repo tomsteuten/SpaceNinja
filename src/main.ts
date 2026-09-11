@@ -1,3 +1,4 @@
+import { nextWorld } from './state/replay';
 /**
  * Entry point. Builds the scene, wires input to the flight sequence, the missions and the
  * UI, and owns both the restart and the teardown paths.
@@ -420,11 +421,11 @@ async function main() {
           discovery.emoji,
           discovery.name,
         );
-        recordDiscovery(discovery.id);
+        const isNew = recordDiscovery(discovery.id);
         // What the place is, read out, replacing the arrival fact in the same card. The
         // hunt line would talk over it, so it waits for the last one instead — and when
         // it is the last one, the success line is already about to say the same thing.
-        ui.showDiscovery(discovery);
+        ui.showDiscovery(discovery, true, !isNew);
         // Only the hidden one left: name the gesture now that the child needs it.
         if (found === total - 1) {
           ui.setMissionCaption(config.mission.huntLine, `hunt-${body.id}`);
@@ -694,15 +695,11 @@ async function main() {
    *
    * Once the outer journey is done this naturally brings Earth back into the story rather
    * than claiming Saturn is "new" forever, and when everywhere has been visited it returns
-   * null — there is no next, and the map should stop insisting there is.
+   * an incomplete collection becomes the next invitation. Once every place has been found,
+   * the map stops suggesting a task.
    */
   function suggestedDestination(): BodyId | null {
-    const visited = new Set(loadProgress().visited);
-    const visible = visibleDestinationIds();
-    return (
-      [...visible].reverse().find((id) => id !== 'earth' && !visited.has(id)) ??
-      (visible.includes('earth') && !visited.has('earth') ? 'earth' : null)
-    );
+    return nextWorld(loadProgress(), visibleDestinationIds()) as BodyId | null;
   }
 
   /**
@@ -736,13 +733,11 @@ async function main() {
     }
     const nextBody = world.bodies[next];
     const nextEmoji = DESTINATIONS[next]?.emoji ?? '✨';
-    ui.setHint(`👆 ${nextEmoji}  Tap ${nextBody.label.replace(/^The /, '')}`);
-    // "Tap", not "Choose": choosing was the old two-step, and the word outlived it. One
-    // press on that world is now the whole journey.
-    nudge = window.setTimeout(() => {
-      if (flight.phase !== 'idle') return;
-      ui.setHint(`👆 ${nextEmoji}  Tap ${nextBody.label.replace(/^The /, '')}`);
-    }, 6500);
+    const revisit = loadProgress().visited.includes(next);
+    ui.setHint(revisit
+      ? `📖 ${nextEmoji} More to find · Tap ${nextBody.label.replace(/^The /, '')}`
+      : `👆 ${nextEmoji} Tap ${nextBody.label.replace(/^The /, '')}`);
+
   }
 
   // Whatever was chosen last time, applied before anything can make a noise.
@@ -934,6 +929,34 @@ async function main() {
     fail('Space Ninja stopped', error, true);
   });
 
+  // Read-only instrumentation exists only in the dedicated browser-test build. Tests
+  // still launch, drag and collect through ordinary pointer events, never state setters.
+  if (import.meta.env.VITE_PLAYTEST === '1') {
+    Object.assign(window, { spaceNinjaSnapshot: () => {
+      const center = world.bodies[follow].getWorldPosition(new THREE.Vector3());
+      const view = camera.position.clone().sub(center).normalize();
+      return {
+        phase: flight.phase,
+        world: follow,
+        draws: stage.renderer.info.render.calls,
+        frame: stage.renderer.info.render.frame,
+        speaking: narrator.speaking,
+        bodyScreenRadius: Math.abs(center.clone().addScaledVector(
+          new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
+        ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,
+        collected: activeMission?.collected ?? 0,
+        ids: activeMission?.definition.discoveries.map(d => d.id) ?? [],
+        targets: activeMission?.hitMeshes.map(mesh => {
+          const position = mesh.getWorldPosition(new THREE.Vector3());
+          const alignment = position.clone().sub(center).normalize().dot(view);
+          const ndc = position.project(camera);
+          return { x: (ndc.x + 1) * innerWidth / 2, y: (1 - ndc.y) * innerHeight / 2,
+            visible: alignment > world.bodies[follow].radius / camera.position.distanceTo(center) * 0.85 };
+        }) ?? [],
+        hidden: activeMission?.remainingHint(),
+      };
+    } });
+  }
   stage.start();
 
   /* --- lifecycle ----------------------------------------------------------- */

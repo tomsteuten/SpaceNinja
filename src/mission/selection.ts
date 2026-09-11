@@ -31,7 +31,7 @@
 import * as THREE from 'three';
 
 import type { Discovery } from '../config';
-import { hitRadiusFor, markerPlacement, placementAngles } from './CollectMission';
+import { arrivalComposition, hitRadiusFor, markerPlacement, placementAngles } from './CollectMission';
 
 /** How many places a world shows on one visit. The count the mission HUD has always drawn. */
 export const PLACES_PER_VISIT = 3;
@@ -83,6 +83,8 @@ export function isPlayableSet(set: readonly Discovery[], bodyRadius: number): bo
   // longitude does, so it would ask for a drag that never reveals anything.
   if (hidden.ring !== undefined) return false;
 
+  // A longitude check alone misses low targets on a tilted globe and edge-on rings.
+  if (arrivalComposition(set as Discovery[]).clearance < 0.46) return false;
   const angles = placementAngles(set as Discovery[]);
   const beyond = angles.filter(([yaw]) => Math.abs(yaw) > VISIBLE_LIMB);
   if (beyond.length !== 1) return false;

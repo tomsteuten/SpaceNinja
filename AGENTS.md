@@ -3,6 +3,17 @@
 Context for an AI assistant picking this project up cold. `AGENTS.md` is the
 cross-assistant convention; `CLAUDE.md` points here so Claude Code finds it too.
 
+## Browser regression and replay phase
+
+Run `npm run test:e2e` for changes to arrival composition or the discovery flow, in addition
+to unit/type checks. This uses an isolated test build with a read-only scene snapshot, real
+pointer events and screenshot attachments. Never expose the snapshot in the normal build.
+Arrival latitude is in the surface parent's axis space. `arrivalComposition` and the picker
+must agree: two visible targets, a genuinely hidden third, readable ring inclination, and
+every discovery still reachable. Journal counts come from each world's actual discovery
+IDs, not a new saved counter. Once every world has been visited, suggest an incomplete
+collection and stop suggesting once everything is found.
+
 ## September 11 playtest revision
 
 This revision supersedes the older narration, journal and fact-card rules below.

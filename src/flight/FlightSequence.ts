@@ -219,9 +219,15 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     // looking down on the body and everything near its equator projects onto the bottom
     // limb. Only the elevation moves, so the arrival is still on the lit side.
     if (aimLatitude !== undefined) {
+      // Latitude belongs to the planet's axis, including orbital and axial tilt.
+      // Applying it in world Y made the real-coordinate targets drift toward the limb.
+      const parent = destination.surface.parent;
+      const rotation = new THREE.Quaternion();
+      parent?.getWorldQuaternion(rotation);
+      endDirection.applyQuaternion(rotation.clone().invert());
       const horizontal = Math.hypot(endDirection.x, endDirection.z);
       endDirection.y = Math.tan(THREE.MathUtils.degToRad(aimLatitude)) * horizontal;
-      endDirection.normalize();
+      endDirection.normalize().applyQuaternion(rotation);
     }
     // The shot has to fit the ring system for Saturn, not just the sphere: viewRadius is the
     // outer ring where it is larger than the body, and the body's radius everywhere else.

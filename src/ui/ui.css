@@ -1922,3 +1922,9 @@ body {
   .dock .home-btn { grid-column: 2; grid-row: 2; min-width: 0; padding-inline: 6px; font-size: 1rem; }
   .dock .spin-btn { grid-column: 3; grid-row: 2; width: 64px; height: 64px; }
 }
+
+.collection-progress { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
+.collection-progress__world { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; font-size: 0.8rem; }
+.collection-progress__track { display: flex; width: 100%; gap: 3px; }
+.collection-progress__track span { flex: 1; height: 7px; border-radius: 5px; background: #473c61; }
+.collection-progress__track .is-found { background: #ffc36a; }

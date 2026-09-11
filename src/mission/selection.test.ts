@@ -29,7 +29,7 @@ import {
   SATURN_RADIUS,
   type Discovery,
 } from '../config';
-import { hitRadiusFor, markerPlacement, placementAngles } from './CollectMission';
+import { arrivalComposition, facingLongitude, surfaceDirection, hitRadiusFor, markerPlacement, placementAngles } from './CollectMission';
 import {
   DRAG_BOUND,
   MIN_YAW_SEPARATION,
@@ -96,6 +96,19 @@ describe.each(WORLDS)('%s', (_id, pool, radius) => {
     // never be filled and the game can never be finished — silently.
     const reachable = new Set(playableSets(pool, radius).flat().map((d) => d.id));
     expect(pool.filter((d) => !reachable.has(d.id)).map((d) => d.id)).toEqual([]);
+  });
+
+  it('keeps two targets clear of the limb and the third behind it in the real arrival pose', () => {
+    for (const set of playableSets(pool, radius)) {
+      const { latitude } = arrivalComposition(set);
+      const view = surfaceDirection(latitude, facingLongitude(set));
+      for (const d of set.slice(0, -1)) {
+        expect(surfaceDirection(d.ring === undefined ? d.lat : 0, d.lon).dot(view)).toBeGreaterThanOrEqual(0.46);
+        if (d.ring !== undefined) expect(Math.abs(latitude)).toBeGreaterThanOrEqual(24);
+      }
+      const hidden = set[set.length - 1]!;
+      expect(surfaceDirection(hidden.lat, hidden.lon).dot(view)).toBeLessThanOrEqual(0.2);
+    }
   });
 
   it('offers several genuinely different arrivals', () => {

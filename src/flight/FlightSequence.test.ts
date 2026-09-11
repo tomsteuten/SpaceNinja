@@ -198,3 +198,22 @@ describe('what the flight reports for sound', () => {
     expect(Math.max(...brisk.reported.map((frame) => frame.cruise))).toBeCloseTo(1, 2);
   });
 });
+
+
+describe('arrival latitude on a tilted world', () => {
+  it('lands at the requested latitude relative to the real surface parent', () => {
+    const {flight, camera, destination} = flightHarness(true);
+    const axis = new THREE.Group();
+    axis.rotation.set(0.3, 0.7, 0.45);
+    const surface = new THREE.Object3D();
+    axis.add(surface);
+    axis.updateMatrixWorld(true);
+    destination.surface = surface;
+    flight.start(destination, 24);
+    while (flight.phase === 'flying') flight.update(1 / 60);
+    const center = destination.getWorldPosition(new THREE.Vector3());
+    const direction = camera.position.clone().sub(center).normalize()
+      .applyQuaternion(axis.getWorldQuaternion(new THREE.Quaternion()).invert());
+    expect(THREE.MathUtils.radToDeg(Math.asin(direction.y))).toBeCloseTo(24, 5);
+  });
+});

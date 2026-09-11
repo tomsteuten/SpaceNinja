@@ -1,3 +1,4 @@
+import { worldCollections } from '../state/replay';
 /**
  * The interface layer: selection prompt, the big fly button, the arrival fact card, the
  * mission HUD and the discovery journal.
@@ -68,7 +69,7 @@ export interface GameUI {
    * Available recordings play independently; missing recordings remain manual.
    * Show words remains available even when a recording is absent.
    */
-  showDiscovery(discovery: Discovery, narrate?: boolean): void;
+  showDiscovery(discovery: Discovery, narrate?: boolean, revisited?: boolean): void;
   /**
    * Something worth saying that is not a find — it uses the same card and the same
    * speaker button, but nothing goes into the journal, because nothing was collected.
@@ -472,6 +473,8 @@ export function createUI(options: UIOptions): GameUI {
   const journalPanel = el('div', 'panel journal-panel');
   journalPanel.classList.add('is-hidden');
   const journalTitle = el('h2', undefined, 'My Discoveries');
+  const collectionProgress = el('div', 'collection-progress');
+  collectionProgress.setAttribute('aria-label', 'Places found on each world');
   const stickerGrid = el('div', 'sticker-grid');
   /*
    * Where the long fact lives now that the card in play carries the short one.
@@ -510,13 +513,25 @@ export function createUI(options: UIOptions): GameUI {
   });
   const closeJournal = el('button', 'btn btn--quiet', 'Close');
   closeJournal.type = 'button';
-  journalPanel.append(journalTitle, stickerGrid, journalDetail, journalActions, closeJournal);
+  journalPanel.append(journalTitle, collectionProgress, stickerGrid, journalDetail, journalActions, closeJournal);
 
   root.append(journalButton, journalPanel);
 
   function renderJournal() {
     stickerGrid.replaceChildren();
     const found = loadProgress().discoveries;
+    collectionProgress.replaceChildren();
+    for (const world of worldCollections(found)) {
+      const row = el('div', 'collection-progress__world');
+      row.setAttribute('aria-label', `${world.label}: ${world.found} of ${world.total} places found`);
+      row.append(el('span', '', `${world.emoji} ${world.label}`),
+        el('span', '', `${world.found}/${world.total}`));
+      const track = el('span', 'collection-progress__track');
+      track.setAttribute('aria-hidden', 'true');
+      for (let i = 0; i < world.total; i++) track.append(el('span', i < world.found ? 'is-found' : ''));
+      row.append(track);
+      collectionProgress.append(row);
+    }
     // A full book says so. A child who cannot read the title can still see there are no
     // question marks left, which is the same fact in the picture.
     journalTitle.textContent = foundEverything(found, Object.keys(DISCOVERIES))
@@ -1076,7 +1091,7 @@ export function createUI(options: UIOptions): GameUI {
       updateTranscriptButton();
     },
 
-    showDiscovery(discovery: Discovery, narrate = true) {
+    showDiscovery(discovery: Discovery, narrate = true, revisited = false) {
       // Straight into the fact card. Authored audio reads it aloud; the platform fallback
       // remains opt-in. This is the whole payoff for
       // going and looking: the old collectible answered a tap with a counter going up.
@@ -1088,7 +1103,7 @@ export function createUI(options: UIOptions): GameUI {
       // read it out; see Discovery.short for why one card cannot serve both audiences.
       showFact(
         discovery.short,
-        `${discovery.emoji} ${discovery.name}`,
+        `${revisited ? "✓ Seen before · " : "✨ New · "}${discovery.emoji} ${discovery.name}`,
         `discovery-${discovery.id}`,
         narrate,
       );

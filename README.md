@@ -466,3 +466,27 @@ the journal can reopen a found place's photo and replay its short narration. A c
 visit leaves checkmarks and a home/next-world invitation. On phones, spin and Fly Home
 share the bottom row beside the journal, leaving more of the globe clear. These changes
 supersede the earlier all-or-none narration and text-only journal notes.
+
+
+## Browser regression checks
+
+`npm run test:e2e` builds an isolated `dist-playtest/` and serves it on port 4180.
+Run `npx playwright install chromium` once first (CI uses `--with-deps`). The suite uses
+phone, touch-tablet and short-landscape viewports on the existing low graphics tier; it checks real pointer-driven flights,
+three-slot hunts, target clearance above the dock, hidden-target dragging, journal photo
+and narration controls, repeat visits, outer-world arrivals, and Earth resizing. Screenshots
+are attached to `playwright-report/`; failures retain traces in `test-results/`. Larger
+viewports use half-resolution rasterisation while preserving CSS dimensions, keeping
+software rendering affordable. This suite is a layout/interaction gate, not a GPU benchmark.
+
+The test build alone enables `VITE_PLAYTEST=1`, a read-only scene snapshot for locating
+canvas targets and checking renderer activity. It cannot launch, collect or alter progress.
+Normal `npm run build` omits it. Passing geometry checks and browser automation do not
+establish narration quality or child comprehension; review the saved screenshots too.
+
+Arrivals now choose elevation against the real tilted surface axis. Every selectable set
+must offer two surface directions at least 0.46 aligned with the arrival camera, leave its
+hidden target behind the limb, and view ring discoveries at least 24 degrees above/below
+the ring plane. Tests also ensure no discovery is made unreachable by those constraints.
+The journal shows each world's collection; after visiting every world, the map suggests an
+unfinished page. Finds say New or Seen before, without penalising revisits.

@@ -12,12 +12,16 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "narration:generate": "node scripts/generate-narration-kokoro.mjs",
-    "narration:generate:openai": "node scripts/generate-narration.mjs"
+    "narration:generate:openai": "node scripts/generate-narration.mjs",
+    "test:e2e": "playwright test",
+    "build:playtest": "vite build --outDir dist-playtest",
+    "preview:playtest": "vite preview --outDir dist-playtest --host 127.0.0.1 --port 4180 --strictPort"
   },
   "dependencies": {
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.4.1",
     "@types/three": "^0.185.4",
     "typescript": "^7.0.2",
