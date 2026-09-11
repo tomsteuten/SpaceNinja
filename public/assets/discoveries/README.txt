@@ -121,8 +121,8 @@ its id and no code changes.
 FILES CURRENTLY INSTALLED
 -------------------------
 
-All twelve are in place. Every one is public domain; the credit lines below are courtesy
-rather than obligation, and are repeated in README.md.
+All twenty-four are in place. They are real mission images; the credit lines below record
+the agency, instrument and archive item rather than treating an image as anonymous scenery.
 
   earth-sahara.jpg      Blue Marble: Next Generation, Africa, March 2005.
                         Credit: NASA Earth Observatory.
@@ -163,6 +163,42 @@ rather than obligation, and are repeated in README.md.
                         true- and nearly-true-colour Cassini sequence.
                         Credit: NASA/JPL-Caltech/Space Science Institute.
                         https://science.nasa.gov/photojournal/chronicling-saturns-northern-storm/
+  earth-lakes.jpg       Great Lakes, No Clouds, acquired by Aqua's MODIS instrument.
+                        Credit: NASA/GSFC; image by Jeff Schmaltz, MODIS Rapid Response Team.
+                        https://images.nasa.gov/details/GSFC_20171208_Archive_e001972
+  earth-himalaya.jpg    Himalayas, an ASTER satellite view of the eastern range.
+                        Credit: NASA/GSFC, ASTER.
+                        https://images.nasa.gov/details/GSFC_20171208_Archive_e002141
+  earth-reef.jpg        Great Barrier Reef, acquired by Landsat 7.
+                        Credit: USGS/NASA/Landsat 7.
+                        https://images.nasa.gov/details/GSFC_20171208_Archive_e001931
+  moon-procellarum.jpg  PIA13245, Wrinkle Ridge in Oceanus Procellarum.
+                        Credit: NASA/GSFC/Arizona State University, LRO.
+                        https://images.nasa.gov/details/PIA13245
+  moon-crisium.jpg      PIA12958, Mare Crisium wrinkle ridge.
+                        Credit: NASA/GSFC/Arizona State University, LRO.
+                        https://images.nasa.gov/details/PIA12958
+  moon-orientale.jpg    PIA12999, secondary crater chain in Mare Orientale.
+                        Credit: NASA/GSFC/Arizona State University, LRO.
+                        https://images.nasa.gov/details/PIA12999
+  mars-hellas.jpg       PIA06944, Hellas Planitia.
+                        Credit: NASA/JPL/Malin Space Science Systems.
+                        https://images.nasa.gov/details/PIA06944
+  mars-jezero.jpg       PIA24331, Perseverance's landing spot in Jezero Crater.
+                        Credit: NASA/JPL-Caltech/University of Arizona, HiRISE/MRO.
+                        https://images.nasa.gov/details/PIA24331
+  mars-gale.jpg         PIA16032, Mount Sharp on the horizon from Curiosity in Gale Crater.
+                        Credit: NASA/JPL-Caltech/MSSS.
+                        https://images.nasa.gov/details/PIA16032
+  saturn-division.jpg   PIA06092, Cassini Captures the Cassini Division.
+                        Credit: NASA/JPL/Space Science Institute.
+                        https://images.nasa.gov/details/PIA06092
+  saturn-jet.jpg        PIA14916, Strong Jet in False Colors.
+                        Credit: NASA/JPL-Caltech/Space Science Institute, Cassini.
+                        https://images.nasa.gov/details/PIA14916
+  saturn-bands.jpg      PIA08949, Banded Beauty, an infrared Cassini view.
+                        Credit: NASA/JPL/Space Science Institute.
+                        https://images.nasa.gov/details/PIA08949
 
 Two of them are worth knowing about before you swap anything:
 

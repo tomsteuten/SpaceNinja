@@ -96,13 +96,11 @@ wholly observed global photograph.
 PIA06175, credit NASA/JPL/Space Science Institute. The source search and exact limitations
 of the archival Cassini body map are documented in `public/assets/README.txt`.
 
-**Discovery photographs** in `public/assets/discoveries/` — Sahara/Africa and Amazon
-River imagery from NASA Earth Observatory; Black Marble 2016 from NASA Goddard Space
-Flight Center; Apollo 11 bootprint from NASA/Buzz Aldrin; Tycho and the lunar far side
-from NASA/JPL/USGS and NASA/GSFC/Arizona State University; and Olympus Mons, Valles
-Marineris and Elysium from NASA/JPL/USGS; and Saturn's rings, north-polar hexagon and
-northern storm from NASA/JPL/Space Science Institute and NASA/JPL-Caltech/Space Science
-Institute. All public domain. The source pages and image identifiers are listed in
+**Discovery photographs** in `public/assets/discoveries/` — real mission imagery: Earth
+views from NASA/USGS satellites; lunar imagery from the Lunar Reconnaissance Orbiter;
+Mars views from Mars Reconnaissance Orbiter and Curiosity; and Saturn views from Cassini.
+The original twelve and the twelve repeat-visit places now all have photographs. The source
+pages, image identifiers and credit lines are listed in
 [`public/assets/discoveries/README.txt`](public/assets/discoveries/README.txt).
 
 **Narration** in `src/audio/recordings/` — generated locally with
@@ -132,9 +130,9 @@ you add under a CC BY licence needs crediting in the list above.
 **Photographs of the places a child finds** work the same way, and are the most worthwhile
 thing you can add. Each discovery can show a real photograph of itself — a thumbnail in its
 card, full screen on a tap — from a file named after it in `public/assets/discoveries/`.
-That folder's `README.txt` names the specific NASA image used for each of the original twelve
-places and why that one rather than another; the places added since have no file yet. They are entirely optional and added one at a time: a
-place with no file simply has no photograph. **Nothing is downloaded until a place is
+That folder's `README.txt` names the specific NASA image used for every place and why that
+one fits the discovery. They remain optional and can be replaced one at a time: a place with
+no file simply has no photograph. **Nothing is downloaded until a place is
 actually found**, so they cost the game nothing at startup, and a child who finds three
 fetches three.
 
