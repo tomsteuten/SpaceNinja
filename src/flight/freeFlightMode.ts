@@ -142,6 +142,7 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('lostpointercapture', onPointerUp);
 
   /* --- frame loop --------------------------------------------------------- */
 
@@ -149,6 +150,9 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
     id,
     center: new THREE.Vector3(),
     radius: world.bodies[id].radius,
+    // Only Saturn sets viewRadius. Its rings are a real part of the silhouette, so collision
+    // and approach assistance must engage before the ship passes through them.
+    clearanceRadius: world.bodies[id].viewRadius,
   }));
 
   const camHeading = START_HEADING.clone();
@@ -235,6 +239,7 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
     canvas.removeEventListener('pointermove', onPointerMove);
     canvas.removeEventListener('pointerup', onPointerUp);
     canvas.removeEventListener('pointercancel', onPointerUp);
+    canvas.removeEventListener('lostpointercapture', onPointerUp);
     ship.dispose();
     trail.dispose();
     world.dispose();

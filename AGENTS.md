@@ -409,6 +409,14 @@ goal, so both input and cue were removed. Keep the guaranteed authored route and
 if flight interaction returns, it needs a visible ship response and something meaningful
 to steer toward rather than a larger version of the same cosmetic offset.
 
+**The assisted-flight experiment is a sandbox, not a change to that rule.** `?freeflight`
+returns before the normal wiring and dynamically imports `freeFlightMode.ts`; the default URL
+still uses the authored cinematic above. The sandbox gives steering a real goal (reach a world),
+lags the chase camera so the ship visibly leads a turn, and keeps an autopilot route for a child
+who does not want to steer. Keep it isolated until play on the target tablet answers whether a
+five-year-old understands it. A technically successful flight is not evidence that it belongs
+in the main loop.
+
 **A visit quiets occluders; it does not erase the solar system.** `World.setFocus` leaves the
 destination solid and multiplies every other earned body's resting opacity by
 `WORLD_CONTEXT_OPACITY`; the parked ship uses its own slightly stronger context opacity.

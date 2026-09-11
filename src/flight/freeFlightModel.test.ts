@@ -50,6 +50,8 @@ describe('steerHeading', () => {
 
   it('pitches up for an upward push and never breaches the pole cap', () => {
     let h = new THREE.Vector3(0, 0, 1);
+    h = steerHeading(h, 0, 1, 0.05, T);
+    expect(h.y).toBeGreaterThan(0);
     for (let i = 0; i < 200; i++) h = steerHeading(h, 0, 1, 0.05, T);
     expect(h.y).toBeLessThanOrEqual(MAX_PITCH_Y + 1e-6);
     expect(h.length()).toBeCloseTo(1, 6);
@@ -99,6 +101,13 @@ describe('approachSpeedCap', () => {
     const near = new THREE.Vector3(0, 0, T.hoverInnerFactor); // hovering at a
     expect(approachSpeedCap(near, [a, b], T)).toBe(0);
   });
+
+  it('brakes outside a larger visual footprint without widening the whole braking band', () => {
+    const ringed = { ...body('saturn', 0, 0, 0, 1), clearanceRadius: 2.3 };
+    expect(approachSpeedCap(new THREE.Vector3(0, 0, 2.3), [ringed], T)).toBe(0);
+    // Original band width is 3.0 - 1.7 = 1.3 radii, moved out from the ring edge.
+    expect(approachSpeedCap(new THREE.Vector3(0, 0, 3.6), [ringed], T)).toBe(T.cruiseSpeed);
+  });
 });
 
 describe('keepClear', () => {
@@ -122,6 +131,13 @@ describe('keepClear', () => {
     const p = new THREE.Vector3(0, 0, 8);
     expect(keepClear(p, [earth], T, new THREE.Vector3(0, 0, 1))).toBe(false);
     expect(p.z).toBe(8);
+  });
+
+  it('keeps a ship outside a ringed body visual footprint', () => {
+    const saturn = { ...body('saturn', 0, 0, 0, 1), clearanceRadius: 2.3 };
+    const p = new THREE.Vector3(0, 0, 2);
+    expect(keepClear(p, [saturn], T, new THREE.Vector3(0, 0, 1))).toBe(true);
+    expect(p.z).toBeCloseTo(2.3, 6);
   });
 });
 

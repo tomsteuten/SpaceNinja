@@ -34,6 +34,12 @@ export interface FlightBody {
   id: string;
   center: THREE.Vector3;
   radius: number;
+  /**
+   * Optional visual footprint that the ship must not cross. Saturn uses the outside of its
+   * rings here: treating it as only a sphere lets a child fly through the most recognisable
+   * part of the planet before collision help notices anything.
+   */
+  clearanceRadius?: number;
 }
 
 export interface FreeFlightTuning {
@@ -114,7 +120,10 @@ export function steerHeading(
 ): THREE.Vector3 {
   const yaw = -x * tuning.yawRate * dt;
   heading.applyAxisAngle(WORLD_UP, yaw);
-  right.crossVectors(WORLD_UP, heading);
+  // Screen-right is heading × world-up for the chase camera behind the ship. The reverse
+  // cross product makes an upward finger pitch the nose down and, more seriously, makes
+  // autopilot correct away from a target whenever it is above or below the ship.
+  right.crossVectors(heading, WORLD_UP);
   if (right.lengthSq() < 1e-8) right.set(1, 0, 0);
   right.normalize();
   const pitch = y * tuning.pitchRate * dt;
@@ -166,8 +175,12 @@ export function approachSpeedCap(
   let cap = tuning.cruiseSpeed;
   for (const body of bodies) {
     const dist = position.distanceTo(body.center);
-    const inner = body.radius * tuning.hoverInnerFactor;
-    const outer = body.radius * tuning.hoverOuterFactor;
+    const naturalInner = body.radius * tuning.hoverInnerFactor;
+    const inner = Math.max(naturalInner, body.clearanceRadius ?? 0);
+    // Preserve the original width of the braking band when a larger visual footprint moves
+    // the inner edge out. Scaling every factor by Saturn's rings starts braking across most
+    // of the compact solar system and makes the other worlds feel inexplicably sticky.
+    const outer = inner + body.radius * (tuning.hoverOuterFactor - tuning.hoverInnerFactor);
     if (dist >= outer) continue;
     const t = THREE.MathUtils.clamp((dist - inner) / (outer - inner), 0, 1);
     cap = Math.min(cap, t * tuning.cruiseSpeed);
@@ -192,7 +205,7 @@ export function keepClear(
 ): boolean {
   let deflected = false;
   for (const body of bodies) {
-    const minDist = body.radius * tuning.clearFactor;
+    const minDist = Math.max(body.radius * tuning.clearFactor, body.clearanceRadius ?? 0);
     out.subVectors(position, body.center);
     const dist = out.length();
     if (dist >= minDist) continue;
@@ -332,7 +345,9 @@ export function createFreeFlight(
           // Steer the whole way in, but stop thrusting once inside the hover band and let the
           // brake settle it — otherwise a ship aimed at the centre at cruise just circles the
           // world at its turning radius forever, never slow enough to count as arrived.
-          const reach = target.radius * tuning.hoverOuterFactor;
+          const naturalInner = target.radius * tuning.hoverInnerFactor;
+          const inner = Math.max(naturalInner, target.clearanceRadius ?? 0);
+          const reach = inner + target.radius * (tuning.hoverOuterFactor - tuning.hoverInnerFactor);
           thrusting = state.position.distanceTo(target.center) > reach;
         } else {
           state.autopilot = null;

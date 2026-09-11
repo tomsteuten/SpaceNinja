@@ -36,6 +36,11 @@ npm run dev
 
 Then open <http://localhost:5173>.
 
+The optional assisted-flight sandbox is at <http://localhost:5173/?freeflight>. It reuses
+the real solar system but keeps its manual steering, autopilot and prototype HUD entirely
+outside the shipped adventure loop. Use it to test whether free flight is understandable and
+comfortable on the target tablet; the normal game remains the default URL.
+
 ### On a phone or tablet on the same WiFi
 
 The dev server already binds to every interface, so the LAN address works as-is:
