@@ -3,9 +3,8 @@ import { nextWorld } from './state/replay';
  * Entry point. Builds the scene, wires input to the flight sequence, the missions and the
  * UI, and owns both the restart and the teardown paths.
  *
- * Destinations are data. Every body listed in DESTINATIONS gets a flight, a fact and a
- * collect mission built the same way, so adding the next planet is a config entry plus a
- * body in Bodies.ts — there is no per-destination branching below.
+ * Common destination behavior is data-driven; unusual bodies may expose explicit scene
+ * capabilities instead of being forced through a false one-size-fits-all abstraction.
  */
 
 import './ui/ui.css';
@@ -29,6 +28,7 @@ import { createDayTurn } from './scene/DayTurn';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
+import { freeFlightHref, isFreeFlightShortcut } from './flight/freeFlightRoute';
 import {
   createCollectMission,
   facingLatitude,
@@ -133,6 +133,20 @@ async function main() {
     await startFreeFlight(canvas, uiRoot);
     return;
   }
+
+  function enterFreeFlight() {
+    window.location.assign(freeFlightHref(window.location.href));
+  }
+
+  function onFreeFlightShortcut(event: KeyboardEvent) {
+    if (!isFreeFlightShortcut(event)) return;
+    const target = event.target;
+    if (target instanceof HTMLElement &&
+        (target.isContentEditable || target.closest('input, textarea, select, button'))) return;
+    event.preventDefault();
+    enterFreeFlight();
+  }
+  document.addEventListener('keydown', onFreeFlightShortcut);
 
   const reducedMotion = prefersReducedMotion();
   const stage = createStage(canvas, detectQuality());
@@ -258,6 +272,7 @@ async function main() {
       ui.setSoundOn(on);
     },
     onResetProgress: () => restart(),
+    onTryFreeFlight: enterFreeFlight,
   });
   if (shouldGreet(asked)) grownups.show();
 
@@ -993,6 +1008,7 @@ async function main() {
     coach.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
     document.removeEventListener('visibilitychange', onVisibilityChange);
+    document.removeEventListener('keydown', onFreeFlightShortcut);
     controls.dispose();
     ui.dispose();
     grownups.dispose();

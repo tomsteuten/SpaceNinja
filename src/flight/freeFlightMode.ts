@@ -1,8 +1,8 @@
 /**
  * Assisted free flight — the scene glue for the `?freeflight` prototype.
  *
- * This is not wired into the shipped game. It is a self-contained sandbox that reuses the
- * real Stage, sky, worlds and ship, and answers the one question the brief and AGENTS.md
+ * This is a self-contained experiment, deliberately entered from the grown-ups panel or
+ * `?freeflight`. It reuses the real Stage, sky, worlds and ship and answers the question
  * both put first: does steering the ship yourself feel good, and does it stay legible? The
  * last steering attempt was cut because "the ship barely moved in frame" and there was "no
  * goal", so this is built around fixing exactly those two things:
@@ -32,6 +32,7 @@ import {
   DEFAULT_TUNING,
   type FlightBody,
 } from './freeFlightModel';
+import { adventureHref } from './freeFlightRoute';
 
 const ALL_BODIES: BodyId[] = ['earth', 'moon', 'mars', 'saturn'];
 
@@ -90,6 +91,7 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
       if (id) openArrival(id);
     },
     onCloseArrival: () => hud.arrival.classList.remove('is-open'),
+    onExit: () => window.location.assign(adventureHref(window.location.href)),
   });
   function setHint(text: string) {
     hud.hint.textContent = text;
@@ -212,10 +214,11 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
     if (state.explorable !== lastExplorable) {
       lastExplorable = state.explorable as BodyId | null;
       if (state.explorable) {
+        hud.hint.classList.add('is-contextual-hidden');
         hud.banner.classList.add('is-open');
         hud.bannerLabel.textContent = `${DESTINATIONS[state.explorable]?.emoji ?? ''} ${label(state.explorable as BodyId)}`;
-        setHint(`You are hovering by ${label(state.explorable as BodyId)} — press Explore, or fly on`);
       } else {
+        hud.hint.classList.remove('is-contextual-hidden');
         hud.banner.classList.remove('is-open');
         if (!state.autopilot) setHint('👆 Hold anywhere and steer — let go to slow down');
       }
@@ -268,11 +271,18 @@ function buildHud(
     onAutopilot: (id: BodyId) => void;
     onExplore: () => void;
     onCloseArrival: () => void;
+    onExit: () => void;
   },
 ): Hud {
   injectStyles();
   const root = el('div', 'ff');
   uiRoot.appendChild(root);
+
+  const exit = el('button', 'ff-exit');
+  exit.textContent = '← Back to adventure';
+  exit.setAttribute('aria-label', 'Back to the Space Ninja adventure');
+  exit.addEventListener('click', handlers.onExit);
+  root.appendChild(exit);
 
   const hint = el('div', 'ff-hint');
   root.appendChild(hint);
@@ -327,10 +337,16 @@ function injectStyles() {
   style.textContent = `
     .ff { position: fixed; inset: 0; pointer-events: none; z-index: 40;
       font-family: ui-rounded, "Nunito", "Segoe UI", system-ui, sans-serif; color: #efe9ff; }
+    .ff-exit { position: absolute; top: max(14px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left)); min-height: 48px; padding: 10px 15px;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 999px; pointer-events: auto;
+      background: rgba(28, 20, 64, 0.78); color: #efe9ff; cursor: pointer;
+      font: inherit; font-weight: 800; box-shadow: 0 6px 18px rgba(6,4,20,0.38); }
     .ff-hint { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 50%;
-      transform: translateX(-50%); max-width: 88vw; text-align: center; padding: 10px 18px;
+      transform: translateX(-50%); max-width: min(60vw, 44rem); text-align: center; padding: 10px 18px;
       border-radius: 999px; background: rgba(28, 20, 64, 0.72); backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px); font-size: 1rem; font-weight: 700; }
+    .ff-hint.is-contextual-hidden { visibility: hidden; }
     .ff-banner { position: absolute; top: 64px; left: 50%; transform: translateX(-50%) scale(0.9);
       display: none; align-items: center; gap: 12px; padding: 10px 12px 10px 18px;
       border-radius: 999px; background: rgba(74, 61, 132, 0.9); pointer-events: auto;
@@ -360,6 +376,10 @@ function injectStyles() {
       color: #40200a; padding: 14px 26px; border-radius: 999px; min-height: 56px;
       background: linear-gradient(180deg, #ffb266 0%, #f4762a 52%, #d2551a 100%);
       box-shadow: 0 5px 0 #a03c11; }
+    @media (max-width: 560px) {
+      .ff-hint { top: max(72px, calc(env(safe-area-inset-top) + 60px)); max-width: 88vw; }
+      .ff-banner { top: max(126px, calc(env(safe-area-inset-top) + 114px)); }
+    }
     @media (prefers-reduced-motion: reduce) {
       .ff-banner { transition: none; }
     }

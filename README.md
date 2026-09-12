@@ -36,10 +36,13 @@ npm run dev
 
 Then open <http://localhost:5173>.
 
-The optional assisted-flight sandbox is at <http://localhost:5173/?freeflight>. It reuses
-the real solar system but keeps its manual steering, autopilot and prototype HUD entirely
-outside the shipped adventure loop. Use it to test whether free flight is understandable and
-comfortable on the target tablet; the normal game remains the default URL.
+The optional manual-flight experiment is available from **Fly it yourself** in the grown-ups
+panel, with **Shift+F** on a keyboard, or directly at
+<http://localhost:5173/?freeflight>. The deployed route is
+<https://tomsteuten.github.io/SpaceNinja/?freeflight>. It reuses the real solar system with
+one-finger steering, assisted braking, collision protection and optional autopilot. **Back to
+adventure** returns to the normal game. The experiment is deliberately easy to test without
+assuming it has already earned a place in the main child loop.
 
 ### On a phone or tablet on the same WiFi
 

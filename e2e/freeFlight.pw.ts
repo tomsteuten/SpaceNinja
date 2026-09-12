@@ -18,10 +18,16 @@ test('assisted free flight boots, flies, arrives and hands control back', async 
     Math.random = () => 0.1;
   });
 
-  await page.goto('/?freeflight');
+  await page.goto('/?grownups');
+  await expect(page.getByRole('heading', { name: 'Fly it yourself' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try manual flight' })).toBeVisible();
+  await attachShot(page, 'manual-flight-grownups-entry', info);
+  await page.getByRole('button', { name: 'Try manual flight' }).click();
+  await expect(page).toHaveURL(/\?freeflight$/);
   await expect(page.locator('#boot')).toBeHidden();
   await expect(page.locator('.ff-hint')).toContainText('Hold anywhere and steer');
   await expect(page.getByRole('button', { name: /^Autopilot to / })).toHaveCount(4);
+  await expect(page.getByRole('button', { name: 'Back to the Space Ninja adventure' })).toBeVisible();
   await attachShot(page, 'free-flight-ready', info);
 
   await page.getByRole('button', { name: 'Autopilot to earth' }).click();
@@ -46,6 +52,11 @@ test('assisted free flight boots, flies, arrives and hands control back', async 
   await page.waitForTimeout(500);
   await attachShot(page, 'free-flight-manual-turn', info);
   await page.mouse.up();
+
+  await page.getByRole('button', { name: 'Back to the Space Ninja adventure' }).click();
+  await expect(page).not.toHaveURL(/freeflight/);
+  await expect(page.locator('.ff')).toHaveCount(0);
+  await expect(page.locator('#boot')).toBeHidden();
 
   expect(errors).toEqual([]);
 });

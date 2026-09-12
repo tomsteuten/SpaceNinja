@@ -97,10 +97,12 @@ export interface GrownupsOptions {
   onSoundChange(on: boolean): void;
   /** The saved adventure was cleared; put the running scene back at its opening map. */
   onResetProgress(): void;
+  /** Leave the normal adventure and open the optional manual-flight experiment. */
+  onTryFreeFlight(): void;
 }
 
 export function createGrownups(options: GrownupsOptions): Grownups {
-  const { root, narrator, onSoundChange, onResetProgress } = options;
+  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight } = options;
   const panel = el('div', 'grownups');
   const sample = sampleLine();
   let showing = false;
@@ -227,6 +229,26 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       ),
     );
     inner.append(what);
+
+    const flight = el('section', 'grownups__section grownups__experiment');
+    flight.append(el('h3', 'grownups__heading', 'Fly it yourself'));
+    flight.append(
+      el(
+        'p',
+        'grownups__note',
+        'Try the optional manual-flight experiment. Hold anywhere to steer the ship, release ' +
+          'to slow down, or tap a planet for autopilot. It has its own Back to adventure button. ' +
+          'On a keyboard, Shift+F opens it directly.',
+      ),
+    );
+    const tryFlight = el('button', 'grownups__auto grownups__flight', 'Try manual flight') as HTMLButtonElement;
+    tryFlight.type = 'button';
+    tryFlight.addEventListener('click', () => {
+      narrator.stop();
+      onTryFreeFlight();
+    });
+    flight.append(tryFlight);
+    inner.append(flight);
 
     /*
      * The thing a parent most wants to know before handing over a tablet, and the one

@@ -1,980 +1,229 @@
 # Working on Space Ninja
 
-Context for an AI assistant picking this project up cold. `AGENTS.md` is the
-cross-assistant convention; `CLAUDE.md` points here so Claude Code finds it too.
+Context for an assistant picking this project up cold. `CLAUDE.md` points here so other
+coding assistants read the same guidance. Read `README.md` for the product overview.
 
-## Browser regression and replay phase
+This file deliberately contains only current operating guidance. Historical decisions and
+the September 2026 rule audit live in `docs/decision-history.md`.
 
-Run `npm run test:e2e` for changes to arrival composition or the discovery flow, in addition
-to unit/type checks. This uses an isolated test build with a read-only scene snapshot, real
-pointer events and screenshot attachments. Never expose the snapshot in the normal build.
-Arrival latitude is in the surface parent's axis space. `arrivalComposition` and the picker
-must agree: two visible targets, a genuinely hidden third, readable ring inclination, and
-every discovery still reachable. Journal counts come from each world's actual discovery
-IDs, not a new saved counter. Once every world has been visited, suggest an incomplete
-collection and stop suggesting once everything is found.
+## Product north star
 
-## September 11 playtest revision
+Space Ninja is a gentle 3D space explorer for children roughly 5–8, built with Vite,
+TypeScript and Three.js. It has no backend or accounts and deploys to GitHub Pages from
+`main`. The target device is an older Android tablet.
 
-This revision supersedes the older narration, journal and fact-card rules below.
-A visit selects its three places before departure; flight latitude, mission and HUD use
-that same selection. Available recordings play per discovery. A missing clip must never
-silence another discovery or automatically invoke the device voice. Cards start compact,
-with Show words available in every audio mode, and keep a 56px photo/replay strip after
-folding. Journal details can load the selected found place's photo and replay its narration;
-never fetch all photographs when opening the book. The phone puts spin and Fly Home on
-one row beside the existing book corner, protecting the lower globe. Completion keeps a
-small checkmark invitation at the top until leaving. Coach arrows show finger movement,
-opposite the side where a hidden target lies.
+Judge changes in this order:
 
-Read `README.md` as well — it explains *why* the scene is built the way it is. This file
-covers how to work on it without breaking things.
+1. Is it enjoyable and understandable in a child's hands?
+2. Does the first touch get an immediate, visible response?
+3. Is the main invitation obvious without covering the world?
+4. Does it remain forgiving, accessible, private and usable offline?
+5. Is the implementation correct, maintainable and fast enough on the target device?
 
----
+Fresh observation outranks an old design decision. A previous failure explains risk; it does
+not permanently forbid every alternative. When playtest feedback conflicts with a current UI
+choice, change the choice while preserving any independently tested correctness property.
 
-## What this is, and who it is for
+## Rules have different strength
 
-A gentle 3D space explorer for children roughly 5–8, built with Vite, TypeScript and
-Three.js. No backend, no accounts, no framework. It deploys to GitHub Pages from `main`.
+Do not treat every note as an invariant.
 
-**The audience is the design constraint, and it decides arguments.** When a change trades
-fidelity against legibility, legibility wins. A five-year-old on a tablet cannot read
-instructions, has imprecise aim, and reads an unresponsive tap as a broken app. Several
-things that look like oddities are deliberate consequences of that — see *Invariants*.
+- **Product constraints** protect the audience: generous touch targets, immediate feedback,
+  low reading burden, no dead ends, privacy and accessibility.
+- **Correctness invariants** prevent reproducible bugs and should normally be backed by tests.
+- **Design choices** are the current solution, not law. Replace them when a clearer design
+  preserves the product constraints.
+- **Experiments** are hypotheses. Keep them measurable and easy to enter and leave; promote,
+  revise or remove them after real-device observation.
 
-The target device is an older Android tablet. `detectQuality()` sends any coarse-pointer
-device to the `medium` tier: 512px generated textures, no antialiasing, pixel ratio capped
-at 1.5. There is a hard ceiling on what fidelity spending buys you; authored light,
-composition and motion have no such ceiling.
-
----
+Document an important reversal in `docs/decision-history.md`, including what evidence changed
+the decision. Do not append a new prohibition to this file for every bug fix.
 
 ## Commands
 
 ```bash
 npm install
-npm run dev         # vite, binds to every interface (LAN address works as-is)
-npm run typecheck   # tsc --noEmit
-npm test            # vitest run
-npm run build       # typechecks first, then emits dist/
-npm run narration:generate  # make keyed offline MP3s locally with Kokoro; needs ffmpeg
-                            # + a one-off `npm install --no-save kokoro-js` (see below)
+npm run dev
+npm run typecheck
+npm test
+npm run build
+npm run test:e2e
+npm run narration:generate
 ```
 
-Run `npm run typecheck && npm test` before every commit. Both are fast.
-
----
-
-## Layout
-
-```
-index.html                  boot markup + inline loading/error/crash state
-sw/                         service worker: sw.js (template), build.ts (pure builder), tests
-public/manifest.webmanifest the web app manifest — installable, standalone
-public/icons/               home-screen icons: icon.svg is the source, the PNGs render from it
-src/
-  main.ts                   wiring, frame loop, restart, teardown
-  config.ts                 scene scale, speeds, timings, destination copy
-  scene/
-    Stage.ts                renderer, camera, bloom, resize, adaptive quality
-    quality.ts              device tiering (low / medium / high)
-    Bodies.ts               Sun, Earth + atmosphere + night lights, Moon, Mars, Saturn, lights
-    Spaceship.ts            the ship, built from primitives
-    EngineTrail.ts          exhaust, one THREE.Points in world space
-    Starfield.ts            gradient sky + optional star map + point stars
-    textures.ts             load-a-file-or-generate-one, and the generators
-  controls/OrbitInput.ts    drag to rotate, pinch/wheel to zoom
-  flight/FlightSequence.ts  the scripted flight out to any destination
-  mission/CollectMission.ts the real places to find, for any body
-  ui/                       ui.ts, ui.css, icons.ts, grownups.ts (the adult's one
-                            screen), photos.ts (real photographs of the places)
-  audio/narration.ts        keyed MP3 narrator + manual SpeechSynthesis fallback
-  audio/narration-script.json  generated-audio copy and delivery settings
-  audio/sfx.ts              every sound: two cues, the engine, the sunrise. No files
-  state/progress.ts         discoveries, stickers and visits, in localStorage
-  state/settings.ts         the grown-up's device choices (sound on/off), in localStorage
-public/assets/              real textures, dropped in and picked up automatically
-design/                     reference art that is NOT shipped
-```
-
----
-
-## What the child is doing, minute by minute
-
-**This section outranks the invariants below where the two conflict.** Every rule in this
-file is a prohibition — a thing that went wrong once and must not go wrong again — and the
-list is genuinely valuable. But a codebase that only records what must not break optimises
-for not being wrong, and nothing here optimised for the game being good to play. It shows.
-The reported verdict on the built game was "looks great, plays shit", and every individual
-decision that produced it was defensible.
-
-So: what the game is trying to be, so a change can be judged against something other than
-a list of past mistakes.
-
-**One obvious invitation, immediate response, no obligation.** At any moment there is one
-thing the game is plainly suggesting, it answers the first touch, and ignoring it costs
-nothing.
-
-Three things follow, and they are the ones to check a change against:
-
-- **Something to touch within ten seconds of pressing a world, every time.** Not on the
-  first visit — every time. This is the measurement that matters most and it is easy to
-  take: drive the built app headlessly, click a destination, wait for `.mission-hud` to
-  appear. It was 25.2 seconds and is now 9.1 (software rendering stretches both; the
-  nominal figures are ~21.8 and ~7). Anything that adds a beat to an arrival is spending
-  from this budget and has to say so.
-- **A tap must never do nothing.** A five-year-old reads an unanswered press as a broken
-  app, not as a miss. `showTapEcho` exists for a tap on empty space, the locked
-  destination chips shake and say why rather than being `disabled`, and neither may be
-  "simplified" into silence. `aria-disabled` counts as silence.
-- **Show the gesture, do not name it.** Every instruction in this game had become a caption
-  written for an audience that cannot read it. Narration answers that exactly once per cue.
-  The idle coach (`ui/coach.ts`) is the standing answer: a hand that does the thing, on the
-  thing, after six seconds of nothing happening.
-
-**A world carries more places than it shows.** Six each, three per visit, chosen by
-`mission/selection.ts` — so a second visit to the Moon is a different Moon. This was the
-largest gap in the game: `CollectMission` never read progress, every visit re-presented the
-same three places at the same coordinates with the same words, and twelve discoveries at one
-tap each was the whole thing. What makes it safe is that the picker is checked against the
-same arrival rules a person used to check by hand, and against one property a person never
-could — that every place a world carries can actually be reached. See the selection
-invariants below.
-
----
-
-## Invariants — break these and something subtle goes wrong
-
-**`main.ts` is the only caller of `reset()`.** Every stateful module owns a `reset()` that
-undoes exactly its own state. That is what makes *Fly Home* work without reloading the
-page. If you add a module that holds state across a flight, give it a `reset()` and call it
-from `restart()` in `main.ts`.
-
-**Fly Home is an animated pull-back, not a cut — but `restart()` is still the one teardown.**
-`FlightSequence` flies out; `HomeReturn` eases the camera back to the opening composition and
-*then* calls `restart()`, which reframes the camera to exactly the pose the ease landed on, so
-the hand-back is invisible. The two share `OrbitInput.restingPose`/`frame` framing maths for
-precisely that reason — if the ease and the reframe drifted apart there would be a snap at the
-end, which is the "sudden jerk" this whole thing exists to remove. `HomeReturn` owns the camera
-while it runs (`homeReturn.active`), so the frame loop suspends orbit control, the resize
-reframe and the hunt arrow for it, exactly as it does during a flight. Under reduced motion
-`start()` declines and `onExploreAgain` cuts straight to `restart()` — a slow sweep would be
-more motion, not less, the same rule as `FLIGHT_DURATION`. It holds no scene state of its own,
-but it is reset from `restart()` anyway so the invariant above stays true with no exceptions.
-
-**Framing reserves vertical space for the interface.** `OrbitInput.frame` takes an `inset`
-(via `framingHalfAngle`): the fraction of the vertical frame the mission prompt and the dock
-eat, so a subject is fitted into the clear band between them rather than the whole canvas and
-does not hide behind the controls on a tall screen. `framingInset()` in `main.ts` sets it (more
-in portrait, where the dock is a full-width stack). It only ever pulls the camera back, and
-only bites where the *vertical* angle is the binding one: a narrow portrait shot is framed by
-width and the inset does nothing to it (see the Mars/Saturn note near the end — the opening
-Saturn loom is a width-bound shot the inset cannot reach).
-
-**An outer world is not drawn until it has been earned.** `World.setRevealed` hides a body and
-drops its tap targets; `applyReveal` in `main.ts` drives it from progress via
-`revealedDestinations`, gating each world on the same visit its framing tier widens on
-(`revealAfterVisiting` in `config.ts`). A hidden body keeps orbiting — it is visibility, not a
-freeze — so revealing it later does not teleport it, and the flight's own avoidance loop still
-positions it. Re-applied from `restart()`, because visiting a world is what unlocks the next and
-the map is next shown on the way home. This is what keeps Saturn out of the opening shot; the
-reveal and the framing tier must stay gated on the same visit or a world is framed for a tap it
-has no body for. See the Mars/Saturn note near the end for what it fixes and what it leaves.
-
-**Destinations are data.** `DESTINATIONS` in `config.ts` holds the copy, `Bodies.ts` holds
-the geometry, `main.ts` matches them by id. Nothing branches per destination. Adding a
-planet should be a config entry plus a body — if you find yourself writing `if (id ===
-'mars')`, stop.
-
-**Saturn is where "just a config entry plus a body" stops being the whole truth, on
-purpose.** Four things about it are exceptions, each carrying its reason in the code, and a
-fifth new outer world would hit all of them again:
-
-- *Its radius is not true to life.* Every other body's radius is real, because relative
-  size is a thing a child learns from a picture. Saturn is really 9.1 Earth radii, which at
-  these compressed distances would be bigger than the rendered Sun and dwarf the scene, so
-  `SATURN_RADIUS` is compressed the way the distances already are. It is the one deliberate
-  break, flagged in `config.ts`, and its feel is a thing to watch on the tablet.
-- *One discovery lives on the ring plane, not the sphere.* `Discovery.ring` puts a marker
-  out in the equatorial plane at that many body-radii, lying flat, along `lon` (`lat`
-  ignored). `markerPlacement` in `CollectMission.ts` is where the two cases fork, and it is
-  tested. It is only ever an *in-view* one: the hidden, drag-to-reach discovery stays a real
-  surface feature, because a pole or a ring point does not swing behind the limb the way a
-  longitude does. The polar hexagon is for the same reason an in-view feature, and kept
-  short of the pole so its hit sphere does not foreshorten to nothing (there is a test).
-- *The rings are a lit, flat mesh whose UVs are rewritten* so `u` runs across the radius —
-  `THREE.RingGeometry` maps `u` around the circumference by default, which smears a radial
-  strip round the ring. `createSaturnRing` in `Bodies.ts`, and the classic Saturn gotcha.
-- *The shot has to fit the rings, not the sphere.* `CelestialBody.viewRadius` (Saturn only)
-  is the outer ring; the flight arrival and the resize framing use `viewRadius ?? radius`,
-  everything about the body itself still uses `radius`.
-- *Reaching a fourth, outer world cost a whole framing tier.* `FRAMING_RADIUS_WIDER`, gated
-  on visiting Mars, and `MAX_ORBIT_DISTANCE` was raised from 20 to 36 so that shot fits a
-  portrait phone. The cost is that the inner worlds shrink to specks in that one widest shot
-  — there is no way to keep the tap-the-world-you-see model with an outer planet without it.
-  A fifth world further out would push `MAX_ORBIT_DISTANCE` further again; past a point the
-  right answer is a different way of choosing a destination, not a wider zoom.
-
-**The ship's nose points along +Z.** `Spaceship.orient()` maps that to any direction. A GLB
-replacement must match the same convention or the flight will fly backwards.
-
-**Everything under `public/` is copied into the build**, referenced or not. Reference art
-lives in `design/` for exactly this reason — a 1.6MB PNG nobody loads was previously being
-served to every visitor.
-
-**Earth's colour and roughness maps are only correct as a pair.** The generated pair are
-cut from the same noise field. Dropping a real photo in beside the *generated* roughness
-map would put ocean sheen on the wrong side of every coastline, so `resolveEarthMaps()`
-derives roughness from whichever colour map actually won. Do not "simplify" that back into
-two independent `resolveTexture` calls.
-
-**Rendering always goes through `EffectComposer`**, even when bloom is off, so tone mapping
-and colour conversion happen in one place for every material including the custom shaders.
-
-**Finding is ambient, not modal — and the arrival is not a sequence.** The markers are
-simply present on arrival; there is no button to start a mission and nothing to finish
-before leaving. *Fly Home* is on screen from arrival onward and never moves. This was a
-deliberate reversal — the mission used to be a mode whose only signposted exit was
-completing it, which made "how do I get back?" the most common reaction to the game.
-
-The same rule then had to be applied a second time, to the arrival itself. Landing briefly
-played a *staged introduction*: a spoken welcome, then the world turning through one whole
-day, then the targets. Every world has a `spin`, so it ran on every arrival, every time —
-2.6s of welcome, a 2.2s camera swing and a 9s turn on top of the 7s flight, unchanged on the
-twelfth visit as on the first. A tap skipped it, and **that it needed a skip was the tell**:
-the default was the thing you skip, and a five-year-old does not discover an unsignposted
-one. `revealHunt()` now runs the moment the ship lands.
-
-The day turn is not lost, it is *chosen*: `showSpin` offers it from the moment the hunt is
-live, which is where it was before it was promoted. Pressing it yourself is worth more than
-being shown the same camera move four times, and each world's card names what is different
-about its own day rather than all four reading "Day and Night". If an arrival ever wants
-ceremony again, it has to be something a child can touch through, not something they wait
-out.
-
-**Making it *chosen* then made it findable's problem.** Three things answer that, and all
-three deliberately cost nothing on a screen where the dock is the most contested space:
-
-- *The button carries a working model of what it does.* It was a stroked sun, which is a
-  symbol of the topic — ☀ means "sun", not "turn this world so morning arrives" — sitting in
-  a row of identical round buttons where nothing marked out the one that changes the planet.
-  It is now a small globe of that world (`spin.tint` is per-destination data), half in night,
-  terminator crawling across it. Its night band is twice the disc's width with two dark
-  edges, so translating by half its own width loops seamlessly, and its resting transform is
-  the half-lit pose so the whole idea still reads in one frame while paused or under reduced
-  motion. The lit side is warm because "sunlit" is the half of the meaning the drawn sun used
-  to carry.
-- *While a real turn runs, that globe is driven by it.* `setSpinProgress` takes `DayTurn`'s
-  own reported progress — never a timer, for the same reason `sfx.dawn` does not use one — so
-  the small thing pressed and the big thing on screen turn together and finish together. The
-  disabled fade is only 0.72 because this is a live miniature during the turn, not a dead
-  control.
-- *And once the hunt is finished and the child has gone idle, it asks.* `shouldInviteSpin`
-  in `coach.ts` (pure, tested) gates a gentle pulse on the hunt being **complete**, so it can
-  never compete with finding places. Deliberately not a `CoachCue`: the hand belongs over the
-  canvas on the thing a gesture applies to, and a hand flying to the dock would need button
-  positions plumbed between modules that each own their own DOM.
-
-**The places are real, and so are their coordinates.** `Discovery` in `config.ts` carries a
-genuine latitude and longitude, and `surfaceDirection` puts the marker there on the body's
-own surface mesh. The ring is therefore *on* the feature in the actual NASA map. Do not
-"simplify" this back into positions chosen relative to the camera — that was the previous
-design, and a rock that could be anywhere is exactly what made finding one teach nothing.
-
-**Two things about an arrival are free, and both are spent on the discoveries.** The body's
-rotation about its own axis (`facingLongitude`) brings the near ones round to the camera,
-and the flight's arrival latitude (`facingLatitude`, passed into `start()`) swings the
-camera to the band they sit in. Neither moves a feature relative to another. Without the
-second one the Sun dominates the arrival direction, the camera looks down from 33 degrees
-up, and everything near the equator projects onto the bottom limb underneath the dock.
-
-**A world shows a chosen set, not its whole list — and `selection.ts` is what makes that
-safe.** `chooseDiscoveries` draws `PLACES_PER_VISIT` from the pool each arrival, weighted
-towards places not yet found, and `main.ts` builds the mission *per visit* rather than at boot
-(a mission built once would pin one set for the session, which is the thing this exists to
-stop). Four things about it are load-bearing:
-
-- *`placementAngles` is the oracle, not a reimplementation of it.* The composition rules used
-  to be guaranteed by a person writing three places and a test confirming they happened to
-  compose. They now have to hold for a combination nobody chose in advance, so `isPlayableSet`
-  asks the real arrival maths rather than restating it — if that maths changes, the picker
-  changes with it.
-- *Every place must be reachable, and this is the invisible one.* `JOURNAL_SLOTS` counts every
-  discovery and `foundEverything` requires them all, so a place that appears in no playable set
-  makes the journal impossible to fill and the game impossible to finish, with nothing anywhere
-  reporting a problem. There is a test per world. It has already caught one: Greenland at 72
-  north, because `POLE_GUARD` is `PI/2 - 0.6` — 55.6 degrees, not the 80 it looks like.
-- *Unfound-first, never unfound-only.* A child with three places left may not be able to fill
-  an arrival from them: three specific places need not compose, and one certainly cannot. Being
-  shown a place you already found is not a failure — the badge is still on it.
-- *A ring place can never be the hidden one.* A ring point does not swing behind the limb the
-  way a longitude does, so the drag it asked for would reveal nothing. This was previously a
-  matter of Saturn's list having been written carefully; it is now enforced.
-
-**The world sticker waits for every place the world carries; the celebration does not.**
-Finishing a visit's three is always the party. `moon-explorer` now lands only when all six
-Moon places are in the journal, across however many visits that takes — awarding it for half
-the Moon would make the badge mean less every time a place is added, and would leave nothing
-to come back for.
-
-**A visit narrates all of its places or none of them.** `narrateWholeVisit` in
-`narrationFlow.ts`: if any place in the chosen set has no recording, none of them auto-narrate
-and the cards show their words instead. A partly recorded world could otherwise put a spoken
-find and a silent one side by side in the same hunt, which teaches a child that the game reads
-to them and then stops — worse than never having started. This replaced a file-level
-all-or-none-per-world check in `narration-script.test.ts`, which was the right unit only while
-a world showed every place it had; that test now pins the *framing* pair (`arrival-` and
-`find-`), which always both play and have no runtime fallback. It is also what keeps a partial
-pack shippable: a new place with no MP3 costs its visit the audio, not the world.
-
-**The last discovery in the authored list is the hidden one**, past the limb, so reaching it
-needs a drag. That is the convention every list follows and the fallback `authoredSet` uses. There is a bound on *how far* past: much beyond ~130 degrees is half a turn of
-dragging over an unlit hemisphere, which a small child gives up on. Both halves of that are
-tested, because both have been got wrong.
-
-**A touch drag is an angle, not a frame accumulator.** `OrbitInput` maps one full drag
-across the short edge to about 130 degrees and applies each pointer delta exactly once.
-Only measured radians-per-second at release feed the capped inertia, whose exponential
-integration is time-based. The previous code applied drag deltas again on every frame, so
-the same finger motion spun much farther on a high-refresh Samsung. Tests pin the drag
-mapping and 30/60/120Hz equivalence.
-
-**The gold marker has to be a target silhouette.** Warmth separates it from grey Moon and
-rusty Mars, but warmth plus a broad additive halo was read as Sunlight. The opaque double
-ring and dark keyline now carry meaning; the small dim halo only helps find it in darkness
-and renders behind the target. Preserve the enormous invisible hit sphere independently of
-the drawn size.
-
-**A marker cannot be tapped through its own body.** `withinVisibleFace` rejects any hit on
-the far side. The hit spheres are many times the marker's size on purpose, and the raycast
-tests only them — it never learns the planet is in the way. This is not theoretical: at
-Earth's arrival the Sahara and the hidden night-side marker project within thirty pixels of
-each other, so tapping the same spot twice collected the far-side discovery through the
-planet, without the drag the whole design exists to teach.
-
-**Earth's axial tilt lives on a group above the sphere, not on the sphere.** It looks
-identical and is not. The mission sets the surface's rotation *about Y* and reads the
-camera's bearing in the surface's parent space to decide what to set it to; a z-tilt on the
-mesh itself sits inside that y-rotation and silently moves every marker off its
-coordinates. The Moon and Mars carry their tilt on a container for the same reason.
-
-**The day turn drives the hold, it does not fight it.** `DayTurn` moves the value
-`holdSurface` is already reproducing every frame, via `turnSurface`, so a mission's markers
-stay exactly where they are relative to the ground while the world underneath them turns
-into the light. Exactly one full turn, clamped against what is left rather than against the
-clock, so every marker ends on its real coordinates — a few thousandths of a radian of
-overshoot per press is invisible and cumulative. And it swings the camera level with the
-equator *and* square to the Sun before turning anything: square to the Sun alone leaves the
-camera high, where the day/night line lies across the disc and an east-west rotation slides
-everything along it instead of over it. Both halves are tested; the second one looked
-right until it was watched.
-
-**Every day turn is handed back where it started.** The turn ends side-on to the Sun (it is
-tested to), which is the wrong pose to be given back: the targets the child was reaching for
-are round the side of the world by then. `main.ts` captures `preTurnCameraOffset` when the
-turn starts and eases back to it over `CAMERA_RETURN_MS` when it finishes — an ease, not a
-cut, which read as a jerk on the tablet. This used to be captured only for the automatic
-arrival intro, so a *manual* replay left the child looking at the wrong side of the world.
-That mattered little when the only turn came before the hunt; it matters now that every turn
-happens during one.
-
-**The day/night words leave before the lesson starts.** `onSpin` deliberately calls
-`foldFact(true)` before `DayTurn.start()`, even if authored narration is still speaking.
-The small replay button can remain, but the full-width card competes with the only evidence
-that matters: sunlight moving across the globe. Do not move this back to the first progress
-frame; that visibly flashes the card over the beginning of the turn.
-
-**The Moon is tidally locked, and locking means doing nothing.** Its mesh inherits the
-orbit from the spin group above it, so a *constant* local rotation keeps one face towards
-Earth; any rotation of its own is what unlocks it. There used to be a `MOON_SPIN` and a
-counter-turn that subtracted the inherited orbit back out, under a comment claiming tidal
-locking — the opposite of it, leaving the Moon near enough fixed against the stars and
-turning once against Earth every two minutes. The game *tells* a child the Moon keeps the
-same face towards us, so this is a claim the scene has to honour. Not unit-testable (it is
-a scene-graph property); check it by measuring the angle between the Moon's local +X in
-world space and its direction to Earth over ~20s — constant means locked.
-
-**A visited body's surface is held still.** `holdSurface()` freezes it; the mission calls
-it in `build()` and releases it in `teardown()`. Markers are children of the surface mesh,
-and a turning one carries them out from under a child's finger. The Moon needs both its
-spin and its orbit-compensating counter-turn stopped, which is why the hold stores the sum
-rather than the raw rotation.
-
-**The outward flight is a cinematic, not an unexplained mini-game.** A bounded drag-steering
-layer used to run through the middle of `FlightSequence`, with a large hand-and-arrows cue.
-Because the chase camera followed the same offset and the ship kept facing the authored
-route, the ship barely moved in frame; the strongest result was a sideways kink in the
-world-space contrail. The instruction was more prominent than its consequence and added no
-goal, so both input and cue were removed. Keep the guaranteed authored route and exhaust;
-if flight interaction returns, it needs a visible ship response and something meaningful
-to steer toward rather than a larger version of the same cosmetic offset.
-
-**The assisted-flight experiment is a sandbox, not a change to that rule.** `?freeflight`
-returns before the normal wiring and dynamically imports `freeFlightMode.ts`; the default URL
-still uses the authored cinematic above. The sandbox gives steering a real goal (reach a world),
-lags the chase camera so the ship visibly leads a turn, and keeps an autopilot route for a child
-who does not want to steer. Keep it isolated until play on the target tablet answers whether a
-five-year-old understands it. A technically successful flight is not evidence that it belongs
-in the main loop.
-
-**A visit quiets occluders; it does not erase the solar system.** `World.setFocus` leaves the
-destination solid and multiplies every other earned body's resting opacity by
-`WORLD_CONTEXT_OPACITY`; the parked ship uses its own slightly stronger context opacity.
-This is deliberately a fade, not `visible = false`: the child keeps the sense that the world
-belongs to a larger system, while a nearby Moon, Mars or the ship cannot become an opaque
-wall over a gold target. Focus begins only on arrival and clears as Fly Home starts, before
-the pull-back exposes the map. Reveal opacity and focus opacity multiply, so neither system
-is allowed to restore or overwrite the other.
-
-**One tap is one journey, and there is no selected state.** Touching a world — the
-destination chip or the body in the scene — starts the flight. There is no Fly button and no
-`showSelection`; `launch()` in `main.ts` is the single path in.
-
-It used to take two presses: a tap put a highlight on the body and revealed the verb
-*somewhere else on screen*, so the natural response to "I touched Mars and nothing happened"
-was to touch Mars again, to the same effect. The noun and the verb were in different places.
-This was the most reliably counter-intuitive thing in the build and it defeated adults, not
-just children.
-
-The accepted cost is that a stray press launches a flight. It is small: `OrbitInput` calls
-`onTap` only for a clean single-finger press under 12px and 400ms, so looking around cannot
-fire it, and Fly Home is on screen from arrival onward. If this ever needs undoing, undo it
-towards *one* press, not back to two.
-
-What was `selected` is now `suggested` — not a state the child puts the game into but the
-one world the map is pointing at, derived from progress by `suggestedDestination()` and
-applied by `applySuggestion()` to three things at once: the ring in the scene, the
-highlighted chip, and the parked ship's nose. They are applied together because they used to
-be able to disagree.
-
-**The destination bar is the dependable navigation path, and it shows the locked worlds
-too.** The moving bodies remain tappable, but every world — earned or not — gets a stable
-64px picture-and-word button. This is what lets the widest Saturn map keep truthful relative
-placement without making Earth and the Moon unusable specks. Do not remove it merely because
-canvas hit spheres are generous: hit area does not identify which moving dot it belongs to.
-
-A locked chip keeps its world's own emoji (that picture is the reason to want to go there;
-a child who cannot read "Saturn" can still want the one with the rings) under a small
-padlock badge, and it is deliberately neither `disabled` nor `aria-disabled` — both answer a
-press with nothing, and the second tells assistive technology the same lie. It shakes, and
-the hint names the world that unlocks it.
-
-**A newly earned world reveals only on the settled home map.** `World.setRevealed()` keeps
-locked bodies orbiting invisibly, then fades and scales a newly unlocked one in after Fly
-Home lands. Its hit meshes stay disabled until the reveal finishes. Reduced motion skips
-the transition rather than shortening it, and the matching destination button carries the
-same announcement.
-
-**Progress reset is narrow and adult-owned.** The two-step action in the grown-ups panel
-removes only `spaceninja.progress.v1`, then calls the normal `restart()` path. It must not
-clear settings, the grown-up greeting or the service-worker caches; those are device state,
-not the child's adventure.
-
-**The coach shows the gesture; it never becomes another caption.** `ui/coach.ts` puts a hand
-on screen after six seconds with nothing touched: a tap on a place that is on screen, or —
-once the visible places are gone and the hunt arrow is up — the sideways drag that reaches
-the hidden one. Four things about it are load-bearing.
-
-`coachCue` is pure and total: called every frame with four facts, returning the whole
-answer, so there is no coach state to get stuck in. A tap beats a drag whenever anything is
-tappable, because both can be true at once (the last place can swing into view while the
-child sits still) and a tap is the smaller ask. `cueChanged` ignores sub-threshold drift —
-the body keeps orbiting under a held surface, so a target moves a fraction every frame, and
-restarting the animation on that would pin the hand at frame zero forever. Both are tested.
-
-The hand is `pointer-events: none` and hangs *below* the point it indicates: 👆 has its
-fingertip at the top of the glyph, so it reaches up and lands on the target at the peak of
-the animation. Centred on the target it simply covered the thing it was asking for.
-
-Idle time accrues only while the camera is the child's — not during a flight, a day turn or
-the pull-back — so a seven-second flight does not arrive with the coach already convinced
-nobody is playing. Reduced motion gets a *still* hand rather than none: removing it would
-take the only wordless instruction in the game away from the children most likely to need
-it, the same rule the flight and the day turn follow.
-
-Six seconds, not two. Two fires while the arrival camera is still settling and while a child
-is doing the most valuable thing in the game, which is looking at a planet.
-
-**A discovery has two texts, for two different people.** `Discovery.short` is one sentence in
-the child's register and is the only version seen in play; `Discovery.fact` is the whole
-story and lives in the journal, behind a press on its tile. The facts are good and they are
-written for an adult reading aloud — forty to fifty words in an adult's sentence shapes — on
-a card that sits over the planet a child has just flown to, in a game whose design says that
-child is playing alone. One card cannot serve both audiences.
-
-Changing the displayed text does not desync the audio: a recording is keyed by cue id, never
-by the text, and `narrator.speak`'s text argument only ever reaches the `SpeechSynthesis`
-fallback. The authored narration was always the short register, so this brought the words
-into line with the voice rather than the other way round.
-
-The journal detail is text and one at a time, deliberately. Nothing is fetched until a place
-is found, which is what makes the photographs cost nothing at startup — a journal showing
-every thumbnail would have downloaded every one of them.
-
-**Only one fold timer for the fact card.** Facts overlap — finding a place replaces the
-arrival fact, and completing a body queues the success line behind the last discovery — and
-a stale timer from the previous fact will otherwise close the new one. There is also a
-floor on how briefly a fact can be shown: speech that fails reports itself finished
-immediately, and the fold hangs off the end of the reading.
-
-**Automatic narration may compact the words, but it may not make them unavailable.** An
-audio-first card keeps a labelled **Show words** control in both its compact and folded
-states. Opening it reveals the paragraph at full width, changes the control to **Hide
-words**, exposes `aria-expanded`, and restarts `FACT_MINIMUM_MS` from the press. Do not turn
-this back into an icon-only affordance: the speaker already was an unlabelled route to the
-words, but it also restarted sound and did not tell a child with hearing loss what was behind
-it. The photo and speaker remain in the row *below* the paragraph; the column invariant
-still wins when the transcript is open.
-
-**The journal holds discoveries, not stickers, and its size is counted rather than set.**
-`JOURNAL_SLOTS` is `Object.keys(DISCOVERIES).length`, so finishing the game fills the grid
-by construction. It was a hand-written 6 against a journal that showed the two stickers,
-which left it two-thirds question marks for a child who had done everything — and a
-hand-written number goes wrong again the next time a destination is added. Stickers are
-still earned and still celebrated; they just are not what the grid shows.
-
-**Visits and stickers are different facts.** `progress.ts` tracks both. The opening shot
-widens to take in Mars once the Moon has been *visited*, not once its collection is
-finished — gating the solar system behind a tapping game contradicts what the game is for.
-Saves written before `visited` existed must keep loading (a missing list means "nowhere
-yet"); there is a test for that.
-
-**Assets are drop-in, and that now includes the discovery photographs.** Every texture is
-HEAD-probed and falls back to a generated one; the photographs work the same way, and a
-place whose file has not been sourced yet simply has no photograph rather than a broken
-image. `ui/photos.ts` names the file after the discovery's id, so adding one is a correctly
-named file and no code at all — the same bargain `public/assets/README.txt` makes, and the
-reason `public/assets/discoveries/README.txt` is a list of filenames rather than a schema.
-
-Three things about it that are load-bearing rather than incidental:
-
-- **Nothing is fetched until a place is found.** That is what makes photographs affordable
-  where sharpening the globe maps is not: sharper maps spend every byte before the title
-  screen, and on a device whose pixel ratio is capped at 1.5 most of that detail is never
-  drawn. A child who finds three places fetches three files; the other twenty-one are never
-  asked for. Do not preload them, and do not put them in the journal grid without thinking about
-  this — a journal that shows every thumbnail has just downloaded every photograph.
-- **The probe is guarded on the discovery still being on screen.** Facts overlap: a find
-  replaces the arrival fact, and the completion line queues behind the last find. A probe
-  resolving a moment late would otherwise staple one place's photograph to another's words.
-- **It is a thumbnail in the card, not a band across it.** The card already had to be
-  taught to fold away during the day turn because it covers the planet; a full-width
-  picture would put that back and more.
-
-**Never generate a stand-in for a discovery photograph, and do not offer to source one from
-inside an assistant environment.** The installed ones were fetched and checked by a person, because every image host — NASA, Wikimedia, all of them — is refused at this
-environment's egress gateway, and `WebFetch` is blocked for them too. An assistant that
-offers to "source them" from in here is about to invent something. That matters more than
-usual here: the game tells a child *this is the real Sahara*, and a synthesised picture
-under a NASA credit is a lie told to a five-year-old. If a photograph needs replacing, say
-what is wanted and let a person fetch it.
-
-**The fact card is a column — name, then words at full width, then a row with the photo and
-the speaker — and that is load-bearing, not cosmetic.** It used to flank the words with the
-photo on one side and the speaker on the other, which squeezed a long fact into a strip so
-narrow it ran ten lines deep: a card that covered most of the planet a child had just flown
-to and hid the very markers it was asking them to tap. Full-width words wrap in half as many
-lines. Do not put the photo or the speaker back *beside* the paragraph. And the photo carries
-a magnifier chip (the `expand` icon) because it is a button that opens the picture full
-screen, and a bare thumbnail was read as decoration — by an adult on a phone, not just a
-child; that was the actual report behind "the Earth photos don't pop up" even though the
-Earth photos loaded fine. If you make the card smaller again, the picture is the last thing to
-cut: it is the part of the card a pre-reader can actually take something from.
-
-**The full-screen photo viewer dismisses only on a fresh press on its backdrop, never on
-the tail of the tap that opened it.** Reported from a Samsung phone: the photo opened and
-shut instantly, on Earth, every time. It is a touch "ghost click" — a tap on the thumbnail
-shows the overlay at those same coordinates, and the device then delivers the tap's trailing
-compatibility click straight onto the overlay now under the finger. It does not reproduce in
-a headless browser, which emits no ghost, so do not "simplify" the guard away because a
-driver shows the viewer closing fine. The guard is in `ui/photos.ts`: a dismiss is honoured
-only when the same fresh pointer both begins and ends on the backdrop after
-`OPEN_GUARD_MS` (the opening tap began on the thumbnail). There is deliberately no backdrop
-`click` listener for Android's compatibility click to reach. The ✕ button bypasses the
-guard, because a deliberately-found control must always work. If a deployed phone appears
-to alternate between fixed and broken behaviour, unregister/update its service worker and
-confirm the new build before changing this guard again.
-The grown-ups panel shows the short Git build id for exactly this diagnosis (`local` in a
-non-CI build); ask for it with the device report. Registration uses `updateViaCache: none`
-so the worker update check reaches Pages without weakening the shell's cache-first,
-whole-build activation rule.
-
-**A new build lands on the launch that fetched it, not the one after — but only at the
-title.** `registerOffline()` in `main.ts` listens for `controllerchange` (the new worker's
-skipWaiting()/clients.claim() taking over this page) and reloads once. Two guards are
-load-bearing: it does nothing when there was no prior controller (a first install has no
-older shell to escape, so a reload would just flash the boot screen), and it asks
-`canReloadNow()` — false once a flight, selection or day turn is underway — so it never
-yanks the world out from under a child mid-play. When it declines, the update simply waits
-for the next launch, which is the pre-existing behaviour. This is what removes the "open the
-installed app twice" tax that made on-device testing feel like it cached forever; do not
-drop the guards to make it fire harder.
-
-**A media query adds no specificity.** This bit the fact card: a `@media (max-width: 560px)`
-block written *above* the base `.fact-card p` rule loses to it outright, so the card ran at
-full desktop type on a 390px phone — eight lines deep, covering 93% of the planet a child
-had just flown to. Responsive overrides in `ui.css` go *below* the rules they override, and
-the landscape dock block only works where it does because it sets properties the base rule
-never sets. Measure a layout claim rather than reading it: `percentOfPlanetCovered` in the
-scratch driver projects the destination's disc and samples what is on top of it.
-
-**The service worker is built, not written, and it is what makes the game work with no
-signal.** `sw/sw.js` is a template with three placeholders; the Vite plugin in
-`vite.config.ts` fills them from the built bundle, because Vite hashes its output names and
-the worker cannot know them ahead of time. Everything that *decides* the worker's contents
-lives in `sw/build.ts`, which is pure and has a test — two things it pins are load-bearing.
-The shell cache is named after a version hash that includes `index.html`'s *contents*, not
-just the hashed file names: a page-only change leaves every file name identical, and a
-byte-identical worker is one the browser never reinstalls, so the stale `index.html` would
-be served from cache forever. And the globe textures go in a *separate* cache that is not
-named after the build, because they do not change when the code does and re-downloading
-three megabytes on every deploy is not worth it — bump `MEDIA_CACHE` in the template by hand
-to force those. The discovery photographs are deliberately never precached: nothing is
-fetched until a place is found, and a photograph fetched once is then kept. Nothing registers
-in development — a worker there serves stale modules over the dev server's live ones — so this
-is only ever exercised against a `build` + `preview`, never `dev`.
-
-**A crash has to be made visible, because the last good frame is not.** An exception thrown
-inside the frame loop used to propagate to the console and leave the last rendered frame on
-screen, which looks completely fine — a bug report from a tablet then reads only "it just
-stopped". `Stage.tick` now wraps the whole frame in a try/catch, stops the loop (the same
-throw would repeat sixty times a second otherwise) and calls `onCrash`; `main.ts` turns that
-into the crash screen, which is the boot screen reused. That is why `#boot` is now *hidden*
-on a successful start rather than removed, and why its `z-index` sits above every panel. The
-crash screen prints the actual error small and selectable for whoever files the report, and
-its one button reloads the page — the journal is in localStorage and survives.
-
-**Finishing everything is its own moment, once — and once means once per save.**
-`foundEverything()` in `progress.ts` decides it (it takes the id list rather than importing
-config, so it is pinned without a scene), and `main.ts` fires `ui.completeGame()` only when
-`awardSticker(FINALE_STICKER)` actually returns true.
-
-It used to fire on *any* completion that left the book full. Nothing about a world is
-remembered between visits, so every later visit re-completed it and re-ran the whole victory
-party, over the top of a child who had already been told they had finished — replay was not
-merely absent from this game, it was actively spoiled by it. Riding on the sticker leaves no
-already-earned case, which is why `completeGame` takes a definite sticker id. The finale is the journal shown full and big, badges popping in the
-order they were found; it follows the world's own sticker rather than fighting it for the top
-of the screen (a 3.2s delay), and closes on any tap or by itself. Adding a destination needs
-no change here: the total is counted, not written down.
-
-**Reduced motion removes motion; it does not compress it.** `prefers-reduced-motion` skips
-the exhaust trail and the FOV punch, removes camera inertia, halves the collect particles,
-and stops UI animation. New motion should check it.
-
-**What it must never do is play the same move faster.** The flight used to run in 1.4s
-instead of 7 under this flag, and the day turn in 3.7s instead of 11.2. That is the
-identical sweeping camera move at five times the angular rate — more motion per second, not
-less, and reported from the tablet the game is played on as faster and more awkward. Both
-now have one duration for everyone. If a stronger accommodation is ever wanted, the right
-shape is a *cut* (fade out, arrive, fade in), not a fast sweep.
-
-**It deliberately does not mute anything either.** The preference is about discomfort from
-movement, and silencing sound for it answers a question nobody asked. If sound should be
-silenceable that wants its own control, not this flag.
-
-**Continuous sound is driven a frame at a time, never scheduled.** `sfx.thruster` and
-`sfx.dawn` are handed a value the picture is already using and follow it; nothing sets a
-timed ramp and walks away. `Stage.tick` clamps dt to 0.05s, so a struggling tablet stretches
-a flight or a day turn well past its nominal duration — anything scheduled against the audio
-clock finishes early and leaves the rest of the moment silent. Measured headlessly: a 9s day
-turn took 16.1s and still rang all six of its bells, one per sixth of a turn.
-
-Three consequences, all of which have a test. The sound's *level* comes from the same value
-the picture does — the engine follows `thrust`, which is what the exhaust is emitted at, not
-the `cruise` bell that drives the FOV punch, or it would fade out while the flame was still
-visibly firing. Every continuous sound must stop in `sfx.reset()`, because nothing else in
-the game would ever stop it: a Fly Home mid-flight is a thruster running for the rest of the
-session. And `sfx.reset()` is called when the tab is backgrounded too, since `stage.stop()`
-halts the loop that does the driving and would otherwise leave the engine droning at
-whatever gain it had reached.
-
----
-
-## Conventions
-
-Comments explain **why**, not what — and specifically why *this* choice over the obvious
-alternative, usually with the failure it avoids. Several constants carry the number they
-were changed *from* and what went wrong at the old value. Match that; it is the most useful
-property of the codebase and the easiest to erode.
-
-Tests cover the pieces whose failure is easy to miss by eye, not everything: journal
-persistence, the collectible placement rule (hit spheres must not overlap), and the
-flight's easing curve. If you find a bug that only appears at one specific constant, add a
-test rather than only fixing it.
-
----
-
-## Verifying visual work
-
-There are no visual regression tests. The workflow that has worked is driving the real app
-in headless Chromium and looking at screenshots:
-
-```js
-// Chromium is pre-installed in some environments at /opt/pw-browsers/.
-const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-<ver>/chrome-linux/chrome',
-  args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'],
-});
+Run `npm run typecheck && npm test` before every commit. Run `npm run test:e2e` for gameplay,
+camera, arrival, responsive layout or UI-flow changes. Browser screenshots are part of the
+result for WebGL work; DOM assertions alone do not establish visual quality.
+
+## Current child loop
+
+- The home map offers stable destination controls as well as tappable moving worlds.
+- A tap launches one journey and must acknowledge misses or locked choices.
+- Arrival exposes discoveries immediately. Finding is ambient and Fly Home remains available.
+- Each world carries six real places and selects three per visit, favoring unseen places while
+  requiring every authored place to remain reachable over repeated visits.
+- A short visual coach may demonstrate tapping or looking around after inactivity.
+- Day/night is a contextual activity. It must be discoverable and understandable, especially
+  on Earth, but it must not trap the child in a long uninterruptible introduction.
+
+These are current choices, not permanent markup requirements. In particular, the destination
+bar, journal, fact card, day/night control and Fly Home may be recomposed into a clearer
+responsive control system. Protect the playfield and the child's escape route, not the
+historical position of each button.
+
+## Correctness invariants
+
+### Scene lifecycle
+
+Every stateful subsystem owns a reset/dispose operation that undoes its own state. There must
+be one lifecycle coordinator so Fly Home, progress reset, crash handling and page teardown do
+not partially reset the scene. That coordinator may move out of `main.ts`; central ownership,
+not the filename, is the invariant.
+
+Camera ownership is exclusive during scripted flight, home return and a day turn. Orbit or
+manual input must not fight the active camera owner. Reduced motion may replace a move with a
+cut or remove nonessential motion; it must not play the same sweeping move much faster.
+
+### Worlds, framing and coordinates
+
+Discovery latitude and longitude are genuine and markers stay attached to the body's surface.
+Earth, Moon and Mars axial tilt belongs above the rotating surface so longitude remains
+correct. `holdSurface()` keeps a visited surface and its markers under the child's finger.
+`DayTurn` must advance the held surface value rather than separately fighting it.
+
+The Moon is tidally locked through scene-graph inheritance: a constant local rotation keeps
+one face toward Earth. Do not add an independent Moon spin without rechecking that property.
+
+Arrival composition and discovery selection share the same placement maths. Automated checks
+must ensure selected targets are visible/reachable, ring targets are viewed at a readable
+inclination, and far-side targets cannot be collected through the body. Whether every visit
+must include a hidden target is a design hypothesis, not a correctness requirement.
+
+Framing must account for the *current* UI footprint and a body's visible silhouette. Saturn's
+`viewRadius` includes its rings. Outer-world reveal and framing gates must agree so a newly
+visible body is also navigable. The exact tiers, gates and map composition may be redesigned.
+
+Destinations share common data, but unusual bodies may expose explicit capabilities such as
+rings, custom framing or non-spherical marker placement. Avoid one-off branches when a small
+capability models the difference clearly; do not force a false uniformity.
+
+The spaceship's authored forward direction is +Z. Any replacement model must match it or adapt
+at the model boundary.
+
+### Rendering and assets
+
+Rendering goes through `EffectComposer` so tone mapping and color conversion are consistent.
+Coarse-pointer devices begin at the medium quality tier; do not spend detail the capped pixel
+ratio cannot display. Measure on the target tablet before raising baseline cost.
+
+Earth's color and roughness maps are a pair. `resolveEarthMaps()` derives roughness from the
+color map that actually loaded; independent fallback selection misaligns ocean sheen and land.
+
+Everything in `public/` ships. Reference art belongs in `design/`. Discovery photographs are
+lazy: do not preload the full set or make the journal fetch every image. A missing photograph
+must produce an intentional no-photo state, never a broken image.
+
+Discovery photographs must be real and their provenance recorded in
+`public/assets/discoveries/README.txt`. Never synthesize a documentary image or attach a false
+NASA credit. An assistant may source a real image when its tools can reach and verify an
+authoritative photographic archive; inability in one shell or past environment is not a
+permanent process rule.
+
+### Input, UI and accessibility
+
+Touch drag must apply each pointer delta once and inertia must be time-based. Hit targets may
+be much larger than their drawn controls, but far-side occlusion still applies.
+
+Keep the center and lower-middle playfield substantially clear during normal interaction.
+Prefer one primary contextual control cluster and at most one small secondary control. Controls
+must have readable names, keyboard/focus behavior where relevant, and comfortably large touch
+areas. A child-facing route cannot depend on reading, but a short label may reinforce a visual
+or narrated action; “show, don't only tell” is guidance, not a ban on words.
+
+The fact card currently keeps title, full-width words, then photograph/audio actions because a
+side-by-side phone layout covered the globe. A redesign may change this if screenshots and
+responsive checks demonstrate equal or better playfield protection and accessibility.
+
+The photo viewer dismisses only on a fresh backdrop pointer sequence after its opening guard.
+Do not add a backdrop `click` handler: Android compatibility clicks previously closed it the
+instant it opened. The explicit close button remains immediate.
+
+### Audio and persistence
+
+Only bundled authored narration starts automatically. Device SpeechSynthesis is manual
+fallback. Available recordings work per discovery; a missing clip must not silence a different
+recording. Written words remain available in every audio mode.
+
+Continuous sounds follow the visual value every frame and stop on reset, crash and background.
+Do not schedule a wall-clock envelope that can finish before a slowed render sequence.
+
+Visits, discoveries, stickers and settings are different persisted facts. Adult progress reset
+removes only adventure progress, not sound choices, grown-up acknowledgement or offline caches.
+Counts derive from configured discovery IDs rather than a second handwritten total.
+
+### Offline and failure behavior
+
+The service worker is generated from `sw/sw.js` by `sw/build.ts`. Its shell cache version
+includes `index.html` contents; media uses a separate stable cache; discovery photographs are
+not precached. Development does not register the worker. An update may reload at the settled
+title but never interrupt active play.
+
+Frame-loop failures stop the loop, silence continuous audio and show the reusable crash screen.
+A frozen last frame is not an acceptable error state.
+
+## Manual flight experiment
+
+Manual flight is a supported experiment, not forbidden gameplay. The current `?freeflight`
+route reuses the real scene with one-finger steering, assistive braking/collision handling and
+optional autopilot. It should be reachable from the grown-ups panel and by a documented
+keyboard shortcut, and it must offer a clear route back to the normal adventure.
+
+Do not assume the experiment must remain separate forever or that technical success earns it a
+place in the main loop. Evaluate it on the target tablet against observable questions:
+
+- Does holding relative to screen center feel like steering rather than dragging scenery?
+- Does the ship visibly lead the camera through a turn?
+- Can a child reach a world without adult correction?
+- Is autopilot understood as help rather than a different game mode?
+- Can the child stop, recover from a mistake and return to the adventure?
+
+Promoting manual flight should be a product decision based on this evidence. Iterating on and
+shipping the clearly labelled experiment does not require prior proof.
+
+## Verification notes
+
+Playwright drives an isolated `VITE_PLAYTEST=1` build. The exposed scene snapshot is read-only
+and must never appear in a normal build. Exercise boot, real pointer input, scene transitions,
+arrival, return, resize and representative phone/tablet/short-landscape viewports. Capture and
+inspect screenshots for overlay weight, alignment, target clearance and legibility.
+
+Software WebGL can stretch nominal durations because `Stage.tick` clamps large frame deltas.
+Wait for state rather than assuming a seven-second flight takes seven wall-clock seconds. Treat
+`pageerror` and console errors as failures.
+
+Automated audio graph checks can prove lifecycle and envelope behavior, not whether narration
+or sound is pleasant on a tablet speaker. Real-device listening and child observation remain
+necessary and should be reported as unverified until performed.
+
+## Architecture map
+
+```text
+index.html                  boot/error shell
+sw/                         generated offline worker and tests
+public/                     shipped manifest, icons and real media
+src/main.ts                 current game orchestration
+src/config.ts               destination data and scene constants
+src/scene/                  renderer, worlds, ship, sky, textures, day turn
+src/controls/               orbit input
+src/flight/                 cinematic, home return and manual-flight experiment
+src/mission/                discovery selection and collection
+src/ui/                     DOM interface, grown-ups panel, photos and coach
+src/audio/                  narration and sound
+src/state/                  progress, replay and settings
+design/                     unshipped reference material
+e2e/                        browser playthroughs and screenshot checks
 ```
 
-**Software rendering runs slowly, and `Stage.tick` clamps `dt` to 0.05s** so a dropped
-frame cannot teleport the ship. At ~15fps that means flight time advances far slower than
-wall-clock: a 7-second flight can take ~16 real seconds to complete headlessly. Wait
-generously, or you will screenshot a flight you think has finished. This is a harness
-artifact, not a bug — at 60fps `dt` never reaches the clamp.
-
-Listen for `pageerror` in these scripts. A shader or maths bug shows up there and nowhere
-else; a crash inside the frame loop leaves the last good frame on screen and looks fine in
-a screenshot.
-
-## Verifying sound
-
-You cannot hear it. Say so rather than claiming a sound is good — how it lands is a property
-of a tablet speaker in a child's hands, and the only honest answer is to ask.
-
-What *is* checkable is everything that goes wrong silently, and all of it is a graph fact.
-`sfx.test.ts` installs a fake `window.AudioContext` (no seam in the module: it reads the
-constructor off `window`, so a test can simply provide one) and asserts that one engine is
-built rather than one per frame, that gain follows the throttle, that every voice is stopped
-and disconnected, and that nothing survives a `reset()`. The envelope maths is exported as
-pure functions and pinned separately, like the flight's easing.
-
-Headless Chromium has real Web Audio — a running context at 44.1kHz — so the same drive-the-
-app workflow above measures the actual output: subclass `window.AudioContext` in an init
-script, wrap `createOscillator` and friends to count starts and stops, and redefine
-`destination` as a gain feeding an `AnalyserNode` feeding the real one. `getFloatTimeDomainData`
-then gives you the RMS of everything the game is playing, frame by frame. That is how the
-plateau shape, the six bells and the silence after every reset were checked here.
-
----
-
-## Narration: authored first, device voice only on request
-
-`src/audio/narration.ts` now plays stable keyed MP3 cues behind the existing `Narrator`
-interface. The browser's `SpeechSynthesis` remains a manual fallback for a missing file,
-because the operating-system voice sounds different and mostly poor on every platform.
-
-**Only an exact authored cue starts automatically.** This is the boundary that lets audio
-become the primary guide without reviving the top playtest complaint. `showFact()` asks
-`hasRecording(cueId)` before hiding the paragraph or speaking. A partial pack therefore
-improves only the lines it contains; it never causes the browser fallback to begin talking.
-The speaker button can still request either the recording or fallback, and sound-off stops
-both and hides that button.
-
-The cue IDs are semantic (`arrival-earth`, `discovery-moon-tycho`, `hunt-mars`), not hashes
-of display copy. `narration-script.test.ts` derives every expected ID from `DESTINATIONS`
-and fails if a new destination or discovery has no script. The generated line may be shorter
-than the adult-readable fact, because listening memory and reading layout are different jobs.
-Instructional lines explicitly say the visible action and object: “tap a gold target” or
-“swipe the planet sideways.” The target shape, arrow and hand emoji remain; audio does not
-get to become the only instruction.
-
-Recordings live in `src/audio/recordings/` so Vite fingerprints them and the service-worker
-builder precaches them. They are decoded through the one AudioContext unlocked by the Fly
-gesture, cached in memory after first use, and stopped through the same `Narrator.stop()`
-path as SpeechSynthesis. A failed fetch/decode falls back only when the speaker was already
-asked to speak; automatic playback is never enabled for a cue without a bundled URL.
-
-`npm run narration:generate` reads `narration-script.json` and runs the Apache-2.0
-Kokoro-82M model locally. It needs no account or API key. The q8 model is about 90MB in a
-task-specific temporary cache; only the 1.15MB MP3 pack is shipped. `ffmpeg` normalises every
-cue to -16 LUFS and encodes 24kHz mono MP3. `kokoro-js` is deliberately **not** a committed
-dependency — its `onnxruntime`/`sharp`/`@huggingface/transformers` tree is hundreds of MB of
-native binaries that `npm ci` would install on every deploy for a step the deploy never runs.
-Install it just for the generation run (`npm install --no-save kokoro-js`); the recordings
-README carries the same note. Kokoro ships no Australian voice (American `af_`/`am_` and
-British `bf_`/`bm_` are the English options); the pack uses the British `bf_emma` as the
-closest available fallback. The command preserves existing MP3s unless
-`--force` is passed and accepts `--voice=<name>` / `--speed=<number>`. The older OpenAI path
-remains available as `npm run narration:generate:openai`, but is not needed for the included
-pack. Generated voices must stay clearly disclosed as AI-generated in the grown-ups panel.
-Do not approve a regenerated pack merely because generation succeeded: listen on the target
-device, then watch the child act without adult explanation.
-
-The old voice picker remains useful when no MP3 pack ships. It ranks rather than
-first-matches, lets an adult audition real game copy, remembers their explicit choice, and
-uses `speechText` to clean punctuation and split sentences. It is a graceful fallback, not
-the plan for primary guidance.
-
-The grown-ups panel shows itself once per device and afterwards only on a two-second hold of
-the journal button (or `?grownups`). Keep it operational and short. A parent about to hand
-over a tablet reads one screen; the child-facing interaction must still work without it.
-
----
-
-## Suggested next steps
-
-Ordered. The reasoning matters more than the order.
-
-The first three need a person and a device, not a session. They are first because no amount
-of code substitutes for them — and item 3 has just become the gate on item 4, because the
-loop was rebuilt this week and nobody has watched a child use the rebuilt one.
-
-1. **Listen to the sound on the real device.** The engine and the sunrise are in and the
-   graph is measured, but nobody has *heard* them: the development machine has no audio,
-   and loudness balance is a property of a tablet speaker. The likeliest things to want
-   tuning are `THRUSTER_PEAK` and the bell peak in `dawn` — headlessly they measure about
-   equally loud, and a bell should probably sit under an engine. Everything worth adjusting
-   is a named constant at the top of its section in `sfx.ts`.
-
-2. **Run it fullscreen, from a home-screen icon — and check it there.** The manifest and a
-   service worker are now in (`display: "standalone"`, icons, offline). What is *not* done
-   is watching a child launch it from the home screen: the fullscreen gain was measured off
-   a Surface screenshot as close to a fifth of the screen, but nobody has installed it on a
-   real tablet and confirmed the launcher icon, the standalone chrome and the offline
-   reload all behave. The grown-ups panel now tells a parent how to add it and detects
-   whether they already have. iOS is the untested platform here as everywhere (see below).
-
-3. **Watch a child use it again — this is now the gate on everything below.** Every
-   genuinely valuable change in this project came from that and not from reading the code:
-   the sunrise, the drag lesson, the badges on the markers. The loop has just been rebuilt
-   around getting a child to something touchable in a third of the time, and three specific
-   questions can only be answered by watching one:
-   - Does one-tap-to-fly cause accidental launches in practice, or does the tap/drag
-     threshold hold? (If it does cause them, fix towards *one* press, not back to two.)
-   - Is six seconds the right wait before the coach's hand appears — and does a child
-     actually copy the drag it demonstrates, which is the gesture nothing has ever shown?
-   - Does the day turn still get pressed now that it is offered rather than played
-     automatically? If nobody presses it, the button is wrong, not the decision.
-
-4. **~~Give it a reason to be played twice.~~** Mostly done. Each world carries six places
-   and shows three, picked per visit and weighted towards the unfound, so a second trip is a
-   different trip; the world badge now waits for all six. What is **not** done:
-   - *The twelve new places have no photographs.* Every image host is refused at this
-     environment's egress gateway, so they have to be fetched by a person — see the note under
-     *Assets are drop-in*, and never offer to generate one.
-   - *And no recordings.* `narration-script.json` has all twenty-four discovery cues written,
-     but `huggingface.co` is blocked here too (403 at the gateway), so the MP3s need
-     `npm run narration:generate` on a real machine. Until then any visit that includes a new
-     place plays silently and shows its words, by design.
-   - *Nobody has watched a child replay a world.* The open question is whether a set that
-     includes a place they have already found reads as a reward or as a repeat.
-
-5. **~~Make the stickers visible.~~** Done. Each earned world sticker is now a bold,
-   runtime-drawn decal on the primitive spaceship, and the finale adds a Space Ninja crest to
-   both sides of the nose. The livery reads directly from the existing progress record: scene
-   resets preserve it, while **Start a new adventure** removes it. The marks use simple Canvas
-   shapes rather than emoji or a downloaded sheet so they stay deterministic, offline and
-   legible at the ship's parked size. It still needs judgment on the real tablet.
-
-6. **One toy per world, not one lesson four times.** Saturn's rings tilting to edge-on is
-   cheap and spectacular and reuses the axial-tilt container; a Mars dust storm is not cheap.
-   Do not price these as equal.
-
-7. **~~Add Saturn.~~** Done — Saturn is a destination, with two surface places and one
-   discoveries that live on the ring plane (the bright rings, and the gap in them). Its checked Solar System Scope body texture is
-   explicitly disclosed as a visual reconstruction because unmapped gaps use fictional
-   terrain; its rings use a genuine Cassini radial strip. What is **not** done is watching
-   it on the real tablet: browser playthroughs now cover phone portrait and landscape, but
-   the widest framing tier and compressed size still need judgment in a child's hands. The
-   next outer world is *not* as cheap as this one was — see the reachability note above.
-
-8. **~~Finishing everything is not a moment.~~** Done — see the invariant above. Finding the
-   twelfth place now brings up the finale and the `space-ninja` sticker. Still unwatched with
-   a child, like everything in this file that has not been.
-
-9. **It has never run on iOS Safari.** Everything here is driven in headless Chromium and
-   played on Android and a Surface. Safari differs in the places this game leans on: audio
-   context unlocking, `backdrop-filter` (used on nearly every surface — the `-webkit-`
-   prefixes are there, but untested), `localStorage` throwing in private mode (guarded, also
-   untested), and `env(safe-area-inset-*)`, which the layout uses for all four paddings and
-   which only earns its keep on a notched device. If the game is ever handed to someone with
-   an iPad, that is where it will break, and nobody has looked.
-
-10. **Listen to and child-test the narration pack.** The 25 Kokoro clips, keyed loader and
-   generator are done, but audio measurements do not establish whether a five-year-old
-   understands the delivery. Try voice or speed changes in `narration-script.json`,
-   regenerate with `--force`, then watch whether the child taps or swipes after the cue
-   without an adult translating it.
-
-Known and left alone: the Moon can wander into the shot while a child explores Earth, and
-at these compressed distances it is large when it does. The arrival steers clear of it;
-the camera then orbits on a shell the Moon's orbit crosses, so dragging far enough round
-still finds it. Moving the Moon out would change every other shot in the game.
-
-**Reveal-gating, and the Mars/Saturn overlap it does and does not fix.** Mars orbits at 5.0
-and Saturn at 6.6, and Saturn's rings reach out to `2.3 × 1.5 ≈ 3.45` radii, so Saturn's near
-ring edge comes in to about 3.15 from the scene centre — well inside Mars's orbit. With their
-two orbit tilts (`MARS_ORBIT_TILT −0.19`, `SATURN_ORBIT_TILT 0.15`) and the projection, Mars
-passes *through* Saturn's rings on screen, looking like a moon caught in them; and on a narrow
-portrait phone Saturn — compressed-large and low in frame — loomed across the bottom third even
-at the narrowest "Tap the Moon" tier. Both were reported from a built deploy (screenshots, Sept
-2026). Both are composition, not physics: the orbits are already invented.
-
-The fix in the code now is **reveal-gating** (`revealAfterVisiting` in `config.ts`,
-`revealedDestinations`, `World.setRevealed`, `applyReveal` in `main.ts`): an outer world is not
-drawn until the visit its framing tier widens on. So the opening is Earth and the Moon only —
-no Saturn loom, no overlap — Mars appears once the Moon has been visited, and Saturn once Mars
-has. That removes both problems for the whole run up to reaching Mars, which is the first-time
-experience and every state before Saturn is earned.
-
-What it does **not** do is eliminate the crossing once Saturn is revealed: after Mars is
-visited both are in the widest tier, and their orbits genuinely cross in projection, so from
-some angles they still line up. It is much milder there — the widest tier has pulled the camera
-right back to fit the rings, so Mars is a speck rather than a prominent planet — but it is not
-gone. Fully removing the residual needs spatial separation (a wider or more tilted Saturn orbit)
-or fading distant bodies, both of which ripple into other shots (see the Saturn invariants) and
-want on-device tuning, so they are deliberately left as a follow-up rather than guessed at here.
-The vertical framing inset below is a separate lever and cannot help a width-bound portrait
-shot at all; reveal-gating is what fixed that one.
-
-Done since this file was written: worlds now carry six real places each and show three,
-picked per visit and weighted towards the ones not yet found, so going back to a world is not
-the same world — with the arrival rules checked against every set the picker can produce, and
-against the property a person could not check by hand, that every place can be reached at all;
-the world badge waits for all six while the celebration still fires every visit; a visit
-narrates all of its places or none of them; the day/night button carries a small globe of its
-own world, driven by the real turn while one runs, and asks to be noticed once the hunt is
-done; the loop was rebuilt around the child's first thirty
-seconds — one tap flies, the automatic day/night arrival intro is gone and the day turn is a
-button again, the targets are live the moment the ship lands, an idle hand demonstrates the
-tap and the drag, the locked worlds appear as padlocked chips, a discovery says one short
-line in play and keeps the whole story for the journal, and the finale happens once instead
-of on every re-completion (measured tap-to-first-target 25.2s → 9.1s under software
-rendering, against the pre-change build on the same machine);
-the grown-ups panel can precisely reset one adventure;
-audio-first fact cards keep a labelled, timed transcript control; unrelated worlds and the
-parked ship fade only during a visit so they cannot hide hunt targets; child-facing hunt copy
-now consistently says to swipe sideways and look around rather than claiming the planet is
-being spun;
-earned worlds have stable destination buttons and reveal with a short map transition;
-the outbound flight is a clean cinematic without cosmetic steering; Fly Home is now an animated camera pull-back to the map
-(`HomeReturn`) rather than an instant cut; framing reserves vertical space for the
-interface so the destination clears the dock (`framingHalfAngle` / `framingInset`); the outer
-worlds are reveal-gated so an unearned one no longer looms into the opening shot
-(`revealAfterVisiting` / `World.setRevealed`); Saturn is
-a fourth destination, with rings you can find
-as a discovery in their own plane, reached by a third framing tier once Mars has been
-visited; a new build now refreshes the installed app on the launch that fetches it rather
-than the one after; the game is now an installable app with a manifest,
-home-screen icons and an offline service worker; finishing every place on every world is
-its own celebration with its own sticker; the frame loop now shows a crash screen instead of
-a frozen last frame; and the grown-ups panel states the privacy property and explains adding
-to the home screen. Before that: collecting became discovering (real places at real
-coordinates, each telling you something that goes in the journal), the flight now arrives
-about three body-radii out instead of nine and a half, Earth is a destination, authored
-narration can now start on its own while the poor device fallback cannot, Earth can be
-turned through a day, the flight and the day turn
-both make a sound, a found place keeps its own emoji badge and shows a real NASA photograph
-of itself, an adult can choose the reading voice and turn the sound off, an arrow points at
-the last place while it is round the back, and the dock no longer stands on the planet in
-landscape or bury it on a phone.
-
-The original twelve discovery photographs are installed and credited; the twelve places added
-since have none yet, which is a supported state — a place with no file simply has no
-photograph. They had to be sourced outside the assistant environment, which cannot reach a
-single image host — see the note under
-*Assets are drop-in* before offering to fetch any more.
-
-Not yet in scope: real orbital physics, planets past Saturn, downloaded models.
-
----
-
-## Assets
-
-Real textures go in `public/assets/` and are picked up automatically — see
-`public/assets/README.txt` for exact filenames and sources. Images wider than 2048 are
-rescaled in the browser before reaching the GPU, so an oversized drop-in costs a console
-warning rather than a dead tab. Anything under a CC BY licence must be credited in
-`README.md`; the current Solar System Scope textures already are.
+When a module becomes a change bottleneck, split it along ownership boundaries. “No framework”
+does not mean “no components” or “one giant file”; use small DOM components or a state machine
+when they make transitions and responsive layouts clearer.
