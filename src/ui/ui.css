@@ -687,6 +687,46 @@ body {
   max-height: 100%;
 }
 
+.photo-view__title,
+.photo-view__detail,
+.photo-view__continue {
+  display: none;
+}
+
+/* A newly found place deserves to read as a postcard, not as a thumbnail that happened to
+   appear. The regular viewer stays deliberately spare for journal/replay photos. */
+.photo-view.is-reward {
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+.photo-view.is-reward .photo-view__figure {
+  width: min(42rem, 100%);
+  gap: 0.65rem;
+}
+
+.photo-view.is-reward .photo-view__title,
+.photo-view.is-reward .photo-view__detail,
+.photo-view.is-reward .photo-view__continue {
+  display: block;
+}
+
+.photo-view__title {
+  margin: 0;
+  color: #fff3dc;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.08;
+  text-align: center;
+}
+
+.photo-view__detail {
+  margin: 0;
+  max-width: 38rem;
+  color: rgba(255, 243, 220, 0.9);
+  font-size: clamp(0.95rem, 3.4vw, 1.08rem);
+  line-height: 1.35;
+  text-align: center;
+}
+
 .photo-view__image {
   display: block;
   max-width: 100%;
@@ -694,6 +734,12 @@ body {
   max-height: calc(100% - 3.5rem);
   object-fit: contain;
   border-radius: 14px;
+}
+
+.photo-view.is-reward .photo-view__image {
+  /* Reserve a readable title, fact and exit on a phone instead of letting a landscape image
+     eat the whole screen. The image is still the largest thing in the reward. */
+  max-height: min(55vh, 28rem);
 }
 
 .photo-view__caption {
@@ -709,6 +755,12 @@ body {
   right: 1rem;
   font-size: 1.3rem;
   font-weight: 700;
+}
+
+.photo-view__continue {
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  min-width: min(18rem, calc(100% - 3rem));
 }
 
 .narrate-btn.is-speaking {

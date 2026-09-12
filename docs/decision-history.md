@@ -55,3 +55,12 @@ The audit does not automatically put manual steering into the main child loop, r
 scripted flight, eliminate hidden discoveries or impose a new day/night tutorial. Those are
 product experiments to implement and evaluate on the target tablet. The audit permits better
 alternatives; it does not pretend they have already been validated.
+
+## 2026-09-12 — First-find photo postcard
+
+A first-time discovery now opens its verified photograph as a large postcard once the lazy
+image has decoded. The previous thumbnail-only treatment made a successful tap feel like an
+abstract yellow ring and narration, especially on phones; expecting a pre-reader to notice and
+operate a small magnifier was too much. Repeated finds remain compact so familiar places do not
+turn replay into a chain of interruptions. The postcard retains a plainly labelled exit and
+does not bypass lazy loading, missing-photo handling, or the Android dismissal guard.

@@ -136,8 +136,9 @@ reload — the loader picks them up automatically and no code changes are needed
 you add under a CC BY licence needs crediting in the list above.
 
 **Photographs of the places a child finds** work the same way, and are the most worthwhile
-thing you can add. Each discovery can show a real photograph of itself — a thumbnail in its
-card, full screen on a tap — from a file named after it in `public/assets/discoveries/`.
+thing you can add. A first find opens its real photograph as a large postcard once it has
+loaded; revisits retain a thumbnail that opens full screen on a tap. Files are named after
+their discovery in `public/assets/discoveries/`.
 That folder's `README.txt` names the specific NASA image used for every place and why that
 one fits the discovery. They remain optional and can be replaced one at a time: a place with
 no file simply has no photograph. **Nothing is downloaded until a place is

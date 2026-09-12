@@ -38,6 +38,8 @@ export async function findPhoto(discoveryId: string): Promise<string | null> {
 
 export interface PhotoViewer {
   show(url: string, caption: string): void;
+  /** The first find is a reward, not a thumbnail a pre-reader has to notice. */
+  showDiscovery(url: string, title: string, detail: string): void;
   hide(): void;
   dispose(): void;
 }
@@ -66,9 +68,16 @@ export function canFinishPhotoDismiss(
 export function createPhotoViewer(root: HTMLElement): PhotoViewer {
   const overlay = document.createElement('div');
   overlay.className = 'photo-view is-hidden';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
 
   const figure = document.createElement('figure');
   figure.className = 'photo-view__figure';
+
+  const title = document.createElement('h2');
+  title.className = 'photo-view__title';
+  title.id = 'photo-view-title';
+  overlay.setAttribute('aria-labelledby', title.id);
 
   const image = document.createElement('img');
   image.className = 'photo-view__image';
@@ -77,14 +86,22 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
   const caption = document.createElement('figcaption');
   caption.className = 'photo-view__caption';
 
+  const detail = document.createElement('p');
+  detail.className = 'photo-view__detail';
+
   const close = document.createElement('button');
   close.className = 'btn btn--round photo-view__close';
   close.type = 'button';
   close.textContent = '✕';
   close.setAttribute('aria-label', 'Close the photo');
 
-  figure.append(image, caption);
-  overlay.append(figure, close);
+  const continueButton = document.createElement('button');
+  continueButton.className = 'btn photo-view__continue is-hidden';
+  continueButton.type = 'button';
+  continueButton.textContent = 'Keep exploring';
+
+  figure.append(title, image, caption, detail);
+  overlay.append(figure, continueButton, close);
 
   function hide() {
     overlay.classList.add('is-hidden');
@@ -136,6 +153,10 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
     event.stopPropagation();
     hide();
   });
+  // A visible, worded exit makes the automatic postcard feel like a reward rather than a
+  // surprise modal. It is an explicit control, so it follows the close button rather than
+  // the guarded backdrop route.
+  continueButton.addEventListener('click', hide);
   const onKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape') hide();
   };
@@ -147,6 +168,22 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
     show(url: string, text: string) {
       image.src = url;
       caption.textContent = text;
+      // Hidden visually in the journal viewer, but still the dialog name for assistive tech.
+      title.textContent = text;
+      detail.textContent = '';
+      overlay.classList.remove('is-reward');
+      continueButton.classList.add('is-hidden');
+      overlay.classList.remove('is-hidden');
+      openedAt = performance.now();
+      dismissPointer = null;
+    },
+    showDiscovery(url: string, discoveryTitle: string, discoveryDetail: string) {
+      image.src = url;
+      title.textContent = discoveryTitle;
+      detail.textContent = discoveryDetail;
+      caption.textContent = '';
+      overlay.classList.add('is-reward');
+      continueButton.classList.remove('is-hidden');
       overlay.classList.remove('is-hidden');
       openedAt = performance.now();
       dismissPointer = null;

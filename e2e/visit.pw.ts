@@ -24,6 +24,11 @@ async function collectVisible(page: Page) {
   await page.mouse.click(target.x,target.y);
   await expect.poll(async () => (await snapshot(page)).collected).toBe(s.collected + 1);
 }
+async function keepExploring(page: Page) {
+  await expect(page.locator('.photo-view.is-reward')).toBeVisible();
+  await page.getByRole('button',{name:'Keep exploring'}).click();
+  await expect(page.locator('.photo-view')).toBeHidden();
+}
 async function home(page: Page) {
   await page.getByRole('button',{name:'Fly Home',exact:true}).click();
   await expect(page.getByRole('button',{name:'Fly to Moon',exact:true})).toBeVisible();
@@ -45,7 +50,16 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await info.attach('moon-arrival',{body:await page.screenshot(),contentType:'image/png'});
   const firstIds = (await snapshot(page)).ids;
   await collectVisible(page);
+  // The first find is the postcard moment. Its photo is lazy, so the assertion waits for
+  // the actual browser image rather than assuming a fast local disk/cache.
+  await expect(page.locator('.photo-view.is-reward')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Keep exploring'})).toBeVisible();
+  await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
+  await info.attach('first-find-postcard',{body:await page.screenshot(),contentType:'image/png'});
+  await page.getByRole('button',{name:'Keep exploring'}).click();
+  await expect(page.locator('.photo-view')).toBeHidden();
   await collectVisible(page);
+  await keepExploring(page);
   await expect.poll(async () => (await snapshot(page)).hidden?.visible).toBe(false);
   // Pull from the indicated side. This is a real drag through OrbitInput.
   for(let attempt=0; attempt<8 && !(await snapshot(page)).targets.some((t:any)=>t.visible); attempt++) {
@@ -57,6 +71,7 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     await page.mouse.up();
   }
   await collectVisible(page);
+  await keepExploring(page);
   await expect(page.locator('.hint')).toContainText('Found!');
   await page.getByRole('button',{name:'Open your discovery journal'}).click();
   await expect(page.locator('.collection-progress')).toContainText('3/6');

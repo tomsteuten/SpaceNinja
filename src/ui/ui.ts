@@ -398,7 +398,7 @@ export function createUI(options: UIOptions): GameUI {
    * discovery. A probe that resolves a moment late would otherwise staple the Sahara's
    * photograph to whatever the card had moved on to.
    */
-  async function attachPhoto(discovery: Discovery) {
+  async function attachPhoto(discovery: Discovery, showAsFirstFindReward: boolean) {
     clearPhoto();
     const url = await findPhoto(discovery.id);
     if (!url || photoFor !== discovery.id) return;
@@ -412,6 +412,18 @@ export function createUI(options: UIOptions): GameUI {
     void factPhoto.offsetWidth;
     factPhoto.classList.add('is-fresh');
     later(() => factPhoto.classList.remove('is-fresh'), 2200);
+
+    if (!showAsFirstFindReward) return;
+    // A large postcard is the payoff for a first find, but it must not replace the instant
+    // badge, words and narration with a wait for a lazy image. Waiting for decode also keeps
+    // a slow connection from opening a dark overlay with an empty rectangle inside it.
+    try {
+      await factPhotoImage.decode();
+    } catch {
+      return;
+    }
+    if (photoFor !== discovery.id) return;
+    photoViewer.showDiscovery(url, `${discovery.emoji} ${discovery.name}`, discovery.short);
   }
 
   /** The discovery the card is currently about, or null for anything else. */
@@ -1108,9 +1120,11 @@ export function createUI(options: UIOptions): GameUI {
         narrate,
       );
       // And the real photograph, if one has been dropped in for this place. Started after
-      // the words rather than waited on: the card must not hang on a network probe.
+      // the words rather than waited on: the card must not hang on a network probe. A first
+      // find becomes a big postcard once that photograph is actually ready; repeats keep the
+      // compact card so a familiar place does not keep stopping play.
       photoFor = discovery.id;
-      void attachPhoto(discovery);
+      void attachPhoto(discovery, !revisited);
       journalButton.setAttribute('data-new', 'true');
       if (journalOpen) renderJournal();
     },
