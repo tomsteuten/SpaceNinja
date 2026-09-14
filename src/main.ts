@@ -1,7 +1,10 @@
+import { createSessionLifecycle } from './session/lifecycle';
+import { fail } from './session/failure';
+import { registerOffline } from './session/offline';
 import { nextWorld } from './state/replay';
 /**
  * Entry point. Builds the scene, wires input to the flight sequence, the missions and the
- * UI, and owns both the restart and the teardown paths.
+ * UI. Session lifecycle owns browser transitions; this route supplies reset and disposal.
  *
  * Common destination behavior is data-driven; unusual bodies may expose explicit scene
  * capabilities instead of being forced through a false one-size-fits-all abstraction.
@@ -52,68 +55,6 @@ import { loadSoundOn } from './state/settings';
 import { DISCOVERIES } from './config';
 
 const boot = document.getElementById('boot');
-
-/**
- * The boot screen doubles as the failure screen. `crash` is the mid-session case: the
- * frame loop threw, the picture underneath is the last good frame, and without this the
- * only signal a tablet gives is a child saying it stopped. The words differ, there is a
- * button that reloads, and the error itself is printed small for whoever reports it.
- */
-function fail(message: string, error: unknown, crash = false) {
-  console.error(message, error);
-  if (!boot) return;
-  boot.classList.add('has-error');
-  boot.classList.toggle('has-crash', crash);
-  boot.classList.remove('is-hidden');
-  if (!crash) return;
-  const detail = boot.querySelector('.boot-detail');
-  if (detail) detail.textContent = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  boot.querySelector('.boot-restart')?.addEventListener('click', () => window.location.reload(), {
-    once: true,
-  });
-}
-
-/**
- * Offline, from the second launch on. Only in a build: there is no bundle to cache in
- * development, and a worker there would serve stale modules over the live ones. A browser
- * without the API, or a registration that fails, simply leaves the game as it was.
- *
- * `canReloadNow` gates the one-launch auto-update below: it is asked at the moment a new
- * worker takes over, and answers false once a child is playing so the update waits.
- */
-function registerOffline(canReloadNow: () => boolean) {
-  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
-
-  /*
-   * Land a new build on the launch that fetched it, not the one after.
-   *
-   * A new build's worker calls skipWaiting()/clients.claim() (see sw/sw.js), so it takes
-   * control of this already-open page the instant it activates — that hand-over is
-   * `controllerchange`. But the page in front of the child is still the *old* shell it was
-   * served at load, so without this it only refreshes to the new build on the next launch:
-   * the "open the installed app twice" tax a cache-first PWA otherwise charges, and the
-   * thing that makes on-device testing feel like it is caching forever.
-   */
-  let reloading = false;
-  // A brand-new install claims a page that never had a controller; there is no older
-  // version to escape, so a reload there would be a pointless flash of the boot screen.
-  const hadController = Boolean(navigator.serviceWorker.controller);
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || reloading) return;
-    // Never pull the world out from under a child mid-flight. At the title the swap is
-    // invisible; once they have gone somewhere the new build simply waits for next launch,
-    // which is exactly the behaviour that was there before this.
-    if (!canReloadNow()) return;
-    reloading = true;
-    window.location.reload();
-  });
-
-  // The shell itself stays cache-first and atomic, but the update check for the tiny
-  // worker script must reach Pages rather than an HTTP cache holding yesterday's build.
-  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch((error: unknown) => {
-    console.warn('[offline] not available', error);
-  });
-}
 
 async function main() {
   const canvasElement = document.getElementById('scene');
@@ -782,7 +723,7 @@ async function main() {
    * The bodies are deliberately not put back where they were: they have kept orbiting,
    * and the next flight simply aims at wherever the destination is now.
    */
-  function restart() {
+  function resetAdventure() {
     cameraReturn = null;
     coach.clear();
     idleFor = 0;
@@ -947,14 +888,6 @@ async function main() {
     }
   });
 
-  stage.onCrash((error) => {
-    // The loop has stopped; the sounds it was driving have not, and the engine would
-    // otherwise drone under the crash screen at whatever gain it had reached.
-    sfx.reset();
-    narrator.stop();
-    fail('Space Ninja stopped', error, true);
-  });
-
   // Read-only instrumentation exists only in the dedicated browser-test build. Tests
   // still launch, drag and collect through ordinary pointer events, never state setters.
   if (import.meta.env.VITE_PLAYTEST === '1') {
@@ -983,31 +916,25 @@ async function main() {
       };
     } });
   }
-  stage.start();
-
-  /* --- lifecycle ----------------------------------------------------------- */
-
-  // Stop drawing while backgrounded; on a tablet this is most of the battery win.
-  function onVisibilityChange() {
-    if (document.hidden) {
-      stage.stop();
+  const lifecycle = createSessionLifecycle({
+    stage, document, window,
+    suspend: () => {
       narrator.stop();
-      // Continuous sound is driven a frame at a time, and stopping the loop stops the
-      // driving — leaving the engine held at whatever gain it had reached, droning out of
-      // a backgrounded tab forever. Both sounds rebuild themselves on the next frame.
       sfx.reset();
-    } else {
-      stage.start();
-    }
-  }
-  document.addEventListener('visibilitychange', onVisibilityChange);
+      controls.cancelGesture();
+    },
+    reset: resetAdventure,
+    dispose,
+    fail: (error) => fail('Space Ninja stopped', error, true),
+  });
+  function restart() { lifecycle.restart(); }
+  lifecycle.start();
 
   function dispose() {
     window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
-    document.removeEventListener('visibilitychange', onVisibilityChange);
     document.removeEventListener('keydown', onFreeFlightShortcut);
     controls.dispose();
     ui.dispose();
@@ -1021,8 +948,6 @@ async function main() {
     sky.dispose();
     stage.dispose();
   }
-
-  window.addEventListener('pagehide', dispose, { once: true });
 }
 
 main().catch((error: unknown) => {

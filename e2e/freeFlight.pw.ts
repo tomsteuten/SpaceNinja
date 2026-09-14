@@ -1,23 +1,6 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
-
-async function attachShot(page: Page, name: string, info: TestInfo) {
-  await info.attach(name, { body: await page.screenshot(), contentType: 'image/png' });
-}
+import { test, expect, attachShot, expectRendering } from './fixtures';
 
 test('assisted free flight boots, flies, arrives and hands control back', async ({ page }, info) => {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
-  });
-
-  await page.addInitScript(() => {
-    // Exercise the supported older-device tier; software bloom can saturate CI hosts.
-    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 4 });
-    Object.defineProperty(navigator, 'deviceMemory', { get: () => 2 });
-    Math.random = () => 0.1;
-  });
-
   await page.goto('/?grownups');
   await expect(page.getByRole('heading', { name: 'Fly it yourself' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try manual flight' })).toBeVisible();
@@ -58,5 +41,11 @@ test('assisted free flight boots, flies, arrives and hands control back', async 
   await expect(page.locator('.ff')).toHaveCount(0);
   await expect(page.locator('#boot')).toBeHidden();
 
-  expect(errors).toEqual([]);
+  const greeting = page.getByRole('button', { name: 'Start playing', exact: true });
+  if (await greeting.isVisible()) await greeting.click();
+  await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().phase)).toBe('arrived');
+  await expectRendering(page);
+  await page.getByRole('button', { name: 'Fly Home', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Fly to Moon', exact: true })).toBeVisible();
 });

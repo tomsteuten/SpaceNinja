@@ -107,6 +107,8 @@ export interface OrbitInput {
    * owns the target and the framing radius, exactly as it does at startup.
    */
   reset(): void;
+  /** Release interrupted touches without changing the camera or its owner. */
+  cancelGesture(): void;
   update(dt: number): void;
   dispose(): void;
 }
@@ -338,6 +340,19 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       desiredRadius = spherical.radius;
       velocityTheta = 0;
       velocityPhi = 0;
+    },
+
+    cancelGesture() {
+      const captured = [...pointers.keys()];
+      pointers.clear();
+      pinchDistance = 0;
+      velocityTheta = 0;
+      velocityPhi = 0;
+      for (const id of captured) {
+        try {
+          if (element.hasPointerCapture(id)) element.releasePointerCapture(id);
+        } catch { /* The browser may already have cancelled the touch. */ }
+      }
     },
 
     reset() {

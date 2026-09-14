@@ -64,3 +64,33 @@ abstract yellow ring and narration, especially on phones; expecting a pre-reader
 operate a small magnifier was too much. Repeated finds remain compact so familiar places do not
 turn replay into a chain of interruptions. The postcard retains a plainly labelled exit and
 does not bypass lazy loading, missing-photo handling, or the Android dismissal guard.
+
+
+## 2026-09-14 — Shared browser lifetime for both routes
+
+Code review found three inconsistent lifetime paths: adventure resumed its stage on visibility
+without remembering a crash; free flight never suspended its loop on visibility and used only a
+hint for crashes; both disposed GPU resources on every `pagehide`, including cached history
+navigation. The latter can restore an already-disposed scene when navigating back.
+
+`src/session/lifecycle.ts` now owns browser pause/resume, terminal crash and final disposal for
+both routes. Persisted history navigation suspends and retains resources, while ordinary exit
+disposes once. Interrupted input is released without resetting the camera or changing its owner.
+Adventure restart delegates to the existing ordered reset callback; it does not write progress.
+Free flight uses the reusable crash screen and registers offline support after its first frame,
+with automatic update reload disabled during the experiment.
+
+This extracts a tested ownership boundary without replacing the adventure's mission/camera
+orchestration with an unproven state-machine rewrite. Unit tests exercise crash permanence,
+history retention, hidden startup and idempotent disposal. Browser checks exercise the actual
+route integrations, interrupted steering and an adventure trip after exiting free flight.
+Manual flight remains an explicitly entered experiment.
+
+
+## 2026-09-14 — Postcard clearance in short landscape
+
+The screenshot review at 844 by 390 exposed discovery text behind the fixed Keep exploring
+button, although the button remained clickable and the prior browser suite passed. Short
+viewports now reserve an exit row and cap photo height against the remaining vertical space.
+A browser assertion checks the full text ends above the exit in every tested viewport. Photo
+loading, first-find behavior and the Android backdrop dismissal guard are unchanged.

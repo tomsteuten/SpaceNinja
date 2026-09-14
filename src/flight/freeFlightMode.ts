@@ -1,3 +1,6 @@
+import { createSessionLifecycle } from '../session/lifecycle';
+import { fail } from '../session/failure';
+import { registerOffline } from '../session/offline';
 /**
  * Assisted free flight — the scene glue for the `?freeflight` prototype.
  *
@@ -34,7 +37,7 @@ import {
 } from './freeFlightModel';
 import { adventureHref } from './freeFlightRoute';
 
-const ALL_BODIES: BodyId[] = ['earth', 'moon', 'mars', 'saturn'];
+const ALL_BODIES = Object.keys(DESTINATIONS) as BodyId[];
 
 /** Where the ship starts: out from Earth, nose toward the middle of the neighbourhood. */
 const START_POSITION = new THREE.Vector3(0, 1.2, 5.5);
@@ -227,29 +230,43 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
     if (!booted) {
       booted = true;
       boot?.classList.add('is-hidden');
+      registerOffline(() => false);
     }
   });
 
-  stage.onCrash((error) => {
-    console.error('Free flight stopped', error);
-    setHint('The prototype hit an error — reload to try again.');
+  const lifecycle = createSessionLifecycle({
+    stage, document, window,
+    suspend: () => {
+      const captured = activePointer;
+      activePointer = null;
+      pointer = null;
+      if (captured !== null && canvas.hasPointerCapture(captured)) {
+        canvas.releasePointerCapture(captured);
+      }
+    },
+    fail: (error) => fail('Free flight stopped', error, true),
+    dispose: () => {
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerUp);
+      canvas.removeEventListener('lostpointercapture', onPointerUp);
+      ship.dispose();
+      trail.dispose();
+      world.dispose();
+      sky.dispose();
+      stage.dispose();
+      hud.root.remove();
+    },
   });
-
-  stage.start();
-
-  window.addEventListener('pagehide', () => {
-    canvas.removeEventListener('pointerdown', onPointerDown);
-    canvas.removeEventListener('pointermove', onPointerMove);
-    canvas.removeEventListener('pointerup', onPointerUp);
-    canvas.removeEventListener('pointercancel', onPointerUp);
-    canvas.removeEventListener('lostpointercapture', onPointerUp);
-    ship.dispose();
-    trail.dispose();
-    world.dispose();
-    sky.dispose();
-    stage.dispose();
-    hud.root.remove();
-  }, { once: true });
+  if (import.meta.env.VITE_PLAYTEST === '1') {
+    Object.assign(window, { spaceNinjaSnapshot: () => ({
+      frame: stage.renderer.info.render.frame,
+      steering: pointer !== null,
+      position: flight.state.position.toArray(),
+    }) });
+  }
+  lifecycle.start();
 }
 
 /* --- HUD construction (prototype-only, kept out of ui.ts on purpose) -------- */

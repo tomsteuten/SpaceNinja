@@ -78,7 +78,9 @@ historical position of each button.
 Every stateful subsystem owns a reset/dispose operation that undoes its own state. There must
 be one lifecycle coordinator so Fly Home, progress reset, crash handling and page teardown do
 not partially reset the scene. That coordinator may move out of `main.ts`; central ownership,
-not the filename, is the invariant.
+not the filename, is the invariant. `src/session/lifecycle.ts` coordinates browser suspension,
+crash and disposal for both routes. A persisted `pagehide` suspends resources for history
+restoration; a real exit disposes them. Adventure reset remains a route-owned callback.
 
 Camera ownership is exclusive during scripted flight, home return and a day turn. Orbit or
 manual input must not fight the active camera owner. Reduced motion may replace a move with a
@@ -194,7 +196,8 @@ shipping the clearly labelled experiment does not require prior proof.
 
 Playwright drives an isolated `VITE_PLAYTEST=1` build. The exposed scene snapshot is read-only
 and must never appear in a normal build. Exercise boot, real pointer input, scene transitions,
-arrival, return, resize and representative phone/tablet/short-landscape viewports. Capture and
+arrival, return, resize and representative phone/tablet/short-landscape viewports. Use `e2e/fixtures.ts` for common device setup, browser-error checks and named screenshot
+files. Capture and
 inspect screenshots for overlay weight, alignment, target clearance and legibility.
 
 Software WebGL can stretch nominal durations because `Stage.tick` clamps large frame deltas.
@@ -211,7 +214,8 @@ necessary and should be reported as unverified until performed.
 index.html                  boot/error shell
 sw/                         generated offline worker and tests
 public/                     shipped manifest, icons and real media
-src/main.ts                 current game orchestration
+src/main.ts                 adventure wiring, visit reset and frame orchestration
+src/session/                shared browser lifecycle, failure screen and offline registration
 src/config.ts               destination data and scene constants
 src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input

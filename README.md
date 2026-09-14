@@ -168,7 +168,8 @@ sw/                      service worker (offline): sw.js template + build.ts, bu
 public/manifest.webmanifest  web app manifest — installable, runs standalone
 public/icons/            home-screen icons (icon.svg is the source; PNGs render from it)
 src/
-  main.ts                wiring, frame loop, teardown, offline + crash
+  main.ts                adventure wiring, frame loop and visit reset
+  session/               shared browser lifetime, offline registration and crash screen
   config.ts              scene scale, speeds, timings, and the destination copy
   scene/
     Stage.ts             renderer, camera, bloom, resize, adaptive quality
@@ -497,3 +498,13 @@ hidden target behind the limb, and view ring discoveries at least 24 degrees abo
 the ring plane. Tests also ensure no discovery is made unreachable by those constraints.
 The journal shows each world's collection; after visiting every world, the map suggests an
 unfinished page. Finds say New or Seen before, without penalising revisits.
+
+
+### Architecture review
+
+The [September 14 audit](docs/architecture-review.md) records the current extension boundaries,
+validated lifecycle fixes and remaining engineering risks. Both routes now pause on backgrounding,
+retain their scene for a cached browser-history return, and keep crashes stopped until reload.
+Browser screenshots are written to named PNGs under `test-results/` as well as attached to the
+HTML report. The history tests exercise browser lifecycle events deterministically; they do not
+assert that every browser will choose to put the page into its back/forward cache.

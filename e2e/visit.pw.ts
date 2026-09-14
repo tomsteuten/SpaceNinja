@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test, expect, attachShot } from './fixtures';
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 async function launch(page: Page, world: string) {
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
@@ -34,20 +35,11 @@ async function home(page: Page) {
   await expect(page.getByRole('button',{name:'Fly to Moon',exact:true})).toBeVisible();
 }
 test('rendered discoveries, drag, media, return, repeat and outer-world arrivals', async ({page}, info) => {
-  const errors: string[] = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if(message.type() === 'error') errors.push(message.text()); });
-  await page.addInitScript(() => {
-    // Exercise the supported older-device tier; software bloom can saturate CI hosts.
-    Object.defineProperty(navigator, 'hardwareConcurrency', {get:()=>4});
-    Object.defineProperty(navigator, 'deviceMemory', {get:()=>2});
-    Math.random = () => 0.1;
-  });
   await page.goto('/');
   await page.getByRole('button',{name:'Start playing',exact:true}).click();
   await expect(page.locator('#boot')).toBeHidden();
   await launch(page,'Moon');
-  await info.attach('moon-arrival',{body:await page.screenshot(),contentType:'image/png'});
+  await attachShot(page, 'moon-arrival', info);
   const firstIds = (await snapshot(page)).ids;
   await collectVisible(page);
   // The first find is the postcard moment. Its photo is lazy, so the assertion waits for
@@ -55,7 +47,10 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await expect(page.locator('.photo-view.is-reward')).toBeVisible();
   await expect(page.getByRole('button',{name:'Keep exploring'})).toBeVisible();
   await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
-  await info.attach('first-find-postcard',{body:await page.screenshot(),contentType:'image/png'});
+  const detail = await page.locator('.photo-view__detail').boundingBox();
+  const exit = await page.getByRole('button', { name: 'Keep exploring' }).boundingBox();
+  expect(detail!.y + detail!.height, 'Postcard words must clear the exit').toBeLessThan(exit!.y);
+  await attachShot(page, 'first-find-postcard', info);
   await page.getByRole('button',{name:'Keep exploring'}).click();
   await expect(page.locator('.photo-view')).toBeHidden();
   await collectVisible(page);
@@ -84,7 +79,7 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     await photo.click();
     await expect(page.locator('.photo-view')).toBeVisible();
     await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
-    await info.attach('journal-photo',{body:await page.screenshot(),contentType:'image/png'});
+    await attachShot(page, 'journal-photo', info);
     await page.getByRole('button',{name:'Close the photo'}).click();
     await page.getByRole('button',{name:'Read this discovery out loud'}).click();
     await expect(page.getByRole('button',{name:'Stop reading discovery'})).toBeVisible();
@@ -98,12 +93,12 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await home(page);
   await launch(page,'Mars'); await home(page);
   await launch(page,'Saturn');
-  await info.attach('saturn-arrival',{body:await page.screenshot(),contentType:'image/png'});
+  await attachShot(page, 'saturn-arrival', info);
   await home(page);
   await launch(page,'Earth');
   await page.setViewportSize({width:768,height:1024});
   await expect.poll(async () => (await snapshot(page)).bodyScreenRadius).toBeGreaterThan(110);
-  await info.attach('earth-after-resize',{body:await page.screenshot(),contentType:'image/png'});
+  await attachShot(page, 'earth-after-resize', info);
   await home(page);
-  expect(errors).toEqual([]);
+
 });
