@@ -57,6 +57,15 @@ result for WebGL work; DOM assertions alone do not establish visual quality.
 
 ## Current child loop
 
+The default route is now the explorer trial, implemented in `src/moon/` and shared by all
+four existing worlds. Choose a world, hold/slide to move, release to stop, and use Places for
+six optional archive views. Saturn has explicit orbital framing. There are no progress gates,
+collectible markers or automatic narration in this route. `?moontrial` starts Moon-first and
+does not register the service worker; the default route supports offline maps and lazy photos.
+The trial's physical-device questions are in `docs/explorer-playtest.md`.
+
+The preserved classic adventure at `?classic` retains the following loop and its saved data:
+
 - The home map offers stable destination controls as well as tappable moving worlds.
 - A tap launches one journey and must acknowledge misses or locked choices.
 - Arrival exposes discoveries immediately. Finding is ambient and Fly Home remains available.
@@ -212,6 +221,7 @@ index.html                  boot/error shell
 sw/                         generated offline worker and tests
 public/                     shipped manifest, icons and real media
 src/main.ts                 current game orchestration
+src/moon/                   shared explorer route, world data, touch model, UI and lifecycle
 src/config.ts               destination data and scene constants
 src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input

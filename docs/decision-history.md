@@ -64,3 +64,29 @@ abstract yellow ring and narration, especially on phones; expecting a pre-reader
 operate a small magnifier was too much. Repeated finds remain compact so familiar places do not
 turn replay into a chain of interruptions. The postcard retains a plainly labelled exit and
 does not bypass lazy loading, missing-photo handling, or the Android dismissal guard.
+
+## 2026-09-20 — Explorer-first trial
+
+Feedback from the deployed page consistently described the destination markers, crowded
+controls and unlabeled day/night action as noisy and difficult for young children to decode.
+The product hypothesis changed from “complete a collection loop” to “choose a world and wander
+over real imagery”. The new route is a calm globe explorer with direct touch steering, a small
+contextual dock, real NASA/USGS/JPL imagery and optional place postcards. It is the default
+route for this trial; the previous adventure remains available at `?classic` so playtests can
+compare both loops without deleting the existing implementation.
+
+This is an experiment, not evidence that a free-flight loop is already validated on tablets.
+Physical Android touch feel, sustained frame rate and whether children understand the world
+chooser still need observation before the classic route can be retired.
+
+The implementation keeps all six authored places on each world. Surface markers and
+progress gates are absent from the explorer. Each world uses the same touch model, with
+Saturn explicitly framed as an orbital subject rather than a solid surface. Illustrative
+lighting follows the view to keep places readable; historical Saturn storms open as archive
+images rather than being claimed as permanent surface features. The Moon's incomplete NAC
+regional tile was removed after screenshots exposed visible gaps and mismatched seams.
+Detailed close views use the credited image viewer instead of invented terrain.
+
+The classic implementation and progress remain intact at `?classic`. A pre-explorer Git
+tag provides a complete source rollback; reverting the explorer commit restores the default
+route and prior assets without rewriting shared Git history.

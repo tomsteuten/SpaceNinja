@@ -124,6 +124,11 @@ FILES CURRENTLY INSTALLED
 All twenty-four are in place. They are real mission images; the credit lines below record
 the agency, instrument and archive item rather than treating an image as anonymous scenery.
 
+The explorer additionally uses ../moon-trial/tycho-mountains.jpg, NASA LROC NAC
+M162350671 (the real oblique central-peak photograph, 10 June 2011), cropped and
+scaled from https://svs.gsfc.nasa.gov/4220/ . Credit: NASA/GSFC/ASU/SVS.
+Its exact file URL and original SHA-256 are in ../moon-trial/sources.json.
+
   earth-sahara.jpg      Blue Marble: Next Generation, Africa, March 2005.
                         Credit: NASA Earth Observatory.
                         https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/

@@ -3,6 +3,23 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
 far: Earth, the Moon, Mars, and Saturn.
 
+The current child-facing route is a quiet, free exploration mode: choose a world, then
+hold and slide to fly over its real colour map. There are no scores, collectibles, automatic
+voice or progress requirements. Open `?classic` to compare the earlier adventure loop, and
+`?moontrial` to open the Moon-first version used by the browser trial checks.
+
+Every world has six optional places under **Places**. Earth, the Moon and Mars offer
+close globe flight; Saturn uses a wider orbital view so its rings remain visible. **Take a
+look** opens individually credited mission imagery. The globe maps have finite resolution:
+this is an illustrated orbital explorer, not a detailed ground simulator. **Worlds** always
+returns to the chooser. Grown-up settings also offer direct globe dragging.
+
+The main route caches maps for offline use once installed. Photographs load only when opened,
+and are then available offline. The explicit `?moontrial` route does not install a worker.
+The older adventure's progress and sound settings are preserved without being changed.
+
+### Earlier adventure (`?classic`)
+
 Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
 there. One tap, one journey: ride with the spaceship along its safe route and arrive close
 enough to see the surface.
@@ -35,6 +52,10 @@ npm run dev
 ```
 
 Then open <http://localhost:5173>.
+
+For a local browser preview, use <http://localhost:5173/>. The new explorer is deliberately
+the default while it is evaluated; `?classic` keeps the previous deployed adventure available
+as a reversible comparison route.
 
 The optional manual-flight experiment is available from **Fly it yourself** in the grown-ups
 panel, with **Shift+F** on a keyboard, or directly at
@@ -91,6 +112,13 @@ account or API key.
 ## Artwork
 
 ### Credits
+
+**Explorer Moon maps and Tycho close-up** — NASA LROC and LOLA datasets from the
+[NASA CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/), plus the real LROC NAC M162350671
+[Tycho central-peak photograph](https://svs.gsfc.nasa.gov/4220/). Credit NASA/GSFC/ASU/SVS
+and NASA/GSFC/MIT for LOLA. Exact URLs, processing and original checksums are recorded in
+`public/assets/moon-trial/README.txt` and `sources.json`. `scripts/prepare-moon-assets.py`
+reproduces the compact files without shipping source TIFFs.
 
 **Planet and sky textures** — `earth.jpg`, `earth-night.jpg`, `moon.jpg`, `mars.jpg`,
 `saturn.jpg` and `starfield.jpg` in `public/assets/`, from [Solar System
