@@ -128,7 +128,7 @@ async function main() {
   const params = new URLSearchParams(window.location.search);
   if (!params.has('classic') && !params.has('freeflight') && !params.has('grownups')) {
     const { startMoonTrial } = await import('./moon/main');
-    const explorer=await startMoonTrial(canvas, uiRoot, params.has('moontrial') ? 'moon' : 'earth');
+    const explorer = await startMoonTrial(canvas, uiRoot, params.has('moontrial') ? 'moon' : 'earth');
     if (explorer && !params.has('moontrial') && import.meta.env.VITE_PLAYTEST !== '1') registerOffline(explorer.canReload);
     return;
   }

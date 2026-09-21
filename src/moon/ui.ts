@@ -25,8 +25,10 @@ export function createMoonUI(root:HTMLElement, initialWorld:ExplorerWorld, actio
     <section class="moon-welcome" aria-label="Choose a world">
       <p class="eyebrow">A SMALL UNIVERSE TO WANDER</p><h1>Choose a world<span class="title-dot">.</span></h1>
       <div class="world-choice">${WORLDS.map(item=>`<button class="world-card${item.id===world.id?' is-selected':''}" aria-pressed="${item.id===world.id}" data-world="${item.id}"><span class="world-card-orb" style="background-image:url('${import.meta.env.BASE_URL}assets/explorer/${item.id}.jpg')" aria-hidden="true"></span><span><strong>${item.label}</strong><small>${item.strap}</small></span></button>`).join('')}</div>
-      <button class="moon-start primary"><span class="selected-world-label">Explore ${worldName(world)}</span> ${svg('forward')}</button>
-      <p class="welcome-note">Touch. Drift. Look a little closer.</p>
+      <div class="moon-launch">
+        <button class="moon-start primary"><span class="selected-world-label">Explore ${worldName(world)}</span> ${svg('forward')}</button>
+        <p class="welcome-note">Touch. Drift. Look a little closer.</p>
+      </div>
     </section>
     <a class="moon-original" href="?classic">${svg('arrow')} Original adventure</a>
     <p class="moon-credit">NASA imagery · Maps: Solar System Scope</p>
