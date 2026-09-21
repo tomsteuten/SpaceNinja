@@ -14,10 +14,21 @@ export function basis(lat: number, lon: number, heading = 0) {
   const east = new THREE.Vector3(-Math.sin(lon),0,-Math.cos(lon));
   return { up, forward: north.multiplyScalar(Math.cos(heading)).addScaledVector(east,Math.sin(heading)), east };
 }
+/** The imagery for one world, loaded ahead of the moment it is swapped onto the globe. */
+export interface WorldAssets {
+  world: ExplorerWorld;
+  map: THREE.Texture;
+  bump: THREE.Texture | null;
+  ring: THREE.Texture | null;
+  fallback: boolean;
+}
+/** Visual state of a world-to-world hop: how large to draw the body, and how hard to streak. */
+export interface TravelVisual { scale: number; streak: number; }
+
 /** One globe at a time. Textures are loaded on selection and shared across repeat visits. */
 export async function createMoonScene(stage: Stage, initialWorld: ExplorerWorld) {
   const { scene, camera, renderer } = stage;
-  let activeWorld = initialWorld, disposed = false, selection = 0, mapFallback = false;
+  let activeWorld = initialWorld, disposed = false, mapFallback = false;
   const pending = new AbortController();
   const textures = new Map<string, Promise<THREE.Texture>>();
   const loaded = new Set<THREE.Texture>();
@@ -67,14 +78,21 @@ export async function createMoonScene(stage: Stage, initialWorld: ExplorerWorld)
   for (let i=0;i<600;i++) stars.set(direction(Math.asin(random()*2-1),random()*Math.PI*2).multiplyScalar(110).toArray(),i*3);
   const starGeometry = ownGeometry(new THREE.BufferGeometry());
   starGeometry.setAttribute('position',new THREE.BufferAttribute(stars,3));
-  scene.add(new THREE.Points(starGeometry,ownMaterial(new THREE.PointsMaterial({color:0xb8cce2,size:0.12,transparent:true,opacity:0.65}))));
+  // Kept on hand so a world-to-world hop can streak and spin the field for a sense of speed.
+  const starMaterial = ownMaterial(new THREE.PointsMaterial({color:0xb8cce2,size:0.12,transparent:true,opacity:0.65}));
+  const starPoints = new THREE.Points(starGeometry,starMaterial);
+  scene.add(starPoints);
   const light = new THREE.DirectionalLight(0xfff5e8,2.7);
   const welcomeLight = new THREE.Vector3(4,1.8,-2.5);
   light.position.copy(welcomeLight);
   scene.add(light,new THREE.AmbientLight(0xc7d6e8,0.65));
+  // Globe and rings live under one group so a journey can scale the whole body toward a far
+  // dot and back without touching the surface flight maths, which still works in body space.
+  const bodyGroup = new THREE.Group();
+  scene.add(bodyGroup);
   const surface = ownMaterial(new THREE.MeshStandardMaterial({roughness:1,metalness:0,bumpScale:0.006}));
   const globe = new THREE.Mesh(ownGeometry(new THREE.SphereGeometry(1,128,80)),surface);
-  scene.add(globe);
+  bodyGroup.add(globe);
 
   // Ring-strip UVs run across the radius, and the rings share the body's equator.
   const ringGeometry = ownGeometry(new THREE.RingGeometry(1.28,2.3,96,1));
@@ -83,7 +101,7 @@ export async function createMoonScene(stage: Stage, initialWorld: ExplorerWorld)
   for(let i=0;i<ringPositions.count;i++) ringUV.setXY(i,(Math.hypot(ringPositions.getX(i),ringPositions.getY(i))-1.28)/1.02,0.5);
   const ringMaterial = ownMaterial(new THREE.MeshStandardMaterial({transparent:true,side:THREE.DoubleSide,roughness:1,depthWrite:false,emissive:0xffffff,emissiveIntensity:0.2}));
   const rings = new THREE.Mesh(ringGeometry,ringMaterial);
-  rings.rotation.x=-Math.PI/2; rings.renderOrder=1; rings.visible=false; scene.add(rings);
+  rings.rotation.x=-Math.PI/2; rings.renderOrder=1; rings.visible=false; bodyGroup.add(rings);
 
   const ship = new THREE.Group();
   const hull = ownMaterial(new THREE.MeshStandardMaterial({color:0xe6e8e6,roughness:0.44,metalness:0.3}));
@@ -98,23 +116,32 @@ export async function createMoonScene(stage: Stage, initialWorld: ExplorerWorld)
   engine.scale.set(0.035,0.03,0.045); engine.position.z=-0.25; ship.add(engine);
   ship.visible=false; scene.add(ship);
 
-  async function setWorld(next: ExplorerWorld) {
-    const token = ++selection;
+  // Loading a world's imagery and putting it on the globe are split so a journey can fetch the
+  // next world during the depart leg and only swap it in at the far point (see travel.ts).
+  async function loadWorld(next: ExplorerWorld): Promise<WorldAssets> {
     let fallback = false;
     const map = await loadTexture(next.texture).catch(() => { fallback=true; return loadTexture(next.fallback); });
     const [bump, ring] = await Promise.all([
       next.id==='moon' ? loadTexture('moon-trial/moon-relief.png',false).catch(()=>null) : null,
       next.orbital ? loadTexture('saturn-rings.png') : null,
     ]);
-    if (disposed || token!==selection) return false;
-    surface.map=map; surface.bumpMap=bump; surface.needsUpdate=true;
-    ringMaterial.map=ring; ringMaterial.emissiveMap=ring; ringMaterial.needsUpdate=true;
-    rings.visible=next.orbital; activeWorld=next; mapFallback=fallback;
+    return { world:next, map, bump, ring, fallback };
+  }
+  function applyWorld(assets: WorldAssets) {
+    if (disposed) return;
+    surface.map=assets.map; surface.bumpMap=assets.bump; surface.needsUpdate=true;
+    ringMaterial.map=assets.ring; ringMaterial.emissiveMap=assets.ring; ringMaterial.needsUpdate=true;
+    rings.visible=assets.world.orbital; activeWorld=assets.world; mapFallback=assets.fallback;
+  }
+  async function setWorld(next: ExplorerWorld) {
+    const assets = await loadWorld(next);
+    if (disposed) return false;
+    applyWorld(assets);
     return true;
   }
   function dispose() {
     if (disposed) return;
-    disposed=true; selection++; pending.abort();
+    disposed=true; pending.abort();
     for(const texture of loaded) texture.dispose();
     for(const geometry of geometries) geometry.dispose();
     for(const material of materials) material.dispose();
@@ -125,7 +152,7 @@ export async function createMoonScene(stage: Stage, initialWorld: ExplorerWorld)
   const currentPosition=new THREE.Vector3(),currentTarget=new THREE.Vector3();
   const shipBasis=new THREE.Matrix4();
   let cameraReady=false;
-  function render(state:FlightState, phase:'welcome'|'approach'|'explore', approach:number,dt:number,reduced:boolean) {
+  function render(state:FlightState, phase:'welcome'|'approach'|'explore'|'travel', approach:number,dt:number,reduced:boolean,travel:TravelVisual|null=null) {
     const frame=basis(state.lat,state.lon,state.heading);
     const height=state.mode==='drag'?Math.max(state.altitude,0.4):state.altitude;
     const orbital=activeWorld.orbital;
@@ -136,8 +163,16 @@ export async function createMoonScene(stage: Stage, initialWorld: ExplorerWorld)
     const homeDistance=orbital?(portrait?6.6:5.3):(portrait?3.6:3.1);
     const welcomePosition=welcomeDir.multiplyScalar(homeDistance);
     const welcomeTarget=portrait?new THREE.Vector3(0,0.15,0):new THREE.Vector3(0,0,orbital?0.9:0.65);
-    const amount=phase==='welcome'?0:phase==='explore'?1:approach*approach*(3-2*approach);
+    // Travel holds the welcome framing; the sense of motion comes from the body shrinking away
+    // and the stars streaking, not from moving the camera.
+    const amount=phase==='welcome'||phase==='travel'?0:phase==='explore'?1:approach*approach*(3-2*approach);
     const smoothing=!cameraReady||reduced||phase!=='explore'?1:1-Math.exp(-dt*9);
+    // Body scale and star streak for a world-to-world hop; both rest at their defaults otherwise.
+    const streak=travel?travel.streak:0;
+    bodyGroup.scale.setScalar(travel?travel.scale:1);
+    starMaterial.size=0.12+streak*0.5;
+    starMaterial.opacity=0.65+streak*0.3;
+    starPoints.rotation.y+=streak*dt*0.7;
     currentPosition.lerp(welcomePosition.lerp(orbitPosition,amount),smoothing);
     currentTarget.lerp(welcomeTarget.lerp(orbitTarget,amount),smoothing); cameraReady=true;
     camera.position.copy(currentPosition);
@@ -154,6 +189,6 @@ export async function createMoonScene(stage: Stage, initialWorld: ExplorerWorld)
       engine.scale.z=0.035+state.speed*1.8;
     }
   }
-  return { render,dispose,setWorld,get mapFallback(){return mapFallback;},get worldId(){return activeWorld.id;} };
+  return { render,dispose,setWorld,loadWorld,applyWorld,get mapFallback(){return mapFallback;},get worldId(){return activeWorld.id;} };
 }
 // End of explorer scene.

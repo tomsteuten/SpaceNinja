@@ -12,6 +12,9 @@ places remain reachable. The new explorer does not modify adventure storage or s
 2. Does the little craft clarify movement, or would direct globe dragging be easier? Compare
    the two controls in grown-up settings with the same child and world.
 3. Can the child choose another world, open Places, open a mission image, and get back?
+   When they pick a world, does flying there — the body shrinking away, the stars streaking,
+   the next world growing in — read as travelling through space rather than a menu swap, and
+   is the ~1.7s hop the right length (not so long it drags, not so quick it is missed)?
 4. Is Saturn's orbit understandable as clouds and rings rather than a landable surface?
 5. Do a ten-minute session, rotation, sleep/wake, browser-back restoration and an offline
    relaunch work on the older Android tablet without heat, stutter or memory reloads?

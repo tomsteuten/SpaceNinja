@@ -2,11 +2,14 @@ import './moon.css';
 import { createStage } from '../scene/Stage';
 import { detectQuality, prefersReducedMotion } from '../scene/quality';
 import { createSessionLifecycle } from './lifecycle';
-import { createMoonScene } from './scene';
+import { createMoonScene, type WorldAssets } from './scene';
 import { createFlight, stepFlight, stopFlight, dragGlobe, angularDistance, wrap, degrees, clamp } from './model';
 import type { Place } from './places';
 import { createMoonUI } from './ui';
 import { worldById, placeView, type WorldId, type ExplorerWorld } from './worlds';
+import { createDeparture, createArrival, advanceTravel, travelScale, travelStreak, type Travel } from './travel';
+
+const destinationName=(world:ExplorerWorld)=>world.id==='moon'?'the Moon':world.label;
 
 export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement, initialWorldId:WorldId='moon') {
   const initialWorld=worldById(initialWorldId);
@@ -20,10 +23,13 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
   const stage=createStage(canvas,{...quality,bloom:false,maxPixelRatio:Math.min(quality.maxPixelRatio,1.5)});
   const events=new AbortController();
   const state=createFlight();
-  let phase:'welcome'|'approach'|'explore'='welcome';
+  let phase:'welcome'|'approach'|'explore'|'travel'='welcome';
   let approach=0, frames=0, lastTouch=0, exploreTime=0, hasMoved=false, disposed=false;
   let pointer:{x:number;y:number}|null=null, pointerId:number|null=null, previous={x:0,y:0};
   let navigation:{lat:number;lon:number;alt:number;to:Place;elapsed:number}|null=null;
+  // A world-to-world hop in flight: the timing model, the world being flown to (null for the
+  // opening fly-in, whose world is already loaded), its imagery once fetched, and a stale guard.
+  let travelState:{model:Travel;target:ExplorerWorld|null;assets:WorldAssets|null;failed:boolean;token:number}|null=null;
   let scene:Awaited<ReturnType<typeof createMoonScene>>|null=null;
   let ui:ReturnType<typeof createMoonUI>|null=null;
   let currentWorld: ExplorerWorld = initialWorld;
@@ -51,7 +57,7 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
   function setPhase(next:typeof phase) {phase=next;ui?.phase(next);}
   function start() {
     if(!worldReady)return;
-    suspend();navigation=null;
+    suspend();navigation=null;travelState=null;
     Object.assign(state,createFlight(),{mode:state.mode});
     const startingPlace=currentWorld.places[0];
     if(startingPlace) {
@@ -69,21 +75,45 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
     lastTouch=exploreTime;
   }
   ui=createMoonUI(root,currentWorld,{
-    start, home(){suspend();navigation=null;setPhase('welcome');ui!.status('');},
-    async choose(id:WorldId){
+    start, home(){suspend();navigation=null;travelState=null;setPhase('welcome');ui!.status('');},
+    choose(id:WorldId){
       const token=++selection;
-      currentWorld=worldById(id);
-      worldReady=false; ui!.loading(true); ui!.status(`Opening ${currentWorld.label}…`);
-      document.title=`Space Ninja — ${currentWorld.label} Explorer`;
-      canvas.setAttribute('aria-label',`Explore ${currentWorld.label}. Hold and slide to fly, release to stop. Arrow keys also move.`);
-      try {
-        const ready=await scene!.setWorld(currentWorld);
-        if(disposed||token!==selection)return;
-        worldReady=ready; ui!.loading(false); ui!.status('');
-      } catch {
-        if(disposed||token!==selection)return;
-        ui!.loading(false,true); ui!.status('This world could not open. Try it again or choose another.');
+      const target=worldById(id);
+      currentWorld=target;
+      worldReady=false; ui!.loading(true);
+      document.title=`Space Ninja — ${target.label} Explorer`;
+      canvas.setAttribute('aria-label',`Explore ${target.label}. Hold and slide to fly, release to stop. Arrow keys also move.`);
+      // Reduced motion, or re-picking the world already on screen: swap in place, no journey.
+      if(reduced||scene!.worldId===id){
+        travelState=null;
+        ui!.status(reduced?`Opening ${target.label}…`:'');
+        scene!.setWorld(target).then(ready=>{
+          if(disposed||token!==selection)return;
+          worldReady=ready; ui!.loading(false); ui!.status('');
+        }).catch(()=>{
+          if(disposed||token!==selection)return;
+          ui!.loading(false,true); ui!.status('This world could not open. Try it again or choose another.');
+        });
+        return;
       }
+      // Otherwise fly there. A pick mid-hop retargets the same journey rather than starting a
+      // jarring new one, so a child can change their mind (or escape a slow load) in flight; if
+      // the old world was already arriving, drop back out so the new one can swap at the far point.
+      if(travelState){
+        travelState.target=target; travelState.assets=null; travelState.failed=false; travelState.token=token;
+        if(travelState.model.leg==='arrive') travelState.model=createDeparture();
+      } else {
+        travelState={model:createDeparture(),target,assets:null,failed:false,token};
+      }
+      setPhase('travel');
+      ui!.status(`Travelling to ${destinationName(target)}…`);
+      scene!.loadWorld(target).then(assets=>{
+        if(disposed||token!==selection||!travelState)return;
+        travelState.assets=assets;
+      }).catch(()=>{
+        if(disposed||token!==selection||!travelState)return;
+        travelState.failed=true;
+      });
     }, zoom,
     go(place){
       suspend();
@@ -99,7 +129,9 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
     },
     pause:suspend,resume(){lastTouch=exploreTime;},
   });
-  ui.phase('welcome');
+  // Open by flying in from space rather than cutting to a static globe (skipped for reduced motion).
+  if(reduced) setPhase('welcome');
+  else { travelState={model:createArrival(),target:null,assets:null,failed:false,token:++selection}; setPhase('travel'); }
 
   function steer(x:number,y:number) {
     const sx=(x-innerWidth/2)/(Math.min(innerWidth,innerHeight)*0.37);
@@ -110,6 +142,7 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
   }
   canvas.addEventListener('pointerdown',event=>{
     if(ui!.modal||pointerId!==null||event.button!==0)return;
+    if(phase==='travel')return; // let the journey land before any touch takes hold
     if(phase==='welcome'){start();return;}
     if(phase==='approach'){approach=1;setPhase('explore');}
     navigation=null;pointerId=event.pointerId;canvas.setPointerCapture(event.pointerId);
@@ -138,6 +171,17 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
 
   stage.onFrame(dt=>{
     frames++;
+    if(phase==='travel'&&travelState&&!ui!.modal){
+      if(travelState.failed){
+        // The next world's imagery would not load: abort the hop, stay put, invite a retry.
+        ui!.loading(false,true); ui!.status('This world could not open. Try it again or choose another.');
+        travelState=null; setPhase('welcome');
+      } else {
+        const step=advanceTravel(travelState.model,dt,travelState.assets!==null);
+        if(step.swap&&travelState.assets) scene!.applyWorld(travelState.assets);
+        if(step.done){ worldReady=true; ui!.loading(false); ui!.status(''); travelState=null; setPhase('welcome'); }
+      }
+    }
     if(phase==='approach'&&!ui!.modal){approach=Math.min(1,approach+dt/2.6);if(approach===1)setPhase('explore');}
     if(phase==='explore'&&!ui!.modal){
       exploreTime+=dt;
@@ -166,7 +210,8 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
       ui!.zoomLimits(state.targetAltitude<=currentWorld.minAltitude+0.001,state.targetAltitude>=currentWorld.maxAltitude-0.001);
       if(exploreTime-lastTouch>4&&!navigation)ui!.status('');
     }
-    scene!.render(state,phase,approach,dt,reduced);
+    const travelVisual=phase==='travel'&&travelState?{scale:travelScale(travelState.model),streak:travelStreak(travelState.model)}:null;
+    scene!.render(state,phase,approach,dt,reduced,travelVisual);
     if(frames===1)boot.classList.add('is-hidden');
   });
   if(import.meta.env.VITE_PLAYTEST==='1'){

@@ -125,11 +125,14 @@ export function createMoonUI(root:HTMLElement, initialWorld:ExplorerWorld, actio
   };
   return {
     get modal(){return openDialog!==null;},
-    phase(phase:'welcome'|'approach'|'explore') {
+    phase(phase:'welcome'|'approach'|'explore'|'travel') {
       root.dataset.phase=phase;
-      welcome.hidden=phase!=='welcome'; top.hidden=phase==='welcome'; dock.hidden=phase!=='explore';
-      find('.moon-brand').hidden=phase!=='welcome'; find('.moon-original').hidden=phase!=='welcome';
-      find('.moon-credit').hidden=phase!=='welcome';
+      // The chooser and its credits stay up while flying between worlds, so the world visibly
+      // swooshes past behind the menu rather than the menu vanishing for the trip.
+      const home=phase==='welcome'||phase==='travel';
+      welcome.hidden=!home; top.hidden=home; dock.hidden=phase!=='explore';
+      find('.moon-brand').hidden=!home; find('.moon-original').hidden=!home;
+      find('.moon-credit').hidden=!home;
       if(phase!=='explore') {coach.hidden=true;landmark.hidden=true;}
     },
     coach(show:boolean, mode:ControlMode) {

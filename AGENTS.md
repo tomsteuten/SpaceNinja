@@ -58,11 +58,19 @@ result for WebGL work; DOM assertions alone do not establish visual quality.
 ## Current child loop
 
 The default route is now the explorer trial, implemented in `src/moon/` and shared by all
-four existing worlds. Choose a world, hold/slide to move, release to stop, and use Places for
+four existing worlds. The app opens by flying in from space, and choosing a world flies there —
+the current body departs into the starfield, the imagery swaps at the far point, and the next
+body arrives (see `src/moon/travel.ts`; the journey is pure timing, so it is unit-tested and it
+degrades to an instant swap under reduced motion). A pick mid-hop retargets the same journey
+rather than trapping a slow load. Then hold/slide to move, release to stop, and use Places for
 six optional archive views. Saturn has explicit orbital framing. There are no progress gates,
 collectible markers or automatic narration in this route. `?moontrial` starts Moon-first and
 does not register the service worker; the default route supports offline maps and lazy photos.
 The trial's physical-device questions are in `docs/explorer-playtest.md`.
+
+The next step is a solar-system view the child launches from — the Sun and worlds in one scene,
+tap one to fly there along the same travel primitive — replacing the card chooser. The travel
+transition above is deliberately phase one of that, shipped and observed first.
 
 The preserved classic adventure at `?classic` retains the following loop and its saved data:
 
