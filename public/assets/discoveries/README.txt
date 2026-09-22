@@ -6,6 +6,15 @@ time: the card checks for the file when a place is found, and a place with no fi
 looks exactly as it did before. Nothing here is downloaded until that place is
 actually found, so adding all twelve costs the game nothing at startup.
 
+THUMBNAILS (thumbs/)
+
+thumbs/<id>.jpg is a 160 px square centre crop of the same photograph the place's
+postcard opens (moon-tycho: public/assets/moon-trial/tycho-mountains.jpg), used for the
+explorer's place badges and journal. Its provenance is that photograph's. Regenerate with
+scripts/make-place-thumbnails.py after replacing or adding a photo. They are a few KB each
+and precached; the full photographs are still fetched only when opened.
+
+
 Put the files directly in this folder using these EXACT names. The name is the
 discovery's id in src/config.ts, so if you ever add a place, its photo is named after
 its id and no code changes.

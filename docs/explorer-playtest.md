@@ -1,23 +1,24 @@
 # Explorer rollout and tablet trial
 
-The default route opens the four-world chooser. `?moontrial` starts with the Moon selected;
-`?classic` retains the earlier adventure and its saved progress; `?freeflight` retains the
-solar-system manual-flight experiment. All four existing destinations and all 24 authored
-places remain reachable. The new explorer does not modify adventure storage or start voice.
+The default route opens on the solar system. A world is chosen by touching it or its button;
+the ship flies there, the camera descends, and the child flies over the world. `?classic`
+retains the earlier adventure (sharing saved progress); `?freeflight` retains the manual-flight
+experiment. All four destinations and all 24 authored places remain reachable.
 
 ## Observable tablet questions
 
-1. Does the first hold immediately look like movement? Can a child steer toward something
-   interesting and stop by lifting their finger, without adult instructions?
-2. Does the little craft clarify movement, or would direct globe dragging be easier? Compare
-   the two controls in grown-up settings with the same child and world.
-3. Can the child choose another world, open Places, open a mission image, and get back?
-   When they pick a world, does flying there — the body shrinking away, the stars streaking,
-   the next world growing in — read as travelling through space rather than a menu swap, and
-   is the ~1.7s hop the right length (not so long it drags, not so quick it is missed)?
-4. Is Saturn's orbit understandable as clouds and rings rather than a landable surface?
-5. Do a ten-minute session, rotation, sleep/wake, browser-back restoration and an offline
-   relaunch work on the older Android tablet without heat, stutter or memory reloads?
+1. Does the solar system read as "out in space" rather than a menu? Does a child touch a world
+   (or its button) without being told, and does the flight feel like going somewhere?
+2. Does the descent read as arriving, and does the first hold immediately look like movement?
+   Can a child steer toward something and stop by lifting their finger, without instructions?
+3. Are the place pictures understood as places to fly to? Does a child aim for one, notice it
+   is found (the tick, the card, the voice), and open its photograph?
+4. Is the journal understood as "my places"? Does a child go back to a world to fill a page?
+5. Can the child always get back to the solar system, and fly somewhere else?
+6. Is Saturn's orbit understandable as clouds and rings rather than a landable surface?
+7. Do a ten-minute session, rotation, sleep/wake, browser-back restoration and an offline
+   relaunch work on the older Android tablet without heat, stutter or memory reloads? Note how
+   soft Earth and Mars look when flying low — the maps are 2048 px (see AGENTS.md).
 
 Use the same Wi-Fi as the development machine and Vite's printed Network URL. `localhost`
 on the tablet refers to the tablet, not the development computer. For offline installation,
@@ -37,7 +38,7 @@ false-colour products with descriptive captions.
 
 ## Undo
 
-The annotated tag `pre-explorer-2026-09-21` records the GitHub main commit before this change.
-The rollout is one commit, so `git revert <explorer-commit>` followed by `git push origin main`
-undoes it without force-pushing. See the delivery message for the exact commit hash.
-The classic route is also available immediately without changing Git.
+The annotated tag `pre-explorer-2026-09-21` and the branch `rollback/explorer-2026-09-21`
+record `main` before the explorer. Each change since is an ordinary commit, so
+`git revert <commit>` followed by a normal push undoes it without rewriting history. The
+classic route is also available immediately without changing Git.

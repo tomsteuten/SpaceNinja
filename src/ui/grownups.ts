@@ -99,10 +99,12 @@ export interface GrownupsOptions {
   onResetProgress(): void;
   /** Leave the normal adventure and open the optional manual-flight experiment. */
   onTryFreeFlight(): void;
+  /** Route-specific description; the classic adventure's own words are the default. */
+  about?: { lead: string; teaches: string; imagery?: string };
 }
 
 export function createGrownups(options: GrownupsOptions): Grownups {
-  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight } = options;
+  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight, about } = options;
   const panel = el('div', 'grownups');
   const sample = sampleLine();
   let showing = false;
@@ -204,9 +206,10 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       el(
         'p',
         'grownups__lead',
-        'A quiet solar system for a child of about five to eight. There is nothing to ' +
-          'lose, nothing to get wrong, and no way to get stuck — once a world is reached, ' +
-          'Fly Home is always there.',
+        about?.lead ??
+          'A quiet solar system for a child of about five to eight. There is nothing to ' +
+            'lose, nothing to get wrong, and no way to get stuck — once a world is reached, ' +
+            'Fly Home is always there.',
       ),
     );
 
@@ -221,13 +224,15 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       el(
         'p',
         'grownups__note',
-        'The places a child finds are real, at their real latitude and longitude on real ' +
-          'NASA maps — the Sahara, the Amazon, the Apollo 11 landing site, Olympus Mons. ' +
-          'One on each world is deliberately over the horizon, so reaching it means ' +
-          'learning to look around the world. Spin the Earth turns it through exactly one day, ' +
-          'with the city lights coming on as places cross into night.',
+        about?.teaches ??
+          'The places a child finds are real, at their real latitude and longitude on real ' +
+            'NASA maps — the Sahara, the Amazon, the Apollo 11 landing site, Olympus Mons. ' +
+            'One on each world is deliberately over the horizon, so reaching it means ' +
+            'learning to look around the world. Spin the Earth turns it through exactly one day, ' +
+            'with the city lights coming on as places cross into night.',
       ),
     );
+    if (about?.imagery) what.append(el('p', 'grownups__note', about.imagery));
     inner.append(what);
 
     const flight = el('section', 'grownups__section grownups__experiment');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createFlight, stepFlight, dragGlobe, radians, MIN_ALTITUDE, MAX_ALTITUDE } from './model';
-describe('Moon assisted orbit', () => {
+import { createFlight, stepFlight, radians, angularDistance, MIN_ALTITUDE, MAX_ALTITUDE } from './model';
+describe('assisted surface flight', () => {
   it('flies on hold and comes to rest promptly on release', () => {
     const s = createFlight(); const before = s.lat;
     for (let i = 0; i < 120; i++) stepFlight(s, 1/60, {x:0, y:-1});
@@ -28,15 +28,8 @@ describe('Moon assisted orbit', () => {
       expect(s.lon).toBeCloseTo(states[1]!.lon, 2);
     }
   });
-  it('applies drag distance once regardless of pointer event count', () => {
-    const a=createFlight(), b=createFlight();
-    dragGlobe(a,120,-40,400);
-    for(let i=0;i<20;i++) dragGlobe(b,6,-2,400);
-    expect(a.lon).toBeCloseTo(b.lon, 12); expect(a.lat).toBeCloseTo(b.lat, 12);
-  });
-  it('direct globe mode does not coast under a held pointer', () => {
-    const s=createFlight(); s.mode='drag'; const before=s.lat;
-    for(let i=0;i<120;i++) stepFlight(s,1/60,{x:1,y:0});
-    expect(s.lat).toBe(before); expect(s.speed).toBe(0);
+  it('measures great-circle separation, including across the date line', () => {
+    expect(angularDistance({lat:0,lon:radians(179)},{lat:0,lon:radians(-179)})).toBeCloseTo(radians(2), 10);
+    expect(angularDistance({lat:radians(90),lon:0},{lat:radians(-90),lon:1})).toBeCloseTo(Math.PI, 10);
   });
 });

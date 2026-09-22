@@ -4,9 +4,13 @@ import { photoCredits } from './photoCredits';
 import { radians, MIN_ALTITUDE, MAX_ALTITUDE } from './model';
 
 export type WorldId = 'earth' | 'moon' | 'mars' | 'saturn';
+/** A place resolved against the discovery it is, so progress and narration share one id. */
+export type WorldPlace = Place & { discovery: Discovery };
 export interface ExplorerWorld {
-  id: WorldId; label: string; strap: string; texture: string; fallback: string;
-  places: readonly Place[]; orbital: boolean; minAltitude: number; maxAltitude: number; startAltitude: number;
+  id: WorldId; label: string;
+  places: readonly WorldPlace[]; orbital: boolean; minAltitude: number; maxAltitude: number; startAltitude: number;
+  /** A sharper colour map (and relief) swapped onto the body the first time it is explored. */
+  detail?: { color: string; relief?: string };
 }
 const names: Record<string,[string,string]> = {
   'earth-sahara':['Sahara desert','An ocean of sand'],
@@ -43,12 +47,12 @@ const words: Record<string,string> = {
   'saturn-bands':'This infrared Cassini image reveals Saturn’s bands of clouds.',
   'saturn-storm':'These pictures follow a huge northern storm in 2010 and 2011. Saturn’s weather changes.',
 };
-function asPlace(discovery:Discovery, orbital=false):Place {
+function asPlace(discovery:Discovery, orbital=false):WorldPlace {
   const credit=photoCredits[discovery.id];
   if(!credit) throw new Error('Missing photograph provenance: '+discovery.id);
   const name=names[discovery.id];
   return {
-    id:discovery.id,name:name?.[0]??discovery.name,description:name?.[1]??discovery.short,
+    id:discovery.id,discovery,name:name?.[0]??discovery.name,description:name?.[1]??discovery.short,
     lat:radians(discovery.lat),lon:radians(discovery.lon),
     photo:'assets/discoveries/'+discovery.id+'.jpg',...credit,
     words:words[discovery.id]??discovery.short,orbital,
@@ -57,21 +61,22 @@ function asPlace(discovery:Discovery, orbital=false):Place {
   };
 }
 const discoveries=(id:WorldId)=>DESTINATIONS[id]!.mission.discoveries;
-const lunar=discoveries('moon').map(d=>{
+// Every place is keyed by its discovery id, so the journal and saved progress are shared with
+// the classic adventure. The Moon's hand-written places keep their own words and photographs.
+const lunar=discoveries('moon').map((d):WorldPlace=>{
   const special=moonPlaces.find(p=>'moon-'+p.id===d.id);
-  return special??asPlace(d);
+  return special?{...special,id:d.id,discovery:d}:asPlace(d);
 });
-// Start with Tycho, retaining every authored place through the optional picker.
-lunar.sort((a,b)=>Number(b.id==='tycho')-Number(a.id==='tycho'));
 const surface={orbital:false,minAltitude:MIN_ALTITUDE,maxAltitude:MAX_ALTITUDE,startAltitude:0.34};
 export const WORLDS:readonly ExplorerWorld[]=[
-  {id:'earth',label:'Earth',strap:'Oceans & mountains',texture:'earth.jpg',fallback:'earth.jpg',places:discoveries('earth').map(d=>asPlace(d)),...surface},
-  {id:'moon',label:'Moon',strap:'Craters & footprints',texture:'moon-trial/moon-color.jpg',fallback:'moon.jpg',places:lunar,...surface},
-  {id:'mars',label:'Mars',strap:'Canyons & volcanoes',texture:'mars.jpg',fallback:'mars.jpg',places:discoveries('mars').map(d=>asPlace(d)),...surface},
-  {id:'saturn',label:'Saturn',strap:'Rings & clouds',texture:'saturn.jpg',fallback:'saturn.jpg',places:discoveries('saturn').map(d=>asPlace(d,true)),orbital:true,minAltitude:1.4,maxAltitude:4.5,startAltitude:2.4},
+  {id:'earth',label:'Earth',places:discoveries('earth').map(d=>asPlace(d)),...surface},
+  {id:'moon',label:'Moon',places:lunar,...surface,detail:{color:'moon-trial/moon-color.jpg',relief:'moon-trial/moon-relief.png'}},
+  {id:'mars',label:'Mars',places:discoveries('mars').map(d=>asPlace(d)),...surface},
+  {id:'saturn',label:'Saturn',places:discoveries('saturn').map(d=>asPlace(d,true)),orbital:true,minAltitude:1.4,maxAltitude:4.5,startAltitude:2.4},
 ];
+/** A square crop of the place's own photograph (scripts/make-place-thumbnails.py). */
+export function thumbnail(place:Place) { return 'assets/discoveries/thumbs/'+place.id+'.jpg'; }
 export function worldById(id:WorldId) { return WORLDS.find(w=>w.id===id)!; }
 export function placeView(place:Place,world:ExplorerWorld) {
   return {lat:place.viewLat??place.lat,lon:place.lon,altitude:place.viewAltitude??world.startAltitude};
 }
-// End of explorer world data.

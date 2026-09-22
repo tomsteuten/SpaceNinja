@@ -3,15 +3,28 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
-## 2026-09-22 — Solar-system hub replaces the isolated explorer chooser
+## 2026-09-22 — One route: the adventure's solar system, the explorer's close flight
 
-The close-up exploration treatment, real-place discoveries, photographs and narration were
-kept, but the isolated globe and large world-card chooser were replaced by the adventure
-solar-system hub. Observation of the chooser showed it made a space journey feel like a
-dashboard selection rather than a trip through a system. A previous attempt to put planets
-behind existing cards cluttered all tested viewports, so the successful design removes the
-chooser rather than layering a second presentation underneath it. All four destinations are
-now visibly present and open; progress recommends a next place rather than acting as a gate.
+Two routes each had half of what was wanted. The explorer's hold-and-slide flight over a world
+felt far better than the adventure's drag-to-orbit hunt, but its card chooser made a trip
+through space feel like picking from a menu. The adventure's solar system, real journey and
+detailed ship gave the sense of being out in space. An earlier attempt the same day
+re-enabled the adventure hub as the default but left the explorer unreachable, broke its
+browser tests, and introduced a phase coordinator that refused to reset from exploration (a
+grown-up progress reset mid-visit then blocked every later launch). That commit was replaced.
+
+The default route now keeps the adventure's scene, journey and ship, and on arrival hands
+over, without a cut, to the explorer's flight model running in the destination's surface
+space. The card chooser, the explorer's placeholder ship, its separate one-globe scene and the
+`?moontrial` route were removed. The explorer's "no markers" decision was revised rather than
+reversed: text-only Places left a pre-reader with nothing to aim at, but the classic gold
+rings had been reported as abstract noise. Places are now small crops of each place's real
+photograph pinned where it is, visible only on the open face of the world. Tiny thumbnails
+(about 6 KB each) are precached so badges and the journal work offline; full photographs are
+still lazy. The journal returns, restyled, reading the classic discovery ids so progress is
+shared. Authored narration returns for arrival and first finds only. The grown-up "turn the
+globe" control comparison was dropped from this route. `?classic` stays, frozen, until the
+combined route has been observed on the tablet.
 
 ## 2026-09-12 — Rule hierarchy audit
 

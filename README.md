@@ -3,22 +3,23 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
 far: Earth, the Moon, Mars, and Saturn.
 
-The current child-facing route opens on a genuine solar-system hub: the Sun, Earth, Moon,
-Mars and Saturn are visible and open from the first launch. Tap a moving world or use the
-compact labelled controls at the edge, ride with the spaceship through space, then explore
-its close-up globe with real places, photographs, narration and a persistent journal.
-Progress recommends a next destination but never locks one away. `?classic` remains a
-temporary compatibility URL while the unified hub is observed.
+The app opens on the solar system: the Sun, Earth, the Moon, Mars and Saturn in orbit, all
+open from the first launch. Tap a world — or its button along the bottom — and the spaceship
+flies there. On arrival the camera comes down to the surface and the same ship is yours to
+steer: hold and slide to fly, let go to stop, **Closer** and **Higher** to change height.
 
-Every world has six optional places under **Places**. Earth, the Moon and Mars offer
-close globe flight; Saturn uses a wider orbital view so its rings remain visible. **Take a
-look** opens individually credited mission imagery. The globe maps have finite resolution:
-this is an illustrated orbital explorer, not a detailed ground simulator. **Worlds** always
-returns to the chooser. Grown-up settings also offer direct globe dragging.
+Each world carries six real places, shown as small round pictures pinned where they really
+are. Fly over one (or tap it, or pick it under **Places**) to find it: it goes into the
+**journal** with its real, individually credited photograph, which **Take a look** opens.
+Finding all six on a world puts that world's badge on the ship. **Solar system** always
+climbs back out. Earth, the Moon and Mars are flown over close; Saturn is circled from
+orbit so its rings stay in view. The globe maps have finite resolution: this is an
+illustrated explorer, not a ground simulator.
 
-The main route caches maps for offline use once installed. Photographs load only when opened,
-and are then available offline. The older adventure's progress and sound settings are
-preserved without being changed.
+Recorded narration welcomes each world and names each place the first time it is found;
+**Read to me** on a postcard replays it. The main route caches maps and place pictures for
+offline use once installed; full photographs load only when opened. Progress is shared with
+the earlier adventure, which stays at `?classic` while this one is observed.
 
 ### Earlier adventure (`?classic`)
 
@@ -55,9 +56,8 @@ npm run dev
 
 Then open <http://localhost:5173>.
 
-For a local browser preview, use <http://localhost:5173/>. The new explorer is deliberately
-the default while it is evaluated; `?classic` keeps the previous deployed adventure available
-as a reversible comparison route.
+For a local browser preview, use <http://localhost:5173/>. `?classic` keeps the previous
+adventure available as a comparison route.
 
 The optional manual-flight experiment is available from **Fly it yourself** in the grown-ups
 panel, with **Shift+F** on a keyboard, or directly at

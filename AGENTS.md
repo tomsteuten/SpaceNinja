@@ -57,20 +57,27 @@ result for WebGL work; DOM assertions alone do not establish visual quality.
 
 ## Current child loop
 
-The default route is now the explorer trial, implemented in `src/moon/` and shared by all
-four existing worlds. The app opens by flying in from space, and choosing a world flies there —
-the current body departs into the starfield, the imagery swaps at the far point, and the next
-body arrives (see `src/moon/travel.ts`; the journey is pure timing, so it is unit-tested and it
-degrades to an instant swap under reduced motion). A pick mid-hop retargets the same journey
-rather than trapping a slow load. Then hold/slide to move, release to stop, and use Places for
-six optional archive views. Saturn has explicit orbital framing. There are no progress gates,
-collectible markers or automatic narration in this route. `?moontrial` starts Moon-first and
-does not register the service worker; the default route supports offline maps and lazy photos.
-The trial's physical-device questions are in `docs/explorer-playtest.md`.
+The default route (`src/explorer/`) joins the classic adventure's solar system to the
+explorer's close flight in one scene:
 
-The next step is a solar-system view the child launches from — the Sun and worlds in one scene,
-tap one to fly there along the same travel primitive — replacing the card chooser. The travel
-transition above is deliberately phase one of that, shipped and observed first.
+- It opens on the adventure's own solar system: all four worlds visible and open from the first
+  launch, the ship parked by Earth, one row of world buttons along the bottom. Progress only
+  *suggests* a next world (`nextWorld`); nothing is locked.
+- A tap flies the adventure's ship there with the classic `FlightSequence`. On arrival the camera
+  descends from the arrival shot to the surface (`surfaceView.ts`), with no cut and no second
+  renderer, and the explorer's hold/slide model (`model.ts`) runs in the destination's own
+  surface space. The adventure's ship is the one steered over the ground. Saturn is circled.
+- Places are real-photo badges pinned to the world (`beacons.ts`). Flying over one, tapping it
+  or choosing it under Places finds it: it goes into the journal (`journal.ts`) under its
+  classic discovery id, so progress is shared with `?classic`. Six on a world earns its sticker,
+  which appears on the ship. Authored narration plays on arrival and on a first find only.
+- `phases.ts` is the single sequence (system → flying → descending → exploring → ascending →
+  returning) and `restart()` in `main.ts` is the one reset path; `reset` works from any phase.
+
+The trial's physical-device questions are in `docs/explorer-playtest.md`. Known next steps:
+planet map resolution when flying low (the 2048px maps are soft at explorer altitude; only the
+Moon has a sharper map, swapped in on first visit), and observing whether children read the
+place badges as things to fly to.
 
 The preserved classic adventure at `?classic` retains the following loop and its saved data:
 
@@ -228,8 +235,8 @@ necessary and should be reported as unverified until performed.
 index.html                  boot/error shell
 sw/                         generated offline worker and tests
 public/                     shipped manifest, icons and real media
-src/main.ts                 current game orchestration
-src/moon/                   shared explorer route, world data, touch model, UI and lifecycle
+src/main.ts                 route dispatch, and the classic adventure's orchestration (?classic)
+src/explorer/               default route: solar system, descent, surface flight, badges, journal
 src/config.ts               destination data and scene constants
 src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input

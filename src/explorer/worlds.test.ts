@@ -1,7 +1,7 @@
 import { describe,expect,it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { DESTINATIONS } from '../config';
-import { WORLDS,placeView } from './worlds';
+import { WORLDS,placeView,thumbnail } from './worlds';
 import { radians } from './model';
 
 describe('explorer destinations',()=>{
@@ -11,6 +11,8 @@ describe('explorer destinations',()=>{
       expect(new Set(world.places.map(p=>p.id)).size).toBe(world.places.length);
       for(const place of world.places){
         expect(existsSync('public/'+place.photo),place.id).toBe(true);
+        expect(existsSync('public/'+thumbnail(place)),place.id+' thumbnail').toBe(true);
+        expect(place.id).toBe(place.discovery.id);
         expect(place.source).toMatch(/^https:\/\/(svs.gsfc.nasa.gov|science.nasa.gov|images.nasa.gov|www.jpl.nasa.gov)\/.+/);
         expect(place.credit).not.toBe('NASA mission imagery');
         const view=placeView(place,world);

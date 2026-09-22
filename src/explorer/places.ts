@@ -1,6 +1,8 @@
+import type { Discovery } from '../config';
 import { radians } from './model';
 export interface Place {
-  id:string; name:string; description:string; lat:number; lon:number;
+  /** The discovery id once resolved in worlds.ts; the Moon's hand-written entries start short. */
+  id:string; discovery?:Discovery; name:string; description:string; lat:number; lon:number;
   photo:string; credit:string; words:string; source:string; imageLabel:string;
   viewLat?:number; viewAltitude?:number; orbital?:boolean;
 }
