@@ -35,6 +35,14 @@ export function createArrival(): Travel {
   return { leg: 'arrive', t: 0 };
 }
 
+/**
+ * Turn an arriving body back toward the far point without a visual pop. Smootherstep is
+ * symmetric, so reversing progress keeps both body scale and star-streak intensity continuous.
+ */
+export function reverseArrivalToDeparture(travel: Travel): Travel {
+  return { leg: 'depart', t: 1 - travel.t };
+}
+
 // Smootherstep: zero velocity and acceleration at both ends, so the planet eases away and
 // eases back rather than lurching.
 const ease = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);

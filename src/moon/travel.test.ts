@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  createDeparture, createArrival, advanceTravel, travelScale, travelStreak,
+  createDeparture, createArrival, reverseArrivalToDeparture, advanceTravel, travelScale, travelStreak,
   TRAVEL_LEG_SECONDS, TRAVEL_MIN_SCALE,
 } from './travel';
 
@@ -17,6 +17,14 @@ describe('travel curve', () => {
     expect(travelStreak({ leg: 'arrive', t: 1 })).toBeCloseTo(0);
     expect(travelStreak({ leg: 'depart', t: 1 })).toBeGreaterThan(0.9);
     expect(travelStreak({ leg: 'arrive', t: 0 })).toBeGreaterThan(0.9);
+  });
+
+  it('reverses an arrival into departure without a scale or streak jump', () => {
+    const arriving = { leg: 'arrive' as const, t: 0.24 };
+    const departing = reverseArrivalToDeparture(arriving);
+    expect(departing).toEqual({ leg: 'depart', t: 0.76 });
+    expect(travelScale(departing)).toBeCloseTo(travelScale(arriving));
+    expect(travelStreak(departing)).toBeCloseTo(travelStreak(arriving));
   });
 });
 

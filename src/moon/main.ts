@@ -7,7 +7,7 @@ import { createFlight, stepFlight, stopFlight, dragGlobe, angularDistance, wrap,
 import type { Place } from './places';
 import { createMoonUI } from './ui';
 import { worldById, placeView, type WorldId, type ExplorerWorld } from './worlds';
-import { createDeparture, createArrival, advanceTravel, travelScale, travelStreak, type Travel } from './travel';
+import { createDeparture, createArrival, reverseArrivalToDeparture, advanceTravel, travelScale, travelStreak, type Travel } from './travel';
 
 const destinationName=(world:ExplorerWorld)=>world.id==='moon'?'the Moon':world.label;
 
@@ -87,9 +87,12 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
       if(reduced||scene!.worldId===id){
         travelState=null;
         ui!.status(reduced?`Opening ${target.label}…`:'');
-        scene!.setWorld(target).then(ready=>{
+        // Apply only after the latest-selection guard. `setWorld()` applies internally, which
+        // would let an older reduced-motion request repaint the globe after a newer choice.
+        scene!.loadWorld(target).then(assets=>{
           if(disposed||token!==selection)return;
-          worldReady=ready; ui!.loading(false); ui!.status('');
+          scene!.applyWorld(assets);
+          worldReady=true; ui!.loading(false); ui!.status('');
         }).catch(()=>{
           if(disposed||token!==selection)return;
           ui!.loading(false,true); ui!.status('This world could not open. Try it again or choose another.');
@@ -101,7 +104,7 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
       // the old world was already arriving, drop back out so the new one can swap at the far point.
       if(travelState){
         travelState.target=target; travelState.assets=null; travelState.failed=false; travelState.token=token;
-        if(travelState.model.leg==='arrive') travelState.model=createDeparture();
+        if(travelState.model.leg==='arrive') travelState.model=reverseArrivalToDeparture(travelState.model);
       } else {
         travelState={model:createDeparture(),target,assets:null,failed:false,token};
       }
@@ -142,7 +145,12 @@ export async function startMoonTrial(canvas:HTMLCanvasElement, root:HTMLElement,
   }
   canvas.addEventListener('pointerdown',event=>{
     if(ui!.modal||pointerId!==null||event.button!==0)return;
-    if(phase==='travel')return; // let the journey land before any touch takes hold
+    if(phase==='travel'){
+      // The opening fly-in is decorative. A child's first touch should still immediately begin
+      // exploring; actual world-to-world hops keep their controls exclusive until they land.
+      if(travelState?.target===null) start();
+      return;
+    }
     if(phase==='welcome'){start();return;}
     if(phase==='approach'){approach=1;setPhase('explore');}
     navigation=null;pointerId=event.pointerId;canvas.setPointerCapture(event.pointerId);
