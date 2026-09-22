@@ -3,10 +3,12 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
 far: Earth, the Moon, Mars, and Saturn.
 
-The current child-facing route is a quiet, free exploration mode: choose a world, then
-hold and slide to fly over its real colour map. There are no scores, collectibles, automatic
-voice or progress requirements. Open `?classic` to compare the earlier adventure loop, and
-`?moontrial` to open the Moon-first version used by the browser trial checks.
+The current child-facing route opens on a genuine solar-system hub: the Sun, Earth, Moon,
+Mars and Saturn are visible and open from the first launch. Tap a moving world or use the
+compact labelled controls at the edge, ride with the spaceship through space, then explore
+its close-up globe with real places, photographs, narration and a persistent journal.
+Progress recommends a next destination but never locks one away. `?classic` remains a
+temporary compatibility URL while the unified hub is observed.
 
 Every world has six optional places under **Places**. Earth, the Moon and Mars offer
 close globe flight; Saturn uses a wider orbital view so its rings remain visible. **Take a
@@ -15,8 +17,8 @@ this is an illustrated orbital explorer, not a detailed ground simulator. **Worl
 returns to the chooser. Grown-up settings also offer direct globe dragging.
 
 The main route caches maps for offline use once installed. Photographs load only when opened,
-and are then available offline. The explicit `?moontrial` route does not install a worker.
-The older adventure's progress and sound settings are preserved without being changed.
+and are then available offline. The older adventure's progress and sound settings are
+preserved without being changed.
 
 ### Earlier adventure (`?classic`)
 

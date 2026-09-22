@@ -3,6 +3,16 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-09-22 — Solar-system hub replaces the isolated explorer chooser
+
+The close-up exploration treatment, real-place discoveries, photographs and narration were
+kept, but the isolated globe and large world-card chooser were replaced by the adventure
+solar-system hub. Observation of the chooser showed it made a space journey feel like a
+dashboard selection rather than a trip through a system. A previous attempt to put planets
+behind existing cards cluttered all tested viewports, so the successful design removes the
+chooser rather than layering a second presentation underneath it. All four destinations are
+now visibly present and open; progress recommends a next place rather than acting as a gate.
+
 ## 2026-09-12 — Rule hierarchy audit
 
 ### Why the rules changed

@@ -5,11 +5,11 @@
    --------------------------------------------------------------------------- */
 
 :root {
-  --ink: #f3eeff;
-  --ink-soft: rgba(243, 238, 255, 0.72);
-  --panel: rgba(30, 22, 62, 0.82);
-  --panel-edge: rgba(168, 150, 255, 0.28);
-  --glow: rgba(150, 128, 255, 0.35);
+  --ink: #edf7f5;
+  --ink-soft: rgba(222, 242, 239, 0.74);
+  --panel: rgba(11, 27, 37, 0.84);
+  --panel-edge: rgba(164, 221, 215, 0.3);
+  --glow: rgba(101, 208, 196, 0.2);
 
   /* The ship's palette, so the interface belongs to the same world as the thing it is
      flying. Each colour comes in three: a lit top, the colour itself, and a solid lip
@@ -18,11 +18,11 @@
   --accent: #f4762a;
   --accent-deep: #d2551a;
   --accent-lip: #a03c11;
-  --trim-lit: #8272c8;
-  --trim: #6a58ae;
-  --trim-deep: #4a3d84;
-  --trim-lip: #322a5c;
-  --spark: #5fd8ff;
+  --trim-lit: #5d9e9a;
+  --trim: #397673;
+  --trim-deep: #21514f;
+  --trim-lip: #163d3c;
+  --spark: #9ee9df;
 
   --warm: #ffd08a;
   --warm-deep: #ff9f5a;
@@ -52,7 +52,7 @@ body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #080619;
+  background: #061118;
   font-family: var(--font);
   color: var(--ink);
   -webkit-text-size-adjust: 100%;
@@ -227,15 +227,12 @@ body {
  * has reduced Earth and the Moon to specks. The left offset reserves the journal corner.
  */
 .destination-bar {
-  --destination-count: 2;
+  --destination-count: 4;
   position: absolute;
-  left: calc(50% + 36px);
+  right: var(--pad-right);
   bottom: var(--pad-bottom);
-  width: min(
-    430px,
-    calc(100vw - var(--pad-left) - var(--pad-right) - 78px)
-  );
-  transform: translateX(-50%);
+  width: min(348px, calc(100vw - var(--pad-left) - var(--pad-right) - 82px));
+  transform: none;
   display: grid;
   grid-template-columns: repeat(var(--destination-count), minmax(0, 1fr));
   gap: 0.45rem;
@@ -244,11 +241,11 @@ body {
 .destination-choice {
   position: relative;
   min-width: 0;
-  min-height: 64px;
-  padding: 0.35rem 0.3rem 0.45rem;
-  border: 1px solid rgba(168, 150, 255, 0.38);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(74, 61, 132, 0.94), rgba(40, 31, 82, 0.96));
+  min-height: 56px;
+  padding: 0.3rem 0.22rem 0.35rem;
+  border: 1px solid rgba(164, 221, 215, 0.34);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(34, 72, 80, 0.94), rgba(12, 35, 47, 0.97));
   color: var(--ink);
   box-shadow:
     0 4px 0 rgba(22, 16, 50, 0.9),
@@ -259,7 +256,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.1rem;
-  font: 750 0.76rem/1.05 var(--font);
+  font: 750 0.72rem/1.05 var(--font);
   cursor: pointer;
 }
 
@@ -272,11 +269,11 @@ body {
 }
 
 .destination-choice.is-suggested {
-  border-color: var(--warm);
-  background: linear-gradient(180deg, rgba(116, 87, 147, 0.98), rgba(67, 48, 111, 0.98));
+  border-color: #b5f2e8;
+  background: linear-gradient(180deg, rgba(59, 125, 126, 0.98), rgba(24, 75, 82, 0.98));
   box-shadow:
-    0 4px 0 rgba(76, 45, 94, 0.95),
-    0 0 24px rgba(255, 208, 138, 0.32),
+    0 4px 0 rgba(17, 60, 63, 0.95),
+    0 0 24px rgba(158, 233, 223, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 

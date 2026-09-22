@@ -16,7 +16,6 @@ import {
   FRAMING_RADIUS_WIDER,
   WIDE_FRAMING_VISIT,
   WIDER_FRAMING_VISIT,
-  revealedDestinations,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
@@ -50,6 +49,7 @@ import {
 } from './state/progress';
 import { loadSoundOn } from './state/settings';
 import { DISCOVERIES } from './config';
+import { createExperienceCoordinator } from './experience/ExperienceCoordinator';
 
 const boot = document.getElementById('boot');
 
@@ -123,16 +123,8 @@ async function main() {
   }
   const canvas: HTMLCanvasElement = canvasElement;
 
-  // The calm explorer is now the default child-facing route. Keep the shipped adventure
-  // available at `?classic` while the new loop is observed in the wild.
-  const params = new URLSearchParams(window.location.search);
-  if (!params.has('classic') && !params.has('freeflight') && !params.has('grownups')) {
-    const { startMoonTrial } = await import('./moon/main');
-    const explorer = await startMoonTrial(canvas, uiRoot, params.has('moontrial') ? 'moon' : 'earth');
-    if (explorer && !params.has('moontrial') && import.meta.env.VITE_PLAYTEST !== '1') registerOffline(explorer.canReload);
-    return;
-  }
-
+  // The unified experience is the default. `?classic` remains a compatibility route while
+  // the new hub is observed; neither query starts a second renderer.
   // The assisted free-flight prototype, reached at `?freeflight`. Deliberately a separate
   // path with nothing below it running: it is a sandbox for a control scheme the shipped
   // loop does not use, and a dynamic import keeps its code out of the normal bundle entirely
@@ -159,6 +151,7 @@ async function main() {
   document.addEventListener('keydown', onFreeFlightShortcut);
 
   const reducedMotion = prefersReducedMotion();
+  const experience = createExperienceCoordinator();
   const stage = createStage(canvas, detectQuality());
   const { scene, camera } = stage;
 
@@ -215,7 +208,9 @@ async function main() {
    * the map, since visiting a world is what unlocks the next. See revealedDestinations.
    */
   function visibleDestinationIds(): BodyId[] {
-    return revealedDestinations(loadProgress().visited) as BodyId[];
+    // Progress can point somewhere interesting, but a solar-system map never pretends its
+    // real places do not exist. All four are present and touchable from first launch.
+    return Object.keys(DESTINATIONS) as BodyId[];
   }
 
   function applyReveal(animate = false): BodyId[] {
@@ -232,22 +227,15 @@ async function main() {
    * the world and does not draw it.
    */
   function mapChoices() {
-    const visible = new Set(visibleDestinationIds());
     return (Object.keys(DESTINATIONS) as BodyId[]).map((id) => ({
       id,
       // The full scene name is "The Moon"; a four-choice phone bar has room for the
       // identity, not the article. Keeping this derivation here avoids duplicate copy.
       label: world.bodies[id].label.replace(/^The /, ''),
       emoji: DESTINATIONS[id]?.emoji ?? '✨',
-      locked: !visible.has(id),
-      unlockedBy: gateLabel(id),
+      locked: false,
+      unlockedBy: undefined,
     }));
-  }
-
-  /** The world a locked one is waiting on, named the way a child hears it spoken. */
-  function gateLabel(id: BodyId): string | undefined {
-    const gate = DESTINATIONS[id]?.revealAfterVisiting;
-    return gate ? world.bodies[gate as BodyId]?.label : undefined;
   }
 
   const controls = createOrbitInput({
@@ -297,6 +285,7 @@ async function main() {
       dayTurn.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
+      if (!experience.move('RETURNING')) return;
       if (homeReturn.start()) {
         // Bring the wider solar-system context back as the camera leaves the destination.
         // Keeping the visit focus until restart() made every other world pop in only after
@@ -363,6 +352,7 @@ async function main() {
     // from. The context was created by the press that started this flight.
     onThrottle: (throttle, cruise) => sfx.thruster(throttle, cruise),
     onArrive: (destination) => {
+      experience.move('ARRIVING');
       follow = destination.id;
       suggested = null;
       world.setSelected(null);
@@ -390,6 +380,7 @@ async function main() {
       // once. There is nothing between arriving and having something to touch.
       mission.start();
       revealHunt();
+      experience.move('EXPLORING');
     },
   });
 
@@ -640,18 +631,7 @@ async function main() {
   function launch(id: BodyId | null) {
     if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
-    if (!visibleDestinationIds().includes(id)) {
-      // A locked world is pressable and answers. Never silence: an unanswered press reads
-      // as a broken app at this age.
-      const gate = gateLabel(id);
-      ui.nudgeDestination(id);
-      ui.setHint(gate ? `🔒 Visit ${gate} first` : '🔒 Not yet');
-      window.clearTimeout(nudge);
-      nudge = window.setTimeout(() => {
-        if (flight.phase === 'idle') showOpeningHints();
-      }, 2600);
-      return;
-    }
+    if (!experience.move('DEPARTING')) return;
     const destination = world.bodies[id];
     if (!destination) return;
     // The flight is told which latitude to arrive over; it does not know why. Matching
@@ -659,7 +639,10 @@ async function main() {
     // the mission.
     const discoveries = buildMission(id)?.definition.discoveries;
     const aim = discoveries ? facingLatitude(discoveries) : undefined;
-    if (!flight.start(destination, aim)) return;
+    if (!flight.start(destination, aim)) {
+      experience.move('SYSTEM');
+      return;
+    }
     // The first reliable user gesture of the session, and the last one before the ship
     // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
     // suspended and only let it resume inside a gesture like this one.
@@ -793,6 +776,7 @@ async function main() {
    * and the next flight simply aims at wherever the destination is now.
    */
   function restart() {
+    experience.move('SYSTEM');
     cameraReturn = null;
     coach.clear();
     idleFor = 0;
@@ -958,6 +942,7 @@ async function main() {
   });
 
   stage.onCrash((error) => {
+    experience.crash();
     // The loop has stopped; the sounds it was driving have not, and the engine would
     // otherwise drone under the crash screen at whatever gain it had reached.
     sfx.reset();
@@ -1000,6 +985,7 @@ async function main() {
   // Stop drawing while backgrounded; on a tablet this is most of the battery win.
   function onVisibilityChange() {
     if (document.hidden) {
+      experience.suspend();
       stage.stop();
       narrator.stop();
       // Continuous sound is driven a frame at a time, and stopping the loop stops the
@@ -1007,12 +993,14 @@ async function main() {
       // a backgrounded tab forever. Both sounds rebuild themselves on the next frame.
       sfx.reset();
     } else {
+      experience.resume();
       stage.start();
     }
   }
   document.addEventListener('visibilitychange', onVisibilityChange);
 
   function dispose() {
+    experience.dispose();
     window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();
