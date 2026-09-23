@@ -16,11 +16,20 @@ import { createPhotoViewer, findPhoto } from '../ui/photos';
 import { loadProgress, markVisited, recordDiscovery } from '../state/progress';
 import { loadSoundOn } from '../state/settings';
 import { createCameraDirector } from './cameraDirector';
+import {
+  INITIAL_OUTING,
+  assistedArrival,
+  canReloadForUpdate,
+  flightRuns,
+  transition,
+  type OutingEffect,
+  type OutingEvent,
+  type OutingState,
+} from './outingState';
 import './outing.css';
 
 const TYCHO = DISCOVERIES['moon-tycho']!;
 const TYCHO_VOICE = 'You found Tycho! A crashing space rock splashed those bright streaks of dust across the Moon.';
-type Phase = 'flight' | 'explore';
 
 /** Canonical, bounded outing: the real Earth and Moon, one ship and one discovery. */
 export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement): Promise<void> {
@@ -43,7 +52,7 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
   const trail = createEngineTrail(stage.quality.tier === 'low' ? 24 : 46);
   scene.add(trail.group);
   const narrator = createNarrator();
-  const photo = createPhotoViewer(uiRoot);
+  const photo = createPhotoViewer(uiRoot, { onHide: () => dispatch({ type: 'photoClosed' }) });
   const cameraDirector = createCameraDirector(camera, reducedMotion);
   const moon = world.bodies.moon;
   const earth = world.bodies.earth;
@@ -61,7 +70,9 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     { id: 'earth', center: earthCenter, radius: earth.radius, brakeOnApproach: false, canExplore: false },
     { id: 'moon', center: moonCenter, radius: moon.radius },
   ];
-  let phase: Phase = 'flight';
+  let state: OutingState = INITIAL_OUTING;
+  let remembered = loadProgress().discoveries.includes(TYCHO.id);
+  let photoUnavailable = false;
   let pointer: { x: number; y: number } | null = null;
   let pointerId: number | null = null;
   let foundThisVisit = false;
@@ -100,17 +111,62 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     pointer = null;
     if (held !== null && canvas.hasPointerCapture(held)) canvas.releasePointerCapture(held);
   }
-  function suspend() {
-    releaseInput();
-    flight.cancelAutopilot();
-    flight.state.speed = 0;
-    ship.setThrust(0);
-    trail.reset();
-    narrator.stop();
+
+  /** The only way interaction state changes: one transition, then its effects in order. */
+  function dispatch(event: OutingEvent, press?: PointerEvent) {
+    const result = transition(state, event, { explorable: flight.state.explorable === 'moon', reducedMotion });
+    state = result.state;
+    for (const effect of result.effects) apply(effect, press);
+    syncHud();
   }
+  function apply(effect: OutingEffect, press?: PointerEvent) {
+    switch (effect.type) {
+      case 'beginSteer':
+        if (!press) return;
+        pointerId = press.pointerId;
+        canvas.setPointerCapture(press.pointerId);
+        readPointer(press);
+        flight.cancelAutopilot();
+        return;
+      case 'collectAt':
+        if (press) collectAt(press.offsetX, press.offsetY);
+        return;
+      case 'haltFlight':
+        releaseInput();
+        flight.cancelAutopilot();
+        flight.state.speed = 0;
+        ship.setThrust(0);
+        trail.reset();
+        return;
+      case 'engageHelp':
+        releaseInput();
+        flight.engageAutopilot('moon');
+        return;
+      case 'arriveNow':
+        arriveNow();
+        return;
+      case 'enterMoon':
+        enterMoon();
+        return;
+      case 'leaveMoon':
+        leaveMoon();
+        return;
+      case 'showPhoto':
+        void showPhoto(effect.reward);
+        return;
+      case 'hidePhoto':
+        ++photoRequest;
+        photo.hide();
+        return;
+      case 'silence':
+        narrator.stop();
+        return;
+    }
+  }
+
   function syncHud() {
-    const saved = loadProgress().discoveries.includes(TYCHO.id);
-    memory.hidden = !saved || phase === 'explore';
+    const { phase } = state;
+    memory.hidden = !remembered || phase === 'explore';
     explore.hidden = phase !== 'flight' || flight.state.explorable !== 'moon';
     help.hidden = phase !== 'flight';
     stop.hidden = phase !== 'flight';
@@ -120,26 +176,30 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     status.textContent = phase === 'explore' ? 'On the Moon' : flight.state.explorable === 'moon' ? 'Moon reached!'
       : flight.state.autopilot ? '🌙 Moon help' : flight.state.speed > 0.05 ? '🚀 Flying' : '✋ Stopped';
     status.hidden = phase === 'explore' && !card.hidden;
+    photoButton.disabled = photoUnavailable || state.photoOpen;
   }
   async function showPhoto(reward: boolean) {
-    releaseInput();
     const request = ++photoRequest;
-    photoButton.disabled = true;
     const url = await findPhoto(TYCHO.id);
+    // Superseded by flying home, a later request or disposal; that path owns the state.
     if (request !== photoRequest) return;
-    photoButton.disabled = false;
     if (url) {
       if (reward) photo.showDiscovery(url, TYCHO.name, TYCHO_VOICE);
       else photo.show(url, `${TYCHO.name} — ${TYCHO_VOICE}`);
     } else {
+      photoUnavailable = true;
       photoButton.textContent = '📷 Photo unavailable';
-      photoButton.disabled = true;
+      dispatch({ type: 'photoClosed' });
     }
   }
+  /** Reduced-motion help: cut straight to the hover an assisted journey would end in. */
+  function arriveNow() {
+    moon.getWorldPosition(moonCenter);
+    flight = createFreeFlight(assistedArrival(flight.state.position, moonCenter, moon.radius), DEFAULT_TUNING);
+    flight.update(0, { pointer: null }, bodies);
+    cameraDirector.cut();
+  }
   function enterMoon() {
-    if (phase !== 'flight' || flight.state.explorable !== 'moon') return;
-    suspend();
-    phase = 'explore';
     markVisited('moon');
     world.setFocus('moon');
     ship.group.visible = false;
@@ -153,42 +213,34 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
       camera, quality: stage.quality, reducedMotion,
       onCollect(discovery) {
         foundThisVisit = true;
+        remembered = true;
         recordDiscovery(discovery.id);
         card.hidden = false;
-        syncHud();
         if (loadSoundOn()) narrator.speak(TYCHO_VOICE, 'discovery-moon-tycho');
-        void showPhoto(true);
+        dispatch({ type: 'openPhoto', reward: true });
       },
       onComplete() {},
     });
     mission.start();
     mission.reveal();
-    syncHud();
   }
-  function flyHome() {
-    if (phase !== 'explore') return;
-    ++photoRequest;
-    photo.hide();
-    narrator.stop();
+  function leaveMoon() {
     mission?.dispose();
     mission = null;
     world.setFocus(null);
     ship.group.visible = true;
     flight = createFreeFlight({ position: start, heading: moon.getWorldPosition(moonCenter).clone().sub(start).normalize() }, DEFAULT_TUNING);
-    phase = 'flight';
     cameraDirector.setMode('flight');
     cameraDirector.update(0, flight.state, moon);
     card.hidden = true;
-    syncHud();
   }
   function collectAt(x: number, y: number) {
-    if (phase !== 'explore' || !mission || !mission.hitMeshes.length || !photoIsClosed()) return;
+    if (!mission || !mission.hitMeshes.length) return;
     ndc.set(x / canvas.clientWidth * 2 - 1, 1 - y / canvas.clientHeight * 2);
     raycaster.setFromCamera(ndc, camera);
     const hit = raycaster.intersectObjects(mission.hitMeshes, false)[0];
     if (hit) mission.collectFrom(hit.object);
   }
-  function photoIsClosed() { return Boolean(uiRoot.querySelector('.photo-view.is-hidden')); }
 
   function readPointer(event: PointerEvent) {
     pointer = {
@@ -197,33 +249,26 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     };
   }
   canvas.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0 || pointerId !== null || !photoIsClosed()) return;
+    if (event.button !== 0 || pointerId !== null) return;
     narrator.resume();
-    if (phase === 'explore') {
-      collectAt(event.offsetX, event.offsetY);
-      return;
-    }
-    pointerId = event.pointerId;
-    canvas.setPointerCapture(event.pointerId);
-    readPointer(event);
-    flight.cancelAutopilot();
-    syncHud();
+    dispatch({ type: 'press' }, event);
   }, { signal: events.signal });
   canvas.addEventListener('pointermove', (event) => { if (event.pointerId === pointerId) readPointer(event); }, { signal: events.signal });
   for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
     canvas.addEventListener(name, (event) => { if ((event as PointerEvent).pointerId === pointerId) releaseInput(); }, { signal: events.signal });
   }
-  window.addEventListener('blur', suspend, { signal: events.signal });
-  help.addEventListener('click', () => { narrator.resume(); releaseInput(); flight.engageAutopilot('moon'); syncHud(); }, { signal: events.signal });
-  stop.addEventListener('click', () => { suspend(); syncHud(); }, { signal: events.signal });
-  explore.addEventListener('click', () => { narrator.resume(); enterMoon(); }, { signal: events.signal });
-  home.addEventListener('click', flyHome, { signal: events.signal });
-  memory.addEventListener('click', () => { narrator.resume(); void showPhoto(false); }, { signal: events.signal });
-  photoButton.addEventListener('click', () => { void showPhoto(false); }, { signal: events.signal });
+  window.addEventListener('blur', () => dispatch({ type: 'background' }), { signal: events.signal });
+  help.addEventListener('click', () => { narrator.resume(); dispatch({ type: 'help' }); }, { signal: events.signal });
+  stop.addEventListener('click', () => dispatch({ type: 'stop' }), { signal: events.signal });
+  explore.addEventListener('click', () => { narrator.resume(); dispatch({ type: 'explore' }); }, { signal: events.signal });
+  home.addEventListener('click', () => dispatch({ type: 'home' }), { signal: events.signal });
+  memory.addEventListener('click', () => { narrator.resume(); dispatch({ type: 'openPhoto', reward: false }); }, { signal: events.signal });
+  photoButton.addEventListener('click', () => dispatch({ type: 'openPhoto', reward: false }), { signal: events.signal });
   speakButton.addEventListener('click', () => { narrator.resume(); narrator.speak(TYCHO_VOICE, 'discovery-moon-tycho', true); }, { signal: events.signal });
   window.addEventListener('keydown', (event) => {
-    if (phase === 'flight' && event.key === 'Escape') { suspend(); syncHud(); }
-    if (phase === 'explore' && event.key === 'Escape' && photoIsClosed()) flyHome();
+    // The photo dialog handles its own Escape first and marks it; that press is spent.
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    dispatch({ type: 'escape' });
   }, { signal: events.signal });
 
   stage.onFrame((dt, elapsed) => {
@@ -232,14 +277,15 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     earth.getWorldPosition(earthCenter);
     moon.getWorldPosition(moonCenter);
     trail.update(dt);
-    if (phase === 'flight') {
-      const state = flight.update(dt, { pointer }, bodies);
-      ship.group.position.copy(state.position);
-      ship.orient(state.heading, state.roll);
-      ship.setThrust(state.speed / DEFAULT_TUNING.cruiseSpeed);
-      if (!reducedMotion && state.speed > 0.05) {
-        tail.copy(state.position).addScaledVector(state.heading, -0.19);
-        trail.emit(tail, state.speed / DEFAULT_TUNING.cruiseSpeed, dt);
+    if (state.phase === 'flight') {
+      // A modal photo holds the flight model; the ship stays where it was stopped.
+      const pose = flightRuns(state) ? flight.update(dt, { pointer }, bodies) : flight.state;
+      ship.group.position.copy(pose.position);
+      ship.orient(pose.heading, pose.roll);
+      ship.setThrust(pose.speed / DEFAULT_TUNING.cruiseSpeed);
+      if (!reducedMotion && pose.speed > 0.05) {
+        tail.copy(pose.position).addScaledVector(pose.heading, -0.19);
+        trail.emit(tail, pose.speed / DEFAULT_TUNING.cruiseSpeed, dt);
       }
     } else {
       ship.setThrust(0);
@@ -251,11 +297,12 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     if (!booted) {
       booted = true;
       boot?.classList.add('is-hidden');
-      registerOffline(() => phase === 'flight' && flight.state.speed === 0);
+      registerOffline(() => canReloadForUpdate(state));
     }
   });
   const lifecycle = createSessionLifecycle({
-    stage, document, window, suspend,
+    stage, document, window,
+    suspend: () => dispatch({ type: 'background' }),
     fail: (error) => fail('Space Ninja stopped', error, true),
     dispose: () => {
       ++photoRequest;
@@ -272,7 +319,8 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     },
   });
   if (import.meta.env.VITE_PLAYTEST === '1') {
-    Object.assign(window, { spaceNinjaSnapshot: () => Object.freeze({ phase, cameraOwner: cameraDirector.mode,
+    Object.assign(window, { spaceNinjaSnapshot: () => Object.freeze({ phase: state.phase,
+      photoOpen: state.photoOpen, touched: state.touched, updateSafe: canReloadForUpdate(state), cameraOwner: cameraDirector.mode,
       speed: flight.state.speed, autopilot: flight.state.autopilot, explorable: flight.state.explorable,
       shipVisible: ship.group.visible, found: loadProgress().discoveries.includes(TYCHO.id),
       steering: pointer !== null, target: mission?.nextTarget() ?? null,

@@ -38,6 +38,10 @@ export function createCameraDirector(camera: THREE.PerspectiveCamera, reducedMot
       camera.lookAt(target);
       first = false;
     },
+    /** Jump to the current owner's pose on the next update instead of easing there. */
+    cut() {
+      first = true;
+    },
     get mode() { return mode; },
   };
 }

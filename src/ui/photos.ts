@@ -66,7 +66,12 @@ export function canFinishPhotoDismiss(
  * Escape. A child who opens this by accident must never be stuck in it, and at this age
  * "tap the small x" is not a reliable skill.
  */
-export function createPhotoViewer(root: HTMLElement): PhotoViewer {
+export interface PhotoViewerOptions {
+  /** Called whenever the viewer hides, by any route: button, backdrop, Escape or code. */
+  onHide?: () => void;
+}
+
+export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions = {}): PhotoViewer {
   const overlay = document.createElement('div');
   overlay.className = 'photo-view is-hidden';
   overlay.setAttribute('role', 'dialog');
@@ -112,6 +117,7 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
     // whose whole quality tier exists because memory is tight.
     image.removeAttribute('src');
     focus.close();
+    options.onHide?.();
   }
 
   /*

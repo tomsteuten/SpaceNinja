@@ -17,11 +17,15 @@ test('Earth to Moon outing: pilot, stop, help, Tycho, memory and return', async 
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().speed)).toBe(0);
 
-  await page.getByRole('button', { name: 'Help me to the Moon' }).click();
-  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().autopilot)).toBe('moon');
-  await page.getByRole('button', { name: 'Stop' }).click();
-  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().autopilot)).toBeNull();
-  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().speed)).toBe(0);
+  // Reduced motion replaces the optional automatic journey with a cut to the Moon.
+  const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
+  if (!reduced) {
+    await page.getByRole('button', { name: 'Help me to the Moon' }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().autopilot)).toBe('moon');
+    await page.getByRole('button', { name: 'Stop' }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().autopilot)).toBeNull();
+    await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().speed)).toBe(0);
+  }
   await page.getByRole('button', { name: 'Help me to the Moon' }).click();
   await expect(page.getByRole('button', { name: 'Explore the Moon' })).toBeVisible({ timeout: 50_000 });
   await attachShot(page, 'outing-moon-hover', info);
