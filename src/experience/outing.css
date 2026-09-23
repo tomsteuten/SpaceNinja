@@ -1,0 +1,35 @@
+.outing { position: fixed; inset: 0; z-index: 10; color: #fffaf3; font-family: ui-rounded, "Segoe UI", system-ui, sans-serif; pointer-events: none; }
+.outing button { pointer-events: auto; min-height: 54px; min-width: 54px; border: 1px solid #ffe4ab77; border-radius: 18px; padding: .5rem .85rem; color: #25123f; background: #fff0bc; font: 800 clamp(.9rem, 2vw, 1.1rem) ui-rounded, "Segoe UI", system-ui, sans-serif; box-shadow: 0 5px 16px #05021877; cursor: pointer; }
+.outing button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.outing button:disabled { opacity: .65; }
+.outing [hidden] { display: none !important; }
+.outing-top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: flex; align-items: center; gap: .65rem; }
+.outing-brand, .outing-status { padding: .55rem .8rem; border-radius: 15px; background: #151333bb; font-weight: 800; text-shadow: 0 1px 3px #080619; }
+.outing-status { margin-left: auto; }
+.outing-memory { margin-left: .3rem; }
+.outing-center { position: absolute; left: 50%; bottom: 23%; transform: translateX(-50%); }
+.outing-explore { background: #ffe09a !important; font-size: 1.2rem !important; white-space: nowrap; }
+.outing-bottom { position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: flex; align-items: end; justify-content: space-between; gap: .7rem; }
+.outing-hint { max-width: 14rem; padding: .65rem .8rem; border-radius: 15px; background: #151333d9; font-size: clamp(.9rem, 2vw, 1rem); font-weight: 700; }
+.outing-actions { display: flex; gap: .5rem; }
+.outing-discovery { position: absolute; top: 15%; right: max(12px, env(safe-area-inset-right)); width: min(290px, 38vw); padding: 1rem; border-radius: 22px; background: #191438e8; box-shadow: 0 10px 30px #03010ba8; }
+.outing-discovery strong { font-size: 1.2rem; }
+.outing-discovery p { line-height: 1.35; margin: .5rem 0 .9rem; }
+.outing-discovery div { display: flex; flex-wrap: wrap; gap: .4rem; }
+@media (max-width: 620px), (max-height: 450px) {
+  .outing-top { gap: .3rem; }
+  .outing-brand { display: none; }
+  .outing-bottom { align-items: stretch; flex-direction: column; }
+  .outing-hint { align-self: start; padding: .4rem .65rem; }
+  .outing-actions { justify-content: flex-end; }
+  .outing-actions button { padding: .35rem .55rem; }
+  .outing-discovery { top: 12%; width: min(260px, 46vw); padding: .7rem; font-size: .85rem; }
+  .outing-discovery strong { font-size: 1rem; }
+  .outing-discovery button { min-height: 44px; }
+}
+@media (max-width: 620px) and (min-height: 451px) {
+  .outing-actions { width: 100%; }
+  .outing-actions button { flex: 1; }
+  .outing-discovery { top: auto; bottom: 145px; left: 12px; right: 12px; width: auto; }
+  .outing-center { bottom: 25%; }
+}

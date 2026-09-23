@@ -70,6 +70,14 @@ async function main() {
     return;
   }
 
+  // The Earth-to-Moon outing is the current playable experience. The previous guided
+  // adventure remains available for comparison without running two owners at once.
+  if (!/[?&]classic\b/.test(window.location.search)) {
+    const { startOuting } = await import('./experience/outing');
+    await startOuting(canvas, uiRoot);
+    return;
+  }
+
   function enterFreeFlight() {
     window.location.assign(freeFlightHref(window.location.href));
   }

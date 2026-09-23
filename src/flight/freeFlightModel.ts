@@ -40,6 +40,9 @@ export interface FlightBody {
    * part of the planet before collision help notices anything.
    */
   clearanceRadius?: number;
+  /** Scenery or departure worlds can remain collision-safe without stopping the ship. */
+  brakeOnApproach?: boolean;
+  canExplore?: boolean;
 }
 
 export interface FreeFlightTuning {
@@ -174,6 +177,7 @@ export function approachSpeedCap(
 ): number {
   let cap = tuning.cruiseSpeed;
   for (const body of bodies) {
+    if (body.brakeOnApproach === false) continue;
     const dist = position.distanceTo(body.center);
     const naturalInner = body.radius * tuning.hoverInnerFactor;
     const inner = Math.max(naturalInner, body.clearanceRadius ?? 0);
@@ -234,7 +238,7 @@ export function nearestBody(
   for (const body of bodies) {
     const distance = position.distanceTo(body.center);
     if (best && distance >= best.distance) continue;
-    best = { body, distance, explorable: distance < body.radius * tuning.exploreFactor };
+    best = { body, distance, explorable: body.canExplore !== false && distance < body.radius * tuning.exploreFactor };
   }
   return best;
 }

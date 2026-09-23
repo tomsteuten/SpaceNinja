@@ -10,3 +10,4 @@ npm-debug.log*
 dist-playtest/
 test-results/
 playwright-report/
+.preservation/
