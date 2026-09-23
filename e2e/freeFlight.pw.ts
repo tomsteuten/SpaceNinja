@@ -1,7 +1,7 @@
 import { test, expect, attachShot, expectRendering } from './fixtures';
 
 test('assisted free flight boots, flies, arrives and hands control back', async ({ page }, info) => {
-  await page.goto('/?grownups');
+  await page.goto('/?classic&grownups');
   await expect(page.getByRole('heading', { name: 'Fly it yourself' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try manual flight' })).toBeVisible();
   await attachShot(page, 'manual-flight-grownups-entry', info);
@@ -43,12 +43,7 @@ test('assisted free flight boots, flies, arrives and hands control back', async 
   await expect(page).not.toHaveURL(/freeflight/);
   await expect(page.locator('.ff')).toHaveCount(0);
   await expect(page.locator('#boot')).toBeHidden();
-
-  const greeting = page.getByRole('button', { name: 'Start playing', exact: true });
-  if (await greeting.isVisible()) await greeting.click();
-  await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().phase)).toBe('arrived');
+  // The way back lands on the current default experience, the Earth-to-Moon outing.
+  await expect(page.getByRole('button', { name: 'Help me to the Moon' })).toBeVisible();
   await expectRendering(page);
-  await page.getByRole('button', { name: 'Fly Home', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Fly to Moon', exact: true })).toBeVisible();
 });

@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
-  testDir: './e2e', testMatch: process.env.PLAYWRIGHT_LEGACY === '1' ? '**/*.pw.ts' : '**/outing.pw.ts', workers: 1,
+  testDir: './e2e', testMatch: '**/*.pw.ts', workers: 1,
   reporter: [['list'], ['html', {open:'never'}]],
   timeout: 240000, expect: { timeout: 45000 },
   use: { baseURL: 'http://127.0.0.1:4180', screenshot: 'only-on-failure', trace: 'retain-on-failure',

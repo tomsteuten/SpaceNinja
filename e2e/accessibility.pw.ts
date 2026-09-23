@@ -1,7 +1,7 @@
 import { test, expect, attachShot } from './fixtures';
 
 test('grown-ups panel and journal keep keyboard focus with a clear escape route', async ({ page }, info) => {
-  await page.goto('/?grownups');
+  await page.goto('/?classic&grownups');
   const grownups = page.getByRole('dialog', { name: 'Grown-ups settings' });
   await expect(grownups).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start playing' })).toBeFocused();

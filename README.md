@@ -477,11 +477,12 @@ supersede the earlier all-or-none narration and text-only journal notes.
 ## Browser regression checks
 
 `npm run test:e2e` builds an isolated `dist-playtest/` and serves it on port 4180.
-Run `npx playwright install chromium` once first. The current suite covers the Earth-to-Moon
-outing with real pointer input on phone, tablet and short-landscape viewports, including
-movement, stop, destination help, Tycho's marker and photograph, return and saved memory.
+Run `npx playwright install chromium` once first. The suite runs every `e2e/*.pw.ts` file on
+phone, tablet and short-landscape viewports with real pointer input. The default route's
+files cover the Earth-to-Moon outing: movement, stop, destination help, Tycho's marker and
+photograph, return, saved memory, modal and Escape boundaries, reduced motion, history
+suspension and offline/update behaviour. The guided adventure's files run against `?classic`.
 Screenshots are attached to `playwright-report/`; failures retain traces in `test-results/`.
-Set `PLAYWRIGHT_LEGACY=1` to discover the older browser files for `?classic` migration work.
 This suite is a layout/interaction gate, not a GPU benchmark.
 
 The test build alone enables `VITE_PLAYTEST=1`, a read-only scene snapshot for locating
