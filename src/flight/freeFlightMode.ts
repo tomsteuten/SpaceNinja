@@ -1,6 +1,7 @@
 import { createSessionLifecycle } from '../session/lifecycle';
 import { fail } from '../session/failure';
 import { registerOffline } from '../session/offline';
+import { createDialogFocus } from '../ui/dialog';
 /**
  * Assisted free flight — the scene glue for the `?freeflight` prototype.
  *
@@ -27,7 +28,7 @@ import { DESTINATIONS, fovForAspect } from '../config';
 import { detectQuality, prefersReducedMotion } from '../scene/quality';
 import { createStage } from '../scene/Stage';
 import { createSky } from '../scene/Starfield';
-import { createWorld, type BodyId } from '../scene/Bodies';
+import { BODY_IDS, createWorld, type BodyId } from '../scene/Bodies';
 import { createSpaceship } from '../scene/Spaceship';
 import { createEngineTrail } from '../scene/EngineTrail';
 import {
@@ -37,7 +38,7 @@ import {
 } from './freeFlightModel';
 import { adventureHref } from './freeFlightRoute';
 
-const ALL_BODIES = Object.keys(DESTINATIONS) as BodyId[];
+const ALL_BODIES = BODY_IDS;
 
 /** Where the ship starts: out from Earth, nose toward the middle of the neighbourhood. */
 const START_POSITION = new THREE.Vector3(0, 1.2, 5.5);
@@ -93,7 +94,7 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
       const id = flight.state.explorable as BodyId | null;
       if (id) openArrival(id);
     },
-    onCloseArrival: () => hud.arrival.classList.remove('is-open'),
+    onCloseArrival: closeArrival,
     onExit: () => window.location.assign(adventureHref(window.location.href)),
   });
   function setHint(text: string) {
@@ -108,6 +109,11 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
     hud.arrivalTitle.textContent = `You reached ${label(id)}!`;
     hud.arrivalFact.textContent = config?.fact ?? '';
     hud.arrival.classList.add('is-open');
+    hud.arrivalFocus.open();
+  }
+  function closeArrival() {
+    hud.arrival.classList.remove('is-open');
+    hud.arrivalFocus.close();
   }
 
   setHint('👆 Hold anywhere and steer — let go to slow down');
@@ -256,6 +262,7 @@ export async function startFreeFlight(canvas: HTMLCanvasElement, uiRoot: HTMLEle
       world.dispose();
       sky.dispose();
       stage.dispose();
+      hud.arrivalFocus.dispose();
       hud.root.remove();
     },
   });
@@ -280,6 +287,7 @@ interface Hud {
   arrivalEmoji: HTMLElement;
   arrivalTitle: HTMLElement;
   arrivalFact: HTMLElement;
+  arrivalFocus: ReturnType<typeof createDialogFocus>;
 }
 
 function buildHud(
@@ -326,9 +334,13 @@ function buildHud(
 
   // The arrival card, shown when Explore is pressed.
   const arrival = el('div', 'ff-arrival');
+  arrival.setAttribute('role', 'dialog');
+  arrival.setAttribute('aria-modal', 'true');
   const card = el('div', 'ff-arrival-card');
   const arrivalEmoji = el('div', 'ff-arrival-emoji');
   const arrivalTitle = el('h2', 'ff-arrival-title');
+  arrivalTitle.id = 'ff-arrival-title';
+  arrival.setAttribute('aria-labelledby', arrivalTitle.id);
   const arrivalFact = el('p', 'ff-arrival-fact');
   const back = el('button', 'ff-arrival-back');
   back.textContent = '🚀 Keep flying';
@@ -336,8 +348,9 @@ function buildHud(
   card.append(arrivalEmoji, arrivalTitle, arrivalFact, back);
   arrival.appendChild(card);
   root.appendChild(arrival);
+  const arrivalFocus = createDialogFocus(arrival, () => back, handlers.onCloseArrival);
 
-  return { root, hint, banner, bannerLabel, arrival, arrivalEmoji, arrivalTitle, arrivalFact };
+  return { root, hint, banner, bannerLabel, arrival, arrivalEmoji, arrivalTitle, arrivalFact, arrivalFocus };
 }
 
 function el(tag: string, className: string): HTMLElement {

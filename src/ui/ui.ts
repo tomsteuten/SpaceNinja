@@ -18,6 +18,7 @@ import {
   type PendingGuide,
 } from './narrationFlow';
 import { createPhotoViewer, findPhoto } from './photos';
+import { createDialogFocus } from './dialog';
 
 export interface DestinationChoice {
   id: string;
@@ -389,6 +390,9 @@ export function createUI(options: UIOptions): GameUI {
     factPhoto.classList.remove('is-fresh');
     factPhotoImage.removeAttribute('src');
   }
+  // A successful HEAD probe cannot promise the browser can decode every image. Keep the
+  // existing no-photo state when a cached file is truncated or a connection changes mid-load.
+  factPhotoImage.addEventListener('error', clearPhoto);
 
   /**
    * Looks for this place's photo and shows it if it exists.
@@ -484,7 +488,11 @@ export function createUI(options: UIOptions): GameUI {
 
   const journalPanel = el('div', 'panel journal-panel');
   journalPanel.classList.add('is-hidden');
+  journalPanel.setAttribute('role', 'dialog');
+  journalPanel.setAttribute('aria-modal', 'true');
   const journalTitle = el('h2', undefined, 'My Discoveries');
+  journalTitle.id = 'journal-title';
+  journalPanel.setAttribute('aria-labelledby', journalTitle.id);
   const collectionProgress = el('div', 'collection-progress');
   collectionProgress.setAttribute('aria-label', 'Places found on each world');
   const stickerGrid = el('div', 'sticker-grid');
@@ -512,6 +520,11 @@ export function createUI(options: UIOptions): GameUI {
   journalAudio.append(createIcon('speaker'));
   journalActions.append(journalPhoto, journalAudio);
   let journalPhotoUrl: string | null = null;
+  journalImage.addEventListener('error', () => {
+    journalPhotoUrl = null;
+    journalPhoto.classList.add('is-hidden');
+    journalImage.removeAttribute('src');
+  });
   journalPhoto.addEventListener('click', () => {
     const discovery = detailFor ? DISCOVERIES[detailFor] : undefined;
     if (journalPhotoUrl && discovery) photoViewer.show(journalPhotoUrl, `${discovery.emoji} ${discovery.name}`);
@@ -526,6 +539,7 @@ export function createUI(options: UIOptions): GameUI {
   const closeJournal = el('button', 'btn btn--quiet', 'Close');
   closeJournal.type = 'button';
   journalPanel.append(journalTitle, collectionProgress, stickerGrid, journalDetail, journalActions, closeJournal);
+  const journalFocus = createDialogFocus(journalPanel, () => closeJournal, () => setJournalOpen(false));
 
   root.append(journalButton, journalPanel);
 
@@ -617,7 +631,12 @@ export function createUI(options: UIOptions): GameUI {
     journalButton.classList.toggle('is-hidden', open);
     // The panel and the fact card both want the lower half of a phone screen.
     dock.classList.toggle('is-hidden', open);
-    if (open) journalButton.removeAttribute('data-new');
+    if (open) {
+      journalButton.removeAttribute('data-new');
+      journalFocus.open();
+    } else {
+      journalFocus.close();
+    }
   }
 
   homeButton.addEventListener('click', () => {
@@ -1319,6 +1338,7 @@ export function createUI(options: UIOptions): GameUI {
       clearTimers();
       // Its own window listener, so it has to be told rather than just detached.
       photoViewer.dispose();
+      journalFocus.dispose();
       root.replaceChildren();
     },
   };

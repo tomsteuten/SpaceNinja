@@ -47,7 +47,9 @@ import {
 } from './textures';
 import type { QualitySettings } from './quality';
 
-export type BodyId = 'earth' | 'moon' | 'mars' | 'saturn';
+/** One source of truth for built scene bodies. Config and tests must cover each one. */
+export const BODY_IDS = ['earth', 'moon', 'mars', 'saturn'] as const;
+export type BodyId = typeof BODY_IDS[number];
 
 /** Long enough to read as a reveal, short enough not to hold up the next choice. */
 export const WORLD_REVEAL_DURATION = 0.9;
@@ -782,14 +784,37 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
   earthHit.userData.bodyId = 'earth';
 
+  interface WorldRegistration {
+    root: THREE.Object3D;
+    hitMeshes: THREE.Mesh[];
+    selectionRing: THREE.Sprite;
+    selectionScale: number;
+  }
+
+  /*
+   * Extending a body used to require keeping independent roots, hit meshes and selection
+   * rings in step. A registration keeps the visual, input and reveal ownership together.
+   * Construction can still be explicit where physics differs: Earth has paired maps, the
+   * Moon is inherited tidal lock, and Saturn has a ring-plane hit target.
+   */
+  const registrations: Record<BodyId, WorldRegistration> = {
+    earth: { root: earthAnchor, hitMeshes: [earthHit], selectionRing: earthRing, selectionScale: EARTH_RADIUS * 3.1 },
+    moon: { root: moon.tilt, hitMeshes: [moon.hit], selectionRing: moon.ring, selectionScale: moon.ringScale },
+    mars: { root: mars.tilt, hitMeshes: [mars.hit], selectionRing: mars.ring, selectionScale: mars.ringScale },
+    saturn: {
+      root: saturn.tilt,
+      hitMeshes: [saturn.hit, saturn.ringHit],
+      selectionRing: saturn.selectionRing,
+      selectionScale: saturn.selectionScale,
+    },
+  };
+
   let orbitSpeedScale = 1;
   // Paired with their resting scale, so the selection pulse is one loop for every body.
-  const rings: Array<[BodyId, THREE.Sprite, number]> = [
-    ['earth', earthRing, EARTH_RADIUS * 3.1],
-    ['moon', moon.ring, moon.ringScale],
-    ['mars', mars.ring, mars.ringScale],
-    ['saturn', saturn.selectionRing, saturn.selectionScale],
-  ];
+  const rings = BODY_IDS.map((id) => {
+    const registration = registrations[id];
+    return [id, registration.selectionRing, registration.selectionScale] as const;
+  });
 
   function setSelected(id: BodyId | null) {
     for (const [bodyId, ring] of rings) ring.visible = bodyId === id;
@@ -800,21 +825,11 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
    * hit list with it, so an unrevealed world is neither drawn nor tappable. Earth sits under
    * earthAnchor; the orbiting bodies each hang off their own `tilt` group.
    */
-  const roots: Record<BodyId, THREE.Object3D> = {
-    earth: earthAnchor,
-    moon: moon.tilt,
-    mars: mars.tilt,
-    saturn: saturn.tilt,
-  };
-  const bodyHits: Record<BodyId, THREE.Mesh[]> = {
-    earth: [earthHit],
-    moon: [moon.hit],
-    mars: [mars.hit],
-    saturn: [saturn.hit, saturn.ringHit],
-  };
+  const roots = Object.fromEntries(BODY_IDS.map((id) => [id, registrations[id].root])) as Record<BodyId, THREE.Object3D>;
+  const bodyHits = Object.fromEntries(BODY_IDS.map((id) => [id, registrations[id].hitMeshes])) as Record<BodyId, THREE.Mesh[]>;
   // Everything on screen until told otherwise, so nothing that does not call setRevealed
   // (tests, and any future caller) sees a change in behaviour.
-  const revealed = new Set<BodyId>(Object.keys(roots) as BodyId[]);
+  const revealed = new Set<BodyId>(BODY_IDS);
 
   interface MaterialRestingState {
     material: THREE.Material;
@@ -828,7 +843,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   }
 
   const revealVisuals = {} as Record<BodyId, RevealVisual>;
-  for (const id of Object.keys(roots) as BodyId[]) {
+  for (const id of BODY_IDS) {
     const materials = new Set<THREE.Material>();
     roots[id].traverse((object) => {
       const renderable = object as THREE.Mesh | THREE.Sprite;
@@ -877,7 +892,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   function setRevealed(ids: Iterable<BodyId>, animate = false): BodyId[] {
     const next = new Set<BodyId>(ids);
     const newlyRevealed = [...next].filter((id) => !revealed.has(id));
-    for (const id of Object.keys(roots) as BodyId[]) {
+    for (const id of BODY_IDS) {
       if (!next.has(id)) {
         finishReveal(id);
         roots[id].visible = false;
@@ -894,7 +909,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
   function setFocus(id: BodyId | null) {
     focused = id;
-    for (const bodyId of Object.keys(roots) as BodyId[]) {
+    for (const bodyId of BODY_IDS) {
       const progress = revealing.get(bodyId);
       applyOpacity(bodyId, progress === undefined ? 1 : worldRevealEase(progress));
     }
@@ -904,7 +919,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     group,
     bodies,
     get hitMeshes() {
-      return (Object.keys(bodyHits) as BodyId[])
+      return BODY_IDS
         // A half-visible planet is an announcement, not yet a target. Waiting until the
         // fade lands prevents a quick tap passing through the small visual into a huge hit.
         .filter((id) => revealed.has(id) && !revealing.has(id))
@@ -925,13 +940,13 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       // A reset may interrupt a reveal (for example, the adult clears progress). Restore
       // every material before the next setRevealed call decides what remains on screen.
       for (const id of [...revealing.keys()]) finishReveal(id);
-      for (const id of Object.keys(roots) as BodyId[]) applyOpacity(id);
+      for (const id of BODY_IDS) applyOpacity(id);
       // A backstop, not the normal path: whoever called holdSurface releases it, and the
       // mission does. This is here because a hold that outlives its owner leaves a planet
       // frozen for the rest of the session, which is a bad enough failure to guard twice.
       // Deliberately not wound back to where the surface would have got to — the bodies
       // have kept moving, and pretending otherwise would spin one of them on the spot.
-      for (const id of Object.keys(holds) as BodyId[]) delete holds[id];
+      for (const id of BODY_IDS) delete holds[id];
       setSelected(null);
     },
 

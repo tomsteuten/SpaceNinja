@@ -14,17 +14,12 @@ import './ui/ui.css';
 import * as THREE from 'three';
 import {
   DESTINATIONS,
-  FRAMING_RADIUS,
-  FRAMING_RADIUS_WIDE,
   FRAMING_RADIUS_WIDER,
-  WIDE_FRAMING_VISIT,
-  WIDER_FRAMING_VISIT,
-  revealedDestinations,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
 import { createSky } from './scene/Starfield';
-import { createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
+import { BODY_IDS, createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
@@ -110,19 +105,9 @@ async function main() {
   const trail = createEngineTrail(stage.quality.tier === 'low' ? 24 : 46);
   scene.add(trail.group);
 
-  /**
-   * The opening shot only takes in Earth and the Moon until the Moon has been visited, then
-   * widens for Mars, then wider again for Saturn. Fitting an outer world from the first
-   * frame would shrink the first destination to a speck for no reason a five-year-old could
-   * understand yet; going there is what makes the world visibly get bigger. Going, not
-   * finishing — flying out and looking is enough. Newest tier wins, so it does not matter
-   * which order the two gates were passed in.
-   */
+  /** The home view is a readable, deliberately compressed solar system from first launch. */
   function framingRadius(): number {
-    const { visited } = loadProgress();
-    if (visited.includes(WIDER_FRAMING_VISIT)) return FRAMING_RADIUS_WIDER;
-    if (visited.includes(WIDE_FRAMING_VISIT)) return FRAMING_RADIUS_WIDE;
-    return FRAMING_RADIUS;
+    return FRAMING_RADIUS_WIDER;
   }
 
   /**
@@ -138,15 +123,9 @@ async function main() {
     return camera.aspect < 1 ? 0.3 : 0.16;
   }
 
-  /**
-   * Draw only the worlds a child has earned. Same gate the framing tiers widen on, applied to
-   * the bodies themselves so an outer world is not looming into the opening shot before it has
-   * been revealed (Saturn across a portrait phone during "Tap the Moon"), and Mars is not
-   * crossing Saturn's rings until Mars has actually been reached. Re-applied on every return to
-   * the map, since visiting a world is what unlocks the next. See revealedDestinations.
-   */
+  /** A solar-system home promises possibility at first glance: every destination is present. */
   function visibleDestinationIds(): BodyId[] {
-    return revealedDestinations(loadProgress().visited) as BodyId[];
+    return [...BODY_IDS];
   }
 
   function applyReveal(animate = false): BodyId[] {
@@ -163,22 +142,14 @@ async function main() {
    * the world and does not draw it.
    */
   function mapChoices() {
-    const visible = new Set(visibleDestinationIds());
-    return (Object.keys(DESTINATIONS) as BodyId[]).map((id) => ({
+    return BODY_IDS.map((id) => ({
       id,
       // The full scene name is "The Moon"; a four-choice phone bar has room for the
       // identity, not the article. Keeping this derivation here avoids duplicate copy.
       label: world.bodies[id].label.replace(/^The /, ''),
       emoji: DESTINATIONS[id]?.emoji ?? '✨',
-      locked: !visible.has(id),
-      unlockedBy: gateLabel(id),
+      locked: false,
     }));
-  }
-
-  /** The world a locked one is waiting on, named the way a child hears it spoken. */
-  function gateLabel(id: BodyId): string | undefined {
-    const gate = DESTINATIONS[id]?.revealAfterVisiting;
-    return gate ? world.bodies[gate as BodyId]?.label : undefined;
   }
 
   const controls = createOrbitInput({
@@ -376,6 +347,7 @@ async function main() {
       quality: stage.quality,
       reducedMotion,
       onCollect: (discovery, found, total, at) => {
+        beginGuidedHunt();
         sfx.collect(found - 1, total);
         ui.setMissionProgress(found);
         // The mission reports where the marker was in normalised device coordinates,
@@ -464,6 +436,17 @@ async function main() {
 
   /* --- the hunt ------------------------------------------------------------ */
 
+  const HUNT_INVITE_HINT_DELAY = 5;
+  const HUNT_GUIDANCE_AUTO_START = 12;
+  let huntGuidance:
+    | {
+      world: BodyId;
+      elapsed: number;
+      inviteShown: boolean;
+      active: boolean;
+    }
+    | null = null;
+
   /*
    * Arriving used to be a sequence: a spoken welcome, then the world turning through one
    * whole day, then the gold targets. Every world has a `spin`, so it ran on every arrival,
@@ -495,17 +478,27 @@ async function main() {
     controls.enabled = false;
   }
 
-  function revealHunt() {
+  function beginGuidedHunt() {
+    if (!huntGuidance || huntGuidance.world !== follow || huntGuidance.active) return;
     const config = DESTINATIONS[follow];
     const mission = missions[follow];
     if (!config || !mission) return;
-    mission.reveal();
-    // The instruction cue queues behind the arrival welcome rather than talking over it.
-    // Never auto-start the platform voice when a partial pack is installed.
+    huntGuidance.active = true;
+    ui.setHint(null);
     ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`);
-    // The day turn, offered rather than imposed — and the button wears this world's own
-    // globe, so what it will do is legible without a word on it.
+    // The day turn remains discoverable, but now enters after the calm-arrival beat.
     ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
+  }
+
+  function revealHunt() {
+    const mission = missions[follow];
+    if (!DESTINATIONS[follow] || !mission) return;
+    mission.reveal();
+    // A short roam-first beat keeps arrivals calmer: the world and targets are already live,
+    // while explicit score/counter language enters only after interaction or a short pause.
+    huntGuidance = { world: follow, elapsed: 0, inviteShown: false, active: false };
+    ui.showSpin(null);
+    ui.setHint('🌟 Look around first. Tap a gold place when you are ready.');
   }
 
   /*
@@ -571,18 +564,6 @@ async function main() {
   function launch(id: BodyId | null) {
     if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
-    if (!visibleDestinationIds().includes(id)) {
-      // A locked world is pressable and answers. Never silence: an unanswered press reads
-      // as a broken app at this age.
-      const gate = gateLabel(id);
-      ui.nudgeDestination(id);
-      ui.setHint(gate ? `🔒 Visit ${gate} first` : '🔒 Not yet');
-      window.clearTimeout(nudge);
-      nudge = window.setTimeout(() => {
-        if (flight.phase === 'idle') showOpeningHints();
-      }, 2600);
-      return;
-    }
     const destination = world.bodies[id];
     if (!destination) return;
     // The flight is told which latitude to arrive over; it does not know why. Matching
@@ -591,6 +572,7 @@ async function main() {
     const discoveries = buildMission(id)?.definition.discoveries;
     const aim = discoveries ? facingLatitude(discoveries) : undefined;
     if (!flight.start(destination, aim)) return;
+    huntGuidance = null;
     // The first reliable user gesture of the session, and the last one before the ship
     // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
     // suspended and only let it resume inside a gesture like this one.
@@ -725,6 +707,7 @@ async function main() {
    */
   function resetAdventure() {
     cameraReturn = null;
+    huntGuidance = null;
     coach.clear();
     idleFor = 0;
     for (const mission of Object.values(missions)) mission.reset();
@@ -783,7 +766,20 @@ async function main() {
      */
     const cameraIsOurs =
       flight.phase !== 'flying' && !dayTurn.active && !homeReturn.active && !cameraReturn;
-    const hint = cameraIsOurs ? (activeMission?.remainingHint() ?? null) : null;
+    if (cameraIsOurs && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
+      huntGuidance.elapsed += dt;
+      if (!huntGuidance.inviteShown && huntGuidance.elapsed >= HUNT_INVITE_HINT_DELAY) {
+        huntGuidance.inviteShown = true;
+        ui.setHint('✨ Ready for a challenge? Tap a gold place.');
+      }
+      if (huntGuidance.elapsed >= HUNT_GUIDANCE_AUTO_START) beginGuidedHunt();
+    }
+
+    const huntGuidanceActive =
+      Boolean(activeMission?.active) &&
+      huntGuidance?.active === true &&
+      huntGuidance.world === follow;
+    const hint = cameraIsOurs && huntGuidanceActive ? (activeMission?.remainingHint() ?? null) : null;
     const hiddenSide = hint && !hint.visible ? hint.side : null;
     ui.setHuntArrow(hiddenSide);
 
@@ -792,7 +788,7 @@ async function main() {
      * move. Idle time accumulates only then too, so a seven-second flight does not arrive
      * with the coach already convinced nobody is playing.
      */
-    if (cameraIsOurs && activeMission?.active) {
+    if (cameraIsOurs && huntGuidanceActive && activeMission?.active) {
       idleFor += dt;
       coach.update({
         idleFor,
@@ -900,6 +896,7 @@ async function main() {
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,
         speaking: narrator.speaking,
+        guidedHunt: huntGuidance?.active ?? false,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
         ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,

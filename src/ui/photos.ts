@@ -19,6 +19,7 @@
  */
 
 import { imageExists } from '../scene/textures';
+import { createDialogFocus } from './dialog';
 
 /**
  * Named after the discovery id rather than listed in config.ts, which is the same bargain
@@ -103,11 +104,14 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
   figure.append(title, image, caption, detail);
   overlay.append(figure, continueButton, close);
 
+  const focus = createDialogFocus(overlay, () => close, hide);
+
   function hide() {
     overlay.classList.add('is-hidden');
     // Dropped so a closed viewer is not holding a full-size decoded bitmap on a tablet
     // whose whole quality tier exists because memory is tight.
     image.removeAttribute('src');
+    focus.close();
   }
 
   /*
@@ -157,11 +161,6 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
   // surprise modal. It is an explicit control, so it follows the close button rather than
   // the guarded backdrop route.
   continueButton.addEventListener('click', hide);
-  const onKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') hide();
-  };
-  window.addEventListener('keydown', onKey);
-
   root.append(overlay);
 
   return {
@@ -176,6 +175,7 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
       overlay.classList.remove('is-hidden');
       openedAt = performance.now();
       dismissPointer = null;
+      focus.open();
     },
     showDiscovery(url: string, discoveryTitle: string, discoveryDetail: string) {
       image.src = url;
@@ -187,10 +187,11 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
       overlay.classList.remove('is-hidden');
       openedAt = performance.now();
       dismissPointer = null;
+      focus.open();
     },
     hide,
     dispose() {
-      window.removeEventListener('keydown', onKey);
+      focus.dispose();
       overlay.remove();
     },
   };

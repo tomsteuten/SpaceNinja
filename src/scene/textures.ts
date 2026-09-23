@@ -11,28 +11,92 @@ import * as THREE from 'three';
 
 const ASSET_BASE = 'assets/';
 
+/** HEAD-probe timeout. A late photo is optional; it must not pin the current fact forever. */
+export const IMAGE_PROBE_TIMEOUT_MS = 6_000;
+/** A stalled image request should degrade instead of keeping the boot screen up forever. */
+export const IMAGE_LOAD_TIMEOUT_MS = 4_000;
+
 /**
  * HEAD-probe first so a missing (expected) file does not spam the console with 404s.
  * The content-type check matters: dev servers answer unknown paths with the SPA
- * index.html at status 200, which would otherwise look like a hit.
+ * index.html at status 200, which would otherwise look like a hit. Only successful probes
+ * are retained: a train tunnel or a waking service worker gets another chance next time a
+ * child opens that discovery.
  */
 const probes = new Map<string, Promise<boolean>>();
+
+export type ImageProbeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+export async function probeImage(
+  url: string,
+  request: ImageProbeFetch = fetch,
+  timeoutMs = IMAGE_PROBE_TIMEOUT_MS,
+): Promise<boolean> {
+  const controller = typeof AbortController === 'undefined' ? null : new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => {
+      controller?.abort();
+      resolve(false);
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([
+      request(url, { method: 'HEAD', signal: controller?.signal })
+        .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
+        .catch(() => false),
+      timeout,
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
 
 export function imageExists(url: string): Promise<boolean> {
   let probe = probes.get(url);
   if (!probe) {
-    probe = fetch(url, { method: 'HEAD' })
-      .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
-      .catch(() => false);
+    probe = probeImage(url);
     probes.set(url, probe);
+    void probe.then((exists) => {
+      if (!exists && probes.get(url) === probe) probes.delete(url);
+    });
   }
   return probe;
 }
 
+/** Test seam and a safe recovery hook for a caller that has replaced an optional image. */
+export function clearImageProbe(url?: string): void {
+  if (url) probes.delete(url);
+  else probes.clear();
+}
+
 function loadImage(url: string): Promise<THREE.Texture> {
   return new Promise((resolve, reject) => {
-    new THREE.TextureLoader().load(url, resolve, undefined, () =>
-      reject(new Error('Failed to decode ' + url)),
+    let finished = false;
+    const timer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      reject(new Error('Timed out loading ' + url));
+    }, IMAGE_LOAD_TIMEOUT_MS);
+
+    new THREE.TextureLoader().load(
+      url,
+      (texture) => {
+        if (finished) {
+          texture.dispose();
+          return;
+        }
+        finished = true;
+        clearTimeout(timer);
+        resolve(texture);
+      },
+      undefined,
+      () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        reject(new Error('Failed to decode ' + url));
+      },
     );
   });
 }

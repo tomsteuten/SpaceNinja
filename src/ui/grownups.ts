@@ -26,6 +26,7 @@ import {
 import { prefersReducedMotion } from '../scene/quality';
 import { loadProgress, resetProgress } from '../state/progress';
 import { loadSoundOn, saveSoundOn } from '../state/settings';
+import { createDialogFocus } from './dialog';
 
 /** Remembered per device, so it greets a new tablet and never nags a familiar one. */
 const SEEN_KEY = 'spaceninja.grownups.v1';
@@ -104,6 +105,9 @@ export interface GrownupsOptions {
 export function createGrownups(options: GrownupsOptions): Grownups {
   const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight } = options;
   const panel = el('div', 'grownups');
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-label', 'Grown-ups settings');
   const sample = sampleLine();
   let showing = false;
   let resetArmed = false;
@@ -116,7 +120,14 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     narrator.stop();
     panel.remove();
     markSeen();
+    focus.close();
   }
+
+  const focus = createDialogFocus(
+    panel,
+    () => panel.querySelector<HTMLButtonElement>('.grownups__start'),
+    close,
+  );
 
   function voiceSection(): HTMLElement {
     const section = el('section', 'grownups__section');
@@ -414,6 +425,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       // choice made last time should be showing as chosen when it opens again.
       render();
       root.append(panel);
+      focus.open();
     },
 
     hide() {
@@ -422,6 +434,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
 
     dispose() {
       narrator.stop();
+      focus.dispose();
       panel.remove();
     },
   };

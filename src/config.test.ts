@@ -8,8 +8,13 @@
 
 import { describe, expect, it } from 'vitest';
 import { DESTINATIONS, WIDE_FRAMING_VISIT, WIDER_FRAMING_VISIT, revealedDestinations } from './config';
+import { BODY_IDS } from './scene/Bodies';
 
 describe('revealedDestinations', () => {
+  it('has copy and reveal metadata for every built scene body', () => {
+    expect(Object.keys(DESTINATIONS).sort()).toEqual([...BODY_IDS].sort());
+  });
+
   it('opens on Earth and the Moon alone', () => {
     expect(new Set(revealedDestinations([]))).toEqual(new Set(['earth', 'moon']));
   });

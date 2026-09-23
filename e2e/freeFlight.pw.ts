@@ -22,9 +22,12 @@ test('assisted free flight boots, flies, arrives and hands control back', async 
   await page.getByRole('button', { name: 'Explore' }).click();
   await expect(page.locator('.ff-arrival')).toHaveClass(/is-open/);
   await expect(page.getByRole('heading')).toContainText('You reached Earth');
+  await expect(page.getByRole('button', { name: 'Keep flying' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Keep flying' })).toBeFocused();
   await attachShot(page, 'free-flight-arrival', info);
 
-  await page.getByRole('button', { name: 'Keep flying' }).click();
+  await page.keyboard.press('Escape');
   await expect(page.locator('.ff-arrival')).not.toHaveClass(/is-open/);
 
   const { width, height } = page.viewportSize()!;

@@ -4,8 +4,7 @@ const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaS
 async function launch(page: Page, world: string) {
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
-  await expect(page.locator('.mission-hud')).toBeVisible();
-  await expect(page.locator('.slot-row > *')).toHaveCount(3);
+  await expect(page.locator('.mission-hud')).toBeHidden();
   await expect.poll(async () => (await snapshot(page)).draws).toBeGreaterThan(0);
   const s = await snapshot(page);
   const visible = s.targets.filter((t:any) => t.visible);
@@ -42,16 +41,24 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await attachShot(page, 'moon-arrival', info);
   const firstIds = (await snapshot(page)).ids;
   await collectVisible(page);
+  await expect.poll(async () => (await snapshot(page)).guidedHunt).toBe(true);
+  await expect(page.locator('.mission-hud')).toBeVisible();
+  await expect(page.locator('.slot-row > *')).toHaveCount(3);
   // The first find is the postcard moment. Its photo is lazy, so the assertion waits for
   // the actual browser image rather than assuming a fast local disk/cache.
   await expect(page.locator('.photo-view.is-reward')).toBeVisible();
   await expect(page.getByRole('button',{name:'Keep exploring'})).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close the photo' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.getByRole('button', { name: 'Keep exploring' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Close the photo' })).toBeFocused();
   await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
   const detail = await page.locator('.photo-view__detail').boundingBox();
   const exit = await page.getByRole('button', { name: 'Keep exploring' }).boundingBox();
   expect(detail!.y + detail!.height, 'Postcard words must clear the exit').toBeLessThan(exit!.y);
   await attachShot(page, 'first-find-postcard', info);
-  await page.getByRole('button',{name:'Keep exploring'}).click();
+  await page.keyboard.press('Escape');
   await expect(page.locator('.photo-view')).toBeHidden();
   await collectVisible(page);
   await keepExploring(page);
@@ -80,7 +87,9 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     await expect(page.locator('.photo-view')).toBeVisible();
     await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
     await attachShot(page, 'journal-photo', info);
-    await page.getByRole('button',{name:'Close the photo'}).click();
+    await expect(page.getByRole('button',{name:'Close the photo'})).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(photo).toBeFocused();
     await page.getByRole('button',{name:'Read this discovery out loud'}).click();
     await expect(page.getByRole('button',{name:'Stop reading discovery'})).toBeVisible();
     photoFound=true; break;
