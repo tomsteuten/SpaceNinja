@@ -306,3 +306,106 @@ body {
   .is-home .journal-btn { width: 54px; height: 54px; }
   .is-home .hint { top: var(--pad-top); }
 }
+
+/* Earth arrival: the teaching action lives in one stable row and the globe keeps the stage. */
+.ui.is-earth .earth-heading {
+  position: absolute;
+  top: var(--pad-top);
+  left: var(--pad-left);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 54px;
+  padding: 5px 14px 5px 9px;
+  border-radius: 30px;
+  border: 1px solid var(--panel-edge);
+  background: var(--glass);
+  font: 400 1.35rem/1 var(--font-title);
+  color: var(--ink);
+  pointer-events: none;
+}
+.ui.is-earth .earth-heading .world-orb { width: 34px; height: 34px; }
+.ui.is-earth .journal-btn {
+  top: var(--pad-top);
+  right: var(--pad-right);
+  bottom: auto;
+  left: auto;
+  width: 54px;
+  height: 54px;
+}
+.ui.is-earth .hint {
+  top: calc(var(--pad-top) + 66px);
+  left: var(--pad-left);
+  transform: none;
+  max-width: 190px;
+  padding: 8px 12px;
+}
+.ui.is-earth .mission-hud { top: calc(var(--pad-top) + 66px); }
+.ui.is-earth .dock {
+  display: flex;
+  width: min(430px, calc(100vw - var(--pad-left) - var(--pad-right)));
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ui.is-earth .dock .spin-btn { order: 0; grid-column: auto; grid-row: auto; width: auto; }
+.ui.is-earth .dock .about-btn { order: 1; }
+.ui.is-earth .dock .home-btn { order: 2; grid-column: auto; grid-row: auto; }
+.ui.is-earth .spin-btn {
+  display: inline-flex;
+  flex: 1 1 150px;
+  gap: 8px;
+  min-width: 0;
+  min-height: 58px;
+  width: auto;
+  height: 58px;
+  padding: 0 13px;
+  border-radius: 32px;
+  background: var(--primary-bg);
+  color: var(--primary-ink);
+  opacity: 1;
+  white-space: nowrap;
+}
+.ui.is-earth .spin-btn .spin-globe { flex: none; }
+.ui.is-earth .spin-label { display: inline; font: 600 0.98rem/1 var(--font); }
+.spin-label { display: none; }
+.ui.is-earth .about-btn,
+.ui.is-earth .home-btn {
+  min-height: 58px;
+  height: 58px;
+  padding: 0 13px;
+  border-radius: 32px;
+  white-space: nowrap;
+  font-size: 0.93rem;
+}
+.ui.is-earth .home-btn { flex: 0 0 auto; }
+.ui.is-earth .about-btn { flex: 0 0 auto; }
+.ui.is-earth .fact-card:not(.is-hidden) {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - var(--pad-left) - var(--pad-right)));
+  max-height: min(48dvh, 340px);
+  overflow-y: auto;
+}
+.ui.is-earth.is-day-active .fact-card:not(.is-transcript-open) { display: none; }
+.ui.is-earth.is-day-active .mission-hud,
+.ui.is-earth.is-day-active .hint { visibility: hidden; }
+@media (max-width: 399px) {
+  .ui.is-earth .dock { gap: 6px; }
+  .ui.is-earth .spin-btn { padding-inline: 9px; }
+  .ui.is-earth .about-btn,
+  .ui.is-earth .home-btn { padding-inline: 10px; }
+  .ui.is-earth .home-btn .icon-slot { display: none; }
+}
+@media (max-height: 480px) {
+  .ui.is-earth .earth-heading,
+  .ui.is-earth .journal-btn { min-height: 50px; height: 50px; }
+  .ui.is-earth .dock { width: min(430px, calc(100vw - 32px)); }
+  .ui.is-earth .spin-btn,
+  .ui.is-earth .about-btn,
+  .ui.is-earth .home-btn { min-height: 54px; height: 54px; }
+  .ui.is-earth .fact-card:not(.is-hidden) { max-height: 42dvh; }
+}

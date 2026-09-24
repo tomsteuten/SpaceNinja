@@ -9,9 +9,9 @@
  * already worked. It simply never moved, and once a mission holds the surface still so its
  * markers stay under a child's finger, it could not.
  *
- * Two things happen, in order, and the first is not optional:
+ * Two things happen, in order. Reduced motion cuts to the teaching viewpoint:
  *
- *  1. **The camera swings round to the terminator.** The flight deliberately arrives near
+ *  1. **The camera faces the terminator.** The flight deliberately arrives near
  *     the sub-solar point so the destination reads as a bright full disc, which means the
  *     day/night line hugs the limb and the visible face is entirely lit. Turning the body
  *     from there shows continents sliding past a planet that never changes — correct, and
@@ -37,11 +37,8 @@ const UP = new THREE.Vector3(0, 1, 0);
  * The turn is long enough to watch the light move rather than see it jump, short enough
  * to hold a five-year-old who is only watching.
  *
- * One pair of durations for everybody. There were reduced-motion versions of both (0.7
- * and 3), and they were wrong the same way the flight's was: this is a camera swing
- * followed by a rotating planet, and playing the identical motion in a third of the time
- * is three times the angular rate, not less motion. Skipping it outright is not an option
- * either — the change *is* the content, so a day turn that does not turn shows nothing.
+ * The body keeps one honest turning rate for everybody. Reduced motion omits the camera
+ * sweep but keeps the turn: the changing daylight is the educational content.
  */
 export const DAY_SWING_DURATION = 2.2;
 export const DAY_TURN_DURATION = 9;
@@ -65,6 +62,8 @@ export interface DayTurn {
 
 export interface DayTurnOptions {
   camera: THREE.PerspectiveCamera;
+  /** Cut to the teaching viewpoint instead of sweeping the camera when motion is reduced. */
+  reducedMotion?: boolean;
   /** Borrowed for the swing and handed back at the end, as the flight does. */
   controls: OrbitInput;
   /**
@@ -87,7 +86,7 @@ function smootherstep(t: number): number {
 }
 
 export function createDayTurn(options: DayTurnOptions): DayTurn {
-  const { camera, controls, onProgress, onFinish } = options;
+  const { camera, controls, onProgress, onFinish, reducedMotion = false } = options;
   const swingDuration = DAY_SWING_DURATION;
   const rate = FULL_TURN / DAY_TURN_DURATION;
 
@@ -157,6 +156,11 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       if (to.dot(from) < 0) to.negate();
 
       controls.enabled = false;
+      if (reducedMotion) {
+        phase = 'turn';
+        placeCamera(1);
+        onProgress?.(0);
+      }
     },
 
     update(dt: number) {

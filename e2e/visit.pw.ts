@@ -91,6 +91,9 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     await page.keyboard.press('Escape');
     await expect(photo).toBeFocused();
     const readAloud = page.getByRole('button', { name: 'Read this discovery out loud' });
+    // The last discovery can still be narrating when the journal opens. Its button uses
+    // the same audio toggle, so wait for that recording to end before asking it to play.
+    await expect.poll(async () => (await snapshot(page)).speaking).toBe(false);
     // A software-rendered frame can delay the driver until this short clip has ended.
     // Observe the visible Stop state inside the browser, armed by the real click, so
     // earlier narration cannot satisfy the check. The trace showed it before polling.
@@ -107,6 +110,12 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
       }, { once: true, capture: true });
     });
     await readAloud.click();
+    // A queued completion line can begin in the gap between the idle check and this
+    // click. In that case the first press stops it; the second starts this discovery.
+    if (await readAloud.getAttribute('data-playtest-observed-speaking') !== 'true') {
+      await expect(readAloud).toHaveAttribute('aria-label', 'Read this discovery out loud');
+      await readAloud.click();
+    }
     await expect(page.locator('.journal-panel .narrate-btn'))
       .toHaveAttribute('data-playtest-observed-speaking', 'true');
     photoFound=true; break;

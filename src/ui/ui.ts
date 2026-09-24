@@ -7,7 +7,7 @@ import { worldCollections } from '../state/replay';
  */
 
 import type { Narrator } from '../audio/narration';
-import { DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
+import { DESTINATIONS, DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
 import { STICKERS, foundEverything, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup, type IconName } from './icons';
 import {
@@ -119,7 +119,7 @@ export interface GameUI {
    * rather than a generic one.
    */
   showSpin(label: string | null, tint?: string): void;
-  /** Greys the spin button out while a turn is running, so a press cannot stack. */
+  /** On Earth this changes the control to Done; elsewhere it prevents stacking turns. */
   setSpinBusy(busy: boolean): void;
   /**
    * Let the day/night button ask to be noticed, once the hunt is done and the child has gone
@@ -482,10 +482,24 @@ export function createUI(options: UIOptions): GameUI {
   spinButton.type = 'button';
   const spinGlobe = el('span', 'spin-globe');
   spinGlobe.append(el('span', 'spin-globe__night'));
-  spinButton.append(spinGlobe);
+  const spinLabel = el('span', 'spin-label', 'Day & night');
+  spinButton.append(spinGlobe, spinLabel);
   spinButton.classList.add('is-hidden');
 
-  dock.append(factCard, spinButton, homeButton);
+  const aboutButton = el('button', 'btn btn--secondary about-btn is-hidden', 'About');
+  aboutButton.type = 'button';
+  aboutButton.setAttribute('aria-expanded', 'false');
+  aboutButton.setAttribute('aria-controls', factText.id);
+  const earthHeading = el('div', 'earth-heading is-hidden');
+  const earthOrb = el('span', 'world-orb');
+  earthOrb.setAttribute('aria-hidden', 'true');
+  earthOrb.style.backgroundImage = 'url(./assets/earth.jpg)';
+  earthHeading.append(earthOrb, el('span', undefined, 'Earth'));
+  root.append(earthHeading);
+  let earthArrivalFact = '';
+  let earthAboutOpen = false;
+
+  dock.append(factCard, spinButton, aboutButton, homeButton);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
@@ -654,6 +668,24 @@ export function createUI(options: UIOptions): GameUI {
 
   spinButton.addEventListener('click', () => {
     onSpin();
+  });
+  aboutButton.addEventListener('click', () => {
+    const opening = !earthAboutOpen;
+    if (opening) {
+      const duringDay = root.classList.contains('is-day-active');
+      showFact(
+        duringDay ? (DESTINATIONS.earth?.spin?.fact ?? earthArrivalFact) : earthArrivalFact,
+        duringDay ? 'Day & night' : 'Earth',
+        duringDay ? 'spin-earth' : 'arrival-earth',
+        false,
+      );
+      factCard.classList.add('is-transcript-open');
+      updateTranscriptButton();
+    } else {
+      factCard.classList.add('is-hidden');
+    }
+    earthAboutOpen = opening;
+    aboutButton.setAttribute('aria-expanded', String(opening));
   });
 
   /*
@@ -967,6 +999,8 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   function showFact(text: string, title?: string, cueId?: string, allowNarrate = true) {
+    earthAboutOpen = false;
+    aboutButton.setAttribute('aria-expanded', 'false');
     currentFact = text;
     currentFactCueId = cueId ?? null;
     pendingGuide = null;
@@ -1023,6 +1057,9 @@ export function createUI(options: UIOptions): GameUI {
 
     enterFlight() {
       root.classList.remove('is-home');
+      root.classList.remove('is-earth', 'is-day-active');
+      earthHeading.classList.add('is-hidden');
+      aboutButton.classList.add('is-hidden');
       destinationBar.classList.add('is-hidden');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
@@ -1036,6 +1073,11 @@ export function createUI(options: UIOptions): GameUI {
 
     showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string) {
       root.classList.remove('is-home');
+      const isEarth = worldId === 'earth';
+      root.classList.toggle('is-earth', isEarth);
+      earthHeading.classList.toggle('is-hidden', !isEarth);
+      aboutButton.classList.toggle('is-hidden', !isEarth);
+      earthArrivalFact = isEarth ? fact : '';
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
@@ -1056,6 +1098,10 @@ export function createUI(options: UIOptions): GameUI {
       orb.style.backgroundImage = `url(./assets/${worldId}.jpg)`;
       factTitle.prepend(orb);
       factTitle.classList.add('has-world');
+      if (isEarth) {
+        factCard.classList.add('is-hidden');
+        this.showSpin('Day and night on Earth', DESTINATIONS.earth?.spin?.tint);
+      }
     },
 
     beginMission(caption: string, total: number, cueId?: string) {
@@ -1103,6 +1149,8 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     clearFact() {
+      earthAboutOpen = false;
+      aboutButton.setAttribute('aria-expanded', 'false');
       window.clearTimeout(collapseTimer);
       currentFact = '';
       currentFactCueId = null;
@@ -1236,8 +1284,12 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     setSpinBusy(busy: boolean) {
-      spinButton.disabled = busy;
+      const earth = root.classList.contains('is-earth');
+      spinButton.disabled = busy && !earth;
       spinButton.classList.toggle('is-busy', busy);
+      root.classList.toggle('is-day-active', busy && earth);
+      spinLabel.textContent = busy && earth ? 'Done' : 'Day & night';
+      if (earth) spinButton.setAttribute('aria-label', busy ? 'Done with day and night' : 'Day and night on Earth');
       if (busy) spinButton.classList.remove('is-inviting');
     },
 
@@ -1305,6 +1357,11 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     reset() {
+      root.classList.remove('is-earth', 'is-day-active');
+      earthHeading.classList.add('is-hidden');
+      aboutButton.classList.add('is-hidden');
+      earthAboutOpen = false;
+      aboutButton.setAttribute('aria-expanded', 'false');
       clearTimers();
       // Clear this before stop(): the narrator's onChange listener otherwise interprets
       // reset as the end of a discovery and queues the hunt line into the fresh home view.

@@ -239,7 +239,11 @@ async function main() {
     onSpin: () => {
       const body = world.bodies[follow];
       const spin = DESTINATIONS[follow]?.spin;
-      if (!spin || dayTurn.active) return;
+      if (dayTurn.active) {
+        if (follow === 'earth') dayTurn.skip();
+        return;
+      }
+      if (!spin) return;
       // Where the child was looking from before the turn swung the camera side-on, so it can
       // be handed back to them there. Relative to the body, which keeps orbiting throughout.
       body.getWorldPosition(focusPosition);
@@ -249,6 +253,13 @@ async function main() {
       // 2.2s swing pulled the child's eyes away before the sunlight even began to move.
       ui.showNote(`spin-${follow}`, spin.name, spin.fact);
       ui.foldFact(true);
+      if (follow === 'earth') {
+        ui.clearFact();
+        ui.setHint(null);
+        ui.setHuntArrow(null);
+        coach.clear();
+        activeMission?.setPresentation(false);
+      }
       ui.setSpinBusy(true);
       dayTurn.start(body);
     },
@@ -265,6 +276,7 @@ async function main() {
   const dayTurn = createDayTurn({
     camera,
     controls,
+    reducedMotion,
     // The quietest thing in the game gets the sound that most needs one. Driven by the
     // turn's own progress rather than started and left to run, so the light and the sound
     // arrive together however slowly the frames are coming.
@@ -481,23 +493,30 @@ async function main() {
    * A tap skipped it. That it needed a skip was the tell: the default was the thing you
    * skipped, and a five-year-old does not discover an unsignposted one.
    *
-   * So the day turn is a toy again rather than a toll — offered by its own button from the
-   * moment the hunt is live (see `showSpin`), which is where it was before it was promoted
-   * to an introduction. The lesson is unchanged and the child now chooses it, which is
+   * So the day turn is a toy again rather than a toll — offered by its own button. On Earth
+   * it is visible at arrival; elsewhere it enters with the guided hunt. The child chooses it, which is
    * worth more than being shown it. The welcome fact still speaks; it simply speaks over a
    * screen that already has something on it to touch.
    */
   /**
    * A day turn has finished (or been tapped through). Hand the camera back where the child
    * was looking from, rather than leaving them side-on to the Sun with the targets they were
-   * reaching for round the side of the world. An ease, not a cut: cutting read as a jerk on
-   * the tablet.
+   * reaching for round the side of the world. Reduced motion cuts back; other devices ease.
    */
   function onDayTurnFinish() {
     ui.setSpinBusy(false);
     ui.setSpinProgress(null);
+    if (follow === 'earth') activeMission?.setPresentation(true);
     const body = world.bodies[follow];
     body.getWorldPosition(focusPosition);
+    if (reducedMotion) {
+      camera.position.copy(focusPosition).add(preTurnCameraOffset);
+      camera.lookAt(focusPosition);
+      camera.updateMatrixWorld(true);
+      controls.syncFromCamera();
+      controls.enabled = true;
+      return;
+    }
     cameraReturn = { from: camera.position.clone().sub(focusPosition), t: 0 };
     controls.enabled = false;
   }
@@ -511,7 +530,7 @@ async function main() {
     ui.setHint(null);
     ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`);
     // The day turn remains discoverable, but now enters after the calm-arrival beat.
-    ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
+    if (follow !== 'earth') ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
   }
 
   function revealHunt() {
@@ -521,8 +540,13 @@ async function main() {
     // A short roam-first beat keeps arrivals calmer: the world and targets are already live,
     // while explicit score/counter language enters only after interaction or a short pause.
     huntGuidance = { world: follow, elapsed: 0, inviteShown: false, active: false };
-    ui.showSpin(null);
-    ui.setHint('Look around first. Tap a gold place when you are ready.', 'target');
+    if (follow === 'earth') {
+      ui.showSpin('Day and night on Earth', DESTINATIONS.earth?.spin?.tint);
+      ui.setHint(null);
+    } else {
+      ui.showSpin(null);
+      ui.setHint('Look around first. Tap a gold place when you are ready.', 'target');
+    }
   }
 
   /*
@@ -796,7 +820,7 @@ async function main() {
       huntGuidance.elapsed += dt;
       if (!huntGuidance.inviteShown && huntGuidance.elapsed >= HUNT_INVITE_HINT_DELAY) {
         huntGuidance.inviteShown = true;
-        ui.setHint('✨ Ready for a challenge? Tap a gold place.');
+        ui.setHint(follow === 'earth' ? 'Tap a gold place' : '✨ Ready for a challenge? Tap a gold place.');
       }
       if (huntGuidance.elapsed >= HUNT_GUIDANCE_AUTO_START) beginGuidedHunt();
     }
@@ -924,6 +948,7 @@ async function main() {
         frame: stage.renderer.info.render.frame,
         speaking: narrator.speaking,
         guidedHunt: huntGuidance?.active ?? false,
+        cameraReturning: Boolean(cameraReturn),
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
         ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,

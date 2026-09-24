@@ -52,6 +52,8 @@ export interface CollectMission {
    * A world with no intro simply calls this immediately after `start()`. Idempotent.
    */
   reveal(): void;
+  /** Hide targets and remove their hit meshes during a visual lesson, preserving progress. */
+  setPresentation(visible: boolean): void;
   /** Feed a raycast hit. Returns true if it was one of ours and was collected. */
   collectFrom(object: THREE.Object3D): boolean;
   /**
@@ -425,6 +427,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
 
   let active = false;
   let revealed = false;
+  let presentationVisible = true;
   // Ramps 0 → 1 over the first half-second after reveal, so the targets grow and fade in
   // rather than snapping on. Non-reduced-motion only; reduced motion has them simply present.
   let revealT = 0;
@@ -759,6 +762,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       if (active) return;
       active = true;
       revealed = false;
+      presentationVisible = true;
       revealT = 0;
       collected = 0;
       completionTimer = -1;
@@ -770,13 +774,24 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       revealed = true;
       revealT = 0;
       for (const collectible of collectibles) {
-        collectible.group.visible = true;
+        collectible.group.visible = presentationVisible;
         // Only ones still there to find go into the raycast list.
-        if (collectible.state === 'idle') hitMeshes.push(collectible.hit);
+        if (presentationVisible && collectible.state === 'idle') hitMeshes.push(collectible.hit);
+      }
+    },
+
+    setPresentation(visible: boolean) {
+      presentationVisible = visible;
+      hitMeshes.length = 0;
+      if (!revealed) return;
+      for (const collectible of collectibles) {
+        collectible.group.visible = visible;
+        if (visible && collectible.state === 'idle') hitMeshes.push(collectible.hit);
       }
     },
 
     collectFrom(object: THREE.Object3D) {
+      if (!presentationVisible) return false;
       const index = object.userData.collectibleIndex as number | undefined;
       if (typeof index !== 'number') return false;
       const collectible = collectibles[index];
@@ -936,6 +951,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       teardown();
       active = false;
       revealed = false;
+      presentationVisible = true;
       revealT = 0;
       collected = 0;
       completionTimer = -1;
