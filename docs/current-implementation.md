@@ -53,7 +53,8 @@ says "tap the gold" places.
   had no browser errors. Nothing was deployed.
 - Earth follow-up: a delayed screenshot showed the guided-hunt counter covering a gold place in
   short landscape. Its landscape position now uses the free left side space; a browser check
-  verifies both visible places clear it. Earth day/night browser checks pass on phone, tablet
+  verifies both visible places clear it. Guided-hunt before/after captures at device scale 1
+  are in `design/earth-review-2026-09-24/`. Earth day/night browser checks pass on phone, tablet
   and short landscape, including return from a persisted page suspension. Real-tablet viewing
   and listening, and owner approval of the Earth screen, remain outstanding.
 
