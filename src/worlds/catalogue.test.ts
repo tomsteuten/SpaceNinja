@@ -13,7 +13,20 @@ import {
   revealedDestinations,
 } from '../config';
 import { BODY_IDS } from '../scene/Bodies';
-import { FRAMING_MARGIN, WORLDS, WORLD_IDS, framingRadiusFor, reach, viewRadius, worldGeometry } from './catalogue';
+import { SHIP_DECAL_IDS } from '../scene/shipDecals';
+import { FINALE_STICKER, STICKERS } from '../state/progress';
+import { WORLDS as EXPLORER_WORLDS } from '../explorer/worlds';
+import {
+  FRAMING_MARGIN,
+  WORLDS,
+  WORLD_IDS,
+  framingRadiusFor,
+  reach,
+  shortLabel,
+  stickerIdFor,
+  viewRadius,
+  worldGeometry,
+} from './catalogue';
 
 describe('world catalogue', () => {
   it('lists every built scene body, in reveal order, starting at home', () => {
@@ -52,5 +65,19 @@ describe('world catalogue', () => {
     expect(framingRadiusFor(['earth', 'moon', 'saturn'])).toBeCloseTo(FRAMING_RADIUS_WIDER);
     expect(framingRadiusFor(['earth', 'moon', 'vulcan'])).toBeCloseTo(FRAMING_RADIUS);
     expect(framingRadiusFor([])).toBe(FRAMING_MARGIN);
+  });
+
+  it('drives the stickers, the ship badges and the explorer list', () => {
+    for (const world of WORLDS) {
+      const stickerId = stickerIdFor(world.id);
+      expect(STICKERS[stickerId]?.label).toBe(`${shortLabel(world)} Explorer`);
+      expect(SHIP_DECAL_IDS).toContain(stickerId);
+    }
+    expect(SHIP_DECAL_IDS[SHIP_DECAL_IDS.length - 1]).toBe(FINALE_STICKER);
+    expect(EXPLORER_WORLDS.map((world) => world.id)).toEqual([...WORLD_IDS]);
+    // A ringed world has no surface to fly over, so the explorer holds it as orbital views.
+    for (const world of EXPLORER_WORLDS) {
+      expect(world.orbital).toBe(Boolean(worldGeometry(world.id).rings));
+    }
   });
 });

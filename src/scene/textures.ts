@@ -491,7 +491,27 @@ export async function resolveEarthMaps(size: number): Promise<EarthMaps> {
 }
 
 /** Grey, cratered, gently mottled. Doubles as its own bump map. */
+/** Red, green, blue in 0–255. */
+export type Rgb = readonly [number, number, number];
+
+/** The Moon: grey, very slightly warm. */
+export const MOON_TINT: Rgb = [255, 251, 242];
+/** Saturn's two golds: the dark band and the pale one. */
+export const SATURN_BANDS: readonly [Rgb, Rgb] = [
+  [196, 168, 116],
+  [232, 210, 158],
+];
+
 export function makeMoonTexture(width: number): THREE.CanvasTexture {
+  return makeCrateredTexture(width, MOON_TINT);
+}
+
+/**
+ * An airless, cratered world: broad dark plains under fine regolith speckle, then craters.
+ * `tint` scales the grey, so an icy moon can be bluish-white and a dark one brown without a
+ * generator each.
+ */
+export function makeCrateredTexture(width: number, tint: Rgb): THREE.CanvasTexture {
   const height = width / 2;
   const [el, ctx] = canvas2d(width, height);
   const image = ctx.createImageData(width, height);
@@ -513,9 +533,9 @@ export function makeMoonTexture(width: number): THREE.CanvasTexture {
       v = Math.max(40, Math.min(226, v));
 
       const o = (j * width + i) * 4;
-      data[o] = v;
-      data[o + 1] = v * 0.985;
-      data[o + 2] = v * 0.95;
+      data[o] = (v * tint[0]) / 255;
+      data[o + 1] = (v * tint[1]) / 255;
+      data[o + 2] = (v * tint[2]) / 255;
       data[o + 3] = 255;
     }
   }
@@ -628,6 +648,14 @@ export function makeMarsTexture(width: number): THREE.CanvasTexture {
  * the recognisable thing is the rings, which are a separate texture and a separate mesh.
  */
 export function makeSaturnTexture(width: number): THREE.CanvasTexture {
+  return makeBandedTexture(width, SATURN_BANDS);
+}
+
+/**
+ * A gas giant: soft cloud belts between pole and pole, lerped between two colours, with
+ * grain on top. Any giant is this generator and a palette.
+ */
+export function makeBandedTexture(width: number, [dark, light]: readonly [Rgb, Rgb]): THREE.CanvasTexture {
   const height = width / 2;
   const [el, ctx] = canvas2d(width, height);
   const image = ctx.createImageData(width, height);
@@ -651,9 +679,9 @@ export function makeSaturnTexture(width: number): THREE.CanvasTexture {
       // Two golds, lerped by the band value, with a little grain on top. Warmer and paler
       // than Mars so the two rusty-vs-buttery planets never read as the same colour.
       const t = THREE.MathUtils.clamp(band + grain * 0.22, 0, 1);
-      const r = mix(196, 232, t);
-      const g = mix(168, 210, t);
-      const b = mix(116, 158, t);
+      const r = mix(dark[0], light[0], t);
+      const g = mix(dark[1], light[1], t);
+      const b = mix(dark[2], light[2], t);
 
       const o = (j * width + i) * 4;
       data[o] = r;

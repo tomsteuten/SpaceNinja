@@ -1,9 +1,11 @@
 import { DESTINATIONS, type Discovery } from '../config';
+import type { BodyId } from '../scene/Bodies';
+import { WORLDS as CATALOGUE, shortLabel } from '../worlds/catalogue';
 import { places as moonPlaces, type Place } from './places';
 import { photoCredits } from './photoCredits';
 import { radians, MIN_ALTITUDE, MAX_ALTITUDE } from './model';
 
-export type WorldId = 'earth' | 'moon' | 'mars' | 'saturn';
+export type WorldId = BodyId;
 /** A place resolved against the discovery it is, so progress and narration share one id. */
 export type WorldPlace = Place & { discovery: Discovery };
 export interface ExplorerWorld {
@@ -68,12 +70,23 @@ const lunar=discoveries('moon').map((d):WorldPlace=>{
   return special?{...special,id:d.id,discovery:d}:asPlace(d);
 });
 const surface={orbital:false,minAltitude:MIN_ALTITUDE,maxAltitude:MAX_ALTITUDE,startAltitude:0.34};
-export const WORLDS:readonly ExplorerWorld[]=[
-  {id:'earth',label:'Earth',places:discoveries('earth').map(d=>asPlace(d)),...surface},
-  {id:'moon',label:'Moon',places:lunar,...surface,detail:{color:'moon-trial/moon-color.jpg',relief:'moon-trial/moon-relief.png'}},
-  {id:'mars',label:'Mars',places:discoveries('mars').map(d=>asPlace(d)),...surface},
-  {id:'saturn',label:'Saturn',places:discoveries('saturn').map(d=>asPlace(d,true)),orbital:true,minAltitude:1.4,maxAltitude:4.5,startAltitude:2.4},
-];
+// A ringed giant has no surface to fly over: its places are orbital views, held higher.
+const orbital={orbital:true,minAltitude:1.4,maxAltitude:4.5,startAltitude:2.4};
+/** What the explorer knows about a world beyond the catalogue: only the Moon's sharper maps. */
+const extras:Partial<Record<string,Pick<ExplorerWorld,'places'|'detail'>>>={
+  moon:{places:lunar,detail:{color:'moon-trial/moon-color.jpg',relief:'moon-trial/moon-relief.png'}},
+};
+// One explorer world per catalogue world, in catalogue order: a ringed world is orbital.
+export const WORLDS:readonly ExplorerWorld[]=CATALOGUE.map((world):ExplorerWorld=>{
+  const isOrbital=Boolean(world.rings);
+  const id=world.id as WorldId;
+  return {
+    id,label:shortLabel(world),
+    places:discoveries(id).map(d=>asPlace(d,isOrbital)),
+    ...(isOrbital?orbital:surface),
+    ...extras[world.id],
+  };
+});
 /** A square crop of the place's own photograph (scripts/make-place-thumbnails.py). */
 export function thumbnail(place:Place) { return 'assets/discoveries/thumbs/'+place.id+'.jpg'; }
 export function worldById(id:WorldId) { return WORLDS.find(w=>w.id===id)!; }

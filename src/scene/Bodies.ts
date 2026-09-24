@@ -15,12 +15,12 @@ import {
   type WorldGeometry,
 } from '../worlds/catalogue';
 import {
+  makeBandedTexture,
+  makeCrateredTexture,
   makeGlowTexture,
   makeMarsTexture,
-  makeMoonTexture,
   makeRingTexture,
   makeSaturnRingTexture,
-  makeSaturnTexture,
   makeSunTexture,
   resolveEarthMaps,
   resolveOptionalTexture,
@@ -481,11 +481,16 @@ function createOrbitingBody(
   return { id, world, tilt, orbit, anchor, mesh, ringMesh, selectionRing, selectionScale, hitMeshes };
 }
 
-const SURFACE_FALLBACKS: Record<SurfaceFallback, (width: number) => THREE.Texture> = {
-  moon: makeMoonTexture,
-  mars: makeMarsTexture,
-  saturn: makeSaturnTexture,
-};
+function generatedSurface(fallback: SurfaceFallback, width: number): THREE.Texture {
+  switch (fallback.style) {
+    case 'cratered':
+      return makeCrateredTexture(width, fallback.tint);
+    case 'banded':
+      return makeBandedTexture(width, [fallback.dark, fallback.light]);
+    case 'rocky':
+      return makeMarsTexture(width);
+  }
+}
 
 async function resolveWorldMaps(
   world: WorldGeometry,
@@ -495,7 +500,7 @@ async function resolveWorldMaps(
   const [map, ringMap] = await Promise.all([
     resolveTexture({
       file: surface.file,
-      fallback: () => SURFACE_FALLBACKS[surface.fallback](textureSize),
+      fallback: () => generatedSurface(surface.fallback, textureSize),
       anisotropy: 8,
     }),
     world.rings

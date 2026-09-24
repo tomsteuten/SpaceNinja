@@ -73,21 +73,21 @@ polish, not yet started).
   and short landscape, including return from a persisted page suspension. Real-tablet viewing
   and listening, and owner approval of the Earth screen, remain outstanding.
 
-**Flight polish candidate, awaiting the owner's eye (branch `claude/beautiful-bell-k96l8x`, not
-on `main`):** the parked ship is placed in screen angles rather than world fractions, so it sits
+**Flight polish, approved by the owner and on `main`:** the parked ship is placed in screen angles rather than world fractions, so it sits
 inside the frame and clear of the body on every viewport (it was half off the right edge on the
 tablet and entirely off screen on a portrait phone). Full-resolution before/after captures on
 phone, tablet and short landscape are in `design/flight-review-2026-09-24/`, taken with
-`scripts/capture-arrival.mjs`. visit.pw.ts passes on all three viewports. Merge to `main` only
-once the owner has approved the look.
+`scripts/capture-arrival.mjs`. visit.pw.ts passes on all three viewports.
 
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
 remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;
 the tested free-flight steering model is the candidate); then the world catalogue refactor and
 more planets, Jupiter first. The plan, the per-world recipe and ready-to-run prompts for each of
-those are in `docs/worlds-roadmap.md`. The first slice of the refactor (geometry catalogue and
-derived framing, `src/worlds/catalogue.ts`) is already on `main`.
+those are in `docs/worlds-roadmap.md`. The catalogue refactor (all three steps: geometry and
+framing, scene building, stickers/badges/explorer list/fallback maps) is on `main`; a new world
+is now two data entries plus an id, per the roadmap's recipe. The approved parked-ship fix is
+on `main` too.
 
 **Strategy verdict, checked against code and screenshots:**
 

@@ -143,10 +143,17 @@ planet, because the first new planet is the moment it pays for itself.
       the update loop and disposal are all loops. Earth stays hand-built (origin, paired maps,
       night lights, atmosphere). Adding a world to the scene is now one catalogue entry plus
       its id in `BODY_IDS`.
-   c. **Open, mechanical.** Move the words (`DESTINATIONS`) into the catalogue entry, make the
-      tray, stickers list, `shipDecals`, the explorer's `worlds.ts` and the narration
-      completeness test iterate the catalogue, and give `SURFACE_FALLBACKS` a generic
-      'banded' and 'icy' generator so a new world needs no texture code either.
+   c. **Done, on `main`.** The stickers (`progress.ts`), the ship badges and their mounts
+      (`shipDecals.ts`, with a generic initial-on-a-disc badge and top-panel slots for
+      worlds beyond the fourth), and the explorer's world list (`explorer/worlds.ts`, ringed
+      worlds orbital) are derived from the catalogue. The generated fallback maps are two
+      generators and a palette: `cratered` with a tint for any airless body, `banded` with
+      two colours for any giant, plus the Mars-shaped `rocky`. The tray and the narration
+      test already iterated `DESTINATIONS`. The words stayed in `DESTINATIONS` in config.ts
+      rather than moving into the catalogue entry: it is 500 lines of copy that is already
+      data, and `config.test.ts` pins its keys to the scene bodies. So a world is two data
+      entries, geometry in the catalogue and words in `DESTINATIONS`, plus its id in
+      `BODY_IDS`.
 6. **Jupiter**, as the pilot new world. It is the one children ask for by name, its map
    is free (Solar System Scope, CC BY 4.0), and its Great Red Spot, bands and four big
    moons give six places without a surface. Radius compressed to about 1.7 (Saturn is 1.5
@@ -160,9 +167,13 @@ Every step is a file or a command. A world is done when all of them are.
 
 1. **Map.** A 2048 by 1024 equirectangular JPG in `public/assets/<id>.jpg`. Solar System
    Scope maps are CC BY 4.0; credit them in `public/assets/README.txt` as Saturn's is.
-2. **Catalogue entry** in `src/worlds/catalogue.ts`, after the world that reveals it.
-   Six discoveries, real coordinates, none above 55 degrees of latitude, the last one on
-   the far side from the arrival so it takes a drag. `selection.test.ts` enforces both.
+2. **Catalogue entry** in `src/worlds/catalogue.ts`, after the world that reveals it:
+   geometry, surface map and a fallback style with a palette, rings if any. Add its id to
+   `BODY_IDS` in `src/scene/Bodies.ts`, in the same position.
+2b. **Words** in `DESTINATIONS` in `src/config.ts`: emoji, fact, spin lesson,
+   `revealAfterVisiting` (the previous world), and the mission with six discoveries at real
+   coordinates, none above 55 degrees of latitude, the last one on the far side from the
+   arrival so it takes a drag. `selection.test.ts` enforces both.
 3. **Photographs.** Six NASA images in `public/assets/discoveries/<id>-<place>.jpg`,
    credited in that folder's README. Run `scripts/make-place-thumbnails.py` for the
    explorer's thumbnails.
@@ -170,8 +181,9 @@ Every step is a file or a command. A world is done when all of them are.
    `hunt-`, `success-`, `spin-`, and six `discovery-` lines), then `npm run
    narration:generate`. The test fails if a world's set is incomplete, and the world
    stays silent until it is complete.
-5. **Sticker.** A drawing in `src/scene/shipDecals.ts` and a hull slot. This is the one
-   hand step left; a generic emoji sticker is an acceptable first version.
+5. **Sticker.** Nothing required: a new world gets a generic badge (its initial on a disc)
+   in the next free hull slot. A hand-drawn emblem in `src/scene/shipDecals.ts` can replace
+   it later.
 6. **Verify.** `npm run typecheck && npm test`, then `npx playwright test e2e/visit.pw.ts
    e2e/layout.pw.ts --project=tablet`. Send the owner full-resolution arrival images on
    phone, tablet and short landscape, and stop.
@@ -191,19 +203,7 @@ Every step is a file or a command. A world is done when all of them are.
 > temporary worktree with its own `npm ci` for "before". Stop for the owner's approval.
 > Do not judge the look yourself.
 
-### Catalogue refactor, step (c) (any capable model)
-
-> Space Ninja, branch from `main`. Read docs/worlds-roadmap.md, then `src/worlds/catalogue.ts`
-> and `src/scene/Bodies.ts` to see the shape steps (a) and (b) established. Finish the
-> catalogue: (1) add a `words` field to `WorldGeometry` carrying what `DestinationConfig`
-> holds today (emoji, fact, spin lesson, revealAfterVisiting, mission) and build
-> `DESTINATIONS` in config.ts from the catalogue so the entries are written once; (2) make
-> `src/state/progress.ts` stickers, `src/scene/shipDecals.ts` slots, `src/explorer/worlds.ts`
-> and `src/audio/narration-script.test.ts` iterate the catalogue instead of naming ids;
-> (3) add 'banded' and 'icy' generators to `SURFACE_FALLBACKS` in Bodies.ts, parameterised by
-> colour, using `makeSaturnTexture` and `makeMoonTexture` as models. Every existing test must
-> pass unchanged in meaning. Run `e2e/visit.pw.ts --project=tablet` once. Commit and push to
-> main.
+### Catalogue refactor (all three steps are done; nothing to run here)
 
 ### Jupiter (after the refactor, any capable model)
 

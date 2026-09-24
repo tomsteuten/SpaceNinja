@@ -27,12 +27,20 @@ export interface WorldOrbit {
   speed: number;
 }
 
+/** Red, green, blue in 0–255. */
+export type Rgb = readonly [number, number, number];
+
 /**
- * Which generated map stands in when the real file is missing from public/assets. Keyed by
- * name rather than by function so this file stays data with no Three.js import; Bodies.ts
- * maps the name to the generator in textures.ts.
+ * Which generated map stands in when the real file is missing from public/assets. A style
+ * and a palette rather than a function, so this file stays data with no Three.js import;
+ * Bodies.ts maps the style to the generator in textures.ts. 'cratered' is any airless
+ * body, tinted; 'banded' is any gas giant, between two colours; 'rocky' is the Mars-shaped
+ * deserts-and-polar-caps generator, which has no palette yet.
  */
-export type SurfaceFallback = 'moon' | 'mars' | 'saturn';
+export type SurfaceFallback =
+  | { style: 'cratered'; tint: Rgb }
+  | { style: 'banded'; dark: Rgb; light: Rgb }
+  | { style: 'rocky' };
 
 export interface WorldSurface {
   /** File name inside public/assets/, e.g. "mars.jpg". */
@@ -98,7 +106,7 @@ const moon: WorldGeometry = {
    * side facing Earth.
    */
   spin: 0,
-  surface: { file: 'moon.jpg', fallback: 'moon', roughness: 0.94 },
+  surface: { file: 'moon.jpg', fallback: { style: 'cratered', tint: [255, 251, 242] }, roughness: 0.94 },
 };
 
 /**
@@ -114,7 +122,7 @@ const mars: WorldGeometry = {
   radius: 0.53,
   orbit: { radius: 5.0, tilt: -0.19, startAngle: 3.4, speed: 0.03 },
   spin: 0.02,
-  surface: { file: 'mars.jpg', fallback: 'mars', roughness: 0.88 },
+  surface: { file: 'mars.jpg', fallback: { style: 'rocky' }, roughness: 0.88 },
 };
 
 /**
@@ -146,7 +154,11 @@ const saturn: WorldGeometry = {
   spin: 0.03,
   axialTilt: 0.47,
   rings: { inner: 1.28, outer: 2.3, file: 'saturn-rings.png' },
-  surface: { file: 'saturn.jpg', fallback: 'saturn', roughness: 0.9 },
+  surface: {
+    file: 'saturn.jpg',
+    fallback: { style: 'banded', dark: [196, 168, 116], light: [232, 210, 158] },
+    roughness: 0.9,
+  },
 };
 
 /** In the order they are earned: the home world first, then each world as it is revealed. */
@@ -158,6 +170,16 @@ export const WORLD_IDS: readonly string[] = WORLDS.map((world) => world.id);
 export const ORBITING_WORLDS: readonly WorldGeometry[] = WORLDS.filter((world) => world.orbit);
 
 const BY_ID = new Map(WORLDS.map((world) => [world.id, world]));
+
+/** The tray and the stickers use the identity without the article: "Moon", not "The Moon". */
+export function shortLabel(world: WorldGeometry): string {
+  return world.label.replace(/^The /, '');
+}
+
+/** The sticker a world's collection earns. Written into saved progress, so stable. */
+export function stickerIdFor(id: string): string {
+  return `${id}-explorer`;
+}
 
 export function worldGeometry(id: string): WorldGeometry {
   const world = BY_ID.get(id);

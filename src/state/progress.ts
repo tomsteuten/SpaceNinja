@@ -5,6 +5,9 @@
  * guarded: losing progress must never break the game.
  */
 
+import { DESTINATIONS } from '../config';
+import { WORLDS, shortLabel } from '../worlds/catalogue';
+
 const STORAGE_KEY = 'spaceninja.progress.v1';
 
 export interface StickerDefinition {
@@ -13,21 +16,24 @@ export interface StickerDefinition {
   label: string;
 }
 
-export const STICKERS: Record<string, StickerDefinition> = {
-  'moon-explorer': { id: 'moon-explorer', emoji: '🌙', label: 'Moon Explorer' },
-  'mars-explorer': { id: 'mars-explorer', emoji: '🔴', label: 'Mars Explorer' },
-  'earth-explorer': { id: 'earth-explorer', emoji: '🌍', label: 'Earth Explorer' },
-  'saturn-explorer': { id: 'saturn-explorer', emoji: '🪐', label: 'Saturn Explorer' },
-  /**
-   * The last one, for finding every place on every world. The title of the game is the
-   * thing a child becomes by finishing it — which is also why it is one sticker rather
-   * than a fourth "explorer": it is not another world, it is all of them.
-   */
-  'space-ninja': { id: 'space-ninja', emoji: '🥷', label: 'Space Ninja' },
-};
+/**
+ * The last one, for finding every place on every world. The title of the game is the
+ * thing a child becomes by finishing it — which is also why it is one sticker rather
+ * than another "explorer": it is not another world, it is all of them.
+ */
+const FINALE: StickerDefinition = { id: 'space-ninja', emoji: '🥷', label: 'Space Ninja' };
+
+/** One "<World> Explorer" sticker per world in the catalogue, then the finale. */
+export const STICKERS: Record<string, StickerDefinition> = Object.fromEntries([
+  ...WORLDS.map((world) => {
+    const id = DESTINATIONS[world.id]!.mission.stickerId;
+    return [id, { id, emoji: DESTINATIONS[world.id]!.emoji, label: `${shortLabel(world)} Explorer` }];
+  }),
+  [FINALE.id, FINALE],
+]);
 
 /** The sticker that finishing the whole game earns. */
-export const FINALE_STICKER = 'space-ninja';
+export const FINALE_STICKER = FINALE.id;
 
 export interface Progress {
   /**
