@@ -239,7 +239,8 @@ public/                     shipped manifest, icons and real media
 src/main.ts                 adventure wiring, visit reset and frame orchestration
 src/session/                shared browser lifecycle, failure screen and offline registration
 src/explorer/               optional ?explorer route for the newer exploration experiment
-src/config.ts               destination data and scene constants
+src/config.ts               destination data and scene constants (geometry re-exported from the catalogue)
+src/worlds/                 the world catalogue: per-world geometry and derived framing; see docs/worlds-roadmap.md
 src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input
 src/flight/                 cinematic, home return and manual-flight experiment

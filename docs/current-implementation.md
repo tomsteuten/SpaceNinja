@@ -17,7 +17,20 @@ each world. Keep child-sized targets (54–62px) and readable labels; the explor
 text was too small for 5–8 year olds. The markers stay gold, because the recorded narration
 says "tap the gold" places.
 
-**Implemented on `codex/session-lifecycle-audit`:**
+**Live on `main` since 24 September (merge of `codex/session-lifecycle-audit` with the
+explorer `main`, commits `05af23c` and `d3b17c7`):** the guided
+adventure is the live default at the root GitHub Pages URL, with the restyled home map, the
+Moon arrival and the Earth day/night screen; the explorer is at `?explorer`. The first deploy
+run (commit `d3b17c7`) failed only `home.pw.ts`, on all three viewports, at the Escape that
+closes the journal: each dialog listened for Escape on its own element, which only hears the
+key once focus has moved inside, a frame after opening. Fixed in `7bdb243` (Escape now closes
+the innermost open dialog from the document). The second run passed the full unit and browser
+suites (47 browser checks, 4 skipped) and deployed. Real-tablet look and sound remain
+unverified until the owner tries the live site. Open items: owner approval of the home map,
+Moon arrival and Earth screens; the parked ship half off the right edge at arrival (flight
+polish, not yet started).
+
+**Implemented on `main` (formerly `codex/session-lifecycle-audit`):**
 
 1. The adventure is the default route again.
 2. The Moon arrival screen is restyled through `src/ui/theme.css`, layered over `ui.css`, plus a
@@ -49,11 +62,10 @@ says "tap the gold" places.
   images are in `design/home-review-2026-09-24/`. Before is the untouched `6f86ca5` worktree,
   installed with its own `npm ci`; after is this branch. Home and Moon arrival still await
   owner approval. No flight or additional planet work is included.
-- Live-site correction: on this date the root GitHub Pages URL opens the four-world explorer.
-  Its Original adventure route (`?classic`) shows the gated Earth/Moon view, confirmed in
-  phone/tablet captures. Do not equate the root deployment with local `main`. Two missing
-  resource console errors occurred on the live classic page; local before/after captures
-  had no browser errors. Nothing was deployed.
+- Live-site history: earlier on this date the root GitHub Pages URL opened the four-world
+  explorer, with the gated adventure at `?classic`. The merge below reversed that: the guided
+  adventure is at `/` and the explorer at `?explorer`. `?classic` is no longer a route; the
+  explorer's way-back link now points at `/`.
 - Earth follow-up: a delayed screenshot showed the guided-hunt counter covering a gold place in
   short landscape. Its landscape position now uses the free left side space; a browser check
   verifies both visible places clear it. Guided-hunt before/after captures at device scale 1
@@ -61,9 +73,13 @@ says "tap the gold" places.
   and short landscape, including return from a persisted page suspension. Real-tablet viewing
   and listening, and owner approval of the Earth screen, remain outstanding.
 
-**Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the discovery postcard and
-journal; the remaining screens; then flight polish (the parked ship sits half off the right
-edge at arrival; the tested free-flight steering model is the candidate); then more planets.
+**Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
+Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
+remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;
+the tested free-flight steering model is the candidate); then the world catalogue refactor and
+more planets, Jupiter first. The plan, the per-world recipe and ready-to-run prompts for each of
+those are in `docs/worlds-roadmap.md`. The first slice of the refactor (geometry catalogue and
+derived framing, `src/worlds/catalogue.ts`) is already on `main`.
 
 **Strategy verdict, checked against code and screenshots:**
 
