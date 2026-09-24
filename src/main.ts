@@ -15,11 +15,7 @@ import './ui/theme.css';
 import * as THREE from 'three';
 import {
   DESTINATIONS,
-  FRAMING_RADIUS,
-  FRAMING_RADIUS_WIDE,
-  FRAMING_RADIUS_WIDER,
-  WIDE_FRAMING_VISIT,
-  WIDER_FRAMING_VISIT,
+  framingRadiusFor,
   revealedDestinations,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
@@ -129,12 +125,12 @@ async function main() {
   const trail = createEngineTrail(stage.quality.tier === 'low' ? 24 : 46);
   scene.add(trail.group);
 
-  /** Keep the opening subjects readable; each visit widens the map to its next world. */
+  /**
+   * Keep the opening subjects readable; each visit widens the map to its next world. The
+   * shot fits exactly the worlds that are drawn, so framing and reveal cannot drift apart.
+   */
   function framingRadius(): number {
-    const { visited } = loadProgress();
-    if (visited.includes(WIDER_FRAMING_VISIT)) return FRAMING_RADIUS_WIDER;
-    if (visited.includes(WIDE_FRAMING_VISIT)) return FRAMING_RADIUS_WIDE;
-    return FRAMING_RADIUS;
+    return framingRadiusFor(visibleDestinationIds());
   }
 
   /**
