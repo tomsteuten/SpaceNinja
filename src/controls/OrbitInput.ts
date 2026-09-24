@@ -118,6 +118,8 @@ export interface OrbitInputOptions {
   element: HTMLElement;
   onTap(clientX: number, clientY: number): void;
   reducedMotion: boolean;
+  /** Opening polar angle from +Y. The default is the classic adventure's low, Earth-level view. */
+  openingPhi?: number;
 }
 
 interface PointerState {
@@ -135,7 +137,7 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
 
   const target = new THREE.Vector3();
   const desiredTarget = new THREE.Vector3();
-  const spherical = new THREE.Spherical(9, Math.PI / 2.35, 0.9);
+  const spherical = new THREE.Spherical(9, options.openingPhi ?? Math.PI / 2.35, 0.9);
   // Kept so reset() can restore the opening framing without the numbers living twice.
   const openingSpherical = spherical.clone();
   let desiredRadius = spherical.radius;

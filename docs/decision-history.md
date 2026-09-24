@@ -114,3 +114,11 @@ The home restyle stays in `theme.css`, with home-only positioning for the journa
 The owner must judge the phone/tablet comparisons before another screen is redesigned.
 This restores a composition that fits the current guided game, rather than ruling out a freely
 accessible solar-system map if a future design and device observation support one.
+
+## 2026-09-24 — Integrate the newer explorer without changing the chosen game
+
+Remote `main` developed a close-flight explorer after this branch split and made it the root
+route. The owner's later direction selected the guided adventure as the game, with UI polish
+screen by screen. The merge retains the explorer and its assets at `?explorer`, while the
+guided adventure remains the default. This preserves the newer work for comparison without
+reversing the owner's current product choice. Real-device evaluation is still pending.

@@ -51,9 +51,29 @@ npm run test:e2e
 npm run narration:generate
 ```
 
-Run `npm run typecheck && npm test` before every commit. Run `npm run test:e2e` for gameplay,
-camera, arrival, responsive layout or UI-flow changes. Browser screenshots are part of the
-result for WebGL work; DOM assertions alone do not establish visual quality.
+### Testing: what to run, and when
+
+Browser runs use software WebGL with one worker and take 10–50 minutes on the owner's laptop.
+Most of that time was once spent duplicating the deploy check or chasing test-timing problems,
+while the problems the owner cared about were visual and no test could see them. So:
+
+- **Every commit:** `npm run typecheck && npm test`. Seconds.
+- **UI, gameplay, camera or layout change:** run only the Playwright file(s) covering the screen
+  you touched, and only the affected viewports, for example
+  `npx playwright test e2e/earth-day.pw.ts --project=phone`. Do not run the full suite locally.
+- **A failing browser test:** rerun it alone once before diagnosing. Machine load and sleep
+  cause false timeouts; do not fix what a clean rerun passes.
+- **Before pushing to `main`:** nothing extra. The deploy workflow runs the full unit and
+  browser suites and blocks the deploy if anything fails, so the live site is safe. Check the
+  Actions run; if it fails, download its `browser-checks` artifact, fix and push again.
+- **Visual quality is the owner's call, not yours.** Tests prove behavior and target
+  clearance, not appearance, and the suite's half-resolution software-rendered screenshots
+  are weak evidence. For any visual change, send the owner full-resolution
+  (`deviceScaleFactor: 1`) before/after images on phone, tablet and short landscape, one
+  screen at a time, and wait for approval. Never report a screen as looking good yourself.
+- **"Before" screenshots:** use a temporary `git worktree` of the previous commit and run
+  `npm ci` inside it. Never junction or symlink `node_modules` into it: `git worktree remove`
+  follows the link and deletes the real `node_modules`.
 
 ## Current child loop
 
@@ -196,9 +216,11 @@ shipping the clearly labelled experiment does not require prior proof.
 
 Playwright drives an isolated `VITE_PLAYTEST=1` build. The exposed scene snapshot is read-only
 and must never appear in a normal build. Exercise boot, real pointer input, scene transitions,
-arrival, return, resize and representative phone/tablet/short-landscape viewports. Use `e2e/fixtures.ts` for common device setup, browser-error checks and named screenshot
-files. Capture and
-inspect screenshots for overlay weight, alignment, target clearance and legibility.
+arrival, return, resize and representative phone/tablet/short-landscape viewports. Use
+`e2e/fixtures.ts` for common device setup, browser-error checks and named screenshot files.
+The suite's most valuable checks are layout clearance (controls never covering gold places)
+and lifecycle/offline edge cases; they have caught real regressions. See "Testing: what to
+run, and when" above for how much of it to run.
 
 Software WebGL can stretch nominal durations because `Stage.tick` clamps large frame deltas.
 Wait for state rather than assuming a seven-second flight takes seven wall-clock seconds. Treat
@@ -216,6 +238,7 @@ sw/                         generated offline worker and tests
 public/                     shipped manifest, icons and real media
 src/main.ts                 adventure wiring, visit reset and frame orchestration
 src/session/                shared browser lifecycle, failure screen and offline registration
+src/explorer/               optional ?explorer route for the newer exploration experiment
 src/config.ts               destination data and scene constants
 src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input

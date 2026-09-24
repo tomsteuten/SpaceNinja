@@ -3,7 +3,7 @@ export default defineConfig({
   testDir: './e2e', testMatch: '**/*.pw.ts', workers: 1,
   reporter: [['list'], ['html', {open:'never'}]],
   timeout: 240000, expect: { timeout: 45000 },
-  use: { baseURL: 'http://127.0.0.1:4180', screenshot: 'only-on-failure', trace: 'retain-on-failure',
+  use: { baseURL: 'http://127.0.0.1:4180', actionTimeout:15000, screenshot: 'only-on-failure', trace: 'retain-on-failure',
     launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] } },
   projects: [
     { name: 'phone', use: { viewport: {width:390,height:844}, reducedMotion:'reduce', hasTouch:true, deviceScaleFactor:0.5 } },

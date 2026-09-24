@@ -17,7 +17,7 @@ each world. Keep child-sized targets (54–62px) and readable labels; the explor
 text was too small for 5–8 year olds. The markers stay gold, because the recorded narration
 says "tap the gold" places.
 
-**Done on `codex/session-lifecycle-audit`, not pushed, `main` untouched:**
+**Implemented on `codex/session-lifecycle-audit`:**
 
 1. The adventure is the default route again.
 2. The Moon arrival screen is restyled through `src/ui/theme.css`, layered over `ui.css`, plus a
@@ -27,6 +27,9 @@ says "tap the gold" places.
 3. Earth now offers Day & night as the primary arrival action. About opens words on demand,
    Done ends the lesson, and gold places pause and resume without losing progress. Full-resolution
    arrival, active and guided-hunt captures are in `design/earth-review-2026-09-24/`.
+4. A later remote `main` added a close-flight explorer. The integration retains it at
+   `?explorer`, while `/` remains the owner's chosen guided adventure. Its own browser checks
+   run on that explicit route. This is a comparison experiment, not the new game direction.
 
 **Verification and approval, 24 September home pass:**
 

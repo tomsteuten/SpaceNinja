@@ -65,6 +65,16 @@ async function main() {
   }
   const canvas: HTMLCanvasElement = canvasElement;
 
+  // The guided adventure remains the default. Keep the newer explorer available as an
+  // explicit experiment while its tablet playtest and product direction are reviewed.
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('explorer')) {
+    const { startExplorer } = await import('./explorer/main');
+    const explorer = await startExplorer(canvas, uiRoot);
+    if (explorer && import.meta.env.VITE_PLAYTEST !== '1') registerOffline(explorer.canReload);
+    return;
+  }
+
   // The assisted free-flight prototype, reached at `?freeflight`. Deliberately a separate
   // path with nothing below it running: it is a sandbox for a control scheme the shipped
   // loop does not use, and a dynamic import keeps its code out of the normal bundle entirely

@@ -26,6 +26,11 @@ function serviceWorker(): Plugin {
       const textures = readdirSync('public/assets')
         .filter((name) => /\.(jpe?g|png|webp)$/i.test(name))
         .map((name) => 'assets/' + name);
+      textures.push('assets/moon-trial/moon-color.jpg','assets/moon-trial/moon-relief.png');
+      textures.push(...['earth','moon','mars','saturn'].map(id=>'assets/explorer/'+id+'.jpg'));
+      // Place badges and journal postcards: a few kilobytes each, so the journal works offline.
+      // The full photographs they are cropped from still load only when opened.
+      textures.push(...readdirSync('public/assets/discoveries/thumbs').map((name) => 'assets/discoveries/thumbs/' + name));
 
       const fingerprints: Record<string, Uint8Array | string> = {};
       const index = bundle['index.html'];

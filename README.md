@@ -3,6 +3,14 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
 far: Earth, the Moon, Mars, and Saturn.
 
+The guided adventure is the default game. Tap a world or its large destination button and
+ride with the spaceship to a close view. Earth and the Moon are available first; visiting
+the Moon reveals Mars, and visiting Mars reveals Saturn. Every world has real places to
+discover, a journal, recorded narration and a clear Fly Home route. Earth's **Day & night**
+activity shows a full turn of the globe and its city lights.
+
+### Guided adventure
+
 Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
 there. One tap, one journey: ride with the spaceship along its safe route and arrive close
 enough to see the surface.
@@ -35,6 +43,11 @@ npm run dev
 ```
 
 Then open <http://localhost:5173>.
+
+For a local browser preview, use <http://localhost:5173/>. The newer close-flight explorer
+remains available for comparison at <http://localhost:5173/?explorer>. Its worlds are all
+open, and holding and sliding steers the ship over real mapped places. It has not replaced
+the guided game while tablet playtesting and the screen-by-screen review continue.
 
 The optional manual-flight experiment is available from **Fly it yourself** in the grown-ups
 panel, with **Shift+F** on a keyboard, or directly at
@@ -95,6 +108,13 @@ account or API key.
 ## Artwork
 
 ### Credits
+
+**Explorer Moon maps and Tycho close-up** — NASA LROC and LOLA datasets from the
+[NASA CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/), plus the real LROC NAC M162350671
+[Tycho central-peak photograph](https://svs.gsfc.nasa.gov/4220/). Credit NASA/GSFC/ASU/SVS
+and NASA/GSFC/MIT for LOLA. Exact URLs, processing and original checksums are recorded in
+`public/assets/moon-trial/README.txt` and `sources.json`. `scripts/prepare-moon-assets.py`
+reproduces the compact files without shipping source TIFFs.
 
 **Planet and sky textures** — `earth.jpg`, `earth-night.jpg`, `moon.jpg`, `mars.jpg`,
 `saturn.jpg` and `starfield.jpg` in `public/assets/`, from [Solar System
