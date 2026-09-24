@@ -18,8 +18,47 @@ function targets(root: HTMLElement): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((node) => !node.hidden);
 }
 
+interface OpenDialog {
+  dialog: HTMLElement;
+  onEscape: () => void;
+}
+
+/*
+ * The dialogs that are open right now, innermost last. Escape is handled once, at the
+ * document, and closes only the innermost one: a photo opened from the journal closes
+ * before the journal does.
+ *
+ * It used to be handled by a keydown listener on each dialog element, which only hears the
+ * key while focus is *inside* that element. Focus moves in on the animation frame after
+ * opening, so an Escape pressed before that frame (a keyboard user who knows the way, or
+ * a test on a slow software-rendered runner) reached nothing and the dialog stayed up.
+ */
+const openDialogs: OpenDialog[] = [];
+
+function onDocumentKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Escape' || event.defaultPrevented) return;
+  const top = openDialogs[openDialogs.length - 1];
+  if (!top) return;
+  event.preventDefault();
+  top.onEscape();
+}
+
+function track(entry: OpenDialog) {
+  untrack(entry.dialog);
+  openDialogs.push(entry);
+  // Idempotent for the same listener, so re-opening never stacks a second one.
+  document.addEventListener('keydown', onDocumentKeydown);
+}
+
+function untrack(dialog: HTMLElement) {
+  const index = openDialogs.findIndex((entry) => entry.dialog === dialog);
+  if (index !== -1) openDialogs.splice(index, 1);
+  if (!openDialogs.length) document.removeEventListener('keydown', onDocumentKeydown);
+}
+
 /**
- * Keeps Tab inside an open dialog and gives focus back to the control that opened it.
+ * Keeps Tab inside an open dialog, closes it on Escape, and gives focus back to the
+ * control that opened it.
  *
  * We do not use `inert` on the whole game: a photo can be opened from the journal while
  * that panel remains visible underneath. The trap limits keyboard navigation without
@@ -31,13 +70,9 @@ export function createDialogFocus(
   onEscape: () => void,
 ): DialogFocus {
   let opener: HTMLElement | null = null;
+  const entry: OpenDialog = { dialog, onEscape };
 
   function onKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onEscape();
-      return;
-    }
     if (event.key !== 'Tab') return;
     const items = targets(dialog);
     if (!items.length) return;
@@ -56,14 +91,17 @@ export function createDialogFocus(
   return {
     open() {
       opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      track(entry);
       requestAnimationFrame(() => initial()?.focus());
     },
     close() {
+      untrack(dialog);
       const returnTo = opener;
       opener = null;
       if (returnTo?.isConnected) requestAnimationFrame(() => returnTo.focus());
     },
     dispose() {
+      untrack(dialog);
       dialog.removeEventListener('keydown', onKeydown);
     },
   };
