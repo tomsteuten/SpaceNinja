@@ -79,6 +79,11 @@ tablet and entirely off screen on a portrait phone). Full-resolution before/afte
 phone, tablet and short landscape are in `design/flight-review-2026-09-24/`, taken with
 `scripts/capture-arrival.mjs`. visit.pw.ts passes on all three viewports.
 
+**Child playtest, 24 September (one child, one session):** liked the game; fast double-taps
+opened and closed panels; turning the world to the hidden last place was frustrating; day and
+night on Earth was never found because nothing invites it. The fixes and the spoken layer they
+need are specified in `docs/handover-2026-09-24.md`, the prompt for the next session.
+
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
 remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;
