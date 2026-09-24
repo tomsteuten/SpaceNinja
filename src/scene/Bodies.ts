@@ -1,38 +1,19 @@
 /**
- * The Sun, the Earth (with its atmosphere) and the Moon, plus the lights.
+ * The Sun, the Earth (with its atmosphere), every orbiting world in the catalogue, and the lights.
  *
  * Everything is built from Three.js primitives and the textures resolved in
  * textures.ts, so swapping in real maps or GLB models later touches only this file.
  */
 
 import * as THREE from 'three';
+import { EARTH_RADIUS, EARTH_SPIN, SUN_DIRECTION, SUN_POSITION, SUN_RADIUS } from '../config';
 import {
-  EARTH_RADIUS,
-  EARTH_SPIN,
-  MARS_ORBIT_RADIUS,
-  MARS_ORBIT_SPEED,
-  MARS_ORBIT_TILT,
-  MARS_RADIUS,
-  MARS_SPIN,
-  MARS_START_ANGLE,
-  MOON_ORBIT_RADIUS,
-  MOON_ORBIT_SPEED,
-  MOON_ORBIT_TILT,
-  MOON_RADIUS,
-  MOON_START_ANGLE,
-  SATURN_AXIAL_TILT,
-  SATURN_ORBIT_RADIUS,
-  SATURN_ORBIT_SPEED,
-  SATURN_ORBIT_TILT,
-  SATURN_RADIUS,
-  SATURN_RING_INNER_RATIO,
-  SATURN_RING_OUTER_RATIO,
-  SATURN_SPIN,
-  SATURN_START_ANGLE,
-  SUN_DIRECTION,
-  SUN_POSITION,
-  SUN_RADIUS,
-} from '../config';
+  ORBITING_WORLDS,
+  viewRadius as worldViewRadius,
+  worldGeometry,
+  type SurfaceFallback,
+  type WorldGeometry,
+} from '../worlds/catalogue';
 import {
   makeGlowTexture,
   makeMarsTexture,
@@ -47,7 +28,12 @@ import {
 } from './textures';
 import type { QualitySettings } from './quality';
 
-/** One source of truth for built scene bodies. Config and tests must cover each one. */
+/**
+ * The built scene bodies, as literal types so records keyed by them are exhaustive. The
+ * catalogue (src/worlds/catalogue.ts) is the source of truth for what each one *is*;
+ * catalogue.test.ts pins this list to it, so adding a world means one entry there and one
+ * id here, and nothing else in this file.
+ */
 export const BODY_IDS = ['earth', 'moon', 'mars', 'saturn'] as const;
 export type BodyId = typeof BODY_IDS[number];
 
@@ -297,86 +283,6 @@ function createHitMesh(radius: number): THREE.Mesh {
 }
 
 /**
- * The three-node rig every orbiting body uses: a tilt group so its path is not flat, a
- * spin group carrying the orbit angle, and an anchor out at the orbit radius. Children of
- * the anchor ride the orbit without inheriting the body's own rotation - which is what
- * lets the ship park on it and the collectibles stay put under a child's finger.
- */
-interface OrbitingBody {
-  tilt: THREE.Group;
-  spin: THREE.Group;
-  anchor: THREE.Group;
-  mesh: THREE.Mesh;
-  ring: THREE.Sprite;
-  hit: THREE.Mesh;
-  ringScale: number;
-}
-
-function createOrbitingBody(options: {
-  id: BodyId;
-  radius: number;
-  orbitRadius: number;
-  orbitTilt: number;
-  startAngle: number;
-  map: THREE.Texture;
-  roughness: number;
-  segments: [number, number];
-  ringTexture: THREE.Texture;
-}): OrbitingBody {
-  const tilt = new THREE.Group();
-  tilt.rotation.x = options.orbitTilt;
-  const spin = new THREE.Group();
-  spin.rotation.y = options.startAngle;
-  const anchor = new THREE.Group();
-  anchor.position.x = options.orbitRadius;
-
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(options.radius, options.segments[0], options.segments[1]),
-    new THREE.MeshStandardMaterial({
-      map: options.map,
-      roughness: options.roughness,
-      metalness: 0,
-      /*
-       * A trace of the body's own map, added after shading, so the night side is dim
-       * rather than absolutely black.
-       *
-       * The far side of the Moon is one of the three places a child is sent to find, and
-       * it is 120 degrees round from an arrival that is deliberately on the sunlit side,
-       * which put it in full shadow: the marker glowed there beautifully and the crater it
-       * was marking could not be seen at all. Raising the scene's hemisphere fill would
-       * have done it too, but that also lifts Earth's night side, and the city lights are
-       * only legible because it is dark.
-       *
-       * 0.055 is a twentieth of the map, against a Sun at 2.7 — invisible on the lit side,
-       * and the difference between black and faint relief on the other.
-       */
-      emissiveMap: options.map,
-      emissive: new THREE.Color(0xffffff),
-      emissiveIntensity: 0.055,
-    }),
-  );
-  /*
-   * Was 6.4. The ring marked a *selection* then — a state a child had just put the game
-   * into by tapping, held for as long as it took them to find the Fly button, and worth
-   * shouting about. There is no selection any more: it marks the world the map is
-   * suggesting, so it is on the whole time the child is at the map, and at 6.4 radii it
-   * dominated the shot and clipped off the edge of a portrait phone whenever the Moon was
-   * out at the side of its orbit — which the opening framing puts it at routinely.
-   * 4.2 still reads as a ring around a small body without becoming the subject.
-   */
-  const ringScale = options.radius * 4.2;
-  const ring = createSelectionRing(options.ringTexture, ringScale);
-  // Floored, because a small body far from the camera is otherwise a pixel-hunt.
-  const hit = createHitMesh(Math.max(0.72, options.radius * 2.6));
-  hit.userData.bodyId = options.id;
-
-  anchor.add(mesh, ring, hit);
-  spin.add(anchor);
-  tilt.add(spin);
-  return { tilt, spin, anchor, mesh, ring, hit, ringScale };
-}
-
-/**
  * A flat ring lying in the equatorial plane.
  *
  * The one real gotcha, called out in AGENTS.md: THREE.RingGeometry runs `u` *around* the
@@ -389,7 +295,7 @@ function createOrbitingBody(options: {
  * `depthWrite: false` so the half of the ring behind the planet is hidden by the planet's
  * own depth while the near half still draws over it.
  */
-function createSaturnRing(texture: THREE.Texture, inner: number, outer: number): THREE.Mesh {
+function createRingMesh(texture: THREE.Texture, inner: number, outer: number): THREE.Mesh {
   const geometry = new THREE.RingGeometry(inner, outer, 96, 1);
   const position = geometry.getAttribute('position') as THREE.BufferAttribute;
   const uv = geometry.getAttribute('uv') as THREE.BufferAttribute;
@@ -423,115 +329,185 @@ function createSaturnRing(texture: THREE.Texture, inner: number, outer: number):
   return mesh;
 }
 
-interface SaturnBody {
-  tilt: THREE.Group;
-  orbit: THREE.Group;
-  anchor: THREE.Group;
-  /** Axial-tilt container carrying the sphere and the rings. */
-  axis: THREE.Group;
-  mesh: THREE.Mesh;
-  ringMesh: THREE.Mesh;
-  selectionRing: THREE.Sprite;
-  hit: THREE.Mesh;
-  ringHit: THREE.Mesh;
-  selectionScale: number;
-}
-
 /**
- * Two honest tap targets for Saturn's two visible shapes.
+ * Two honest tap targets for a ringed world's two visible shapes.
  *
  * This used to be one sphere as wide as the outer rings. In the wide solar-system view
  * that invisible ball included a huge volume of empty space and could sit in front of
  * Earth, so tapping the clearly visible Earth selected Saturn instead. A generous sphere
  * still covers the planet and a flat annulus follows the rings; empty space now stays empty.
  */
-export function createSaturnHitTargets(): { planet: THREE.Mesh; rings: THREE.Mesh } {
-  const planet = createHitMesh(SATURN_RADIUS * 1.35);
+export function createRingedHitTargets(
+  id: BodyId,
+  radius: number,
+  outerRatio: number,
+): { planet: THREE.Mesh; rings: THREE.Mesh } {
+  const planet = createHitMesh(radius * 1.35);
   const rings = new THREE.Mesh(
-    new THREE.RingGeometry(
-      SATURN_RADIUS * 0.98,
-      SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 1.08,
-      48,
-      1,
-    ),
+    new THREE.RingGeometry(radius * 0.98, radius * outerRatio * 1.08, 48, 1),
     new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }),
   );
-  // RingGeometry faces +Z; Saturn's equatorial plane is XZ.
+  // RingGeometry faces +Z; the equatorial plane is XZ.
   rings.rotation.x = -Math.PI / 2;
-  planet.userData.bodyId = 'saturn';
-  rings.userData.bodyId = 'saturn';
+  planet.userData.bodyId = id;
+  rings.userData.bodyId = id;
   return { planet, rings };
 }
 
-/**
- * Saturn: an orbiting body like the others, but with an axial tilt and a ring lying in it.
- *
- * Built apart from createOrbitingBody because those two things are unique to it. The rig is
- * the same three-node one — tilt/orbit/anchor — plus an `axis` group between the anchor and
- * the sphere that carries the axial tilt, so the rings and the sphere share it while the
- * sphere still spins about its own axis inside. The rings hang off `axis`, not off the
- * sphere, so they do not spin with the surface texture; the sphere is what `holdSurface`
- * freezes for a visit, exactly as on Mars.
- */
-function createSaturn(options: {
-  map: THREE.Texture;
-  ringTexture: THREE.Texture;
-  selectionTexture: THREE.Texture;
-  segments: [number, number];
-}): SaturnBody {
-  const tilt = new THREE.Group();
-  tilt.rotation.x = SATURN_ORBIT_TILT;
-  const orbit = new THREE.Group();
-  orbit.rotation.y = SATURN_START_ANGLE;
-  const anchor = new THREE.Group();
-  anchor.position.x = SATURN_ORBIT_RADIUS;
+/** Saturn's targets by name, for the test that pins the empty-space rule. */
+export function createSaturnHitTargets(): { planet: THREE.Mesh; rings: THREE.Mesh } {
+  const saturn = worldGeometry('saturn');
+  return createRingedHitTargets('saturn', saturn.radius, saturn.rings!.outer);
+}
 
-  const axis = new THREE.Group();
-  axis.rotation.z = SATURN_AXIAL_TILT;
+/**
+ * The rig every orbiting world uses: a tilt group so its path is not flat, an orbit group
+ * carrying the orbit angle, and an anchor out at the orbit radius. Children of the anchor
+ * ride the orbit without inheriting the body's own rotation — which is what lets the ship
+ * park on it and the markers stay put under a child's finger.
+ *
+ * A world with an axial tilt gets an `axis` group between the anchor and the sphere that
+ * carries the tilt, so any rings and the sphere share it while the sphere still spins about
+ * its own axis inside. Rings hang off `axis`, not off the sphere, so they do not spin with
+ * the surface texture; the sphere is what `holdSurface` freezes for a visit. The tilt lives
+ * on a container rather than on the mesh because the mission places its markers by setting
+ * the surface's rotation *about Y* and reads the camera's bearing in the surface's parent
+ * space; a z-tilt on the mesh would sit inside that y-rotation and quietly move every marker
+ * off its coordinates.
+ */
+interface OrbitingBody {
+  id: BodyId;
+  world: WorldGeometry;
+  tilt: THREE.Group;
+  orbit: THREE.Group;
+  anchor: THREE.Group;
+  mesh: THREE.Mesh;
+  ringMesh: THREE.Mesh | null;
+  selectionRing: THREE.Sprite;
+  selectionScale: number;
+  hitMeshes: THREE.Mesh[];
+}
+
+function createOrbitingBody(
+  world: WorldGeometry,
+  options: {
+    map: THREE.Texture;
+    ringMap: THREE.Texture | null;
+    selectionTexture: THREE.Texture;
+    segments: [number, number];
+  },
+): OrbitingBody {
+  const id = world.id as BodyId;
+  const orbitSpec = world.orbit;
+  if (!orbitSpec || !world.surface) throw new Error(`${world.id} is not an orbiting world`);
+
+  const tilt = new THREE.Group();
+  tilt.rotation.x = orbitSpec.tilt;
+  const orbit = new THREE.Group();
+  orbit.rotation.y = orbitSpec.startAngle;
+  const anchor = new THREE.Group();
+  anchor.position.x = orbitSpec.radius;
 
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(SATURN_RADIUS, options.segments[0], options.segments[1]),
+    new THREE.SphereGeometry(world.radius, options.segments[0], options.segments[1]),
     new THREE.MeshStandardMaterial({
       map: options.map,
-      roughness: 0.9,
+      roughness: world.surface.roughness,
       metalness: 0,
+      /*
+       * A trace of the body's own map, added after shading, so the night side is dim
+       * rather than absolutely black.
+       *
+       * The far side of the Moon is one of the three places a child is sent to find, and
+       * it is 120 degrees round from an arrival that is deliberately on the sunlit side,
+       * which put it in full shadow: the marker glowed there beautifully and the crater it
+       * was marking could not be seen at all. Raising the scene's hemisphere fill would
+       * have done it too, but that also lifts Earth's night side, and the city lights are
+       * only legible because it is dark.
+       *
+       * 0.055 is a twentieth of the map, against a Sun at 2.7 — invisible on the lit side,
+       * and the difference between black and faint relief on the other.
+       */
       emissiveMap: options.map,
       emissive: new THREE.Color(0xffffff),
       emissiveIntensity: 0.055,
     }),
   );
 
-  const ringMesh = createSaturnRing(
-    options.ringTexture,
-    SATURN_RADIUS * SATURN_RING_INNER_RATIO,
-    SATURN_RADIUS * SATURN_RING_OUTER_RATIO,
-  );
+  // The sphere's parent: the axial-tilt container when there is one, else the anchor.
+  const axis = new THREE.Group();
+  axis.rotation.z = world.axialTilt ?? 0;
+  axis.add(mesh);
 
-  const hitTargets = createSaturnHitTargets();
-  axis.add(mesh, ringMesh, hitTargets.rings);
-
-  // The selection ring takes in the whole ring system; its two hit targets follow the
-  // planet and the flat rings rather than filling that outline with an invisible ball.
-  // Was 2.4, lowered with the others for the same reason — and Saturn needs it least, since
-  // this is a multiple of the *outer ring* rather than of the body.
-  const selectionScale = SATURN_RADIUS * SATURN_RING_OUTER_RATIO * 1.7;
+  let ringMesh: THREE.Mesh | null = null;
+  let hitMeshes: THREE.Mesh[];
+  let selectionScale: number;
+  if (world.rings && options.ringMap) {
+    ringMesh = createRingMesh(
+      options.ringMap,
+      world.radius * world.rings.inner,
+      world.radius * world.rings.outer,
+    );
+    const targets = createRingedHitTargets(id, world.radius, world.rings.outer);
+    axis.add(ringMesh, targets.rings);
+    anchor.add(targets.planet);
+    hitMeshes = [targets.planet, targets.rings];
+    // The selection ring takes in the whole ring system. Was 2.4, lowered with the others
+    // for the same reason — and a ringed world needs it least, since this is a multiple of
+    // the *outer ring* rather than of the body.
+    selectionScale = worldViewRadius(world) * 1.7;
+  } else {
+    // Floored, because a small body far from the camera is otherwise a pixel-hunt.
+    const hit = createHitMesh(Math.max(0.72, world.radius * 2.6));
+    hit.userData.bodyId = id;
+    anchor.add(hit);
+    hitMeshes = [hit];
+    /*
+     * Was 6.4. The ring marked a *selection* then — a state a child had just put the game
+     * into by tapping, held for as long as it took them to find the Fly button, and worth
+     * shouting about. There is no selection any more: it marks the world the map is
+     * suggesting, so it is on the whole time the child is at the map, and at 6.4 radii it
+     * dominated the shot and clipped off the edge of a portrait phone whenever the Moon was
+     * out at the side of its orbit — which the opening framing puts it at routinely.
+     * 4.2 still reads as a ring around a small body without becoming the subject.
+     */
+    selectionScale = world.radius * 4.2;
+  }
   const selectionRing = createSelectionRing(options.selectionTexture, selectionScale);
 
-  anchor.add(axis, selectionRing, hitTargets.planet);
+  anchor.add(axis, selectionRing);
   orbit.add(anchor);
   tilt.add(orbit);
-  return {
-    tilt,
-    orbit,
-    anchor,
-    axis,
-    mesh,
-    ringMesh,
-    selectionRing,
-    hit: hitTargets.planet,
-    ringHit: hitTargets.rings,
-    selectionScale,
-  };
+  return { id, world, tilt, orbit, anchor, mesh, ringMesh, selectionRing, selectionScale, hitMeshes };
+}
+
+const SURFACE_FALLBACKS: Record<SurfaceFallback, (width: number) => THREE.Texture> = {
+  moon: makeMoonTexture,
+  mars: makeMarsTexture,
+  saturn: makeSaturnTexture,
+};
+
+async function resolveWorldMaps(
+  world: WorldGeometry,
+  textureSize: number,
+): Promise<{ map: THREE.Texture; ringMap: THREE.Texture | null }> {
+  const surface = world.surface!;
+  const [map, ringMap] = await Promise.all([
+    resolveTexture({
+      file: surface.file,
+      fallback: () => SURFACE_FALLBACKS[surface.fallback](textureSize),
+      anisotropy: 8,
+    }),
+    world.rings
+      ? resolveTexture({
+          file: world.rings.file,
+          fallback: () => makeSaturnRingTexture(),
+          fallbackLabel: 'generated rings',
+          anisotropy: 8,
+        })
+      : Promise.resolve(null),
+  ]);
+  return { map, ringMap };
 }
 
 export async function createWorld(quality: QualitySettings): Promise<World> {
@@ -543,44 +519,22 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   // medium is 29 segments around, which draws a visibly faceted, polygonal limb against
   // the star field. They are destinations, so they get the same budget Earth does — a
   // sphere is a rounding error next to the bloom pass either way.
-  const moonSegments: [number, number] = [segments[0], segments[1]];
+  const worldSegments: [number, number] = [segments[0], segments[1]];
 
   // Earth's colour and roughness are resolved together: the generated pair are cut from
   // one noise field, so mixing a real photo with a generated roughness map would put the
   // ocean sheen on the wrong side of every coastline. See resolveEarthMaps.
-  const [earthMaps, earthNightMap, moonMap, marsMap, saturnMap, saturnRingMap, sunMap] =
-    await Promise.all([
-      resolveEarthMaps(quality.textureSize),
-      // Optional, and there is no sensible way to invent one: absent simply means the night
-      // side stays dark, which is what it did before the map existed.
-      resolveOptionalTexture({ file: 'earth-night.jpg', anisotropy: 8 }),
-      resolveTexture({
-        file: 'moon.jpg',
-        fallback: () => makeMoonTexture(quality.textureSize),
-        anisotropy: 8,
-      }),
-      resolveTexture({
-        file: 'mars.jpg',
-        fallback: () => makeMarsTexture(quality.textureSize),
-        anisotropy: 8,
-      }),
-      resolveTexture({
-        file: 'saturn.jpg',
-        fallback: () => makeSaturnTexture(quality.textureSize),
-        anisotropy: 8,
-      }),
-      // A PNG, not a JPG: the rings need alpha, the one exception to the "use .jpg" rule.
-      resolveTexture({
-        file: 'saturn-rings.png',
-        fallback: () => makeSaturnRingTexture(),
-        fallbackLabel: 'generated rings',
-        anisotropy: 8,
-      }),
-      resolveTexture({
-        file: 'sun.jpg',
-        fallback: () => makeSunTexture(Math.min(512, quality.textureSize)),
-      }),
-    ]);
+  const [earthMaps, earthNightMap, sunMap, orbitingMaps] = await Promise.all([
+    resolveEarthMaps(quality.textureSize),
+    // Optional, and there is no sensible way to invent one: absent simply means the night
+    // side stays dark, which is what it did before the map existed.
+    resolveOptionalTexture({ file: 'earth-night.jpg', anisotropy: 8 }),
+    resolveTexture({
+      file: 'sun.jpg',
+      fallback: () => makeSunTexture(Math.min(512, quality.textureSize)),
+    }),
+    Promise.all(ORBITING_WORLDS.map((world) => resolveWorldMaps(world, quality.textureSize))),
+  ]);
 
   const ringTexture = makeRingTexture();
   const glowTexture = makeGlowTexture();
@@ -638,52 +592,32 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
    * places its markers by setting the surface's rotation *about Y*, and reads the camera's
    * bearing in the surface's parent space to work out what to set it to. Both assume the
    * only turn between those two spaces is that one. A z-tilt on the mesh sits inside the
-   * y-rotation and quietly moves every marker off its coordinates. The Moon and Mars carry
-   * their tilt on a container for the same reason; this makes Earth match them.
+   * y-rotation and quietly moves every marker off its coordinates. The orbiting worlds
+   * carry their tilt on a container for the same reason; this makes Earth match them.
    */
   const earthAxis = new THREE.Group();
-  earthAxis.rotation.z = 0.41; // axial tilt, purely for looks
+  earthAxis.rotation.z = worldGeometry('earth').axialTilt ?? 0;
   earthAxis.add(earthMesh);
   const atmosphere = createAtmosphere(EARTH_RADIUS, segments);
   const earthRing = createSelectionRing(ringTexture, EARTH_RADIUS * 3.1);
   const earthHit = createHitMesh(EARTH_RADIUS * 1.4);
+  earthHit.userData.bodyId = 'earth';
   earthAnchor.add(earthAxis, atmosphere, earthRing, earthHit);
   group.add(earthAnchor);
 
-  /* --- Moon and Mars ------------------------------------------------------- */
+  /* --- Every orbiting world, from the catalogue ------------------------------ */
 
-  const moon = createOrbitingBody({
-    id: 'moon',
-    radius: MOON_RADIUS,
-    orbitRadius: MOON_ORBIT_RADIUS,
-    orbitTilt: MOON_ORBIT_TILT,
-    startAngle: MOON_START_ANGLE,
-    map: moonMap,
-    roughness: 0.94,
-    segments: moonSegments,
-    ringTexture,
+  const orbiting = new Map<BodyId, OrbitingBody>();
+  ORBITING_WORLDS.forEach((world, index) => {
+    const body = createOrbitingBody(world, {
+      map: orbitingMaps[index]!.map,
+      ringMap: orbitingMaps[index]!.ringMap,
+      selectionTexture: ringTexture,
+      segments: worldSegments,
+    });
+    orbiting.set(body.id, body);
+    group.add(body.tilt);
   });
-
-  const mars = createOrbitingBody({
-    id: 'mars',
-    radius: MARS_RADIUS,
-    orbitRadius: MARS_ORBIT_RADIUS,
-    orbitTilt: MARS_ORBIT_TILT,
-    startAngle: MARS_START_ANGLE,
-    map: marsMap,
-    roughness: 0.88,
-    segments: moonSegments,
-    ringTexture,
-  });
-
-  const saturn = createSaturn({
-    map: saturnMap,
-    ringTexture: saturnRingMap,
-    selectionTexture: ringTexture,
-    segments: moonSegments,
-  });
-
-  group.add(moon.tilt, mars.tilt, saturn.tilt);
 
   /* --- Assembly ----------------------------------------------------------- */
 
@@ -694,95 +628,51 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
    */
   const holds: Partial<Record<BodyId, number>> = {};
 
-  const bodies: Record<BodyId, CelestialBody> = {
-    earth: {
-      id: 'earth',
-      label: 'Earth',
-      radius: EARTH_RADIUS,
-      anchor: earthAnchor,
-      surface: earthMesh,
-      hitMesh: earthHit,
-      // Earth sits at the origin, so its own rotation is the whole of its turn.
+  function holdControls(id: BodyId, orientation: () => number) {
+    return {
       holdSurface: () => {
-        holds.earth = earthMesh.rotation.y;
+        holds[id] = orientation();
       },
       releaseSurface: () => {
-        delete holds.earth;
+        delete holds[id];
       },
       turnSurface: (delta: number) => {
-        const held = holds.earth;
-        if (held !== undefined) holds.earth = held + delta;
+        const held = holds[id];
+        if (held !== undefined) holds[id] = held + delta;
       },
-      getWorldPosition: (target) => earthAnchor.getWorldPosition(target),
-    },
-    moon: {
-      id: 'moon',
-      label: 'The Moon',
-      radius: MOON_RADIUS,
-      anchor: moon.anchor,
-      surface: moon.mesh,
-      hitMesh: moon.hit,
-      // Local plus orbit, which is the Moon's orientation against the stars. Holding that
+    };
+  }
+
+  const bodies = {} as Record<BodyId, CelestialBody>;
+  bodies.earth = {
+    id: 'earth',
+    label: worldGeometry('earth').label,
+    radius: EARTH_RADIUS,
+    anchor: earthAnchor,
+    surface: earthMesh,
+    hitMesh: earthHit,
+    // Earth sits at the origin, so its own rotation is the whole of its turn.
+    ...holdControls('earth', () => earthMesh.rotation.y),
+    getWorldPosition: (target) => earthAnchor.getWorldPosition(target),
+  };
+  for (const body of orbiting.values()) {
+    const view = worldViewRadius(body.world);
+    bodies[body.id] = {
+      id: body.id,
+      label: body.world.label,
+      radius: body.world.radius,
+      // A ringed world's shot has to fit the rings, not the sphere.
+      ...(view > body.world.radius ? { viewRadius: view } : {}),
+      anchor: body.anchor,
+      surface: body.mesh,
+      hitMesh: body.hitMeshes[0]!,
+      // Local plus orbit, which is the body's orientation against the stars. Holding that
       // is what stops the surface moving under a finger: the camera orbits in world space
       // and follows the body along, so a world-fixed surface is a still one to explore.
-      holdSurface: () => {
-        holds.moon = moon.mesh.rotation.y + moon.spin.rotation.y;
-      },
-      releaseSurface: () => {
-        delete holds.moon;
-      },
-      turnSurface: (delta: number) => {
-        const held = holds.moon;
-        if (held !== undefined) holds.moon = held + delta;
-      },
-      getWorldPosition: (target) => moon.anchor.getWorldPosition(target),
-    },
-    mars: {
-      id: 'mars',
-      label: 'Mars',
-      radius: MARS_RADIUS,
-      anchor: mars.anchor,
-      surface: mars.mesh,
-      hitMesh: mars.hit,
-      holdSurface: () => {
-        holds.mars = mars.mesh.rotation.y + mars.spin.rotation.y;
-      },
-      releaseSurface: () => {
-        delete holds.mars;
-      },
-      turnSurface: (delta: number) => {
-        const held = holds.mars;
-        if (held !== undefined) holds.mars = held + delta;
-      },
-      getWorldPosition: (target) => mars.anchor.getWorldPosition(target),
-    },
-    saturn: {
-      id: 'saturn',
-      label: 'Saturn',
-      radius: SATURN_RADIUS,
-      // The rings reach out to 2.3 radii, so the shot has to fit that, not the sphere.
-      viewRadius: SATURN_RADIUS * SATURN_RING_OUTER_RATIO,
-      anchor: saturn.anchor,
-      surface: saturn.mesh,
-      hitMesh: saturn.hit,
-      // Local axial spin plus the orbit, its orientation against the stars — the same sum
-      // the Moon and Mars hold, and the same reason: a world-fixed surface is a still one
-      // to explore while the body itself goes on travelling.
-      holdSurface: () => {
-        holds.saturn = saturn.mesh.rotation.y + saturn.orbit.rotation.y;
-      },
-      releaseSurface: () => {
-        delete holds.saturn;
-      },
-      turnSurface: (delta: number) => {
-        const held = holds.saturn;
-        if (held !== undefined) holds.saturn = held + delta;
-      },
-      getWorldPosition: (target) => saturn.anchor.getWorldPosition(target),
-    },
-  };
-
-  earthHit.userData.bodyId = 'earth';
+      ...holdControls(body.id, () => body.mesh.rotation.y + body.orbit.rotation.y),
+      getWorldPosition: (target) => body.anchor.getWorldPosition(target),
+    };
+  }
 
   interface WorldRegistration {
     root: THREE.Object3D;
@@ -794,20 +684,24 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   /*
    * Extending a body used to require keeping independent roots, hit meshes and selection
    * rings in step. A registration keeps the visual, input and reveal ownership together.
-   * Construction can still be explicit where physics differs: Earth has paired maps, the
-   * Moon is inherited tidal lock, and Saturn has a ring-plane hit target.
+   * Earth is the one hand-built body (paired maps, night lights, atmosphere, the origin);
+   * every orbiting world comes from the catalogue through one builder.
    */
-  const registrations: Record<BodyId, WorldRegistration> = {
-    earth: { root: earthAnchor, hitMeshes: [earthHit], selectionRing: earthRing, selectionScale: EARTH_RADIUS * 3.1 },
-    moon: { root: moon.tilt, hitMeshes: [moon.hit], selectionRing: moon.ring, selectionScale: moon.ringScale },
-    mars: { root: mars.tilt, hitMeshes: [mars.hit], selectionRing: mars.ring, selectionScale: mars.ringScale },
-    saturn: {
-      root: saturn.tilt,
-      hitMeshes: [saturn.hit, saturn.ringHit],
-      selectionRing: saturn.selectionRing,
-      selectionScale: saturn.selectionScale,
-    },
+  const registrations = {} as Record<BodyId, WorldRegistration>;
+  registrations.earth = {
+    root: earthAnchor,
+    hitMeshes: [earthHit],
+    selectionRing: earthRing,
+    selectionScale: EARTH_RADIUS * 3.1,
   };
+  for (const body of orbiting.values()) {
+    registrations[body.id] = {
+      root: body.tilt,
+      hitMeshes: body.hitMeshes,
+      selectionRing: body.selectionRing,
+      selectionScale: body.selectionScale,
+    };
+  }
 
   let orbitSpeedScale = 1;
   // Paired with their resting scale, so the selection pulse is one loop for every body.
@@ -967,37 +861,30 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       if (earthHold === undefined) earthMesh.rotation.y += EARTH_SPIN * dt;
       else earthMesh.rotation.y = earthHold;
 
-      moon.spin.rotation.y += MOON_ORBIT_SPEED * orbitSpeedScale * dt;
-      const moonHold = holds.moon;
-      /*
-       * Tidally locked: the same face towards Earth, the way the real Moon does. The game
-       * tells a child exactly that — it is why the far side went unseen until a spacecraft
-       * flew round the back — so it had better be what the Moon does.
-       *
-       * A *constant* local rotation is what locks it, because the mesh already inherits
-       * the orbit from the spin group above it. This used to subtract that inheritance
-       * back out, which is the opposite of locking: it left the Moon near enough fixed
-       * against the stars, turning a full revolution against Earth every two minutes. The
-       * comment here claimed tidal locking throughout; the maths never did it.
-       *
-       * Pi puts longitude zero, the centre of the near side, towards Earth.
-       */
-      moon.mesh.rotation.y =
-        moonHold === undefined ? Math.PI : moonHold - moon.spin.rotation.y;
-
-      mars.spin.rotation.y += MARS_ORBIT_SPEED * orbitSpeedScale * dt;
-      const marsHold = holds.mars;
-      // Mars is tidally locked to nothing here, so it simply turns on its own axis.
-      mars.mesh.rotation.y =
-        marsHold === undefined ? MARS_SPIN * elapsed : marsHold - mars.spin.rotation.y;
-
-      saturn.orbit.rotation.y += SATURN_ORBIT_SPEED * orbitSpeedScale * dt;
-      const saturnHold = holds.saturn;
-      // Like Mars: it turns on its own axis, and a held surface subtracts the orbit back out
-      // so it stays put in the world. The rings ride the axis group, not the sphere, so they
-      // do not turn with the surface texture whether it is held or spinning.
-      saturn.mesh.rotation.y =
-        saturnHold === undefined ? SATURN_SPIN * elapsed : saturnHold - saturn.orbit.rotation.y;
+      for (const body of orbiting.values()) {
+        body.orbit.rotation.y += body.world.orbit!.speed * orbitSpeedScale * dt;
+        const hold = holds[body.id];
+        if (hold !== undefined) {
+          body.mesh.rotation.y = hold - body.orbit.rotation.y;
+        } else if (body.world.spin === 0) {
+          /*
+           * Tidally locked: the same face towards Earth, the way the real Moon does. The
+           * game tells a child exactly that — it is why the far side went unseen until a
+           * spacecraft flew round the back — so it had better be what the Moon does.
+           *
+           * A *constant* local rotation is what locks it, because the mesh already
+           * inherits the orbit from the group above it. This used to subtract that
+           * inheritance back out, which is the opposite of locking: it left the Moon near
+           * enough fixed against the stars, turning a full revolution against Earth every
+           * two minutes. Pi puts longitude zero, the centre of the near side, towards Earth.
+           */
+          body.mesh.rotation.y = Math.PI;
+        } else {
+          // Locked to nothing: it simply turns on its own axis. Any rings ride the axis
+          // group, not the sphere, so they do not turn with the surface texture.
+          body.mesh.rotation.y = body.world.spin * elapsed;
+        }
+      }
 
       const pulse = 1 + Math.sin(elapsed * 3.2) * 0.05;
       for (const [, ring, scale] of rings) {
@@ -1010,37 +897,26 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     },
 
     dispose() {
-      const meshes = [
-        sunMesh,
-        earthMesh,
-        atmosphere,
-        earthHit,
-        moon.mesh,
-        moon.hit,
-        mars.mesh,
-        mars.hit,
-        saturn.mesh,
-        saturn.ringMesh,
-        saturn.hit,
-      ];
+      const meshes: THREE.Mesh[] = [sunMesh, earthMesh, atmosphere, earthHit];
+      for (const body of orbiting.values()) {
+        meshes.push(body.mesh, ...body.hitMeshes);
+        if (body.ringMesh) meshes.push(body.ringMesh);
+      }
       for (const mesh of meshes) {
         mesh.geometry.dispose();
         (mesh.material as THREE.Material).dispose();
       }
       coronaMaterial.dispose();
       for (const [, ring] of rings) (ring.material as THREE.SpriteMaterial).dispose();
-      const textures = [
+      const textures: (THREE.Texture | null)[] = [
         earthMaps.color,
         earthMaps.roughness,
         earthNightMap,
-        moonMap,
-        marsMap,
-        saturnMap,
-        saturnRingMap,
         sunMap,
         ringTexture,
         glowTexture,
       ];
+      for (const maps of orbitingMaps) textures.push(maps.map, maps.ringMap);
       for (const t of textures) t?.dispose();
     },
   };

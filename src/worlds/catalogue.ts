@@ -27,9 +27,26 @@ export interface WorldOrbit {
   speed: number;
 }
 
+/**
+ * Which generated map stands in when the real file is missing from public/assets. Keyed by
+ * name rather than by function so this file stays data with no Three.js import; Bodies.ts
+ * maps the name to the generator in textures.ts.
+ */
+export type SurfaceFallback = 'moon' | 'mars' | 'saturn';
+
+export interface WorldSurface {
+  /** File name inside public/assets/, e.g. "mars.jpg". */
+  file: string;
+  fallback: SurfaceFallback;
+  /** Material roughness: a dusty airless body near 1, a cloud-topped giant a little lower. */
+  roughness: number;
+}
+
 export interface WorldGeometry {
   /** Stable key. Written into saved progress, so renaming one forgets a child's visits. */
   id: string;
+  /** The scene name: "The Moon" keeps its article here; the tray strips it. */
+  label: string;
   /** Sphere radius in Earth radii. */
   radius: number;
   /** Absent for the home world, which sits at the scene centre. */
@@ -43,7 +60,17 @@ export interface WorldGeometry {
    * radius is `radius * outer`, because framing on the sphere alone would put the very thing
    * that makes it Saturn off the edge of the shot.
    */
-  rings?: { inner: number; outer: number };
+  rings?: {
+    inner: number;
+    outer: number;
+    /** A PNG, not a JPG: rings need alpha, the one exception to the "use .jpg" rule. */
+    file: string;
+  };
+  /**
+   * The surface map. Absent only for the home world, whose colour and roughness maps are
+   * resolved together (see resolveEarthMaps) and whose night map is optional.
+   */
+  surface?: WorldSurface;
 }
 
 /** Breathing room added to the outermost reach when the camera frames a set of worlds. */
@@ -51,6 +78,7 @@ export const FRAMING_MARGIN = 0.18;
 
 const earth: WorldGeometry = {
   id: 'earth',
+  label: 'Earth',
   radius: 1,
   /** Slow enough to feel calm rather than spinny. */
   spin: 0.045,
@@ -60,6 +88,7 @@ const earth: WorldGeometry = {
 
 const moon: WorldGeometry = {
   id: 'moon',
+  label: 'The Moon',
   radius: 0.27,
   orbit: { radius: 2.5, tilt: 0.11, startAngle: 0.62, speed: 0.055 },
   /*
@@ -69,6 +98,7 @@ const moon: WorldGeometry = {
    * side facing Earth.
    */
   spin: 0,
+  surface: { file: 'moon.jpg', fallback: 'moon', roughness: 0.94 },
 };
 
 /**
@@ -80,9 +110,11 @@ const moon: WorldGeometry = {
  */
 const mars: WorldGeometry = {
   id: 'mars',
+  label: 'Mars',
   radius: 0.53,
   orbit: { radius: 5.0, tilt: -0.19, startAngle: 3.4, speed: 0.03 },
   spin: 0.02,
+  surface: { file: 'mars.jpg', fallback: 'mars', roughness: 0.88 },
 };
 
 /**
@@ -108,17 +140,22 @@ const mars: WorldGeometry = {
  */
 const saturn: WorldGeometry = {
   id: 'saturn',
+  label: 'Saturn',
   radius: 1.5,
   orbit: { radius: 6.6, tilt: 0.15, startAngle: 5.5, speed: 0.018 },
   spin: 0.03,
   axialTilt: 0.47,
-  rings: { inner: 1.28, outer: 2.3 },
+  rings: { inner: 1.28, outer: 2.3, file: 'saturn-rings.png' },
+  surface: { file: 'saturn.jpg', fallback: 'saturn', roughness: 0.9 },
 };
 
 /** In the order they are earned: the home world first, then each world as it is revealed. */
 export const WORLDS: readonly WorldGeometry[] = [earth, moon, mars, saturn];
 
 export const WORLD_IDS: readonly string[] = WORLDS.map((world) => world.id);
+
+/** The worlds that orbit the scene centre: everything but home. */
+export const ORBITING_WORLDS: readonly WorldGeometry[] = WORLDS.filter((world) => world.orbit);
 
 const BY_ID = new Map(WORLDS.map((world) => [world.id, world]));
 

@@ -13,17 +13,13 @@ Read `AGENTS.md` first. The testing rules there still hold for everything below.
 Saturn (commit `2dec85d`) is the honest measure of the per-world cost. Adding it touched
 twelve files in the commit and its id is now hardwired in about thirty:
 
-- **Geometry constants** are one named export each in `src/config.ts`
-  (`SATURN_RADIUS`, `SATURN_ORBIT_RADIUS`, `SATURN_ORBIT_TILT`, `SATURN_START_ANGLE`,
-  `SATURN_SPIN`, `SATURN_ORBIT_SPEED`, `SATURN_AXIAL_TILT`, ring ratios).
-- **Framing** is three named tiers (`FRAMING_RADIUS`, `_WIDE`, `_WIDER`) chosen by two
-  named gates (`WIDE_FRAMING_VISIT`, `WIDER_FRAMING_VISIT`) in `src/main.ts`.
+- **Geometry constants** were one named export each in `src/config.ts`, and **framing**
+  was three named tiers chosen by two named gates in `src/main.ts`. (Since fixed: see step
+  5a below; the names survive as re-exports.)
 - **Reveal** is `revealAfterVisiting` on each destination, which is already data. Good.
-- **Meshes** in `src/scene/Bodies.ts` are half generic: `createOrbitingBody` builds the
-  Moon and Mars from options, `registrations` and `BODY_IDS` drive selection, reveal and
-  hit tests. Earth (home, at the origin, night map, atmosphere) and Saturn (axial tilt,
-  ring mesh, ring hit target) are hand-built, and the `bodies` record is written out
-  body by body with four identical hold/release/turn closures.
+- **Meshes** in `src/scene/Bodies.ts` were half generic: `createOrbitingBody` built the
+  Moon and Mars from options, while Earth and Saturn were hand-built and the `bodies`
+  record was written out body by body. (Since fixed: see step 5b below.)
 - **Textures** in `src/scene/textures.ts` have a generated fallback per world
   (`makeSaturnTexture`), used only when the real map is missing from `public/assets`.
 - **Copy and places** in `DESTINATIONS` are already data: six real places with real
@@ -138,13 +134,19 @@ planet, because the first new planet is the moment it pays for itself.
 4. **Flight polish**: the parked ship half off the right edge at arrival; the tested
    free-flight steering as the candidate. Medium difficulty; a stronger model for the
    design of the steering, a weaker one for the parking fix.
-5. **Catalogue refactor**, done in three commits so each is green on its own:
-   a. `src/worlds/catalogue.ts` with the four existing worlds and derived framing; `config.ts`
-      re-exports the old constant names from it; `main.ts` uses the derived framing. Tests
-      pin the derived values against the old ones.
-   b. `Bodies.ts` builds every orbiting world, Saturn included, from one builder in one loop.
-   c. Tray, stickers, explorer world list and narration test iterate the catalogue.
-   Stronger model for (a) and (b); (c) is mechanical.
+5. **Catalogue refactor**, in three commits so each is green on its own:
+   a. **Done, on `main`.** `src/worlds/catalogue.ts` holds the four existing worlds and
+      derives the framing; `config.ts` re-exports the old constant names; `main.ts` frames
+      whatever set of worlds is revealed. Tests pin the derived values to the old ones.
+   b. **Done, on `main`.** `Bodies.ts` builds every orbiting world, Saturn included, from one
+      builder (`createOrbitingBody`) driven by the catalogue: textures, bodies, registrations,
+      the update loop and disposal are all loops. Earth stays hand-built (origin, paired maps,
+      night lights, atmosphere). Adding a world to the scene is now one catalogue entry plus
+      its id in `BODY_IDS`.
+   c. **Open, mechanical.** Move the words (`DESTINATIONS`) into the catalogue entry, make the
+      tray, stickers list, `shipDecals`, the explorer's `worlds.ts` and the narration
+      completeness test iterate the catalogue, and give `SURFACE_FALLBACKS` a generic
+      'banded' and 'icy' generator so a new world needs no texture code either.
 6. **Jupiter**, as the pilot new world. It is the one children ask for by name, its map
    is free (Solar System Scope, CC BY 4.0), and its Great Red Spot, bands and four big
    moons give six places without a surface. Radius compressed to about 1.7 (Saturn is 1.5
@@ -189,16 +191,19 @@ Every step is a file or a command. A world is done when all of them are.
 > temporary worktree with its own `npm ci` for "before". Stop for the owner's approval.
 > Do not judge the look yourself.
 
-### Catalogue refactor, step (a) (stronger model)
+### Catalogue refactor, step (c) (any capable model)
 
-> Space Ninja, branch from `main`. Read docs/worlds-roadmap.md. Create
-> `src/worlds/catalogue.ts` holding the four existing worlds as `WorldSpec` entries and a
-> `framingRadiusFor(revealedIds)` function. Make `src/config.ts` re-export every existing
-> geometry constant from the catalogue so no caller changes in this commit, and make
-> `src/main.ts` use `framingRadiusFor` in place of the three tiers. Add
-> `src/worlds/catalogue.test.ts` pinning the derived framing values to 2.95, 5.71 and 10.23
-> and the reveal order to earth, moon, mars, saturn. Typecheck and unit tests must pass;
-> run `e2e/home.pw.ts --project=tablet` once. Commit and push to main.
+> Space Ninja, branch from `main`. Read docs/worlds-roadmap.md, then `src/worlds/catalogue.ts`
+> and `src/scene/Bodies.ts` to see the shape steps (a) and (b) established. Finish the
+> catalogue: (1) add a `words` field to `WorldGeometry` carrying what `DestinationConfig`
+> holds today (emoji, fact, spin lesson, revealAfterVisiting, mission) and build
+> `DESTINATIONS` in config.ts from the catalogue so the entries are written once; (2) make
+> `src/state/progress.ts` stickers, `src/scene/shipDecals.ts` slots, `src/explorer/worlds.ts`
+> and `src/audio/narration-script.test.ts` iterate the catalogue instead of naming ids;
+> (3) add 'banded' and 'icy' generators to `SURFACE_FALLBACKS` in Bodies.ts, parameterised by
+> colour, using `makeSaturnTexture` and `makeMoonTexture` as models. Every existing test must
+> pass unchanged in meaning. Run `e2e/visit.pw.ts --project=tablet` once. Commit and push to
+> main.
 
 ### Jupiter (after the refactor, any capable model)
 
