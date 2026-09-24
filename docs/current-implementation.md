@@ -52,19 +52,17 @@ distances and travel time are illustrative navigation staging, not scientific me
 | Movement | `src/flight/freeFlightModel.ts` remains the tested, time-based model; the departure Earth supplies collision clearance without destination braking. |
 | Scene and content | Existing Stage, world, ship, trail, one-place CollectMission, Tycho config, photograph, narrator and progress store. |
 
-The default route is the outing. `?classic` and `?freeflight` retain the earlier routes for
-comparison. `vitest.config.ts` includes only canonical `src` and `sw` tests, avoiding nested
-worktrees. Playwright runs every browser file: outing, outing boundaries, lifecycle and
-offline against the default route, and the guided adventure and accessibility files against
-`?classic`.
+**Update, 23 September, later:** the owner reviewed the outing's screens and chose the guided
+adventure as the product: the original adventure with UI and flight polish, eventually more
+worlds. The adventure is the default route again. The outing remains at `?outing` as a steering
+experiment and `?freeflight` is unchanged. `vitest.config.ts` includes only canonical `src` and
+`sw` tests, avoiding nested worktrees. Playwright runs every browser file.
 
 The four interaction-boundary defects in `review-sol-outing-2026-09-23.md` are fixed. A photo
 is modal and holds a stopped ship. One Escape closes only an open photo. Reduced-motion help
 cuts to the Moon hover. A service-worker update reloads only an untouched opening view.
 
-Known gap: the outing has no grown-ups panel, so sound, progress reset and the manual-flight
-entry are reachable only through `?classic`. Decide after the tablet observation whether the
-outing needs them.
+The outing has no grown-ups panel; that matters only if it is ever promoted.
 
 ## Verification and next gate
 

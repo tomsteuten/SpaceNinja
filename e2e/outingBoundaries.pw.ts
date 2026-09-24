@@ -8,7 +8,7 @@ test('a memory holds the ship, reduced motion cuts to the Moon, and one Escape l
   await page.addInitScript(() => {
     localStorage.setItem('spaceninja.progress.v1', JSON.stringify({ discoveries: ['moon-tycho'], visited: ['moon'], stickers: [] }));
   });
-  await page.goto('/');
+  await page.goto('/?outing');
   await expect(page.locator('#boot')).toBeHidden();
   const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const memory = page.getByRole('button', { name: /Memory/ });

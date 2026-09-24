@@ -1,18 +1,23 @@
 # Space Ninja
 
-A gentle 3D space explorer for young children (roughly ages 5–8). The current local default
-is an **Earth-to-Moon outing** for tablet playtesting. Hold a finger on space to fly the visible
-ship; release or tap **Stop** to brake. **Help me to the Moon** is optional. When the ship hovers
-beside the Moon, tap **Explore**, then tap the gold mark on the Moon to find the real Tycho
-crater. Its photograph and matching recorded explanation appear, and the discovery is
-remembered. **Fly Home** returns to the starting view. The Memory button can reopen the photo.
+A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
+far: Earth, the Moon, Mars, and Saturn.
 
-This is a control and learning hypothesis for observation with children, not a released
-four-world game. The earlier guided adventure remains at `?classic`, and its manual-flight
-experiment remains at `?freeflight`. Historical variants and pre-reconstruction snapshots are
-preserved; see `docs/current-implementation.md`.
+Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
+there. One tap, one journey: ride with the spaceship along its safe route and arrive close
+enough to see the surface.
+Three real places are marked on each world — the first footprints on the Moon, the volcano on
+Mars, the Sahara from orbit — and finding one tells you about it and puts it in the discovery
+journal. One of the three is always round the back, so getting it means learning to drag. Or
+just look around and fly home.
 
-The project has no backend or accounts. The media is bundled with the local static build.
+Each world holds **six** real places and shows three of them, picked fresh each visit and
+weighted towards the ones you have not found, so going back to the Moon is not the same Moon.
+Having been there reveals Mars, and visiting Mars reveals Saturn. Find every place on all four
+worlds and the whole game is won — with a celebration to say so.
+
+It installs to a home screen and works offline once loaded, with nothing ever leaving the
+device.
 
 Built with Vite, TypeScript and Three.js. No backend or accounts; the checked textures,
 photographs and narration are bundled into the static offline build.
@@ -29,27 +34,31 @@ npm install
 npm run dev
 ```
 
-Then open <http://localhost:5173>. To play on a tablet on the same Wi-Fi, run `npm run host`
-on this computer and open `http://<this-computer's-LAN-IP>:5173` in the tablet browser. The
-terminal shows the network address; use `ipconfig` if needed. Keep the computer awake and
-the server running during the playtest. This local development route does not install its
-offline service worker.
+Then open <http://localhost:5173>.
 
-The previous guided adventure is at <http://localhost:5173/?classic>; its manual-flight
-experiment is at <http://localhost:5173/?freeflight>. The deployed revision has not been
-identified during this reconstruction, and no deployment has been made.
+The optional manual-flight experiment is available from **Fly it yourself** in the grown-ups
+panel, with **Shift+F** on a keyboard, or directly at
+<http://localhost:5173/?freeflight>. The deployed route is
+<https://tomsteuten.github.io/SpaceNinja/?freeflight>. It reuses the real solar system with
+one-finger steering, assisted braking, collision protection and optional autopilot. **Back to
+adventure** returns to the normal game. The experiment is deliberately easy to test without
+assuming it has already earned a place in the main child loop.
+
+A second steering experiment, the Earth-to-Moon outing, is at
+<http://localhost:5173/?outing>: fly a visible ship to the Moon, find Tycho, see its photo and
+fly home. Its contract and ownership are in `docs/current-implementation.md`.
 
 ### On a phone or tablet on the same WiFi
 
-Bind the dev server to the local network:
+The dev server already binds to every interface, so the LAN address works as-is:
 
 ```bash
-npm run host
+npm run dev
 ```
 
 Vite prints the address next to `Network:` when it starts — something like
-`http://192.168.1.x:5173`. Type that into the browser on the device. Keep the computer
-and server running while the tablet plays.
+`http://192.168.1.x:5173`. Type that into the browser on the device. Nothing else needs
+configuring.
 
 If it does not connect, it is almost always a firewall prompting (or silently blocking)
 Node on a private network — allow it and reload. On Windows, ignore any `192.168.56.x`
@@ -82,9 +91,6 @@ to miss by eye. Narration generation creates the offline MP3 cue pack from
 account or API key.
 
 ---
-
-The remaining architecture and design notes describe the earlier guided adventure at
-`?classic`. The current outing contract and ownership are in `docs/current-implementation.md`.
 
 ## Artwork
 
@@ -477,13 +483,16 @@ supersede the earlier all-or-none narration and text-only journal notes.
 ## Browser regression checks
 
 `npm run test:e2e` builds an isolated `dist-playtest/` and serves it on port 4180.
-Run `npx playwright install chromium` once first. The suite runs every `e2e/*.pw.ts` file on
-phone, tablet and short-landscape viewports with real pointer input. The default route's
-files cover the Earth-to-Moon outing: movement, stop, destination help, Tycho's marker and
-photograph, return, saved memory, modal and Escape boundaries, reduced motion, history
-suspension and offline/update behaviour. The guided adventure's files run against `?classic`.
-Screenshots are attached to `playwright-report/`; failures retain traces in `test-results/`.
-This suite is a layout/interaction gate, not a GPU benchmark.
+Run `npx playwright install chromium` once first (CI uses `--with-deps`). The suite runs every
+`e2e/*.pw.ts` file. For the adventure it uses
+phone, touch-tablet and short-landscape viewports on the existing low graphics tier; it checks real pointer-driven flights,
+three-slot hunts, target clearance above the dock, hidden-target dragging, journal photo
+and narration controls, repeat visits, outer-world arrivals, and Earth resizing. Screenshots
+are attached to `playwright-report/`; failures retain traces in `test-results/`. Larger
+viewports use half-resolution rasterisation while preserving CSS dimensions, keeping
+software rendering affordable. The `?outing` files cover steering, stop, help, Tycho, return,
+modal and Escape boundaries and reduced motion. Offline and history-suspension checks run on
+the adventure and both experiments. This suite is a layout/interaction gate, not a GPU benchmark.
 
 The test build alone enables `VITE_PLAYTEST=1`, a read-only scene snapshot for locating
 canvas targets and checking renderer activity. It cannot launch, collect or alter progress.

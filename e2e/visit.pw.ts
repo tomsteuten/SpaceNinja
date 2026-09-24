@@ -34,7 +34,7 @@ async function home(page: Page) {
   await expect(page.getByRole('button',{name:'Fly to Moon',exact:true})).toBeVisible();
 }
 test('rendered discoveries, drag, media, return, repeat and outer-world arrivals', async ({page}, info) => {
-  await page.goto('/?classic');
+  await page.goto('/');
   await page.getByRole('button',{name:'Start playing',exact:true}).click();
   await expect(page.locator('#boot')).toBeHidden();
   await launch(page,'Moon');

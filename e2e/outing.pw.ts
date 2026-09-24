@@ -2,7 +2,7 @@ import { test, expect, attachShot, expectRendering } from './fixtures';
 
 test('Earth to Moon outing: pilot, stop, help, Tycho, memory and return', async ({ page }, info) => {
   test.setTimeout(480_000); // Software WebGL can stretch the full journey on Windows.
-  await page.goto('/');
+  await page.goto('/?outing');
   await expect(page.locator('#boot')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Help me to the Moon' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().shipVisible)).toBe(true);

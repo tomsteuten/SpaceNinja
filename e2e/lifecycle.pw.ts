@@ -1,10 +1,10 @@
 import { test, expect, frame, expectRendering, attachShot } from './fixtures';
 
-const SHOT: Record<string, string> = { '/': 'outing-restored', '/?classic': 'adventure-restored', '/?freeflight': 'free-flight-restored' };
+const SHOT: Record<string, string> = { '/': 'adventure-restored', '/?outing': 'outing-restored', '/?freeflight': 'free-flight-restored' };
 
-for (const route of ['/', '/?classic', '/?freeflight']) {
+for (const route of ['/', '/?outing', '/?freeflight']) {
   test(`history suspension preserves and resumes ${route}`, async ({ page }, info) => {
-    const steers = route !== '/?classic';
+    const steers = route !== '/';
     await page.goto(route);
     if (!steers) await page.getByRole('button', { name: 'Start playing', exact: true }).click();
     await expect(page.locator('#boot')).toBeHidden();

@@ -70,9 +70,9 @@ async function main() {
     return;
   }
 
-  // The Earth-to-Moon outing is the current playable experience. The previous guided
-  // adventure remains available for comparison without running two owners at once.
-  if (!/[?&]classic\b/.test(window.location.search)) {
+  // The guided adventure is the game. The Earth-to-Moon outing stays reachable at
+  // `?outing` as a steering experiment, without running two owners at once.
+  if (/[?&]outing\b/.test(window.location.search)) {
     const { startOuting } = await import('./experience/outing');
     await startOuting(canvas, uiRoot);
     return;
