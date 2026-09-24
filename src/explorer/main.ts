@@ -199,7 +199,7 @@ export async function startExplorer(canvas: HTMLCanvasElement, root: HTMLElement
       imagery:
         'Imagery: NASA mission photographs, each credited on its postcard. The Moon uses ' +
         'NASA LRO colour and LOLA relief maps; Earth, Mars and Saturn use Solar System Scope ' +
-        'maps (CC BY 4.0) based on NASA data. The earlier adventure is still at ?classic.',
+        'maps (CC BY 4.0) based on NASA data. The guided adventure is the main game, at the site’s root.',
     },
   });
   if (/[?&](grownups|voices)\b/.test(window.location.search)) grownups.show();

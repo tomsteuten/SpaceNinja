@@ -92,7 +92,7 @@ export function createExplorerUI(
           <span class="ex-dots" aria-hidden="true">${item.places.map(() => '<i></i>').join('')}</span>
         </button>`).join('')}
       </nav>
-      <a class="ex-original" href="?classic">Original adventure</a>
+      <a class="ex-original" href="./">Guided adventure</a>
 
     </div>
     <div class="ex-coach" hidden>${svg('hand')}<span></span><small></small></div>
