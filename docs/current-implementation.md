@@ -73,6 +73,14 @@ polish, not yet started).
   and short landscape, including return from a persisted page suspension. Real-tablet viewing
   and listening, and owner approval of the Earth screen, remain outstanding.
 
+**Flight polish candidate, awaiting the owner's eye (branch `claude/beautiful-bell-k96l8x`, not
+on `main`):** the parked ship is placed in screen angles rather than world fractions, so it sits
+inside the frame and clear of the body on every viewport (it was half off the right edge on the
+tablet and entirely off screen on a portrait phone). Full-resolution before/after captures on
+phone, tablet and short landscape are in `design/flight-review-2026-09-24/`, taken with
+`scripts/capture-arrival.mjs`. visit.pw.ts passes on all three viewports. Merge to `main` only
+once the owner has approved the look.
+
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
 remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;

@@ -69,6 +69,27 @@ const UP = new THREE.Vector3(0, 1, 0);
 /** sin of half the 52-degree landscape FOV, the reference the chase offsets were tuned at. */
 const LANDSCAPE_SIN_HALF_FOV = Math.sin(THREE.MathUtils.degToRad(52) / 2);
 
+/*
+ * Where the ship parks on arrival, as fractions of the camera's half field of view. See
+ * buildPath. The reference is the tablet, where the old world-fraction parking put the ship
+ * centre at 0.85 of the half-width; 0.74 brings the whole ship inside the edge.
+ */
+/**
+ * How far beyond the body, as a fraction of the arrival distance. Was 0.35; further out the
+ * ship is smaller on screen, which is what lets it clear a tablet-sized limb and still fit
+ * inside the edge.
+ */
+const PARK_BEYOND = 0.6;
+/** Fraction of the half-width to the right. */
+const PARK_ACROSS = 0.74;
+/**
+ * Fraction of the half-height down, and the most it may grow to clear a wide body. The cap
+ * keeps the ship above the fact card on a portrait phone; at that limit the bounding box
+ * (which includes the exhaust) may touch the limb by a degree or two, the model itself not.
+ */
+const PARK_DOWN = 0.3;
+const PARK_DOWN_MAX = 0.42;
+
 export function smootherstep(t: number): number {
   const x = THREE.MathUtils.clamp(t, 0, 1);
   // Clamped on the way *out* as well as in. For an x a few ulps below 1 the polynomial
@@ -114,6 +135,8 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
   const endDirection = new THREE.Vector3();
   const lateral = new THREE.Vector3();
   const bodyPosition = new THREE.Vector3();
+  const shipBounds = new THREE.Box3();
+  const shipSize = new THREE.Vector3();
   const facing = new THREE.Vector3();
   const tailPoint = new THREE.Vector3();
 
@@ -138,10 +161,14 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
   }
 
   /** Half-angle of the tighter of the two fields of view. Portrait phones are horizontal. */
+  function halfFovs(): { vertical: number; horizontal: number } {
+    const vertical = THREE.MathUtils.degToRad(camera.fov) / 2;
+    return { vertical, horizontal: Math.atan(Math.tan(vertical) * camera.aspect) };
+  }
+
   function halfFov(): number {
-    const vFov = THREE.MathUtils.degToRad(camera.fov);
-    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
-    return Math.min(vFov, hFov) / 2;
+    const { vertical, horizontal } = halfFovs();
+    return Math.min(vertical, horizontal);
   }
 
   /**
@@ -235,25 +262,53 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     const framing = arrivalDistance(radius);
     endCamera.copy(targetPosition).addScaledVector(endDirection, framing);
 
-    // Park the ship off the destination's lower limb, so it frames next to the body
-    // rather than eclipsing it.
-    //
-    // Fractions of the *arrival distance*, not of the body's radius. Tied to the radius
-    // (the old 2.4 / 3.2 / 1.0) the ship ended up 77 degrees off the view axis once the
-    // camera moved in — entirely off the side of the screen.
-    //
-    // The depth term is slightly negative, putting the ship a little *beyond* the body
-    // rather than in front of it. The ship is a fixed size in world units, so halving the
-    // camera's distance to the destination doubles the ship on screen; parking it past
-    // the body buys back some of that, and the lateral term is wide enough to clear the
-    // limb so it is still plainly visible out there.
-    // Also read by the flight itself, which turns the ship onto this axis as it arrives.
+    /*
+     * Park the ship off the destination's lower-right limb, so it frames next to the body
+     * rather than eclipsing it — placed in *screen angles*, not world fractions.
+     *
+     * It used to sit a fixed 0.72 of the arrival distance to the side, which is 28 degrees
+     * off the view axis whatever the viewport. A tablet's half-width is 33 degrees, so the
+     * ship straddled the right edge; a portrait phone's is 17, so the ship was not on the
+     * screen at all. The parking is now chosen from the camera's own field of view: a
+     * fraction of the half-width to the right and of the half-height down, then pushed
+     * further down if that diagonal would still overlap the body's limb (a portrait phone,
+     * where the body is most of the width). Every viewport gets a ship in shot, clear of
+     * the body, and inside the frame.
+     *
+     * The depth term stays slightly negative, putting the ship a little *beyond* the body
+     * rather than in front of it. The ship is a fixed size in world units, so halving the
+     * camera's distance to the destination doubles the ship on screen; parking it past the
+     * body buys back some of that.
+     * Also read by the flight itself, which turns the ship onto this axis as it arrives.
+     */
     lateral.crossVectors(endDirection, UP).normalize();
+    const depth = framing * (1 + PARK_BEYOND);
+    const { horizontal: halfWidth, vertical: halfHeight } = halfFovs();
+    const bodyAngle = Math.asin(Math.min(1, radius / framing));
+    // The ship's own half-extent at its parking depth, plus a little air. Measured from the
+    // hull rather than written down, so a redrawn ship still parks clear and in shot. Meshes
+    // only: the exhaust sprites are sized for the burn and would make the parked ship read
+    // as half again as long as it is.
+    shipBounds.makeEmpty();
+    ship.group.updateWorldMatrix(true, true);
+    ship.group.traverse((object) => {
+      if ((object as THREE.Mesh).isMesh) shipBounds.expandByObject(object);
+    });
+    shipBounds.getSize(shipSize);
+    const shipHalfExtent = Math.max(shipSize.x, shipSize.z) / 2;
+    const shipAngle = Math.atan(shipHalfExtent / depth) + THREE.MathUtils.degToRad(1.5);
+    const clearance = bodyAngle + shipAngle;
+    // As far right as the composition wants, but never so far the nose leaves the screen.
+    const across = Math.min(halfWidth * PARK_ACROSS, halfWidth - shipAngle);
+    let down = halfHeight * PARK_DOWN;
+    if (Math.hypot(across, down) < clearance) {
+      down = Math.min(halfHeight * PARK_DOWN_MAX, Math.sqrt(Math.max(0, clearance ** 2 - across ** 2)));
+    }
     const arrival = targetPosition
       .clone()
-      .addScaledVector(endDirection, -framing * 0.35)
-      .addScaledVector(lateral, -framing * 0.72)
-      .addScaledVector(UP, -framing * 0.24);
+      .addScaledVector(endDirection, -framing * PARK_BEYOND)
+      .addScaledVector(lateral, -depth * Math.tan(across))
+      .addScaledVector(UP, -depth * Math.tan(down));
     const from = ship.group.position.clone();
 
     heading.subVectors(arrival, from);
