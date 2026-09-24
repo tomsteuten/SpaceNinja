@@ -22,6 +22,12 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   const done = page.getByRole('button', { name: 'Done with day and night' });
   await expect(done).toBeVisible();
   await expect.poll(async () => (await snapshot()).targets.length).toBe(0);
+  const frameBeforeHistory = (await snapshot()).frame;
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
+  await expect(done).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect.poll(async () => (await snapshot()).frame).toBeGreaterThan(frameBeforeHistory);
+  await expect.poll(async () => (await snapshot()).targets.length).toBe(0);
   await about.click();
   await expect(page.locator('.fact-card .fact-title')).toContainText('Day & night');
   await expect(page.locator('.fact-card p')).toBeVisible();
@@ -47,4 +53,24 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   await expect(done).toBeVisible();
   await page.getByRole('button', { name: 'Fly Home', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fly to Earth', exact: true })).toBeVisible();
+});
+
+test('the short landscape hunt counter leaves both gold places clear', async ({ page }, info) => {
+  test.skip(info.project.name !== 'short-landscape');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start playing', exact: true }).click();
+  await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
+  const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
+  await expect.poll(async () => (await snapshot()).guidedHunt).toBe(true);
+  const hud = page.locator('.mission-hud');
+  await expect(hud).toBeVisible();
+  const bounds = await hud.boundingBox();
+  expect(bounds).toBeTruthy();
+  const visible = (await snapshot()).targets.filter((target: { visible: boolean }) => target.visible);
+  expect(visible).toHaveLength(2);
+  for (const target of visible) {
+    const outside = target.x < bounds!.x - 10 || target.x > bounds!.x + bounds!.width + 10 ||
+      target.y < bounds!.y - 10 || target.y > bounds!.y + bounds!.height + 10;
+    expect(outside, 'A gold place must remain clear of the guided-hunt counter').toBe(true);
+  }
 });

@@ -393,6 +393,28 @@ body {
 .ui.is-earth.is-day-active .fact-card:not(.is-transcript-open) { display: none; }
 .ui.is-earth.is-day-active .mission-hud,
 .ui.is-earth.is-day-active .hint { visibility: hidden; }
+@media (min-width: 600px) and (orientation: landscape) {
+  /* The centered hunt counter covered the upper gold place on a short tablet. */
+  .ui.is-earth .mission-hud {
+    top: calc(var(--pad-top) + 66px);
+    left: var(--pad-left);
+    transform: none;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .ui.is-earth .mission-hud.fade-in-centred { animation: none; }
+  .ui.is-earth .slot-row { gap: 8px; }
+  .ui.is-earth .slot {
+    width: clamp(46px, 5vw, 54px);
+    height: clamp(46px, 5vw, 54px);
+  }
+  .ui.is-earth .mission-caption {
+    max-width: min(210px, calc((100vw - 340px) / 2));
+    padding: 7px 10px;
+    border-radius: 16px;
+    text-align: left;
+  }
+}
 @media (max-width: 399px) {
   .ui.is-earth .dock { gap: 6px; }
   .ui.is-earth .spin-btn { padding-inline: 9px; }

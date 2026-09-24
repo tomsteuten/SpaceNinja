@@ -1,7 +1,8 @@
 import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 const label=process.argv[2];
-if (!label) throw new Error('Provide before or after');
+if (!label) throw new Error('Provide before, after or guided');
+const url=process.env.SPACE_NINJA_CAPTURE_URL ?? 'http://127.0.0.1:4173/';
 const output='design/earth-review-2026-09-24';
 await mkdir(output,{recursive:true});
 const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
@@ -10,12 +11,13 @@ try {
     const context=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:true,reducedMotion:'reduce',serviceWorkers:'block'});
     const page=await context.newPage(); page.setDefaultTimeout(120000);
     await page.addInitScript(()=>{localStorage.setItem('spaceninja.grownups.v1','yes');Object.defineProperty(navigator,'hardwareConcurrency',{get:()=>4});Object.defineProperty(navigator,'deviceMemory',{get:()=>2});Math.random=()=>0.1});
-    await page.goto('http://127.0.0.1:4183/');
+    await page.goto(url);
     const start=page.getByRole('button',{name:'Start playing',exact:true});
     if(await start.isVisible()) await start.click();
     await page.getByRole('dialog',{name:'Grown-ups settings'}).waitFor({state:'hidden'});
     await page.getByRole('button',{name:'Fly to Earth',exact:true}).click();
     await page.getByRole('button',{name:'Fly Home',exact:true}).waitFor();
+    if (label === 'guided') await page.locator('.mission-hud').waitFor({state:'visible'});
     await page.screenshot({path:`${output}/${label}-${device}.png`});
     console.log(`${label} ${device}`);
     if (label === 'after') {

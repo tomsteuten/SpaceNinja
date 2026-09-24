@@ -22,8 +22,11 @@ says "tap the gold" places.
 1. The adventure is the default route again.
 2. The Moon arrival screen is restyled through `src/ui/theme.css`, layered over `ui.css`, plus a
    hint icon, a world thumbnail in the arrival title and slimmer gold markers. The owner saw the
-   before/after comparison but has not explicitly approved it. Screens beyond the home candidate still only inherit the shared
-   button and panel styles and have not been designed or reviewed.
+   before/after comparison but has not explicitly approved it. The home map and Earth arrival
+   now have screen-specific work; later screens still only inherit shared button and panel styles.
+3. Earth now offers Day & night as the primary arrival action. About opens words on demand,
+   Done ends the lesson, and gold places pause and resume without losing progress. Full-resolution
+   arrival, active and guided-hunt captures are in `design/earth-review-2026-09-24/`.
 
 **Verification and approval, 24 September home pass:**
 
@@ -48,8 +51,13 @@ says "tap the gold" places.
   phone/tablet captures. Do not equate the root deployment with local `main`. Two missing
   resource console errors occurred on the live classic page; local before/after captures
   had no browser errors. Nothing was deployed.
+- Earth follow-up: a delayed screenshot showed the guided-hunt counter covering a gold place in
+  short landscape. Its landscape position now uses the free left side space; a browser check
+  verifies both visible places clear it. Earth day/night browser checks pass on phone, tablet
+  and short landscape, including return from a persisted page suspension. Real-tablet viewing
+  and listening, and owner approval of the Earth screen, remain outstanding.
 
-**Next steps, in order:** owner approval of the home screen and Moon arrival; the discovery postcard and
+**Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the discovery postcard and
 journal; the remaining screens; then flight polish (the parked ship sits half off the right
 edge at arrival; the tested free-flight steering model is the candidate); then more planets.
 
