@@ -15,7 +15,12 @@ import './ui/theme.css';
 import * as THREE from 'three';
 import {
   DESTINATIONS,
+  FRAMING_RADIUS,
+  FRAMING_RADIUS_WIDE,
   FRAMING_RADIUS_WIDER,
+  WIDE_FRAMING_VISIT,
+  WIDER_FRAMING_VISIT,
+  revealedDestinations,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
@@ -114,9 +119,12 @@ async function main() {
   const trail = createEngineTrail(stage.quality.tier === 'low' ? 24 : 46);
   scene.add(trail.group);
 
-  /** The home view is a readable, deliberately compressed solar system from first launch. */
+  /** Keep the opening subjects readable; each visit widens the map to its next world. */
   function framingRadius(): number {
-    return FRAMING_RADIUS_WIDER;
+    const { visited } = loadProgress();
+    if (visited.includes(WIDER_FRAMING_VISIT)) return FRAMING_RADIUS_WIDER;
+    if (visited.includes(WIDE_FRAMING_VISIT)) return FRAMING_RADIUS_WIDE;
+    return FRAMING_RADIUS;
   }
 
   /**
@@ -132,9 +140,9 @@ async function main() {
     return camera.aspect < 1 ? 0.3 : 0.16;
   }
 
-  /** A solar-system home promises possibility at first glance: every destination is present. */
+  /** Scene visibility and navigation use the same visit gates as camera framing. */
   function visibleDestinationIds(): BodyId[] {
-    return [...BODY_IDS];
+    return revealedDestinations(loadProgress().visited) as BodyId[];
   }
 
   function applyReveal(animate = false): BodyId[] {
@@ -151,14 +159,21 @@ async function main() {
    * the world and does not draw it.
    */
   function mapChoices() {
+    const visible = new Set(visibleDestinationIds());
     return BODY_IDS.map((id) => ({
       id,
       // The full scene name is "The Moon"; a four-choice phone bar has room for the
       // identity, not the article. Keeping this derivation here avoids duplicate copy.
       label: world.bodies[id].label.replace(/^The /, ''),
       emoji: DESTINATIONS[id]?.emoji ?? '✨',
-      locked: false,
+      locked: !visible.has(id),
+      unlockedBy: gateLabel(id),
     }));
+  }
+
+  function gateLabel(id: BodyId): string | undefined {
+    const gate = DESTINATIONS[id]?.revealAfterVisiting;
+    return gate ? world.bodies[gate as BodyId]?.label : undefined;
   }
 
   const controls = createOrbitInput({
@@ -573,6 +588,16 @@ async function main() {
   function launch(id: BodyId | null) {
     if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
+    if (!visibleDestinationIds().includes(id)) {
+      const gate = gateLabel(id);
+      ui.nudgeDestination(id);
+      ui.setHint(gate ? 'Visit ' + gate + ' first' : 'Not yet', 'lock');
+      window.clearTimeout(nudge);
+      nudge = window.setTimeout(() => {
+        if (flight.phase === 'idle') showOpeningHints();
+      }, 2600);
+      return;
+    }
     const destination = world.bodies[id];
     if (!destination) return;
     // The flight is told which latitude to arrive over; it does not know why. Matching
@@ -660,42 +685,34 @@ async function main() {
     return nextWorld(loadProgress(), visibleDestinationIds()) as BodyId | null;
   }
 
-  /**
-   * Put the suggestion on screen in all three places at once — the ring in the scene, the
-   * highlighted button in the bar and the parked ship's nose — so they cannot disagree.
+  /** The light destination pill and the parked ship's nose share one suggestion.
+   * A broad scene halo overwhelmed the Moon and Saturn; leave their silhouettes clear.
    */
   function applySuggestion(newlyRevealed: BodyId | null = null) {
     suggested = suggestedDestination();
-    world.setSelected(suggested);
+    world.setSelected(null);
     ui.showDestinations(mapChoices(), suggested, newlyRevealed);
   }
 
   function showOpeningHints(newlyRevealed?: BodyId) {
     window.clearTimeout(nudge);
     if (newlyRevealed) {
-      const config = DESTINATIONS[newlyRevealed];
-      const label = world.bodies[newlyRevealed].label;
-      ui.setHint(`✨ ${config?.emoji ?? ''}  ${label} is ready`);
+      const label = world.bodies[newlyRevealed].label.replace(/^The /, '');
+      ui.setHint(label + ' is ready', 'rocket');
       nudge = window.setTimeout(() => {
-        if (flight.phase !== 'idle') return;
-        ui.setHint(`👆 ${config?.emoji ?? ''}  Tap ${label}`);
+        if (flight.phase === 'idle') ui.setHint('Tap ' + label, 'rocket');
       }, 3600);
       return;
     }
-    // Audio cannot do this first job because no user gesture has unlocked playback yet, so
-    // the gesture pictures still carry the action.
     const next = suggested;
     if (!next) {
-      ui.setHint('👆 Tap a world to go there');
+      ui.setHint('Tap a world to fly there', 'rocket');
       return;
     }
-    const nextBody = world.bodies[next];
-    const nextEmoji = DESTINATIONS[next]?.emoji ?? '✨';
+    const label = world.bodies[next].label.replace(/^The /, '');
     const revisit = loadProgress().visited.includes(next);
-    ui.setHint(revisit
-      ? `📖 ${nextEmoji} More to find · Tap ${nextBody.label.replace(/^The /, '')}`
-      : `👆 ${nextEmoji} Tap ${nextBody.label.replace(/^The /, '')}`);
-
+    ui.setHint(revisit ? 'More to find · Tap ' + label : 'Tap ' + label,
+      revisit ? 'journal' : 'rocket');
   }
 
   // Whatever was chosen last time, applied before anything can make a noise.
@@ -901,6 +918,7 @@ async function main() {
       const view = camera.position.clone().sub(center).normalize();
       return {
         phase: flight.phase,
+        mapBodyIds: [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId))],
         world: follow,
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,

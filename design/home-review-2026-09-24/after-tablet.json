@@ -1,0 +1,101 @@
+{
+  "url": "http://127.0.0.1:4182/",
+  "viewport": {
+    "width": 1024,
+    "height": 768
+  },
+  "deviceScaleFactor": 1,
+  "errors": [],
+  "controls": [
+    {
+      "text": "Tap Moon",
+      "label": null,
+      "classes": "hint",
+      "bounds": {
+        "x": 441.40625,
+        "y": 24,
+        "width": 141.1875,
+        "height": 46,
+        "top": 24,
+        "right": 582.59375,
+        "bottom": 70,
+        "left": 441.40625
+      }
+    },
+    {
+      "text": "Earth",
+      "label": "Fly to Earth",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 239,
+        "y": 683,
+        "width": 132,
+        "height": 62,
+        "top": 683,
+        "right": 371,
+        "bottom": 745,
+        "left": 239
+      }
+    },
+    {
+      "text": "Moon",
+      "label": "Fly to Moon",
+      "classes": "destination-choice is-suggested",
+      "bounds": {
+        "x": 377,
+        "y": 683,
+        "width": 132,
+        "height": 62,
+        "top": 683,
+        "right": 509,
+        "bottom": 745,
+        "left": 377
+      }
+    },
+    {
+      "text": "Mars",
+      "label": "Mars — visit The Moon first",
+      "classes": "destination-choice is-locked",
+      "bounds": {
+        "x": 515,
+        "y": 683,
+        "width": 132,
+        "height": 62,
+        "top": 683,
+        "right": 647,
+        "bottom": 745,
+        "left": 515
+      }
+    },
+    {
+      "text": "Saturn",
+      "label": "Saturn — visit Mars first",
+      "classes": "destination-choice is-locked",
+      "bounds": {
+        "x": 653,
+        "y": 683,
+        "width": 132,
+        "height": 62,
+        "top": 683,
+        "right": 785,
+        "bottom": 745,
+        "left": 653
+      }
+    },
+    {
+      "text": "",
+      "label": "Open your discovery journal",
+      "classes": "btn btn--round journal-btn",
+      "bounds": {
+        "x": 946,
+        "y": 16,
+        "width": 62,
+        "height": 62,
+        "top": 16,
+        "right": 1008,
+        "bottom": 78,
+        "left": 946
+      }
+    }
+  ]
+}

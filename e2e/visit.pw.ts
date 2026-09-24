@@ -90,8 +90,25 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     await expect(page.getByRole('button',{name:'Close the photo'})).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(photo).toBeFocused();
-    await page.getByRole('button',{name:'Read this discovery out loud'}).click();
-    await expect(page.getByRole('button',{name:'Stop reading discovery'})).toBeVisible();
+    const readAloud = page.getByRole('button', { name: 'Read this discovery out loud' });
+    // A software-rendered frame can delay the driver until this short clip has ended.
+    // Observe the visible Stop state inside the browser, armed by the real click, so
+    // earlier narration cannot satisfy the check. The trace showed it before polling.
+    await readAloud.evaluate(button => {
+      button.addEventListener('click', () => {
+        const observer = new MutationObserver(() => {
+          if (button.getAttribute('aria-label') === 'Stop reading discovery' &&
+              button.getClientRects().length > 0) {
+            button.setAttribute('data-playtest-observed-speaking', 'true');
+            observer.disconnect();
+          }
+        });
+        observer.observe(button, { attributes: true, attributeFilter: ['aria-label'] });
+      }, { once: true, capture: true });
+    });
+    await readAloud.click();
+    await expect(page.locator('.journal-panel .narrate-btn'))
+      .toHaveAttribute('data-playtest-observed-speaking', 'true');
     photoFound=true; break;
   }
   expect(photoFound,'The deterministic smoke visit must exercise a real photo').toBe(true);

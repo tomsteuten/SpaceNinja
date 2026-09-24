@@ -22,22 +22,51 @@ says "tap the gold" places.
 1. The adventure is the default route again.
 2. The Moon arrival screen is restyled through `src/ui/theme.css`, layered over `ui.css`, plus a
    hint icon, a world thumbnail in the arrival title and slimmer gold markers. The owner saw the
-   before/after comparison but has not explicitly approved it. Other screens inherit the shared
-   button and panel styles but have not been designed or reviewed.
+   before/after comparison but has not explicitly approved it. Screens beyond the home candidate still only inherit the shared
+   button and panel styles and have not been designed or reviewed.
 
-**Open before anything merges to `main`:**
+**Verification and approval, 24 September home pass:**
 
-- The full browser suite last passed 28 of 30. The short-landscape adventure visit failed
-  because the taller arrival title pushed a gold place behind the fact card. The title and
-  thumbnail were made more compact afterwards, but that fix has not been rerun. The phone visit
-  run timed out at its last step during a heavily loaded 48-minute run; treat it as unverified.
-- `main` deploys to GitHub Pages. The branch also carries earlier unreviewed changes the live
-  site does not have, including every world visible from the first launch. Its home view
-  clumps all four worlds in the centre with Saturn and a large glow ring in front of Earth.
+- The requested initial visit rerun passed tablet and short landscape: the compact arrival
+  title clears both visible gold places. Phone failed at journal narration, not at the previous
+  last-step timeout. Its trace shows the visible Stop reading discovery state after the click;
+  the driver polled too late for the short recording. The test now latches that visible state
+  in the browser, armed by the real click. No narration behavior was changed.
+- Typecheck, all 287 unit tests (25 files), and the production build passed. The final
+  visit/home/accessibility browser run passed all 9 checks across phone, tablet and short
+  landscape (6.9 minutes, one worker). This includes all three full visits and the phone's
+  final return; the earlier last-step timeout did not recur. The full browser suite was not
+  rerun. Real-tablet performance, listening and child observation remain unverified.
+- The home candidate restores visit-based visibility, navigation and framing together, removes
+  the oversized suggestion halo, and uses textured world buttons, a light Moon invitation,
+  line icons and a separate journal corner. Full-resolution phone/tablet before and after
+  images are in `design/home-review-2026-09-24/`. Before is the untouched `6f86ca5` worktree,
+  installed with its own `npm ci`; after is this branch. Home and Moon arrival still await
+  owner approval. No flight or additional planet work is included.
+- Live-site correction: on this date the root GitHub Pages URL opens the four-world explorer.
+  Its Original adventure route (`?classic`) shows the gated Earth/Moon view, confirmed in
+  phone/tablet captures. Do not equate the root deployment with local `main`. Two missing
+  resource console errors occurred on the live classic page; local before/after captures
+  had no browser errors. Nothing was deployed.
 
-**Next steps, in order:** home screen restyle and composition; the discovery postcard and
+**Next steps, in order:** owner approval of the home screen and Moon arrival; the discovery postcard and
 journal; the remaining screens; then flight polish (the parked ship sits half off the right
 edge at arrival; the tested free-flight steering model is the candidate); then more planets.
+
+**Strategy verdict, checked against code and screenshots:**
+
+- **Keep the guided adventure as the product.** Default-route dispatch in `main.ts` isolates
+  the two experiments; the actual visit run exercises discovery, return and repeat visits.
+  This is a sound base for polish, though target-tablet child observation remains unverified.
+- **Removing the reveal gates was wrong for this composition.** The baseline code always
+  chose the widest framing and suggested Saturn first; both baseline screenshots show its
+  halo crowding a shrunken Earth. The live classic view demonstrates the clearer staged
+  opening. Restore those visit gates and drop the halo; keep future worlds pictured in the bar.
+- **Keep the explorer styling and screen-by-screen approval, with a limit on shared CSS.**
+  The reference `.unified-one-shot/src/moon/moon.css` uses small 10–13px copy; the home
+  candidate instead has 16–19px world labels and 54–62px minimum-height controls. Inspected
+  phone/tablet images show a clear playfield. Inherited styles on other screens are still
+  unapproved; the theme layer is a transitional implementation, not evidence those screens work.
 
 ---
 

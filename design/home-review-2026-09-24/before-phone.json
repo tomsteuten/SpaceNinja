@@ -1,0 +1,101 @@
+{
+  "url": "http://127.0.0.1:4181/",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "deviceScaleFactor": 1,
+  "errors": [],
+  "controls": [
+    {
+      "text": "👆 🪐 Tap Saturn",
+      "label": null,
+      "classes": "hint",
+      "bounds": {
+        "x": 111.5,
+        "y": 16,
+        "width": 167,
+        "height": 45.171875,
+        "top": 16,
+        "right": 278.5,
+        "bottom": 61.171875,
+        "left": 111.5
+      }
+    },
+    {
+      "text": "🌍Earth",
+      "label": "Fly to Earth",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 91,
+        "y": 764,
+        "width": 64.609375,
+        "height": 64,
+        "top": 764,
+        "right": 155.609375,
+        "bottom": 828,
+        "left": 91
+      }
+    },
+    {
+      "text": "🌙Moon",
+      "label": "Fly to Moon",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 162.796875,
+        "y": 764,
+        "width": 64.609375,
+        "height": 64,
+        "top": 764,
+        "right": 227.40625,
+        "bottom": 828,
+        "left": 162.796875
+      }
+    },
+    {
+      "text": "🔴Mars",
+      "label": "Fly to Mars",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 234.59375,
+        "y": 764,
+        "width": 64.609375,
+        "height": 64,
+        "top": 764,
+        "right": 299.203125,
+        "bottom": 828,
+        "left": 234.59375
+      }
+    },
+    {
+      "text": "🪐Saturn",
+      "label": "Fly to Saturn",
+      "classes": "destination-choice is-suggested",
+      "bounds": {
+        "x": 306.390625,
+        "y": 764,
+        "width": 64.609375,
+        "height": 64,
+        "top": 764,
+        "right": 371,
+        "bottom": 828,
+        "left": 306.390625
+      }
+    },
+    {
+      "text": "",
+      "label": "Open your discovery journal",
+      "classes": "btn btn--round journal-btn",
+      "bounds": {
+        "x": 16,
+        "y": 766,
+        "width": 62,
+        "height": 62,
+        "top": 766,
+        "right": 78,
+        "bottom": 828,
+        "left": 16
+      }
+    }
+  ]
+}

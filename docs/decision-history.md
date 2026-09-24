@@ -94,3 +94,23 @@ button, although the button remained clickable and the prior browser suite passe
 viewports now reserve an exit row and cap photo height against the remaining vertical space.
 A browser assertion checks the full text ends above the exit in every tested viewport. Photo
 loading, first-find behavior and the Android backdrop dismissal guard are unchanged.
+
+
+## 2026-09-24 — Restore the guided home map's staged opening
+
+The pre-home-review branch revealed all four worlds immediately and always framed the outer
+orbit. Full-resolution captures from untouched commit `6f86ca5` show Saturn's suggestion halo
+overlapping the much smaller Earth, on both phone and tablet. The live `?classic` route still
+shows a more readable Earth/Moon opening (the live root URL currently opens the explorer).
+
+Restore the existing visit gates for scene visibility, launch eligibility and camera framing
+together: visiting Moon reveals Mars; visiting Mars reveals Saturn. Collection is not a gate.
+The four world thumbnails remain in the home tray, and pressing a future world answers with a
+lock icon, a visible refusal and the prerequisite. Remove the broad suggestion halo at home:
+it dominates Saturn and clips at the phone edge around Moon. The light destination pill and
+ship direction now carry that suggestion; actual discovery markers remain gold to match audio.
+
+The home restyle stays in `theme.css`, with home-only positioning for the journal and hint.
+The owner must judge the phone/tablet comparisons before another screen is redesigned.
+This restores a composition that fits the current guided game, rather than ruling out a freely
+accessible solar-system map if a future design and device observation support one.

@@ -235,6 +235,7 @@ export function createUI(options: UIOptions): GameUI {
     suggestedId: string | null = null,
     newlyRevealedId: string | null = null,
   ) {
+    root.classList.toggle('is-home', choices.length > 0);
     destinationBar.replaceChildren();
     destinationBar.style.setProperty('--destination-count', String(choices.length));
     for (const choice of choices) {
@@ -257,17 +258,23 @@ export function createUI(options: UIOptions): GameUI {
        */
       button.classList.toggle('is-locked', Boolean(choice.locked));
       // A suggestion, not a selection — nothing is ever in a chosen-but-not-acted-on state
-      // any more. It marks the world the map is pointing at, alongside the ring in the
-      // scene and the parked ship's nose.
+      // any more. It marks the world the map is pointing at, alongside the
+      // parked ship's nose.
       button.classList.toggle('is-suggested', choice.id === suggestedId);
       button.classList.toggle('is-new', choice.id === newlyRevealedId);
       // The world keeps its own picture even while locked — that picture is the whole
       // reason to want to go there, and a child who cannot read "Saturn" can want the one
       // with the rings. The padlock is a corner badge over it rather than a replacement.
-      button.append(
-        el('span', 'destination-choice__emoji', choice.emoji),
-        el('span', 'destination-choice__label', choice.label),
-      );
+      const orb = el('span', 'world-orb');
+      orb.classList.add('world-orb--' + choice.id);
+      orb.setAttribute('aria-hidden', 'true');
+      orb.style.backgroundImage = 'url(./assets/' + choice.id + '.jpg)';
+      button.append(orb, el('span', 'destination-choice__label', choice.label));
+      if (choice.locked) {
+        const lock = createIcon('lock');
+        lock.classList.add('destination-choice__lock');
+        button.append(lock);
+      }
       button.dataset.destination = choice.id;
       button.addEventListener('click', () => onChooseDestination(choice.id));
       destinationBar.append(button);
@@ -1015,6 +1022,7 @@ export function createUI(options: UIOptions): GameUI {
     showDestinations,
 
     enterFlight() {
+      root.classList.remove('is-home');
       destinationBar.classList.add('is-hidden');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
@@ -1027,6 +1035,7 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string) {
+      root.classList.remove('is-home');
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);

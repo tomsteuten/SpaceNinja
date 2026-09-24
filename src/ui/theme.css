@@ -204,3 +204,105 @@ body {
 .home-btn .icon-slot {
   color: var(--mint);
 }
+
+/* --- home map: one destination tray, with the journal above the playfield ----- */
+
+.destination-bar {
+  left: 50%;
+  width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right)));
+  padding: 6px;
+  gap: 6px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 36px;
+  background: var(--glass);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+}
+
+.destination-choice {
+  min-height: 62px;
+  padding: 6px;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  background: transparent;
+  box-shadow: none;
+  font: 400 1rem/1.1 var(--font-title);
+  color: var(--ink);
+  transition: transform 0.1s ease, background-color 0.15s ease;
+}
+
+.destination-choice:hover { background: var(--glass-hover); }
+.destination-choice:active { transform: scale(0.96); box-shadow: none; }
+.destination-choice:focus-visible { outline: 3px solid var(--mint); outline-offset: 2px; }
+
+.destination-choice.is-suggested {
+  color: var(--primary-ink);
+  background: var(--primary-bg);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.destination-choice.is-suggested:hover { background: #fff; }
+.destination-choice.is-locked {
+  color: var(--ink-soft);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.destination-choice.is-locked:hover { background: var(--glass-hover); }
+.destination-choice.is-locked::after { content: none; }
+.destination-choice.is-new::after { background: var(--mint); box-shadow: none; }
+
+.destination-choice .world-orb {
+  position: relative;
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+.destination-choice .world-orb--saturn::after {
+  content: '';
+  position: absolute;
+  inset: 7px -7px;
+  border: 3px solid #c8b68f;
+  border-radius: 50%;
+  transform: rotate(-28deg);
+}
+.destination-choice__lock {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  color: var(--ink-soft);
+}
+.destination-choice__lock .icon { width: 14px; height: 14px; }
+
+.is-home .journal-btn {
+  top: var(--pad-top);
+  right: var(--pad-right);
+  bottom: auto;
+  left: auto;
+  width: 62px;
+  height: 62px;
+}
+
+.is-home .hint {
+  top: calc(var(--pad-top) + 8px);
+  max-width: calc(100vw - var(--pad-left) - var(--pad-right) - 78px);
+  min-height: 46px;
+  border-radius: 24px;
+}
+
+@media (min-width: 600px) {
+  .destination-choice { flex-direction: row; gap: 10px; font-size: 1.2rem; }
+  .destination-choice .world-orb { width: 30px; height: 30px; }
+}
+
+@media (max-width: 599px) {
+  .is-home .hint { left: var(--pad-left); transform: none; padding-inline: 14px; }
+}
+
+@media (max-height: 480px) {
+  .destination-bar { width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right))); }
+  .destination-choice { min-height: 54px; }
+  .is-home .journal-btn { width: 54px; height: 54px; }
+  .is-home .hint { top: var(--pad-top); }
+}

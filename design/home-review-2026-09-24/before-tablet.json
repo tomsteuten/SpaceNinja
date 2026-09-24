@@ -1,0 +1,101 @@
+{
+  "url": "http://127.0.0.1:4181/",
+  "viewport": {
+    "width": 1024,
+    "height": 768
+  },
+  "deviceScaleFactor": 1,
+  "errors": [],
+  "controls": [
+    {
+      "text": "👆 🪐 Tap Saturn",
+      "label": null,
+      "classes": "hint",
+      "bounds": {
+        "x": 428.5,
+        "y": 16,
+        "width": 167,
+        "height": 45.171875,
+        "top": 16,
+        "right": 595.5,
+        "bottom": 61.171875,
+        "left": 428.5
+      }
+    },
+    {
+      "text": "🌍Earth",
+      "label": "Fly to Earth",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 333,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 435.109375,
+        "bottom": 752,
+        "left": 333
+      }
+    },
+    {
+      "text": "🌙Moon",
+      "label": "Fly to Moon",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 442.296875,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 544.40625,
+        "bottom": 752,
+        "left": 442.296875
+      }
+    },
+    {
+      "text": "🔴Mars",
+      "label": "Fly to Mars",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 551.59375,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 653.703125,
+        "bottom": 752,
+        "left": 551.59375
+      }
+    },
+    {
+      "text": "🪐Saturn",
+      "label": "Fly to Saturn",
+      "classes": "destination-choice is-suggested",
+      "bounds": {
+        "x": 660.890625,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 763,
+        "bottom": 752,
+        "left": 660.890625
+      }
+    },
+    {
+      "text": "",
+      "label": "Open your discovery journal",
+      "classes": "btn btn--round journal-btn",
+      "bounds": {
+        "x": 16,
+        "y": 690,
+        "width": 62,
+        "height": 62,
+        "top": 690,
+        "right": 78,
+        "bottom": 752,
+        "left": 16
+      }
+    }
+  ]
+}
