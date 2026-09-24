@@ -11,6 +11,7 @@ import { nextWorld } from './state/replay';
  */
 
 import './ui/ui.css';
+import './ui/theme.css';
 import * as THREE from 'three';
 import {
   DESTINATIONS,
@@ -290,7 +291,7 @@ async function main() {
       if (!config) return;
       // The welcome: the world's name and what it is, read over a screen that already has
       // the gold targets on it. It no longer gates anything.
-      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji);
+      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji, destination.id);
 
       // The departure chose this visit already, so the camera and targets share one set.
       const mission = missions[destination.id];
@@ -506,7 +507,7 @@ async function main() {
     // while explicit score/counter language enters only after interaction or a short pause.
     huntGuidance = { world: follow, elapsed: 0, inviteShown: false, active: false };
     ui.showSpin(null);
-    ui.setHint('🌟 Look around first. Tap a gold place when you are ready.');
+    ui.setHint('Look around first. Tap a gold place when you are ready.', 'target');
   }
 
   /*

@@ -359,6 +359,9 @@ export function markerPlacement(discovery: Discovery, bodyRadius: number): Marke
   };
 }
 
+/** Still gold, because the recorded narration asks children to tap the gold places. */
+const MARKER_GOLD = 0xf5c65b;
+
 interface Collectible {
   discovery: Discovery;
   group: THREE.Group;
@@ -461,7 +464,9 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     node.add(target);
 
     const outlineMaterial = new THREE.MeshBasicMaterial({
-      color: 0x21143f,
+      // The interface's own navy: the marker reads as a small badge from the same set as
+      // the panels, a thin gold ring and a solid gold centre on a dark disc.
+      color: 0x0b141d,
       transparent: true,
       opacity: 0.9,
       depthWrite: false,
@@ -470,7 +475,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     target.add(new THREE.Mesh(backingGeometry, outlineMaterial));
 
     const ringMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffbd45,
+      color: MARKER_GOLD,
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -489,7 +494,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     let sonarMaterial: THREE.MeshBasicMaterial | null = null;
     if (!reducedMotion) {
       sonarMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffbd45,
+        color: MARKER_GOLD,
         transparent: true,
         opacity: 0,
         depthWrite: false,
@@ -623,18 +628,21 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     body.holdSurface();
 
     ringGeometry = new THREE.RingGeometry(
-      markerRadius * 0.66,
-      markerRadius,
+      markerRadius * 0.76,
+      markerRadius * 0.94,
       detail.ringSegments,
     );
+    // A solid centre dot rather than a second ring: a pin, not a dartboard.
     innerRingGeometry = new THREE.RingGeometry(
-      markerRadius * 0.18,
-      markerRadius * 0.34,
+      0,
+      markerRadius * 0.3,
       detail.ringSegments,
     );
+    // A full dark disc behind both, so the gold keeps its contrast on bright ground (the
+    // lit Moon, Saturn's rings) as well as on the night side.
     outlineGeometry = new THREE.RingGeometry(
-      markerRadius * 0.58,
-      markerRadius * 1.12,
+      0,
+      markerRadius * 1.06,
       detail.ringSegments,
     );
     // A thin ring the size of the target, which the idle loop scales outward and fades. One

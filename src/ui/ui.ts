@@ -9,7 +9,7 @@ import { worldCollections } from '../state/replay';
 import type { Narrator } from '../audio/narration';
 import { DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
 import { STICKERS, foundEverything, loadProgress } from '../state/progress';
-import { createIcon, iconMarkup } from './icons';
+import { createIcon, iconMarkup, type IconName } from './icons';
 import {
   guideOnArrival,
   narrationOnEnd,
@@ -40,7 +40,8 @@ export interface DestinationChoice {
 }
 
 export interface GameUI {
-  setHint(text: string | null): void;
+  /** A short line at the top, optionally led by one of the interface's own icons. */
+  setHint(text: string | null, icon?: IconName): void;
   /** Large, stable alternatives to tapping small moving worlds in the canvas. */
   showDestinations(
     choices: readonly DestinationChoice[],
@@ -49,7 +50,8 @@ export interface GameUI {
   ): void;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
-  showArrival(cueId: string, label: string, fact: string, emoji: string): void;
+  /** With a `worldId`, the card's title is led by a small picture of that world. */
+  showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string): void;
   /** Take the fact card away entirely (not just fold it). Used when the day/night intro's
    *  card has done its job and the hunt is starting — a lingering card is clutter. */
   clearFact(): void;
@@ -891,8 +893,10 @@ export function createUI(options: UIOptions): GameUI {
     homeButton.classList.toggle('is-hidden', !available);
   }
 
-  function setHint(text: string | null) {
-    hint.textContent = text ?? '';
+  function setHint(text: string | null, icon?: IconName) {
+    hint.replaceChildren();
+    if (text && icon) hint.append(createIcon(icon));
+    if (text) hint.append(el('span', undefined, text));
     hint.style.opacity = text ? '1' : '0';
   }
 
@@ -981,6 +985,7 @@ export function createUI(options: UIOptions): GameUI {
     clearPhoto();
     factTitle.textContent = title ?? '';
     factTitle.classList.toggle('is-hidden', !title);
+    factTitle.classList.remove('has-world');
     factText.textContent = text;
     factCard.classList.remove(
       'is-hidden',
@@ -1021,7 +1026,7 @@ export function createUI(options: UIOptions): GameUI {
       setHint(null);
     },
 
-    showArrival(cueId: string, label: string, fact: string, emoji: string) {
+    showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string) {
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
@@ -1030,7 +1035,18 @@ export function createUI(options: UIOptions): GameUI {
       // right down to its folded pill, until Fly Home.
       // The authored arrival cue is a pure welcome. Its end hands off to the day/night intro;
       // the instruction to tap is a separate cue held until the targets actually appear.
-      showFact(fact, `${emoji}  ${label}`, cueId);
+      if (!worldId) {
+        showFact(fact, `${emoji}  ${label}`, cueId);
+        return;
+      }
+      // A small picture of the world itself, from its real surface map, instead of an
+      // operating-system emoji: the same identity for a pre-reader, drawn in the game's style.
+      showFact(fact, label, cueId);
+      const orb = el('span', 'world-orb');
+      orb.setAttribute('aria-hidden', 'true');
+      orb.style.backgroundImage = `url(./assets/${worldId}.jpg)`;
+      factTitle.prepend(orb);
+      factTitle.classList.add('has-world');
     },
 
     beginMission(caption: string, total: number, cueId?: string) {

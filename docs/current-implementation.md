@@ -1,4 +1,47 @@
-# Current implementation and handover — 23 September 2026
+# Current implementation and handover
+
+## Status and direction — 24 September 2026 (read this first)
+
+**Product direction, chosen by the owner:** the guided adventure is the game. The goal is the
+original adventure with UI polish and flight polish, then more planets. The Earth-to-Moon
+outing (`?outing`) and manual flight (`?freeflight`) are experiments, not the product. Do not
+build on the outing's screens; they were an unstyled prototype.
+
+**Working method, also the owner's call:** judge visuals by eye. Change one screen at a time
+and show before/after screenshots at full resolution on phone and tablet before rolling a
+style out further. Passing tests do not mean a screen looks good.
+
+**Visual language:** the 22 September explorer (`.unified-one-shot`): calm dark glass, a
+hairline edge, a light primary pill, line icons from `src/ui/icons.ts`, and a serif name for
+each world. Keep child-sized targets (54–62px) and readable labels; the explorer's 10–13px
+text was too small for 5–8 year olds. The markers stay gold, because the recorded narration
+says "tap the gold" places.
+
+**Done on `codex/session-lifecycle-audit`, not pushed, `main` untouched:**
+
+1. The adventure is the default route again.
+2. The Moon arrival screen is restyled through `src/ui/theme.css`, layered over `ui.css`, plus a
+   hint icon, a world thumbnail in the arrival title and slimmer gold markers. The owner saw the
+   before/after comparison but has not explicitly approved it. Other screens inherit the shared
+   button and panel styles but have not been designed or reviewed.
+
+**Open before anything merges to `main`:**
+
+- The full browser suite last passed 28 of 30. The short-landscape adventure visit failed
+  because the taller arrival title pushed a gold place behind the fact card. The title and
+  thumbnail were made more compact afterwards, but that fix has not been rerun. The phone visit
+  run timed out at its last step during a heavily loaded 48-minute run; treat it as unverified.
+- `main` deploys to GitHub Pages. The branch also carries earlier unreviewed changes the live
+  site does not have, including every world visible from the first launch. Its home view
+  clumps all four worlds in the centre with Saturn and a large glow ring in front of Earth.
+
+**Next steps, in order:** home screen restyle and composition; the discovery postcard and
+journal; the remaining screens; then flight polish (the parked ship sits half off the right
+edge at arrival; the tested free-flight steering model is the candidate); then more planets.
+
+---
+
+## Record from 23 September
 
 ## Authoritative local version
 
