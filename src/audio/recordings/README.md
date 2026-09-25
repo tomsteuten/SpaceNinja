@@ -3,6 +3,15 @@
 Put authored MP3 narration here. The filename is the stable cue id used by the game, for
 example `arrival-earth.mp3`, `discovery-earth-sahara.mp3`, or `spin-earth.mp3`.
 
+**Decision, 25 September 2026:** the pack is to be regenerated in one consistent
+ElevenLabs voice, chosen by the owner by ear, from `../narration-script.json`, which is the
+one manifest (stable id, spoken text; the filename is the id). The generator, its text-hash
+cache and the new `provenance.json` are specified in `docs/handover-2026-09-25-narration.md`.
+The API key is read only from the `ELEVENLABS_API_KEY` environment variable. Until that pack
+exists, the committed Kokoro files below play for the cues they cover, and the cues added
+on 25 September (the home map, locked worlds, Fly Home, the nudges, the Earth day-and-night
+lines) are silent, because only a recorded cue starts by itself.
+
 Vite fingerprints imported recordings and the existing service-worker build precaches
 them with the application shell, so every installed recording works offline. A missing
 recording falls back to the device voice when the speaker button is pressed. Only cues

@@ -129,6 +129,33 @@ the invitation is visual only, because only recorded cues start by themselves. T
 recordings still say "swipe"; re-authoring them to name the arrow tap first belongs with the
 spoken-layer batch. Captures are in `design/earth-intro-review-2026-09-25/`.
 
+**The spoken layer, 25 September: authored, not yet recorded or wired.** Decision: the whole
+pack is regenerated in one ElevenLabs voice chosen by the owner by ear; the API key lives only
+in the `ELEVENLABS_API_KEY` environment variable. `src/audio/narration-script.json` is the one
+manifest (75 cues) and `narration-script.test.ts` pins the full set and the register: every
+invitation leads with "you can" and stays under eight words, nudges under six, each nudge
+pair shortens. The prompt for the session that builds the generator, chooses the voice and
+wires the cues is `docs/handover-2026-09-25-narration.md`. Where each new cue plays:
+
+| Cue | Moment |
+| --- | --- |
+| `home-first` | Brand-new save, first sight of the map after Start playing. The only invitation not led by "you can". |
+| `home-<world>` | The map on any later load or landing, naming the suggested world; `home-any` when nothing is suggested. |
+| `revealed-<world>` | Landing from a visit that unlocked this world, instead of `home-<world>`. |
+| `fly-home` | Landing from Fly Home when nothing was unlocked, instead of `home-<world>`. |
+| `home-nudge-<world>`, `home-nudge-short-<world>` | 8 s and 16 s idle at the map; then silence, the map is not a nag. |
+| `locked-<world>` | A padlocked world pressed, with the existing shake and hint. |
+| `find-nudge`, `find-nudge-short` | 8 s and 16 s idle on arrival with a gold place in view, after `find-<world>`; the hand at 6 s stays. |
+| `hunt-nudge`, `hunt-nudge-short` | 8 s and 16 s idle while the last place is round the back, alongside the arrow tap hand. |
+| `spin-invite-<world>` | Already wired from `spin.invite` in `main.ts`: once per visit when `shouldInviteSpin` first turns true. |
+| `spin-nudge` | 8 s after the invite if the button is still inviting. |
+| `success-next` | Behind `success-<world>`, when the hint names a next world. |
+| `finale` | With the finale overlay. |
+| `spin-intro-earth` | Already wired: the first-visit turn. |
+
+Idle for these is "nothing pressed", the same `idleFor` the coach uses, which now runs from
+arrival; the map needs its own, reset by any press and by a change of suggestion.
+
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
 remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;

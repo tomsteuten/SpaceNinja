@@ -438,6 +438,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   moon: {
     emoji: '🌙',
     spin: {
+      invite: 'You can turn the Moon. Tap the globe.',
       label: 'Spin the Moon',
       tint: '#9a958f',
       name: 'Two Weeks of Sunshine',
@@ -547,6 +548,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     // Revealed once the Moon has been visited — the same gate WIDE_FRAMING_VISIT widens on.
     revealAfterVisiting: 'moon',
     spin: {
+      invite: 'You can turn Mars. Tap the globe.',
       label: 'Spin Mars',
       tint: '#b4593a',
       name: 'A Day Almost Like Yours',
@@ -657,6 +659,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     // The animated turn is a calm one like the others (SATURN_SPIN_RATE), not the real
     // ten-hour whirl — the fact tells the truth the picture would only make dizzying.
     spin: {
+      invite: 'You can turn Saturn. Tap the globe.',
       label: 'Spin Saturn',
       tint: '#c2a366',
       name: 'The Fastest Day',

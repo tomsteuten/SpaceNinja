@@ -32,13 +32,37 @@ function cuesByBody(): Record<string, string[]> {
         ...(destination.spin ? [`spin-${bodyId}`] : []),
         ...(destination.spin?.intro ? [`spin-intro-${bodyId}`] : []),
         ...(destination.spin?.invite ? [`spin-invite-${bodyId}`] : []),
+        // The home map: this world as the map's suggestion, and the two shortening nudges
+        // that repeat it ("Tap the Moon", then "The Moon").
+        `home-${bodyId}`,
+        `home-nudge-${bodyId}`,
+        `home-nudge-short-${bodyId}`,
+        // A gated world: pressed before it is earned, and announced once it is.
+        ...(destination.revealAfterVisiting ? [`locked-${bodyId}`, `revealed-${bodyId}`] : []),
       ],
     ]),
   );
 }
 
+/**
+ * Cues that belong to a screen rather than a world. Each is named in
+ * docs/current-implementation.md ("The spoken layer") with the moment it plays.
+ */
+const SCREEN_CUES = [
+  'home-first',
+  'home-any',
+  'fly-home',
+  'find-nudge',
+  'find-nudge-short',
+  'hunt-nudge',
+  'hunt-nudge-short',
+  'spin-nudge',
+  'success-next',
+  'finale',
+];
+
 function expectedCueIds(): string[] {
-  return Object.values(cuesByBody()).flat();
+  return [...Object.values(cuesByBody()).flat(), ...SCREEN_CUES];
 }
 
 describe('narration script', () => {
@@ -61,6 +85,30 @@ describe('narration script', () => {
     for (const bodyId of Object.keys(DESTINATIONS)) {
       expect(script.cues[`arrival-${bodyId}`]).not.toMatch(/\b(?:tap|target)\b/i);
       expect(script.cues[`find-${bodyId}`]).toMatch(/\btap\b.*\bgold\b|\bgold\b.*\btap\b/i);
+    }
+  });
+
+  it('invites in the child\'s register: short, and "you can" rather than "you must"', () => {
+    // The design principle agreed with the owner: tell a child what they *can* do. Every
+    // invitation leads with it, except the very first one on a brand-new save, and every
+    // invitation and nudge stays under about eight words so it is over before it is a lecture.
+    const words = (line: string) => line.trim().split(/\s+/).length;
+    const invitations = Object.keys(script.cues).filter(
+      (id) => /^(home-(?!first|nudge)|revealed-|locked-|spin-invite-|success-next|find-nudge$|hunt-nudge$)/.test(id),
+    );
+    expect(invitations.length).toBeGreaterThan(0);
+    for (const id of invitations) {
+      expect(script.cues[id], id).toMatch(/\byou can\b/i);
+      expect(words(script.cues[id]!), id).toBeLessThanOrEqual(8);
+    }
+    expect(script.cues['home-first']).not.toMatch(/\bmust\b/i);
+    for (const id of Object.keys(script.cues).filter((id) => /nudge/.test(id))) {
+      expect(words(script.cues[id]!), id).toBeLessThanOrEqual(6);
+    }
+    // Each nudge pair shortens.
+    for (const id of Object.keys(script.cues).filter((id) => /-nudge-short-|nudge-short$/.test(id))) {
+      const full = id.replace('-short', '');
+      expect(words(script.cues[id]!), `${id} shorter than ${full}`).toBeLessThan(words(script.cues[full]!));
     }
   });
 
