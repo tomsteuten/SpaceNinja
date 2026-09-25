@@ -4,8 +4,21 @@ const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaS
 async function launch(page: Page, world: string) {
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
-  await expect(page.locator('.mission-hud')).toBeHidden();
   await expect.poll(async () => (await snapshot(page)).draws).toBeGreaterThan(0);
+  // A first visit to Earth opens with the day turn as its introduction (no gold places
+  // yet); any tap on the world ends it straight into the guided hunt. Every other arrival
+  // begins with the calm roam-first beat, before the counter appears.
+  const done = page.getByRole('button', { name: 'Done with day and night' });
+  if (await done.isVisible()) {
+    const { width, height } = page.viewportSize()!;
+    await page.mouse.click(width / 2, height / 2);
+    await expect(done).toBeHidden();
+    await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
+    await expect.poll(async () => (await snapshot(page)).guidedHunt).toBe(true);
+  } else {
+    await expect(page.locator('.mission-hud')).toBeHidden();
+  }
+  await expect.poll(async () => (await snapshot(page)).targets.filter((t:any) => t.visible).length).toBe(2);
   const s = await snapshot(page);
   const visible = s.targets.filter((t:any) => t.visible);
   expect(visible).toHaveLength(2);
