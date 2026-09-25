@@ -68,6 +68,12 @@ export interface GameUI {
   beginMission(caption: string, total: number, cueId?: string): void;
   setMissionCaption(text: string, cueId?: string): void;
   /**
+   * Say something with no card: the Earth introduction while it turns, the invitation to
+   * turn it on a later visit. Waits behind whatever is being read, as the hunt line does,
+   * and only authored audio starts by itself.
+   */
+  speakGuide(text: string, cueId: string): void;
+  /**
    * A place has been found: name it, and put it in the journal.
    *
    * Available recordings play independently; missing recordings remain manual.
@@ -1171,12 +1177,16 @@ export function createUI(options: UIOptions): GameUI {
       missionCaption.textContent = text;
       // Wait behind the discovery narration rather than interrupting the reward the child
       // just earned. Without an authored cue the visual hand/arrow remains the instruction.
+      if (cueId) this.speakGuide(text, cueId);
+    },
+
+    speakGuide(text: string, cueId: string) {
       const arrival = guideOnArrival({
-        hasRecording: narrator.hasRecording(cueId ?? null),
+        hasRecording: narrator.hasRecording(cueId),
         soundOn,
         speaking: narrator.speaking,
       });
-      if (arrival === 'queue') pendingGuide = { text, cueId: cueId as string };
+      if (arrival === 'queue') pendingGuide = { text, cueId };
       else if (arrival === 'speak') narrator.speak(text, cueId, false);
     },
 

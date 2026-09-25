@@ -250,6 +250,19 @@ export interface DestinationConfig {
     name: string;
     fact: string;
     /**
+     * Spoken while the turn runs *by itself* on a child's first visit, as the arrival
+     * introduction. Only Earth has one, by the owner's decision after watching a child never
+     * find the day/night button: once, on the first visit, short, and any tap ends it. This
+     * is not the automatic-on-every-arrival turn that was pulled (see the note above); that
+     * ran on every world and every visit and nobody could skip it without knowing to.
+     */
+    intro?: string;
+    /**
+     * Spoken once per later visit when the button asks to be noticed (`shouldInviteSpin`),
+     * in the child's register: what they *can* do, not what they must.
+     */
+    invite?: string;
+    /**
      * This world's colour, for the small day/night disc on its own button.
      *
      * The button used to be a stroked sun, which is a symbol of the *topic* rather than a
@@ -302,6 +315,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       label: 'Spin the Earth',
       tint: '#3f7fb8',
       name: 'Your Day and Night',
+      intro: 'Watch. Earth is turning. That is day, and that is night.',
+      invite: 'You can turn Earth. Tap the little globe.',
       fact:
         'The Sun does not move. Earth turns! When your part of it turns towards the Sun ' +
         'that is morning, and when it turns away the sky goes dark and the lights come on.',

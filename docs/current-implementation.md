@@ -109,6 +109,26 @@ captions now say "Tap the arrow, or swipe"; the recorded `hunt-*` lines still sa
 re-authored in the spoken-layer batch. Before/after captures of the hunt moment are in
 `design/hunt-review-2026-09-25/`.
 
+**Playtest fix 3, 25 September (day and night on Earth), same branch:** on a child's
+*first* visit to Earth (Earth not yet in `progress.visited` at arrival) the day turn runs by
+itself as the arrival introduction: a shorter six-second turn (`DAY_INTRO_TURN_DURATION`),
+no card, and the line "Watch. Earth is turning. That is day, and that is night."
+(`spin-intro-earth`) queued behind the welcome so it lands while the terminator crosses. Any
+tap ends it (the existing skip paths) and drops straight into the guided hunt. The data is
+`spin.intro` on the destination, so no id branches; the once-on-every-world automatic turn
+that was pulled is not back. On later visits nothing runs; `shouldInviteSpin` now asks after
+every hunt (4 s) and, on Earth only (`spinIsPrimary`), after 9 s idle mid-hunt: the button
+pulses, its globe turns faster, and "You can turn Earth. Tap the little globe."
+(`spin-invite-earth`, from `spin.invite`) is spoken once per visit through the new
+`ui.speakGuide`. Idle time now accumulates from arrival rather than from the guided hunt. The
+two lines are in `narration-script.json` but **not yet recorded**: the cloud session that
+built this could not reach huggingface.co for the Kokoro model, so until
+`npm install --no-save kokoro-js && npm run narration:generate` is run on the laptop (only the
+two missing cues are generated) the introduction turns with the dawn sound but no voice, and
+the invitation is visual only, because only recorded cues start by themselves. The `hunt-*`
+recordings still say "swipe"; re-authoring them to name the arrow tap first belongs with the
+spoken-layer batch. Captures are in `design/earth-intro-review-2026-09-25/`.
+
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
 remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;

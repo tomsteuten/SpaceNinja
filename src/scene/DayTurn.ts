@@ -42,12 +42,18 @@ const UP = new THREE.Vector3(0, 1, 0);
  */
 export const DAY_SWING_DURATION = 2.2;
 export const DAY_TURN_DURATION = 9;
+/**
+ * The first-visit introduction on Earth is a shorter turn: long enough for one spoken
+ * sentence to land while the light moves, short enough that a child who is not interested
+ * has lost nothing — and any tap ends it anyway.
+ */
+export const DAY_INTRO_TURN_DURATION = 6;
 
 export interface DayTurn {
   /** True from start() until the turn completes or is reset. */
   readonly active: boolean;
-  /** Begins a turn. Ignored while one is already running. */
-  start(body: CelestialBody): void;
+  /** Begins a turn. Ignored while one is already running. `duration` is the turn itself, in seconds. */
+  start(body: CelestialBody, duration?: number): void;
   update(dt: number): void;
   /**
    * Ends the turn early, as a full completion rather than an abandonment: it applies
@@ -88,7 +94,7 @@ function smootherstep(t: number): number {
 export function createDayTurn(options: DayTurnOptions): DayTurn {
   const { camera, controls, onProgress, onFinish, reducedMotion = false } = options;
   const swingDuration = DAY_SWING_DURATION;
-  const rate = FULL_TURN / DAY_TURN_DURATION;
+  let rate = FULL_TURN / DAY_TURN_DURATION;
 
   const centre = new THREE.Vector3();
   const from = new THREE.Vector3();
@@ -126,9 +132,10 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       return turning !== null;
     },
 
-    start(body: CelestialBody) {
+    start(body: CelestialBody, duration = DAY_TURN_DURATION) {
       if (turning) return;
       turning = body;
+      rate = FULL_TURN / duration;
       phase = 'swing';
       swung = 0;
       turned = 0;

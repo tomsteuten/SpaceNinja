@@ -1884,6 +1884,12 @@ body {
   }
 }
 
+/* And the little globe turns while it asks: the button's own picture of what it does,
+   sped up from its idle crawl so the motion reads as "this one turns". */
+.spin-btn.is-inviting .spin-globe:not(.is-turning) .spin-globe__night {
+  animation-duration: 1.6s;
+}
+
 /* Removes the motion, keeps the invitation: a held warm ring still says "this one". */
 @media (prefers-reduced-motion: reduce) {
   .spin-btn.is-inviting {

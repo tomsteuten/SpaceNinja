@@ -30,6 +30,8 @@ function cuesByBody(): Record<string, string[]> {
         `hunt-${bodyId}`,
         `success-${bodyId}`,
         ...(destination.spin ? [`spin-${bodyId}`] : []),
+        ...(destination.spin?.intro ? [`spin-intro-${bodyId}`] : []),
+        ...(destination.spin?.invite ? [`spin-invite-${bodyId}`] : []),
       ],
     ]),
   );

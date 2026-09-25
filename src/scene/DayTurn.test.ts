@@ -10,7 +10,7 @@
 
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
-import { DAY_SWING_DURATION, DAY_TURN_DURATION, createDayTurn } from './DayTurn';
+import { DAY_INTRO_TURN_DURATION, DAY_SWING_DURATION, DAY_TURN_DURATION, createDayTurn } from './DayTurn';
 import { SUN_DIRECTION } from '../config';
 import type { OrbitInput } from '../controls/OrbitInput';
 import type { CelestialBody } from './Bodies';
@@ -43,13 +43,13 @@ function stubCamera() {
 }
 
 /** Runs a turn to completion at a given frame time, returning how long it took. */
-function runToFinish(dt: number) {
+function runToFinish(dt: number, duration?: number) {
   const onFinish = vi.fn();
   const camera = stubCamera();
   const controls = stubControls();
   const turn = createDayTurn({ camera, controls, onFinish });
   const { body, turnedBy } = stubBody();
-  turn.start(body);
+  turn.start(body, duration);
 
   let frames = 0;
   while (turn.active && frames < 100000) {
@@ -292,5 +292,18 @@ describe('createDayTurn', () => {
     expect(turnedBy()).toBeLessThan(FULL_TURN);
     // Flying home mid-turn must not leave the camera stuck in the cutscene.
     expect(controls.enabled).toBe(true);
+  });
+});
+
+describe('a shorter introduction turn', () => {
+  it('is still exactly one turn, and finishes sooner', () => {
+    const dt = 1 / 60;
+    const lesson = runToFinish(dt);
+    const intro = runToFinish(dt, DAY_INTRO_TURN_DURATION);
+    expect(intro.turnedBy()).toBeCloseTo(FULL_TURN, 10);
+    expect(intro.onFinish).toHaveBeenCalledTimes(1);
+    expect(intro.frames).toBeLessThan(lesson.frames);
+    expect(intro.frames * dt).toBeCloseTo(DAY_SWING_DURATION + DAY_INTRO_TURN_DURATION, 0);
+    expect(DAY_INTRO_TURN_DURATION).toBeLessThan(DAY_TURN_DURATION);
   });
 });

@@ -62,14 +62,19 @@ export const COACH_ARROW_DELAY = COACH_TAP_DELAY;
  */
 export const COACH_DRAG_DELAY = 13;
 /**
- * And longer still before the day/night button asks to be noticed.
- *
- * Only once the hunt is finished, so it never competes with it — at that point the world's
- * own celebration has landed (2.4s of sticker, and up to 3.2s more if the finale follows)
- * and the remaining offers are turn a day, open the journal, or go home. The day turn is
- * the one with anything in it, and it is the one a child has no way of guessing at.
+ * How long a child gets, mid-hunt, before the day/night button asks to be noticed — on a
+ * world where that button is the screen's primary action, which today is Earth. Nine
+ * seconds: after the coach's tap hand at six, so a stuck child is shown the hunt first and
+ * offered the other thing second.
  */
 export const SPIN_INVITE_DELAY = 9;
+/**
+ * And how long after the hunt is finished, on every world. The world's own celebration has
+ * to land first (2.4s of sticker, and up to 3.2s more if the finale follows); after that the
+ * remaining offers are turn a day, open the journal, or go home, and the day turn is the one
+ * with anything in it and the one a child has no way of guessing at.
+ */
+export const SPIN_INVITE_AFTER_HUNT = 4;
 
 /**
  * What the coach should be showing, if anything.
@@ -104,20 +109,26 @@ export function coachCue(input: CoachInput): CoachCue | null {
  * applies to, and a hand flying down to the dock to press a button would be a different and
  * worse idea — the button can simply pulse where it already is, which costs no space and no
  * position plumbing between modules. The *decision* lives here with the other coaching
- * decisions so it is pure and tested; `ui.setSpinAttention` does the drawing.
+ * decisions so it is pure and tested; `ui.setSpinAttention` does the drawing, and main.ts
+ * speaks the world's invitation the first time this turns true in a visit.
  *
- * Gated on the hunt being finished so it can never compete with finding places, and on the
- * turn not already running, because a button asking to be pressed while doing the thing it
- * was pressed for is nonsense.
+ * After the hunt, everywhere. During the hunt only where the turn is the screen's primary
+ * action (`spinIsPrimary`: Earth, whose arrival offers Day & night first) — on the tablet a
+ * child never found it there, because nothing moved or spoke to invite it. Elsewhere the
+ * gold places are the invitation and this must not compete with them. Never while the turn
+ * is already running: a button asking to be pressed while doing the thing it was pressed
+ * for is nonsense.
  */
 export function shouldInviteSpin(opts: {
   idleFor: number;
   huntComplete: boolean;
   spinOffered: boolean;
   spinBusy: boolean;
+  spinIsPrimary?: boolean;
 }): boolean {
-  if (!opts.spinOffered || opts.spinBusy || !opts.huntComplete) return false;
-  return opts.idleFor >= SPIN_INVITE_DELAY;
+  if (!opts.spinOffered || opts.spinBusy) return false;
+  if (opts.huntComplete) return opts.idleFor >= SPIN_INVITE_AFTER_HUNT;
+  return Boolean(opts.spinIsPrimary) && opts.idleFor >= SPIN_INVITE_DELAY;
 }
 
 /** True when the two cues would put the hand in a different place or mode. */

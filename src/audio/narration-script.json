@@ -53,6 +53,8 @@
     "success-saturn": "You found all three! You have been all the way out to Saturn.",
     "discovery-saturn-division": "You found the big gap in the rings! One of Saturn's moons keeps sweeping it clear, over and over.",
     "discovery-saturn-jet": "You found Saturn's fastest wind! Round the middle it never stops blowing, quicker than a jet plane.",
-    "discovery-saturn-bands": "You found the stripes! Each stripe is a band of cloud, and every one races round Saturn at its own speed."
+    "discovery-saturn-bands": "You found the stripes! Each stripe is a band of cloud, and every one races round Saturn at its own speed.",
+    "spin-intro-earth": "Watch. Earth is turning. That is day, and that is night.",
+    "spin-invite-earth": "You can turn Earth. Tap the little globe."
   }
 }

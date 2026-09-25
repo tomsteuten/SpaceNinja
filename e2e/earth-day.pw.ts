@@ -7,10 +7,20 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
   await expect.poll(async () => (await snapshot()).phase).toBe('arrived');
   const day = page.getByRole('button', { name: 'Day and night on Earth' });
+  const done = page.getByRole('button', { name: 'Done with day and night' });
+  // A first visit opens with the turn itself as the introduction: no gold places yet, the
+  // button reads Done, and any tap on the world ends it straight into the guided hunt.
+  await expect(done).toBeVisible();
+  await expect.poll(async () => (await snapshot()).targets.length).toBe(0);
+  await expect(page.locator('.fact-card')).toBeHidden();
+  const { width, height } = page.viewportSize()!;
+  await page.mouse.click(width / 2, height / 2);
   await expect(day).toBeVisible();
+  await expect.poll(async () => (await snapshot()).guidedHunt).toBe(true);
+  await expect.poll(async () => (await snapshot()).cameraReturning).toBe(false);
+  await expect.poll(async () => (await snapshot()).targets.filter((target: { visible: boolean }) => target.visible).length).toBe(2);
   await expect(page.locator('.fact-card')).toBeHidden();
   const initial = await snapshot();
-  expect(initial.targets.filter((target: { visible: boolean }) => target.visible)).toHaveLength(2);
 
   const about = page.getByRole('button', { name: 'About', exact: true });
   await about.click();
@@ -20,7 +30,6 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   await expect(page.locator('.fact-card')).toBeHidden();
 
   await day.click();
-  const done = page.getByRole('button', { name: 'Done with day and night' });
   await expect(done).toBeVisible();
   await expect.poll(async () => (await snapshot()).targets.length).toBe(0);
   const frameBeforeHistory = (await snapshot()).frame;
@@ -58,6 +67,15 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   await expect(done).toBeVisible();
   await page.getByRole('button', { name: 'Fly Home', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fly to Earth', exact: true })).toBeVisible();
+
+  // A later visit does not run the introduction: the button is offered, the gold places are
+  // there at once, and the discovery from the first visit is still recorded.
+  await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
+  await expect.poll(async () => (await snapshot()).phase).toBe('arrived');
+  await expect(day).toBeVisible();
+  await expect(done).toBeHidden();
+  await expect.poll(async () => (await snapshot()).targets.filter((target: { visible: boolean }) => target.visible).length).toBe(2);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('spaceninja.progress.v1') ?? '{}').discoveries?.length)).toBe(1);
 });
 
 test('the short landscape hunt counter leaves both gold places clear', async ({ page }, info) => {

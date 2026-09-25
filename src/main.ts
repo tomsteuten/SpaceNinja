@@ -24,7 +24,7 @@ import { createSky } from './scene/Starfield';
 import { BODY_IDS, createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
-import { createDayTurn } from './scene/DayTurn';
+import { DAY_INTRO_TURN_DURATION, createDayTurn } from './scene/DayTurn';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
@@ -254,33 +254,50 @@ async function main() {
       surfaceTurn = { body: world.bodies[follow], direction: hint.turn, t: 0, applied: 0 };
     },
     onSpin: () => {
-      const body = world.bodies[follow];
-      const spin = DESTINATIONS[follow]?.spin;
       if (dayTurn.active) {
         if (follow === 'earth') dayTurn.skip();
         return;
       }
-      if (!spin) return;
-      // Where the child was looking from before the turn swung the camera side-on, so it can
-      // be handed back to them there. Relative to the body, which keeps orbiting throughout.
-      body.getWorldPosition(focusPosition);
-      preTurnCameraOffset.copy(camera.position).sub(focusPosition);
+      startDayTurn(false);
+    },
+  });
+
+  /**
+   * Turn the world through a day: pressed, or — once, on a child's first visit to Earth — as
+   * the arrival introduction (`intro`), which is shorter, speaks its own line while the light
+   * moves, and ends on any tap straight into the hunt.
+   */
+  function startDayTurn(intro: boolean) {
+    const body = world.bodies[follow];
+    const spin = DESTINATIONS[follow]?.spin;
+    if (!spin || dayTurn.active) return;
+    // Where the child was looking from before the turn swung the camera side-on, so it can
+    // be handed back to them there. Relative to the body, which keeps orbiting throughout.
+    body.getWorldPosition(focusPosition);
+    preTurnCameraOffset.copy(camera.position).sub(focusPosition);
+    if (intro) {
+      // No card at all: the welcome is still being read, and this line waits behind it and
+      // lands while the terminator is crossing the disc.
+      ui.clearFact();
+      if (spin.intro) ui.speakGuide(spin.intro, `spin-intro-${follow}`);
+    } else {
       // Put the explanation one speaker-tap away before the camera starts moving. This is
       // the one lesson whose content is entirely visual, and a full-width card during the
       // 2.2s swing pulled the child's eyes away before the sunlight even began to move.
       ui.showNote(`spin-${follow}`, spin.name, spin.fact);
       ui.foldFact(true);
-      if (follow === 'earth') {
-        ui.clearFact();
-        ui.setHint(null);
-        ui.setHuntArrow(null);
-        coach.clear();
-        activeMission?.setPresentation(false);
-      }
-      ui.setSpinBusy(true);
-      dayTurn.start(body);
-    },
-  });
+    }
+    if (follow === 'earth') {
+      if (!intro) ui.clearFact();
+      ui.setHint(null);
+      ui.setHuntArrow(null);
+      coach.clear();
+      activeMission?.setPresentation(false);
+    }
+    introTurn = intro;
+    ui.setSpinBusy(true);
+    dayTurn.start(body, intro ? DAY_INTRO_TURN_DURATION : undefined);
+  }
 
   /*
    * Turning a destination through one day, which is the thing children asked about.
@@ -321,6 +338,9 @@ async function main() {
       follow = destination.id;
       suggested = null;
       world.setSelected(null);
+      spinInvited = false;
+      // Read before the visit is recorded: a first visit is one that has not been.
+      const firstVisit = !loadProgress().visited.includes(destination.id);
       // Arriving is the achievement that opens the rest of the system up. The sticker is
       // still the collection's, and is still awarded by finishing it.
       markVisited(destination.id);
@@ -345,6 +365,13 @@ async function main() {
       // once. There is nothing between arriving and having something to touch.
       mission.start();
       revealHunt();
+      /*
+       * The one exception, decided by the owner after watching a child never find the day
+       * and night button: a first visit to a world with an authored introduction (Earth)
+       * opens with the turn itself, short and spoken, and any tap ends it into the hunt. On
+       * every later visit the button is offered and invited instead — see shouldInviteSpin.
+       */
+      if (firstVisit && config.spin?.intro) startDayTurn(true);
     },
   });
 
@@ -524,6 +551,12 @@ async function main() {
     ui.setSpinBusy(false);
     ui.setSpinProgress(null);
     if (follow === 'earth') activeMission?.setPresentation(true);
+    if (introTurn) {
+      // The introduction is over, by running out or by a tap: straight into the hunt, with
+      // the counter and the spoken "find the gold places" rather than the roam-first beat.
+      introTurn = false;
+      beginGuidedHunt();
+    }
     const body = world.bodies[follow];
     body.getWorldPosition(focusPosition);
     if (reducedMotion) {
@@ -694,6 +727,11 @@ async function main() {
    * day turn's honest constant rate, because this is a control answering a press, not a
    * lesson about how planets move. Reduced motion cuts.
    */
+  /** The running day turn is the first-visit introduction rather than a pressed one. */
+  let introTurn = false;
+  /** The spoken invitation to turn the world has been given this visit. */
+  let spinInvited = false;
+
   const QUARTER_TURN = Math.PI / 2;
   const SURFACE_TURN_MS = 700;
   let surfaceTurn: { body: CelestialBody; direction: -1 | 1; t: number; applied: number } | null = null;
@@ -805,6 +843,8 @@ async function main() {
   function resetAdventure() {
     cameraReturn = null;
     surfaceTurn = null;
+    introTurn = false;
+    spinInvited = false;
     huntGuidance = null;
     coach.clear();
     idleFor = 0;
@@ -892,30 +932,37 @@ async function main() {
     /*
      * And the hand, on the same terms as the arrow: only while the camera is the child's to
      * move. Idle time accumulates only then too, so a seven-second flight does not arrive
-     * with the coach already convinced nobody is playing.
+     * with the coach already convinced nobody is playing. It accumulates from arrival, not
+     * from the guided hunt, so the day/night invitation on Earth can come during the calm
+     * first beat; the hand itself still waits for the guided hunt.
      */
-    if (cameraOurs && huntGuidanceActive && activeMission?.active) {
+    if (cameraOurs && activeMission?.active) {
       idleFor += dt;
       coach.update({
         idleFor,
-        huntActive: true,
+        huntActive: huntGuidanceActive,
         target: activeMission.nextTarget(),
         hiddenSide,
         arrow: hiddenSide === null ? null : arrowInCanvas(),
       });
       /*
-       * And once every place is found, the one remaining offer with anything in it. The
-       * child has just been celebrated and the alternatives are the journal and going home;
-       * the day turn is the only thing here they have no way of guessing at.
+       * The day turn asking to be noticed: after every hunt, and during the hunt on Earth,
+       * where it is the arrival's primary action. The button pulses and its globe turns; the
+       * world's spoken invitation is given once per visit, the first time this comes true.
        */
-      ui.setSpinAttention(
-        shouldInviteSpin({
-          idleFor,
-          huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
-          spinOffered: Boolean(DESTINATIONS[follow]?.spin),
-          spinBusy: dayTurn.active,
-        }),
-      );
+      const spin = DESTINATIONS[follow]?.spin;
+      const inviting = shouldInviteSpin({
+        idleFor,
+        huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
+        spinOffered: Boolean(spin),
+        spinBusy: dayTurn.active,
+        spinIsPrimary: follow === 'earth',
+      });
+      ui.setSpinAttention(inviting);
+      if (inviting && !spinInvited) {
+        spinInvited = true;
+        if (spin?.invite) ui.speakGuide(spin.invite, `spin-invite-${follow}`);
+      }
     } else {
       idleFor = 0;
       coach.update({ idleFor: 0, huntActive: false, target: null, hiddenSide: null });

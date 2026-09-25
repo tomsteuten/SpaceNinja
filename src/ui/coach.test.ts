@@ -5,6 +5,7 @@ import {
   COACH_ARROW_DELAY,
   COACH_DRAG_DELAY,
   COACH_TAP_DELAY,
+  SPIN_INVITE_AFTER_HUNT,
   SPIN_INVITE_DELAY,
   coachCue,
   coachSweep,
@@ -110,18 +111,23 @@ describe('cueChanged', () => {
 describe('shouldInviteSpin', () => {
   const done = { huntComplete: true, spinOffered: true, spinBusy: false };
 
-  it('waits out its own delay, longer than the tap cue it can never overlap anyway', () => {
-    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY - 0.01 })).toBe(false);
-    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY })).toBe(true);
-    // The drag cue needs an unfinished hunt and this needs a finished one, so the two are
-    // never on screen together whatever their delays; only the tap cue's timing is a peer.
-    expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_TAP_DELAY);
+  it('lets the celebration land after the hunt, then asks on every world', () => {
+    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_AFTER_HUNT - 0.01 })).toBe(false);
+    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_AFTER_HUNT })).toBe(true);
   });
 
-  it('never competes with an unfinished hunt', () => {
+  it('never competes with an unfinished hunt where the gold places are the invitation', () => {
     // Finding places is the thing; a button asking to be pressed over the top of it would
     // be the game interrupting its own instruction.
     expect(shouldInviteSpin({ ...done, huntComplete: false, idleFor: 600 })).toBe(false);
+  });
+
+  it('asks mid-hunt only where the turn is the primary action, after the tap hand', () => {
+    const earth = { ...done, huntComplete: false, spinIsPrimary: true };
+    expect(shouldInviteSpin({ ...earth, idleFor: SPIN_INVITE_DELAY - 0.01 })).toBe(false);
+    expect(shouldInviteSpin({ ...earth, idleFor: SPIN_INVITE_DELAY })).toBe(true);
+    // The coach shows the hunt first; the offer of the other thing comes second.
+    expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_TAP_DELAY);
   });
 
   it('stays quiet on a world with no day turn to offer', () => {
