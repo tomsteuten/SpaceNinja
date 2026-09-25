@@ -30,10 +30,12 @@ test('the solar system, a flight out, close exploration, a find and the way home
   expect((await snapshot(page)).phase).not.toBe('system');
   await expect.poll(async () => (await snapshot(page)).phase, LONG).toBe('exploring');
 
+  // Close to the ground, not the solar-system framing: the explorer's surface view. Polled,
+  // not read once: the phase flips inside beginExploring and the camera is written on the
+  // next frame, which on the software renderer can land after the phase poll returned.
+  await expect.poll(async () => (await snapshot(page)).cameraAltitude, LONG).toBeLessThan(1);
   const arrived = await snapshot(page);
   expect(arrived.world).toBe('mars');
-  // Close to the ground, not the solar-system framing: the explorer's surface view.
-  expect(arrived.cameraAltitude).toBeLessThan(1);
   expect(arrived.beacons).toHaveLength(6);
   await expect(page.getByRole('button', { name: /Solar system/ })).toBeVisible();
   await attachShot(page, 'exploring', info);
