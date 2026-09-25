@@ -48,7 +48,9 @@ npm run typecheck
 npm test
 npm run build
 npm run test:e2e
-npm run narration:generate
+npm run narration:generate          # shipped pack, ElevenLabs (needs ELEVENLABS_API_KEY; --force, --only=<cue>)
+npm run narration:generate:kokoro   # keyless local fallback (needs ffmpeg + npm i --no-save kokoro-js)
+npm run narration:generate:openai   # optional keyed alternative (needs OPENAI_API_KEY)
 ```
 
 ### Testing: what to run, and when
