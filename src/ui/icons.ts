@@ -36,6 +36,14 @@ const ICONS = {
   expand:
     '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/>' +
     '<path d="M4 15v5h5"/><path d="M20 15v5h-5"/>',
+  /**
+   * The way back to the solar-system map: a little sun with a planet on its orbit. It stands
+   * for the whole home view a child returns to, which "home" (they are standing on a world
+   * that is also called home) and a rocket (which means go, not come back) both failed to say.
+   */
+  orbit:
+    '<circle cx="12" cy="12" r="2.3"/>' +
+    '<g transform="rotate(-20 12 12)"><ellipse cx="12" cy="12" rx="9" ry="4.2"/><circle cx="21" cy="12" r="1.5"/></g>',
   /** Turning a world through a day. A sun, because what moves is the light on the ground. */
 } as const;
 

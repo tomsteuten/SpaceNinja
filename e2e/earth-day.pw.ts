@@ -65,7 +65,7 @@ test('Earth day and night can be ended, repeated, and left without losing discov
 
   await day.click();
   await expect(done).toBeVisible();
-  await page.getByRole('button', { name: 'Fly Home', exact: true }).click();
+  await page.getByRole('button', { name: 'Space map', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fly to Earth', exact: true })).toBeVisible();
 
   // A later visit does not run the introduction: the button is offered, the gold places are

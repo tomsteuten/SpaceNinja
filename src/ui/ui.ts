@@ -496,10 +496,15 @@ export function createUI(options: UIOptions): GameUI {
    * So: one button, always the same words, never hidden mid-mission. It stays visually
    * secondary to whatever the primary action is, but it is unmistakably a button with a
    * label, because "how do I get out of here" should never need a guess.
+   *
+   * "Fly Home" and a rocket said the wrong thing twice: a rocket means *go*, not *come back*,
+   * and "home" is the very world some children are standing on. It is now the solar-system map
+   * icon and "Space map" — it names the place it returns to (the map of all the worlds), which
+   * adults missed was always available and a pre-reader reads from the little orbit.
    */
   const homeButton = el('button', 'btn btn--secondary home-btn');
   homeButton.type = 'button';
-  homeButton.append(createIcon('rocket'), el('span', undefined, 'Fly Home'));
+  homeButton.append(createIcon('orbit'), el('span', undefined, 'Space map'));
   homeButton.classList.add('is-hidden');
 
   /*

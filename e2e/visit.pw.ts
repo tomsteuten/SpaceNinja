@@ -44,7 +44,7 @@ async function keepExploring(page: Page) {
   await expect(page.locator('.photo-view')).toBeHidden();
 }
 async function home(page: Page) {
-  await page.getByRole('button',{name:'Fly Home',exact:true}).click();
+  await page.getByRole('button',{name:'Space map',exact:true}).click();
   await expect(page.getByRole('button',{name:'Fly to Moon',exact:true})).toBeVisible();
 }
 test('rendered discoveries, drag, media, return, repeat and outer-world arrivals', async ({page}, info) => {

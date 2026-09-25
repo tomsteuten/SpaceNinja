@@ -16,7 +16,7 @@ try {
     if(await start.isVisible()) await start.click();
     await page.getByRole('dialog',{name:'Grown-ups settings'}).waitFor({state:'hidden'});
     await page.getByRole('button',{name:'Fly to Earth',exact:true}).click();
-    await page.getByRole('button',{name:'Fly Home',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Space map',exact:true}).waitFor();
     if (label.startsWith('guided')) await page.locator('.mission-hud').waitFor({state:'visible'});
     await page.screenshot({path:`${output}/${label}-${device}.png`});
     console.log(`${label} ${device}`);

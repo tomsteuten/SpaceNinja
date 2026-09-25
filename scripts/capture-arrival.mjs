@@ -45,7 +45,7 @@ try {
     await page.locator('#boot').waitFor({ state: 'hidden' });
     await page.getByRole('button', { name: `Fly to ${world}`, exact: true }).click();
     await page.waitForFunction(() => window.spaceNinjaSnapshot?.().phase === 'arrived');
-    await page.getByRole('button', { name: 'Fly Home', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Space map', exact: true }).waitFor();
     // Let the arrival settle: the hint, the card and the parked ship's dimming.
     await page.waitForTimeout(1500);
     await page.screenshot({ path: `${output}/${label}-${device}.png` });

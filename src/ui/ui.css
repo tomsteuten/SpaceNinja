@@ -455,7 +455,10 @@ body {
    practical landscape viewport use the bottom band. */
 @media (min-width: 600px) and (orientation: landscape) {
   .dock {
-    width: min(1040px, calc(100vw - var(--pad-left) - var(--pad-right)));
+    /* A contained band, not the full width of a desktop monitor: at 1040px the four controls
+       drifted apart into a sparse strip that read as unfinished. Held together, they are a
+       deliberate cluster the eye takes in at once. */
+    width: min(760px, calc(100vw - var(--pad-left) - var(--pad-right)));
     flex-flow: row wrap;
     justify-content: center;
     align-items: flex-end;
@@ -467,9 +470,11 @@ body {
     flex: 1 0 100%;
   }
 
-  /* Folded to its speaker button, it joins the others rather than hovering alone in the
-     middle of the planet — which is the state the game spends most of its time in. */
-  .fact-card.is-collapsed {
+  /* Folded to its speaker button, or reduced to a name while its audio plays, it joins the
+     others as a chip rather than hovering alone as a full-width bar in the middle of the
+     planet — which is the state the game spends most of its time in. */
+  .fact-card.is-collapsed,
+  .fact-card.is-audio-first:not(.is-transcript-open) {
     order: 2;
     flex: 0 0 auto;
   }
@@ -2006,7 +2011,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: 100%;
+  /* Shrink to the name, photo and controls and centre, rather than stretching to a fixed
+     bar with an empty middle. The expanded reading card is a different state and still gets
+     its full width above, so the paragraph never narrows into a tall column. */
+  width: auto;
+  align-self: center;
   max-width: 420px;
   gap: 0.35rem;
   padding: 0.45rem 0.65rem;
@@ -2025,6 +2034,17 @@ body {
 @media (max-width: 599px), (orientation: portrait) {
   .dock { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; gap: 8px; }
   .dock .fact-card { grid-column: 1 / -1; max-width: none; }
+  /* The compact states — a name and its controls, no paragraph — shrink to their content and
+     centre in the row instead of stretching into a full-width bar with an empty middle (a
+     short "The Moon" and two buttons across the whole phone read as unfinished). The expanded
+     reading card keeps the full width from the rule above, so its paragraph never narrows into
+     a tall column. */
+  .dock .fact-card.is-audio-first:not(.is-transcript-open),
+  .dock .fact-card.is-collapsed {
+    justify-self: center;
+    width: auto;
+    max-width: min(420px, 100%);
+  }
   .dock .home-btn { grid-column: 2; grid-row: 2; min-width: 0; padding-inline: 6px; font-size: 1rem; }
   .dock .spin-btn { grid-column: 3; grid-row: 2; width: 64px; height: 64px; }
 }

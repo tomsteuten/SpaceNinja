@@ -77,7 +77,7 @@ test('installed adventure reloads offline and an active adventure defers a contr
   await takeOver(page);
   await expect.poll(async () => (await snapshot(page)).frame).toBeGreaterThan(before + 10);
   expect(await timeOrigin(page)).toBe(playing);
-  await expect(page.getByRole('button', { name: 'Fly Home', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Space map', exact: true })).toBeVisible();
   await expectRendering(page);
   for (const request of failed) expect(request, 'Only optional image probes may fail offline').toMatch(/^HEAD .+\.(jpg|png)$/);
 });

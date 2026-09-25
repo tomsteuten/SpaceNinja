@@ -220,7 +220,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         about?.lead ??
           'A quiet solar system for a child of about five to eight. There is nothing to ' +
             'lose, nothing to get wrong, and no way to get stuck — once a world is reached, ' +
-            'Fly Home is always there.',
+            'the Space map button returns to the worlds at any time.',
       ),
     );
 

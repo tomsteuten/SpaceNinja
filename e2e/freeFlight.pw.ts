@@ -49,6 +49,6 @@ test('assisted free flight boots, flies, arrives and hands control back', async 
   await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().phase)).toBe('arrived');
   await expectRendering(page);
-  await page.getByRole('button', { name: 'Fly Home', exact: true }).click();
+  await page.getByRole('button', { name: 'Space map', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fly to Moon', exact: true })).toBeVisible();
 });

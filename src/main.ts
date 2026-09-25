@@ -484,8 +484,8 @@ async function main() {
           namesNextWorld ? { text: cueText('success-next'), cueId: 'success-next' } : undefined,
         );
         ui.setHint(namesNextWorld
-          ? `✓ ✓ ✓  Found! 🚀 Home → ${nextConfig!.emoji} ${world.bodies[next!].label}`
-          : '✓ ✓ ✓  Found! 📖 Look in your book · 🚀 Fly Home');
+          ? `✓ ✓ ✓  Found! 🗺 Space map → ${nextConfig!.emoji} ${world.bodies[next!].label}`
+          : '✓ ✓ ✓  Found! 📖 Look in your book · 🗺 Space map');
         /*
          * And when this was the last place on the last world, the finale — once.
          *
