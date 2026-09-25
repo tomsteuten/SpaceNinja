@@ -11,3 +11,7 @@ dist-playtest/
 test-results/
 playwright-report/
 .preservation/
+
+# Secrets and scratch voice samples (never committed)
+.env
+design/voice-samples-2026-09-25/
