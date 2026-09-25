@@ -1,4 +1,4 @@
-import { test, expect, attachShot, expectRendering } from './fixtures';
+import { test, expect, attachShot, expectRendering, settlePanel } from './fixtures';
 
 test('Earth to Moon outing: pilot, stop, help, Tycho, memory and return', async ({ page }, info) => {
   test.setTimeout(480_000); // Software WebGL can stretch the full journey on Windows.
@@ -40,6 +40,7 @@ test('Earth to Moon outing: pilot, stop, help, Tycho, memory and return', async 
   await expect(page.locator('.photo-view__image')).toHaveAttribute('src', /moon-tycho\.jpg/);
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().found)).toBe(true);
   await attachShot(page, 'outing-tycho-photo', info);
+  await settlePanel(page);
   await page.getByRole('button', { name: 'Close the photo' }).click();
   await expect(page.getByRole('button', { name: 'Fly Home' })).toBeVisible();
   await attachShot(page, 'outing-discovered', info);

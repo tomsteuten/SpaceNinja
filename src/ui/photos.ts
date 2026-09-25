@@ -20,6 +20,7 @@
 
 import { imageExists } from '../scene/textures';
 import { createDialogFocus } from './dialog';
+import { PANEL_OPEN_GUARD_MS, createPanelGuard, type PanelGuard, type PanelOpening } from './panelGuard';
 
 /**
  * Named after the discovery id rather than listed in config.ts, which is the same bargain
@@ -69,6 +70,8 @@ export function canFinishPhotoDismiss(
 export interface PhotoViewerOptions {
   /** Called whenever the viewer hides, by any route: button, backdrop, Escape or code. */
   onHide?: () => void;
+  /** The interface's shared press counter, so every panel keeps the same double-tap rule. */
+  guard?: PanelGuard;
 }
 
 export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions = {}): PhotoViewer {
@@ -110,6 +113,10 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
   overlay.append(figure, continueButton, close);
 
   const focus = createDialogFocus(overlay, () => close, hide);
+  const guard = options.guard ?? createPanelGuard(window);
+  const ownsGuard = !options.guard;
+  /** When and on which press the viewer last opened; the buttons ask before closing. */
+  let opening: PanelOpening | null = null;
 
   function hide() {
     overlay.classList.add('is-hidden');
@@ -135,7 +142,7 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
    * ghost lands within a few hundred milliseconds. A deliberate second tap to close is
    * well past both gates.
    */
-  const OPEN_GUARD_MS = 450;
+  const OPEN_GUARD_MS = PANEL_OPEN_GUARD_MS;
   let openedAt = 0;
   let dismissPointer: number | null = null;
 
@@ -156,17 +163,26 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
   overlay.addEventListener('pointercancel', () => {
     dismissPointer = null;
   });
-  // The close button is an explicit control, so it always closes — no ghost reaches a
-  // 62px target the finger deliberately found, and gating it would only make the X feel
-  // broken. stopPropagation so it does not also run the backdrop handler.
+  /*
+   * The close button and Keep exploring are explicit controls, and once the viewer has been
+   * up for a moment they close on any press, no fresh-backdrop rule. The moment matters,
+   * though: the postcard opens itself after a tap on a gold place, wherever on the screen
+   * that place was, and a child's second tap of a double tap lands on the same spot — which
+   * can now be the X or the exit. So they share the panel rule (a fresh press, after the
+   * guard) rather than closing from the tail of the tap that opened them. stopPropagation
+   * on the X so it does not also run the backdrop handler.
+   */
   close.addEventListener('click', (event) => {
     event.stopPropagation();
+    if (!guard.allowsClose(opening, event)) return;
     hide();
   });
   // A visible, worded exit makes the automatic postcard feel like a reward rather than a
-  // surprise modal. It is an explicit control, so it follows the close button rather than
-  // the guarded backdrop route.
-  continueButton.addEventListener('click', hide);
+  // surprise modal.
+  continueButton.addEventListener('click', (event) => {
+    if (!guard.allowsClose(opening, event)) return;
+    hide();
+  });
   root.append(overlay);
 
   return {
@@ -179,7 +195,8 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
       overlay.classList.remove('is-reward');
       continueButton.classList.add('is-hidden');
       overlay.classList.remove('is-hidden');
-      openedAt = performance.now();
+      opening = guard.opened();
+      openedAt = opening.at;
       dismissPointer = null;
       focus.open();
     },
@@ -191,13 +208,15 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
       overlay.classList.add('is-reward');
       continueButton.classList.remove('is-hidden');
       overlay.classList.remove('is-hidden');
-      openedAt = performance.now();
+      opening = guard.opened();
+      openedAt = opening.at;
       dismissPointer = null;
       focus.open();
     },
     hide,
     dispose() {
       focus.dispose();
+      if (ownsGuard) guard.dispose();
       overlay.remove();
     },
   };

@@ -19,6 +19,7 @@ import {
 } from './narrationFlow';
 import { createPhotoViewer, findPhoto } from './photos';
 import { createDialogFocus } from './dialog';
+import { createPanelGuard, type PanelOpening } from './panelGuard';
 
 export interface DestinationChoice {
   id: string;
@@ -385,7 +386,12 @@ export function createUI(options: UIOptions): GameUI {
   huntArrow.append(el('span', 'hunt-arrow__chevron', '❯'));
   root.append(huntArrow);
 
-  const photoViewer = createPhotoViewer(root);
+  /*
+   * One press counter for every panel the interface opens: the journal, the About words and
+   * the photo. A fast second tap must not close what the first one opened — see panelGuard.
+   */
+  const panelGuard = createPanelGuard(window);
+  const photoViewer = createPhotoViewer(root, { guard: panelGuard });
   /** What the thumbnail currently shows, so a tap opens the right one. */
   let photoShowing: { url: string; caption: string } | null = null;
 
@@ -498,6 +504,7 @@ export function createUI(options: UIOptions): GameUI {
   root.append(earthHeading);
   let earthArrivalFact = '';
   let earthAboutOpen = false;
+  let aboutOpening: PanelOpening | null = null;
 
   dock.append(factCard, spinButton, aboutButton, homeButton);
   root.append(dock);
@@ -646,10 +653,16 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   let journalOpen = false;
+  let journalOpening: PanelOpening | null = null;
   function setJournalOpen(open: boolean) {
     journalOpen = open;
     clearJournalDetail();
-    if (open) renderJournal();
+    if (open) {
+      renderJournal();
+      // The panel pops up in the button's own corner, so on a double tap the second touch
+      // lands on Close. Remember when and on which press it opened; Close asks before acting.
+      journalOpening = panelGuard.opened();
+    }
     journalPanel.classList.toggle('is-hidden', !open);
     journalButton.classList.toggle('is-hidden', open);
     // The panel and the fact card both want the lower half of a phone screen.
@@ -669,9 +682,13 @@ export function createUI(options: UIOptions): GameUI {
   spinButton.addEventListener('click', () => {
     onSpin();
   });
-  aboutButton.addEventListener('click', () => {
+  aboutButton.addEventListener('click', (event) => {
     const opening = !earthAboutOpen;
+    // A toggle, so a double tap would open the words and shut them again in one go. The
+    // closing half waits for a fresh, deliberate press; the opening half is always honoured.
+    if (!opening && !panelGuard.allowsClose(aboutOpening, event)) return;
     if (opening) {
+      aboutOpening = panelGuard.opened();
       const duringDay = root.classList.contains('is-day-active');
       showFact(
         duringDay ? (DESTINATIONS.earth?.spin?.fact ?? earthArrivalFact) : earthArrivalFact,
@@ -728,7 +745,10 @@ export function createUI(options: UIOptions): GameUI {
     }
     setJournalOpen(true);
   });
-  closeJournal.addEventListener('click', () => setJournalOpen(false));
+  closeJournal.addEventListener('click', (event) => {
+    if (!panelGuard.allowsClose(journalOpening, event)) return;
+    setJournalOpen(false);
+  });
   renderJournal();
 
   /* --- behaviour ----------------------------------------------------------- */
@@ -1420,6 +1440,7 @@ export function createUI(options: UIOptions): GameUI {
       clearTimers();
       // Its own window listener, so it has to be told rather than just detached.
       photoViewer.dispose();
+      panelGuard.dispose();
       journalFocus.dispose();
       root.replaceChildren();
     },

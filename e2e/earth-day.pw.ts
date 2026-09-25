@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, settlePanel } from './fixtures';
 
 test('Earth day and night can be ended, repeated, and left without losing discoveries', async ({ page }) => {
   await page.goto('/');
@@ -15,6 +15,7 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   const about = page.getByRole('button', { name: 'About', exact: true });
   await about.click();
   await expect(page.locator('.fact-card p')).toBeVisible();
+  await settlePanel(page);
   await about.click();
   await expect(page.locator('.fact-card')).toBeHidden();
 
@@ -31,6 +32,7 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   await about.click();
   await expect(page.locator('.fact-card .fact-title')).toContainText('Day & night');
   await expect(page.locator('.fact-card p')).toBeVisible();
+  await settlePanel(page);
   await about.click();
   await expect(page.locator('.fact-card')).toBeHidden();
   await done.click();
@@ -47,7 +49,10 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   expect(target.y).toBeLessThan(page.viewportSize()!.height);
   await page.mouse.click(target.x, target.y);
   await expect.poll(async () => (await snapshot()).collected).toBe(1);
+  await expect(page.locator('.photo-view.is-reward')).toBeVisible();
+  await settlePanel(page);
   await page.getByRole('button', { name: 'Keep exploring' }).click();
+  await expect(page.locator('.photo-view')).toBeHidden();
 
   await day.click();
   await expect(done).toBeVisible();

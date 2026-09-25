@@ -40,3 +40,13 @@ export async function expectRendering(page: Page) {
   const before = await frame(page);
   await expect.poll(() => frame(page)).toBeGreaterThan(before);
 }
+
+/**
+ * Panels ignore a close for the first half second after opening and never close from the
+ * press that opened them (src/ui/panelGuard.ts), because a child's double tap was opening
+ * and closing the journal, the About words and the photo in one go. A driver that opens a
+ * panel and closes it in the same breath is exactly that double tap, so wait the guard out.
+ */
+export async function settlePanel(page: Page) {
+  await page.waitForTimeout(650);
+}

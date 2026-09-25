@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, attachShot } from './fixtures';
+import { test, expect, attachShot, settlePanel } from './fixtures';
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 async function launch(page: Page, world: string) {
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
@@ -26,6 +26,7 @@ async function collectVisible(page: Page) {
 }
 async function keepExploring(page: Page) {
   await expect(page.locator('.photo-view.is-reward')).toBeVisible();
+  await settlePanel(page);
   await page.getByRole('button',{name:'Keep exploring'}).click();
   await expect(page.locator('.photo-view')).toBeHidden();
 }

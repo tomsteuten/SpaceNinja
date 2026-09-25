@@ -168,7 +168,9 @@ responsive checks demonstrate equal or better playfield protection and accessibi
 
 The photo viewer dismisses only on a fresh backdrop pointer sequence after its opening guard.
 Do not add a backdrop `click` handler: Android compatibility clicks previously closed it the
-instant it opened. The explicit close button remains immediate.
+instant it opened. Every panel (journal, About, photo) shares one rule in `src/ui/panelGuard.ts`:
+no close within half a second of opening, and never from the press that opened it, because a
+child's double tap was opening and closing them in one go. Keyboard closes are immediate.
 
 ### Audio and persistence
 

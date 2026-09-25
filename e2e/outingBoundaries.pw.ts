@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, attachShot } from './fixtures';
+import { test, expect, attachShot, settlePanel } from './fixtures';
 
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 
@@ -25,6 +25,7 @@ test('a memory holds the ship, reduced motion cuts to the Moon, and one Escape l
     await expect.poll(async () => (await snapshot(page)).frame).toBeGreaterThan(held.frame + 10);
     expect((await snapshot(page)).position).toEqual(held.position);
     await attachShot(page, 'memory-holds-flight', info);
+    await settlePanel(page);
     await page.getByRole('button', { name: 'Close the photo' }).click();
     await expect(photo).toBeHidden();
     expect(await snapshot(page)).toMatchObject({ photoOpen: false, speed: 0, autopilot: null });

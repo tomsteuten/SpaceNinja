@@ -84,6 +84,18 @@ opened and closed panels; turning the world to the hidden last place was frustra
 night on Earth was never found because nothing invites it. The fixes and the spoken layer they
 need are specified in `docs/handover-2026-09-24.md`, the prompt for the next session.
 
+**Playtest fix 1, 25 September (double taps), on `claude/space-ninja-interaction-fixes-shhx7p`:**
+every panel now shares one rule in `src/ui/panelGuard.ts`: no close within half a second of
+opening, and never from the press that opened it (a press counter on the window; keyboard
+closes stay immediate). Applied to the journal's Close (the panel pops up in the button's own
+corner, so a double tap's second touch landed on Close), the About toggle's closing half, and
+the photo viewer's X and Keep exploring (the postcard opens itself under a gold-place tap, so
+the second tap could land on either); the backdrop already had its own fresh-pointer guard,
+now on the same 500 ms. Nothing visual changed. Browser tests that open and close a panel in
+one breath wait the guard out through `settlePanel` in `e2e/fixtures.ts`.
+`playwright.config.ts` honours `SPACE_NINJA_CHROMIUM` for a pre-installed browser, as the
+capture scripts do; unset, nothing changes for the deploy workflow.
+
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
 remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;
