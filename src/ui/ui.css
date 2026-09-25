@@ -1491,25 +1491,30 @@ body {
 
 .hunt-arrow.is-left {
   left: var(--pad-left);
-  animation: huntLeft 1.6s ease-in-out infinite;
 }
 
 .hunt-arrow.is-right {
   right: var(--pad-right);
-  animation: huntRight 1.6s ease-in-out infinite;
 }
 
+/* The nudge is on the chevron, not the button: a tap target that travels is harder to hit
+   and reads as flinching from the finger. The disc stays put; the mark inside it beckons. */
 .hunt-arrow.is-left .hunt-arrow__chevron {
   transform: scaleX(-1);
+  animation: huntLeft 1.6s ease-in-out infinite;
+}
+
+.hunt-arrow.is-right .hunt-arrow__chevron {
+  animation: huntRight 1.6s ease-in-out infinite;
 }
 
 @keyframes huntLeft {
   0%,
   100% {
-    transform: translateX(0);
+    transform: scaleX(-1) translateX(0);
   }
   50% {
-    transform: translateX(-9px);
+    transform: scaleX(-1) translateX(7px);
   }
 }
 
@@ -1519,14 +1524,14 @@ body {
     transform: translateX(0);
   }
   50% {
-    transform: translateX(9px);
+    transform: translateX(7px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   /* Still has to be noticed, so it pulses in place rather than travelling. */
-  .hunt-arrow.is-left,
-  .hunt-arrow.is-right {
+  .hunt-arrow.is-left .hunt-arrow__chevron,
+  .hunt-arrow.is-right .hunt-arrow__chevron {
     animation: huntFade 1.8s ease-in-out infinite;
   }
 }
