@@ -148,9 +148,16 @@ export interface GameUI {
    * Point at the last place still to be found, or `null` to take the arrow away.
    *
    * `-1` for the left edge, `1` for the right. Only ever shown while the one remaining
-   * discovery is round the back: it is the drag lesson, made visible.
+   * discovery is round the back: it is the drag lesson, made visible — and a button that
+   * turns the world there for a child who would rather tap than drag.
    */
   setHuntArrow(side: -1 | 1 | null): void;
+  /**
+   * The centre of the hunt arrow button in client pixels while it is shown, else null. Read
+   * from layout rather than the animated box, so the idle coach's hand does not chase the
+   * arrow's own nudge.
+   */
+  huntArrowCentre(): { x: number; y: number } | null;
   /**
    * Shake a destination button. The wordless half of answering a press on a locked world —
    * the hint line says which world unlocks it, and a child who cannot read gets the shake
@@ -170,6 +177,8 @@ export interface UIOptions {
   onExploreAgain(): void;
   /** The "turn this world through a day" button. Only offered where config has one. */
   onSpin(): void;
+  /** The hunt arrow was pressed: turn the world towards the hidden last place. */
+  onTurnToHidden(): void;
   /**
    * Someone held the journal button down. That is the way back into the grown-ups panel,
    * and it is deliberately a gesture rather than a button: a settings control on screen is
@@ -201,6 +210,7 @@ export function createUI(options: UIOptions): GameUI {
     onChooseDestination,
     onExploreAgain,
     onSpin,
+    onTurnToHidden,
     onGrownups,
     onFinale,
   } = options;
@@ -370,7 +380,7 @@ export function createUI(options: UIOptions): GameUI {
   factCard.classList.add('is-hidden');
 
   /*
-   * The drag lesson, made visible.
+   * The drag lesson, made visible — and made a button.
    *
    * One discovery on every world sits past the horizon, and reaching it is how a child
    * learns the camera can be turned — the single most important thing the game teaches
@@ -378,12 +388,18 @@ export function createUI(options: UIOptions): GameUI {
    * spin around Earth"), which is a poor instrument for an audience that mostly cannot
    * read. This points at where the place actually is, and only while it is out of sight.
    *
-   * Outside the dock, because it belongs to the edge of the screen rather than to the
-   * cluster of controls at the bottom.
+   * On the tablet the drag itself was the frustrating part: the arrow said where, the
+   * child understood where, and turning the world there still took more than they had.
+   * So the arrow now also *does* it: a press turns the world a quarter turn towards the
+   * place. The drag still works and still turns further per swipe than it did; the button
+   * is the smaller ask, offered first. Outside the dock, because it belongs to the edge of
+   * the screen rather than to the cluster of controls at the bottom.
    */
-  const huntArrow = el('div', 'hunt-arrow is-hidden');
-  huntArrow.setAttribute('aria-hidden', 'true');
+  const huntArrow = el('button', 'hunt-arrow is-hidden') as HTMLButtonElement;
+  huntArrow.type = 'button';
+  huntArrow.setAttribute('aria-label', 'Turn to the last place');
   huntArrow.append(el('span', 'hunt-arrow__chevron', '❯'));
+  huntArrow.addEventListener('click', () => onTurnToHidden());
   root.append(huntArrow);
 
   /*
@@ -1342,6 +1358,18 @@ export function createUI(options: UIOptions): GameUI {
       huntArrow.classList.toggle('is-hidden', side === null);
       huntArrow.classList.toggle('is-left', side === -1);
       huntArrow.classList.toggle('is-right', side === 1);
+    },
+
+    huntArrowCentre() {
+      if (huntArrow.classList.contains('is-hidden')) return null;
+      // offsetLeft/Top ignore the transform the arrow's own animation applies, so this is
+      // the resting centre. The root is the fixed full-screen layer, so its offsets are
+      // already client pixels; the root's rect is added for a page that ever insets it.
+      const rootRect = root.getBoundingClientRect();
+      return {
+        x: rootRect.left + huntArrow.offsetLeft + huntArrow.offsetWidth / 2,
+        y: rootRect.top + huntArrow.offsetTop + huntArrow.offsetHeight / 2,
+      };
     },
 
     showTapEcho(clientX: number, clientY: number) {

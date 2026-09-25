@@ -311,7 +311,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'with water you can swim in, air you can breathe, and anybody at all to talk to.',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around Earth.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around Earth.',
       successLine: 'You found all three! You know your own planet from space now.',
       stickerId: 'earth-explorer',
       discoveries: [
@@ -437,7 +437,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'nothing to carry a sound, so it is the quietest place there is.',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around the Moon.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around the Moon.',
       successLine: 'You found all three! What a brilliant explorer you are.',
       stickerId: 'moon-explorer',
       discoveries: [
@@ -544,7 +544,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'bike left out in the rain. The whole planet is a bit rusty!',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around Mars.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around Mars.',
       successLine: 'You found all three! You are a real space explorer now.',
       stickerId: 'mars-explorer',
       discoveries: [
@@ -655,7 +655,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'bath, if anyone could find a bath big enough.',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around Saturn.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around Saturn.',
       successLine: 'You found all three! You have been all the way out to Saturn.',
       stickerId: 'saturn-explorer',
       discoveries: [

@@ -226,6 +226,7 @@ async function main() {
       // A Fly Home during a day turn: stop the turn first so it is not still writing the
       // camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
       cameraReturn = null;
+      surfaceTurn = null;
       dayTurn.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
@@ -242,6 +243,16 @@ async function main() {
     // The whole game finished. Played when the overlay lands, not when the last world
     // completes, or it would run under the world's own chime.
     onFinale: () => sfx.fanfare(),
+    onTurnToHidden: () => {
+      // Only while the arrow is genuinely on screen: the camera is the child's, the hunt is
+      // live and the last place is round the back. A late press on a fading arrow does
+      // nothing, which is the right nothing.
+      const hint = activeMission?.remainingHint();
+      if (!hint || hint.visible || !cameraIsOurs()) return;
+      // A second press mid-turn starts another quarter from here, so pressing twice turns
+      // twice: nothing a child taps is a wrong move.
+      surfaceTurn = { body: world.bodies[follow], direction: hint.turn, t: 0, applied: 0 };
+    },
     onSpin: () => {
       const body = world.bodies[follow];
       const spin = DESTINATIONS[follow]?.spin;
@@ -672,6 +683,25 @@ async function main() {
   const returnOffset = new THREE.Vector3();
   let cameraReturn: { from: THREE.Vector3; t: number } | null = null;
 
+  /*
+   * The hunt arrow's own turn: a quarter of the world, eased, towards the hidden last place.
+   *
+   * It drives the held surface through `turnSurface`, exactly as the day turn does, so the
+   * markers ride with the surface and the camera stays the child's — a drag during the turn
+   * simply adds to it. A quarter turn is always enough: the hidden place is at most 60
+   * degrees past the limb (mission/selection.ts), so one press brings it into view and a
+   * second, if the child dragged the wrong way first, brings it back. Eased rather than the
+   * day turn's honest constant rate, because this is a control answering a press, not a
+   * lesson about how planets move. Reduced motion cuts.
+   */
+  const QUARTER_TURN = Math.PI / 2;
+  const SURFACE_TURN_MS = 700;
+  let surfaceTurn: { body: CelestialBody; direction: -1 | 1; t: number; applied: number } | null = null;
+
+  function cameraIsOurs(): boolean {
+    return flight.phase !== 'flying' && !dayTurn.active && !homeReturn.active && !cameraReturn;
+  }
+
   /* --- hints --------------------------------------------------------------- */
 
   let nudge = 0;
@@ -690,6 +720,17 @@ async function main() {
   });
 
   let idleFor = 0;
+
+  /** The hunt arrow button's centre in the canvas's NDC, the unit the coach places hands in. */
+  function arrowInCanvas(): { x: number; y: number } | null {
+    const centre = ui.huntArrowCentre();
+    if (!centre) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((centre.x - rect.left) / rect.width) * 2 - 1,
+      y: -(((centre.y - rect.top) / rect.height) * 2 - 1),
+    };
+  }
   /*
    * Any press at all, anywhere, is the child doing something — a tap on a target, a drag, a
    * pinch, a dock button. Listened for on the window in the capture phase rather than wired
@@ -763,6 +804,7 @@ async function main() {
    */
   function resetAdventure() {
     cameraReturn = null;
+    surfaceTurn = null;
     huntGuidance = null;
     coach.clear();
     idleFor = 0;
@@ -812,6 +854,15 @@ async function main() {
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
 
+    if (surfaceTurn) {
+      surfaceTurn.t = reducedMotion ? 1 : Math.min(1, surfaceTurn.t + (dt * 1000) / SURFACE_TURN_MS);
+      const eased = 1 - Math.pow(1 - surfaceTurn.t, 3);
+      const total = QUARTER_TURN * eased;
+      surfaceTurn.body.turnSurface(surfaceTurn.direction * (total - surfaceTurn.applied));
+      surfaceTurn.applied = total;
+      if (surfaceTurn.t >= 1) surfaceTurn = null;
+    }
+
     /*
      * Point at the last place, while it is round the back.
      *
@@ -820,9 +871,8 @@ async function main() {
      * property of where the camera is now, not of an event. Nothing to point at during a
      * flight or a day turn, when the camera is not theirs to move.
      */
-    const cameraIsOurs =
-      flight.phase !== 'flying' && !dayTurn.active && !homeReturn.active && !cameraReturn;
-    if (cameraIsOurs && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
+    const cameraOurs = cameraIsOurs();
+    if (cameraOurs && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
       huntGuidance.elapsed += dt;
       if (!huntGuidance.inviteShown && huntGuidance.elapsed >= HUNT_INVITE_HINT_DELAY) {
         huntGuidance.inviteShown = true;
@@ -835,7 +885,7 @@ async function main() {
       Boolean(activeMission?.active) &&
       huntGuidance?.active === true &&
       huntGuidance.world === follow;
-    const hint = cameraIsOurs && huntGuidanceActive ? (activeMission?.remainingHint() ?? null) : null;
+    const hint = cameraOurs && huntGuidanceActive ? (activeMission?.remainingHint() ?? null) : null;
     const hiddenSide = hint && !hint.visible ? hint.side : null;
     ui.setHuntArrow(hiddenSide);
 
@@ -844,13 +894,14 @@ async function main() {
      * move. Idle time accumulates only then too, so a seven-second flight does not arrive
      * with the coach already convinced nobody is playing.
      */
-    if (cameraIsOurs && huntGuidanceActive && activeMission?.active) {
+    if (cameraOurs && huntGuidanceActive && activeMission?.active) {
       idleFor += dt;
       coach.update({
         idleFor,
         huntActive: true,
         target: activeMission.nextTarget(),
         hiddenSide,
+        arrow: hiddenSide === null ? null : arrowInCanvas(),
       });
       /*
        * And once every place is found, the one remaining offer with anything in it. The

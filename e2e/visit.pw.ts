@@ -64,7 +64,27 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await collectVisible(page);
   await keepExploring(page);
   await expect.poll(async () => (await snapshot(page)).hidden?.visible).toBe(false);
-  // Pull from the indicated side. This is a real drag through OrbitInput.
+  // The arrow is a button: one press turns the world a quarter turn towards the hidden place,
+  // which is always enough to bring it onto the visible face.
+  const arrow = page.getByRole('button', { name: 'Turn to the last place' });
+  await expect(arrow).toBeVisible();
+  const arrowBox = await arrow.boundingBox();
+  expect(arrowBox!.width).toBeGreaterThanOrEqual(54);
+  expect(arrowBox!.height).toBeGreaterThanOrEqual(54);
+  await arrow.click();
+  await expect.poll(async () => (await snapshot(page)).hidden?.visible).toBe(true);
+  await expect(arrow).toBeHidden();
+  await attachShot(page, 'after-arrow-press', info);
+  // And the drag still works: turn the place back round the far side by pulling *away* from
+  // it, then pull from the indicated side. Both are real drags through OrbitInput.
+  {
+    const {width,height}=page.viewportSize()!;
+    const away = (await snapshot(page)).hidden.side;
+    await page.mouse.move(width/2, height*0.45);
+    await page.mouse.down();
+    await page.mouse.move(width/2+away*width*0.3,height*0.45,{steps:15});
+    await page.mouse.up();
+  }
   for(let attempt=0; attempt<8 && !(await snapshot(page)).targets.some((t:any)=>t.visible); attempt++) {
     const side = (await snapshot(page)).hidden.side;
     const {width,height}=page.viewportSize()!;

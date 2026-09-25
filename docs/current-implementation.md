@@ -96,6 +96,19 @@ one breath wait the guard out through `settlePanel` in `e2e/fixtures.ts`.
 `playwright.config.ts` honours `SPACE_NINJA_CHROMIUM` for a pre-installed browser, as the
 capture scripts do; unset, nothing changes for the deploy workflow.
 
+**Playtest fix 2, 25 September (the hidden last place), same branch:** the hunt arrow is a
+62px button ("Turn to the last place"). A press turns the held surface a quarter turn towards
+the place through `turnSurface`, eased over 0.7 s in `main.ts` (`surfaceTurn`), the direction
+computed exactly by `remainingHint().turn` in `CollectMission`; the camera stays the child's,
+so a drag during the turn adds to it, and a second press turns again. A quarter turn always
+brings the place onto the visible face because the hidden one is at most 60° past the limb.
+The drag turns half a turn per short edge instead of 0.72 of a turn (`TOUCH_TURN_PER_SHORT_EDGE`),
+so the same 60° is a third of the screen. The coach taps the arrow at 6 s idle
+(`COACH_ARROW_DELAY`) and shows the drag only at 13 s (`COACH_DRAG_DELAY`, was 8). The hunt
+captions now say "Tap the arrow, or swipe"; the recorded `hunt-*` lines still say swipe and are
+re-authored in the spoken-layer batch. Before/after captures of the hunt moment are in
+`design/hunt-review-2026-09-25/`.
+
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
 remaining screens; then flight polish (the parked ship sits half off the right edge at arrival;

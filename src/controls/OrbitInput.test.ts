@@ -7,9 +7,11 @@ import {
 } from './OrbitInput';
 
 describe('dragAngle', () => {
-  it('turns a calm but useful amount across the short edge', () => {
+  it('turns half a turn across the short edge, so one short swipe reaches the hidden place', () => {
     expect(dragAngle(400, 400)).toBeCloseTo(TOUCH_TURN_PER_SHORT_EDGE);
-    expect(degrees(TOUCH_TURN_PER_SHORT_EDGE)).toBeCloseTo(129.6);
+    expect(degrees(TOUCH_TURN_PER_SHORT_EDGE)).toBeCloseTo(180);
+    // The hidden place is at most 60 degrees past the limb: a third of the short edge.
+    expect(degrees(dragAngle(400 / 3, 400))).toBeGreaterThanOrEqual(60);
   });
 
   it('does not change with pointer-event sampling rate', () => {

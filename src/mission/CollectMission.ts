@@ -63,8 +63,13 @@ export interface CollectMission {
    * screen and does not need pointing anywhere. `visible` is the same visible-face test a
    * tap has to pass, so the arrow disappears the instant the place could be tapped — an
    * arrow still pointing at something already on screen is just clutter.
+   *
+   * `turn` is the sign `body.turnSurface` needs to bring the place *towards* the camera:
+   * the arrow is a button now as well as a pointer, and pressing it turns the world rather
+   * than asking for the drag. Exact rather than inferred from `side`, so it holds whatever
+   * the tilt and the camera's height happen to be.
    */
-  remainingHint(): { side: -1 | 1; visible: boolean } | null;
+  remainingHint(): { side: -1 | 1; visible: boolean; turn: -1 | 1 } | null;
   /**
    * Where an unfound place is on screen right now, for the idle coach to point a finger at.
    *
@@ -200,6 +205,8 @@ const _dir = new THREE.Vector3();
 const _view = new THREE.Vector3();
 const _screen = new THREE.Vector3();
 const _right = new THREE.Vector3();
+const _up = new THREE.Vector3();
+const _tangent = new THREE.Vector3();
 /** The plane RingGeometry is built in, and so the axis every marker is turned off. */
 const FACE = new THREE.Vector3(0, 0, 1);
 
@@ -852,7 +859,20 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
        * gesture a hand makes on a globe.
        */
       _right.setFromMatrixColumn(camera.matrixWorld, 0);
-      return { side: _dir.dot(_right) < 0 ? (-1 as const) : (1 as const), visible };
+      /*
+       * A positive `turnSurface` rotates the surface about its own axis, so a place at
+       * direction d moves along axis × d. Its component towards the camera says whether a
+       * positive turn brings the place nearer or takes it further round the back. The axis
+       * comes from the surface mesh's world matrix, so the axial tilt is already in it.
+       */
+      _up.set(0, 1, 0).transformDirection(body.surface.matrixWorld);
+      _tangent.crossVectors(_up, _dir);
+      _view.divideScalar(distance);
+      return {
+        side: _dir.dot(_right) < 0 ? (-1 as const) : (1 as const),
+        visible,
+        turn: _tangent.dot(_view) >= 0 ? (1 as const) : (-1 as const),
+      };
     },
 
     update(dt: number, elapsed: number) {

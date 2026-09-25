@@ -2,6 +2,7 @@ import { dragAngle } from '../controls/OrbitInput';
 import { describe, expect, it } from 'vitest';
 
 import {
+  COACH_ARROW_DELAY,
   COACH_DRAG_DELAY,
   COACH_TAP_DELAY,
   SPIN_INVITE_DELAY,
@@ -41,6 +42,16 @@ describe('coachCue', () => {
     expect(coachCue({ ...hidden, idleFor: COACH_TAP_DELAY })).toBeNull();
     expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY - 0.01 })).toBeNull();
     expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY })).toEqual({ kind: 'drag', side: 1 });
+  });
+
+  it('taps the arrow button before it ever shows the drag', () => {
+    const arrow = { x: 0.9, y: 0 };
+    const hidden = { ...hunting, hiddenSide: 1 as const, arrow };
+    expect(coachCue({ ...hidden, idleFor: COACH_ARROW_DELAY - 0.01 })).toBeNull();
+    expect(coachCue({ ...hidden, idleFor: COACH_ARROW_DELAY })).toEqual({ kind: 'tap', x: 0.9, y: 0 });
+    expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY - 0.01 })).toEqual({ kind: 'tap', x: 0.9, y: 0 });
+    expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY })).toEqual({ kind: 'drag', side: 1 });
+    expect(COACH_ARROW_DELAY).toBeLessThan(COACH_DRAG_DELAY);
   });
 
   it('prefers the tap while anything is still tappable', () => {
@@ -99,10 +110,12 @@ describe('cueChanged', () => {
 describe('shouldInviteSpin', () => {
   const done = { huntComplete: true, spinOffered: true, spinBusy: false };
 
-  it('waits out its own delay, which is longer than either coach cue', () => {
+  it('waits out its own delay, longer than the tap cue it can never overlap anyway', () => {
     expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY - 0.01 })).toBe(false);
     expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY })).toBe(true);
-    expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_DRAG_DELAY);
+    // The drag cue needs an unfinished hunt and this needs a finished one, so the two are
+    // never on screen together whatever their delays; only the tap cue's timing is a peer.
+    expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_TAP_DELAY);
   });
 
   it('never competes with an unfinished hunt', () => {

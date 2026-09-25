@@ -31,6 +31,12 @@ export interface CoachInput {
   target: { x: number; y: number } | null;
   /** The hunt arrow's side, set only while the one remaining place is round the back. */
   hiddenSide: -1 | 1 | null;
+  /**
+   * Where the hunt arrow button is on screen, in NDC, while it is shown. The arrow is a
+   * button that turns the world, and a tap on it is a smaller ask than a drag, so the hand
+   * taps it first. Null when the arrow is not on screen.
+   */
+  arrow?: { x: number; y: number } | null;
 }
 
 /**
@@ -43,11 +49,18 @@ export interface CoachInput {
  */
 export const COACH_TAP_DELAY = 6;
 /**
- * And longer again before demonstrating the drag, which only ever comes up once the visible
- * places are gone. It is the harder gesture and the child has just succeeded twice, so they
- * have earned a moment to try it themselves first.
+ * The arrow is a button, and a tap is the smaller ask, so the hand taps it on the same
+ * delay as any other tap. On the tablet the drag was the frustrating part of the whole game,
+ * so the tap gets a proper go before the drag is shown at all.
  */
-export const COACH_DRAG_DELAY = 8;
+export const COACH_ARROW_DELAY = COACH_TAP_DELAY;
+/**
+ * And longer again before demonstrating the drag, which only ever comes up once the visible
+ * places are gone. It is the harder gesture, the arrow tap has been shown for a while by
+ * now, and the child has just succeeded twice, so they have earned a moment to try it
+ * themselves first.
+ */
+export const COACH_DRAG_DELAY = 13;
 /**
  * And longer still before the day/night button asks to be noticed.
  *
@@ -63,8 +76,9 @@ export const SPIN_INVITE_DELAY = 9;
  *
  * Pure, and total: called every frame with the current facts and returns the whole answer,
  * so there is no coach state to get stuck on. A tap cue whenever something tappable is on
- * screen; the drag only when the arrow says the last place is round the back, which is the
- * one moment the gesture is genuinely required rather than merely available.
+ * screen; once the last place is round the back, a tap on the arrow button that turns the
+ * world to it; and only after that the drag, which is the one moment the gesture is
+ * genuinely required rather than merely available.
  */
 export function coachCue(input: CoachInput): CoachCue | null {
   if (!input.huntActive) return null;
@@ -74,7 +88,11 @@ export function coachCue(input: CoachInput): CoachCue | null {
       : null;
   }
   if (input.hiddenSide !== null) {
-    return input.idleFor >= COACH_DRAG_DELAY ? { kind: 'drag', side: input.hiddenSide } : null;
+    if (input.idleFor >= COACH_DRAG_DELAY) return { kind: 'drag', side: input.hiddenSide };
+    if (input.arrow && input.idleFor >= COACH_ARROW_DELAY) {
+      return { kind: 'tap', x: input.arrow.x, y: input.arrow.y };
+    }
+    return null;
   }
   return null;
 }
