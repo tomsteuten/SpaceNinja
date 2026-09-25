@@ -7,6 +7,7 @@ import { worldCollections } from '../state/replay';
  */
 
 import type { Narrator } from '../audio/narration';
+import { cueText } from '../audio/script';
 import { DESTINATIONS, DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
 import { STICKERS, foundEverything, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup, type IconName } from './icons';
@@ -98,7 +99,18 @@ export interface GameUI {
    * The celebration. `stickerId` is null when the sticker was already earned on an
    * earlier visit — the party happens either way, only the "new sticker" badge does not.
    */
-  completeMission(cueId: string, successLine: string, stickerId: string | null, title: string): void;
+  completeMission(
+    cueId: string,
+    successLine: string,
+    stickerId: string | null,
+    title: string,
+    /**
+     * A guide line to speak behind the success line once it is actually shown and read —
+     * the "you can fly home and pick another world" follow-up. Only passed when the hint
+     * names a next world, and it rides the success narration whichever path shows it.
+     */
+    followUp?: PendingGuide,
+  ): void;
   /**
    * The bigger celebration, for finding every place on every world. Follows the world's
    * own completion rather than replacing it.
@@ -779,6 +791,21 @@ export function createUI(options: UIOptions): GameUI {
   let currentFactCueId: string | null = null;
   let pendingGuide: PendingGuide | null = null;
 
+  /**
+   * Say a guide line with no card: wait behind whatever is being read, and only ever start a
+   * cue that has an authored recording. The one place the arrival/queue/ignore decision is
+   * made for a spoken guide, shared by the `speakGuide` method and the finale below.
+   */
+  function playGuide(text: string, cueId: string) {
+    const arrival = guideOnArrival({
+      hasRecording: narrator.hasRecording(cueId),
+      soundOn,
+      speaking: narrator.speaking,
+    });
+    if (arrival === 'queue') pendingGuide = { text, cueId };
+    else if (arrival === 'speak') narrator.speak(text, cueId, false);
+  }
+
   function wordsVisible() {
     return (
       !factCard.classList.contains('is-collapsed') &&
@@ -967,6 +994,9 @@ export function createUI(options: UIOptions): GameUI {
     if (stickerId) journalButton.setAttribute('data-new', 'true');
     if (journalOpen) renderJournal();
     onFinale();
+    // "You found every place. You are a Space Ninja!" — over the overlay, behind any success
+    // line still reading, and only when its own recording is present.
+    playGuide(cueText('finale'), 'finale');
     later(closeFinale, FINALE_MS);
   }
 
@@ -998,7 +1028,9 @@ export function createUI(options: UIOptions): GameUI {
    * had just been earned — so the one find that actually required the drag was the one
    * whose story got cut off after a second, which is precisely backwards.
    */
-  let pendingFact: { text: string; title?: string; cueId?: string } | null = null;
+  let pendingFact:
+    | { text: string; title?: string; cueId?: string; guide?: PendingGuide | null }
+    | null = null;
 
   /** The fact on screen has had its time: hand over to the next one, or fold away. */
   function factTimeUp() {
@@ -1006,6 +1038,9 @@ export function createUI(options: UIOptions): GameUI {
     if (next) {
       pendingFact = null;
       showFact(next.text, next.title, next.cueId);
+      // showFact clears any queued guide; re-arm the success follow-up now that the success
+      // line is the one on screen, so it plays when this narration ends.
+      if (next.guide) pendingGuide = next.guide;
       return;
     }
     if (!currentFact) return;
@@ -1181,13 +1216,7 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     speakGuide(text: string, cueId: string) {
-      const arrival = guideOnArrival({
-        hasRecording: narrator.hasRecording(cueId),
-        soundOn,
-        speaking: narrator.speaking,
-      });
-      if (arrival === 'queue') pendingGuide = { text, cueId };
-      else if (arrival === 'speak') narrator.speak(text, cueId, false);
+      playGuide(text, cueId);
     },
 
     showNote(cueId: string, title: string, text: string) {
@@ -1276,7 +1305,13 @@ export function createUI(options: UIOptions): GameUI {
       }
     },
 
-    completeMission(cueId: string, successLine: string, stickerId: string | null, title: string) {
+    completeMission(
+      cueId: string,
+      successLine: string,
+      stickerId: string | null,
+      title: string,
+      followUp?: PendingGuide,
+    ) {
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       missionHud.classList.remove('fade-in-centred');
@@ -1285,7 +1320,7 @@ export function createUI(options: UIOptions): GameUI {
       // Behind the last discovery rather than over it. The sticker and the chime land now;
       // the words wait their turn.
       if (currentFact) {
-        pendingFact = { text: successLine, title, cueId };
+        pendingFact = { text: successLine, title, cueId, guide: followUp ?? null };
         // And only their turn. The card's own timer is the eleven-second backstop for a
         // fact nobody is reading aloud, which is the right wait for *finishing* with one
         // and much too long for handing over to the next: the celebration would arrive
@@ -1294,6 +1329,9 @@ export function createUI(options: UIOptions): GameUI {
         scheduleCollapse(FACT_MINIMUM_MS);
       } else {
         showFact(successLine, title, cueId);
+        // Nothing was on the card, so the success line shows now; arm its follow-up so it
+        // plays when the success narration ends. showFact clears any queued guide first.
+        if (followUp) pendingGuide = followUp;
       }
       // The way home has been on screen throughout and stays exactly where it was. It
       // does not need promoting here — finishing is not the moment a child is looking

@@ -35,10 +35,12 @@ import {
   type CollectMission,
 } from './mission/CollectMission';
 import { createNarrator } from './audio/narration';
+import { cueText } from './audio/script';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
 import { chooseDiscoveries } from './mission/selection';
 import { createCoach, shouldInviteSpin } from './ui/coach';
+import { dueNudge, shorteningPair, singleNudge } from './ui/nudge';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
   FINALE_STICKER,
@@ -339,6 +341,9 @@ async function main() {
       suggested = null;
       world.setSelected(null);
       spinInvited = false;
+      // Each visit gets its nudges afresh; the clock for the spin follow-up starts here too.
+      arrivalNudgesGiven.clear();
+      spinIdle = 0;
       // Read before the visit is recorded: a first visit is one that has not been.
       const firstVisit = !loadProgress().visited.includes(destination.id);
       // Arriving is the achievement that opens the rest of the system up. The sticker is
@@ -466,16 +471,20 @@ async function main() {
         const worldComplete = config.mission.discoveries.every((d) => found.includes(d.id));
         const isNew = worldComplete && awardSticker(config.mission.stickerId);
         if (isNew) syncShipStickers();
+        const next = suggestedDestination();
+        const nextConfig = next ? DESTINATIONS[next] : undefined;
+        const namesNextWorld = Boolean(nextConfig && next !== body.id);
         ui.completeMission(
           `success-${body.id}`,
           config.mission.successLine,
           isNew ? config.mission.stickerId : null,
           `${config.emoji}  ${body.label}`,
+          // "You can fly home and pick another world." — behind the success line, but only when
+          // the hint below actually points at a next world to go to.
+          namesNextWorld ? { text: cueText('success-next'), cueId: 'success-next' } : undefined,
         );
-        const next = suggestedDestination();
-        const nextConfig = next ? DESTINATIONS[next] : undefined;
-        ui.setHint(nextConfig && next !== body.id
-          ? `✓ ✓ ✓  Found! 🚀 Home → ${nextConfig.emoji} ${world.bodies[next!].label}`
+        ui.setHint(namesNextWorld
+          ? `✓ ✓ ✓  Found! 🚀 Home → ${nextConfig!.emoji} ${world.bodies[next!].label}`
           : '✓ ✓ ✓  Found! 📖 Look in your book · 🚀 Fly Home');
         /*
          * And when this was the last place on the last world, the finale — once.
@@ -666,6 +675,9 @@ async function main() {
       const gate = gateLabel(id);
       ui.nudgeDestination(id);
       ui.setHint(gate ? 'Visit ' + gate + ' first' : 'Not yet', 'lock');
+      // The spoken half of the padlock: "Not yet. You can visit the Moon first." Only the
+      // reveal-gated worlds have a locked cue, which is exactly the set that can be locked.
+      if (DESTINATIONS[id]?.revealAfterVisiting) ui.speakGuide(cueText(`locked-${id}`), `locked-${id}`);
       window.clearTimeout(nudge);
       nudge = window.setTimeout(() => {
         if (flight.phase === 'idle') showOpeningHints();
@@ -758,6 +770,18 @@ async function main() {
   });
 
   let idleFor = 0;
+  /*
+   * The spoken layer's idle nudges (docs/current-implementation.md, "The spoken layer").
+   *
+   * Two clocks that reset on any press, and two "given" sets that do not, so a press quiets
+   * the nagging but the same words are never spoken twice in one visit or one map view. The
+   * arrival nudges (find/hunt/spin) run off `idleFor`, which already accumulates from arrival;
+   * `spinIdle` is the separate wait after the spin invitation; `mapIdle` is the map's own idle.
+   */
+  const arrivalNudgesGiven = new Set<string>();
+  const mapNudgesGiven = new Set<string>();
+  let spinIdle = 0;
+  let mapIdle = 0;
 
   /** The hunt arrow button's centre in the canvas's NDC, the unit the coach places hands in. */
   function arrowInCanvas(): { x: number; y: number } | null {
@@ -778,7 +802,12 @@ async function main() {
    */
   function onAnyPress() {
     idleFor = 0;
+    spinIdle = 0;
+    mapIdle = 0;
     coach.clear();
+    // The first real gesture of the session unlocks the audio context, so a map cue attempted
+    // before any touch (it fails silently) is picked up by the nudge once the child taps.
+    narrator.resume();
   }
   window.addEventListener('pointerdown', onAnyPress, true);
 
@@ -801,6 +830,32 @@ async function main() {
     suggested = suggestedDestination();
     world.setSelected(null);
     ui.showDestinations(mapChoices(), suggested, newlyRevealed);
+    // A fresh suggestion is a fresh set of map nudges: the cue ids name this world, so the old
+    // "given" flags no longer apply, and the idle clock starts again.
+    mapIdle = 0;
+    mapNudgesGiven.clear();
+  }
+
+  /**
+   * The one spoken line on landing at the map, once per arrival there (the visual hint in
+   * `showOpeningHints` may be refreshed more often, e.g. after a locked press, and must not
+   * re-announce). A brand-new save is welcomed with `home-first`; a world just unlocked by the
+   * last visit with `revealed-<id>`; a plain Fly Home with nothing unlocked with `fly-home`;
+   * any other map with `home-<suggested>` (or `home-any` when nothing is suggested).
+   */
+  function announceMap(newlyRevealed: BodyId | null, viaFlyHome: boolean) {
+    const visited = loadProgress().visited;
+    const cue =
+      visited.length === 0
+        ? 'home-first'
+        : newlyRevealed
+          ? `revealed-${newlyRevealed}`
+          : viaFlyHome
+            ? 'fly-home'
+            : suggested
+              ? `home-${suggested}`
+              : 'home-any';
+    ui.speakGuide(cueText(cue), cue);
   }
 
   function showOpeningHints(newlyRevealed?: BodyId) {
@@ -830,6 +885,10 @@ async function main() {
   ui.setSoundOn(soundOn);
   applySuggestion();
   showOpeningHints();
+  // The map's opening line. On a device's very first load there has been no gesture yet, so
+  // the audio context is still locked and this fails silently; the map nudge repeats it once
+  // the child touches anything. A later load (visited not empty) names the suggested world.
+  announceMap(null, false);
 
   /* --- restart ------------------------------------------------------------- */
 
@@ -848,6 +907,8 @@ async function main() {
     huntGuidance = null;
     coach.clear();
     idleFor = 0;
+    spinIdle = 0;
+    arrivalNudgesGiven.clear();
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
@@ -880,6 +941,9 @@ async function main() {
     ui.reset();
     applySuggestion(newlyRevealed[0] ?? null);
     showOpeningHints(newlyRevealed[0]);
+    // Landing back at the map: a world just readied announces itself, a plain Fly Home says so,
+    // a progress reset (visited now empty) gets the first-run welcome.
+    announceMap(newlyRevealed[0] ?? null, true);
   }
 
   /* --- frame loop ---------------------------------------------------------- */
@@ -938,13 +1002,32 @@ async function main() {
      */
     if (cameraOurs && activeMission?.active) {
       idleFor += dt;
+      const target = activeMission.nextTarget();
       coach.update({
         idleFor,
         huntActive: huntGuidanceActive,
-        target: activeMission.nextTarget(),
+        target,
         hiddenSide,
         arrow: hiddenSide === null ? null : arrowInCanvas(),
       });
+      /*
+       * The spoken find/hunt nudges, once the guided hunt is live: 8s and 16s idle name the
+       * gesture that fits right now — the arrow when the last place is round the back, else a
+       * gold place in view. The visual hand shows it too; these speak it for a child not
+       * watching. Each level once per visit, spoken alongside the hand.
+       */
+      if (huntGuidanceActive) {
+        const nudge =
+          hiddenSide !== null
+            ? dueNudge(idleFor, shorteningPair('hunt-nudge', 'hunt-nudge-short'), arrivalNudgesGiven)
+            : target
+              ? dueNudge(idleFor, shorteningPair('find-nudge', 'find-nudge-short'), arrivalNudgesGiven)
+              : null;
+        if (nudge) {
+          arrivalNudgesGiven.add(nudge);
+          ui.speakGuide(cueText(nudge), nudge);
+        }
+      }
       /*
        * The day turn asking to be noticed: after every hunt, and during the hunt on Earth,
        * where it is the arrival's primary action. The button pulses and its globe turns; the
@@ -961,12 +1044,43 @@ async function main() {
       ui.setSpinAttention(inviting);
       if (inviting && !spinInvited) {
         spinInvited = true;
+        spinIdle = 0;
         if (spin?.invite) ui.speakGuide(spin.invite, `spin-invite-${follow}`);
+      } else if (inviting && spinInvited) {
+        // 8s after the invitation, still inviting and nothing pressed: one short "the little
+        // globe" and then silence. The clock resets on any press, the flag does not.
+        spinIdle += dt;
+        const nudge = dueNudge(spinIdle, singleNudge('spin-nudge'), arrivalNudgesGiven);
+        if (nudge) {
+          arrivalNudgesGiven.add(nudge);
+          ui.speakGuide(cueText(nudge), nudge);
+        }
       }
     } else {
       idleFor = 0;
       coach.update({ idleFor: 0, huntActive: false, target: null, hiddenSide: null });
       ui.setSpinAttention(false);
+      /*
+       * At the home map (no visit in progress and the camera settled): its own gentle nudges,
+       * naming the suggested world at 8s and shortening at 16s, then silence — the map is not a
+       * nag. `activeMission` is null only between arriving home and the next launch, which is
+       * exactly the map.
+       */
+      const atMap = activeMission === null && cameraOurs && flight.phase === 'idle';
+      if (atMap && suggested) {
+        mapIdle += dt;
+        const nudge = dueNudge(
+          mapIdle,
+          shorteningPair(`home-nudge-${suggested}`, `home-nudge-short-${suggested}`),
+          mapNudgesGiven,
+        );
+        if (nudge) {
+          mapNudgesGiven.add(nudge);
+          ui.speakGuide(cueText(nudge), nudge);
+        }
+      } else if (!atMap) {
+        mapIdle = 0;
+      }
     }
 
     // Ease the camera from the side-on day-turn pose back to the arrival composition. Owns

@@ -129,13 +129,21 @@ the invitation is visual only, because only recorded cues start by themselves. T
 recordings still say "swipe"; re-authoring them to name the arrow tap first belongs with the
 spoken-layer batch. Captures are in `design/earth-intro-review-2026-09-25/`.
 
-**The spoken layer, 25 September: authored, not yet recorded or wired.** Decision: the whole
-pack is regenerated in one ElevenLabs voice chosen by the owner by ear; the API key lives only
-in the `ELEVENLABS_API_KEY` environment variable. `src/audio/narration-script.json` is the one
-manifest (75 cues) and `narration-script.test.ts` pins the full set and the register: every
-invitation leads with "you can" and stays under eight words, nudges under six, each nudge
-pair shortens. The prompt for the session that builds the generator, chooses the voice and
-wires the cues is `docs/handover-2026-09-25-narration.md`. Where each new cue plays:
+**The spoken layer, 25 September: recorded in one ElevenLabs voice and wired.** The whole
+75-cue pack is regenerated in the owner-chosen Australian voice **Emma**
+(`eleven_multilingual_v2`, `stability 0.5 / similarity_boost 0.75 / style 0 / speaker boost /
+speed 0.92`); the API key lives only in the `ELEVENLABS_API_KEY` environment variable.
+`src/audio/narration-script.json` is the one manifest (75 cues, plus an `elevenlabs` block for
+the generator) and `narration-script.test.ts` pins the full set and the register: every
+invitation leads with "you can" and stays under eight words, nudges under six, each nudge pair
+shortens. The shipped generator is `scripts/generate-narration-elevenlabs.mjs`
+(`npm run narration:generate`, a plain `fetch`, SHA-256 text-hash cache at
+`src/audio/recordings/manifest.json`, `--force`/`--only=<cue>`), documented with the Kokoro and
+OpenAI fallbacks in `src/audio/recordings/README.md`; the pipeline handover is
+`docs/handover-2026-09-25-narration.md`. **How the voice sounds on the target tablet is
+unverified until the owner listens.** The words come from the manifest once, via `cueText(id)`
+in `src/audio/script.ts`; the nudge schedule is the pure `dueNudge` in `src/ui/nudge.ts` (unit
+tested). Where each cue now plays:
 
 | Cue | Moment |
 | --- | --- |
@@ -153,8 +161,14 @@ wires the cues is `docs/handover-2026-09-25-narration.md`. Where each new cue pl
 | `finale` | With the finale overlay. |
 | `spin-intro-earth` | Already wired: the first-visit turn. |
 
-Idle for these is "nothing pressed", the same `idleFor` the coach uses, which now runs from
-arrival; the map needs its own, reset by any press and by a change of suggestion.
+Idle for these is "nothing pressed", the same `idleFor` the coach uses, which runs from
+arrival; the map has its own idle clock, reset by any press and by a change of suggestion, and
+the spin follow-up (`spin-nudge`) its own wait after the invitation. Each nudge level is spoken
+once per visit (or per map view): a press resets the clock but not the "given" flags, so the
+same words are never repeated. On a device's first load there has been no gesture, so the audio
+context is locked and the opening `home-*` line fails silently; `narrator.resume()` now runs on
+the grown-ups "Start playing" press and on the first pointerdown, and the map nudge repeats the
+line once the child touches anything.
 
 **Next steps, in order:** owner approval of the home screen, Moon arrival and Earth arrival; the
 Moon arrival restyle to the Earth control pattern; the discovery postcard and journal; the
