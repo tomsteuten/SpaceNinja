@@ -24,7 +24,7 @@ import { createSky } from './scene/Starfield';
 import { BODY_IDS, createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
-import { DAY_INTRO_TURN_DURATION, createDayTurn } from './scene/DayTurn';
+import { createDayTurn } from './scene/DayTurn';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
@@ -273,16 +273,17 @@ async function main() {
         if (follow === 'earth') dayTurn.skip();
         return;
       }
-      startDayTurn(false);
+      startDayTurn();
     },
   });
 
   /**
-   * Turn the world through a day: pressed, or — once, on a child's first visit to Earth — as
-   * the arrival introduction (`intro`), which is shorter, speaks its own line while the light
-   * moves, and ends on any tap straight into the hunt.
+   * Turn the world through a day, always from the child's own press now (the automatic
+   * first-visit intro was removed — it took the camera without being asked). The explanation is
+   * put one speaker-tap away before the camera starts moving, since this lesson is entirely
+   * visual and a full-width card during the swing pulled the child's eyes off the light.
    */
-  function startDayTurn(intro: boolean) {
+  function startDayTurn() {
     const body = world.bodies[follow];
     const spin = DESTINATIONS[follow]?.spin;
     if (!spin || dayTurn.active) return;
@@ -290,28 +291,17 @@ async function main() {
     // be handed back to them there. Relative to the body, which keeps orbiting throughout.
     body.getWorldPosition(focusPosition);
     preTurnCameraOffset.copy(camera.position).sub(focusPosition);
-    if (intro) {
-      // No card at all: the welcome is still being read, and this line waits behind it and
-      // lands while the terminator is crossing the disc.
-      ui.clearFact();
-      if (spin.intro) ui.speakGuide(spin.intro, `spin-intro-${follow}`);
-    } else {
-      // Put the explanation one speaker-tap away before the camera starts moving. This is
-      // the one lesson whose content is entirely visual, and a full-width card during the
-      // 2.2s swing pulled the child's eyes away before the sunlight even began to move.
-      ui.showNote(`spin-${follow}`, spin.name, spin.fact);
-      ui.foldFact(true);
-    }
+    ui.showNote(`spin-${follow}`, spin.name, spin.fact);
+    ui.foldFact(true);
     if (follow === 'earth') {
-      if (!intro) ui.clearFact();
+      ui.clearFact();
       ui.setHint(null);
       ui.setHuntArrow(null);
       coach.clear();
       activeMission?.setPresentation(false);
     }
-    introTurn = intro;
     ui.setSpinBusy(true);
-    dayTurn.start(body, intro ? DAY_INTRO_TURN_DURATION : undefined);
+    dayTurn.start(body);
   }
 
   /*
@@ -384,12 +374,14 @@ async function main() {
       mission.start();
       revealHunt();
       /*
-       * The one exception, decided by the owner after watching a child never find the day
-       * and night button: a first visit to a world with an authored introduction (Earth)
-       * opens with the turn itself, short and spoken, and any tap ends it into the hunt. On
-       * every later visit the button is offered and invited instead — see shouldInviteSpin.
+       * Day & night no longer takes the camera on its own. On the child's first visit to a
+       * world whose spin can be invited (Earth), it is instead the guided first action: the
+       * button pulses and speaks its invitation from arrival, and the child triggers the turn
+       * themselves. The gold places are already on screen, so nothing is gated behind it.
        */
-      if (firstVisit && config.spin?.intro) startDayTurn(true);
+      // Earth is the only world whose day & night is the screen's primary action (it alone has
+      // spin.intro); elsewhere the gold places lead and the turn stays a quiet secondary offer.
+      earthDayNightPrompt = firstVisit && Boolean(config.spin?.intro && config.spin?.invite);
     },
   });
 
@@ -572,13 +564,14 @@ async function main() {
   function onDayTurnFinish() {
     ui.setSpinBusy(false);
     ui.setSpinProgress(null);
+    // The guided first turn has been done; stop pulsing for it.
+    earthDayNightPrompt = false;
     if (follow === 'earth') activeMission?.setPresentation(true);
-    if (introTurn) {
-      // The introduction is over, by running out or by a tap: straight into the hunt, with
-      // the counter and the spoken "find the gold places" rather than the roam-first beat.
-      introTurn = false;
-      beginGuidedHunt();
-    }
+    // The child's day turn leads straight into the guided hunt, with the counter and the spoken
+    // "find the gold places" — the same transition the old automatic intro made, now off their
+    // own press. Idempotent: a no-op when the hunt is already running (a later Earth visit, or
+    // any turn pressed mid-hunt).
+    beginGuidedHunt();
     const body = world.bodies[follow];
     body.getWorldPosition(focusPosition);
     if (reducedMotion) {
@@ -752,10 +745,16 @@ async function main() {
    * day turn's honest constant rate, because this is a control answering a press, not a
    * lesson about how planets move. Reduced motion cuts.
    */
-  /** The running day turn is the first-visit introduction rather than a pressed one. */
-  let introTurn = false;
   /** The spoken invitation to turn the world has been given this visit. */
   let spinInvited = false;
+  /**
+   * The child's first-ever visit to Earth: day & night is the guided first thing to do here,
+   * so the button pulses and invites from arrival (not after an idle wait), until they run one
+   * turn. It replaces the old automatic turn, which took the camera without being asked — a
+   * five-year-old reads that as the game playing itself. The gold places stay available the
+   * whole time, so a child who ignores the invitation is never stuck.
+   */
+  let earthDayNightPrompt = false;
 
   const QUARTER_TURN = Math.PI / 2;
   const SURFACE_TURN_MS = 700;
@@ -916,8 +915,8 @@ async function main() {
   function resetAdventure() {
     cameraReturn = null;
     surfaceTurn = null;
-    introTurn = false;
     spinInvited = false;
+    earthDayNightPrompt = false;
     huntGuidance = null;
     coach.clear();
     idleFor = 0;
@@ -1048,13 +1047,16 @@ async function main() {
        * world's spoken invitation is given once per visit, the first time this comes true.
        */
       const spin = DESTINATIONS[follow]?.spin;
-      const inviting = shouldInviteSpin({
-        idleFor,
-        huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
-        spinOffered: Boolean(spin),
-        spinBusy: dayTurn.active,
-        spinIsPrimary: follow === 'earth',
-      });
+      const inviting =
+        // First Earth visit: invite from arrival (until a turn runs), not after an idle wait.
+        (earthDayNightPrompt && !dayTurn.active) ||
+        shouldInviteSpin({
+          idleFor,
+          huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
+          spinOffered: Boolean(spin),
+          spinBusy: dayTurn.active,
+          spinIsPrimary: follow === 'earth',
+        });
       ui.setSpinAttention(inviting);
       if (inviting && !spinInvited) {
         spinInvited = true;

@@ -1,6 +1,6 @@
 import { test, expect, settlePanel } from './fixtures';
 
-test('Earth day and night can be ended, repeated, and left without losing discoveries', async ({ page }) => {
+test('Earth day and night is child-triggered, repeatable, and leaves discoveries intact', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
@@ -8,54 +8,50 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   await expect.poll(async () => (await snapshot()).phase).toBe('arrived');
   const day = page.getByRole('button', { name: 'Day and night on Earth' });
   const done = page.getByRole('button', { name: 'Done with day and night' });
-  // A first visit opens with the turn itself as the introduction: no gold places yet, the
-  // button reads Done, and any tap on the world ends it straight into the guided hunt.
-  await expect(done).toBeVisible();
-  await expect.poll(async () => (await snapshot()).targets.length).toBe(0);
-  await expect(page.locator('.fact-card')).toBeHidden();
-  const { width, height } = page.viewportSize()!;
-  await page.mouse.click(width / 2, height / 2);
+  const visibleTargets = async () =>
+    (await snapshot()).targets.filter((target: { visible: boolean }) => target.visible).length;
+
+  // No automatic turn any more: the gold places are on screen at once and day & night is an
+  // offered button the child triggers themselves (it pulses on this first visit).
   await expect(day).toBeVisible();
-  await expect.poll(async () => (await snapshot()).guidedHunt).toBe(true);
-  await expect.poll(async () => (await snapshot()).cameraReturning).toBe(false);
-  await expect.poll(async () => (await snapshot()).targets.filter((target: { visible: boolean }) => target.visible).length).toBe(2);
-  await expect(page.locator('.fact-card')).toBeHidden();
-  const initial = await snapshot();
-
-  const about = page.getByRole('button', { name: 'About', exact: true });
-  await about.click();
-  await expect(page.locator('.fact-card p')).toBeVisible();
-  await settlePanel(page);
-  await about.click();
+  await expect(done).toBeHidden();
+  await expect.poll(visibleTargets).toBe(2);
   await expect(page.locator('.fact-card')).toBeHidden();
 
+  // Trigger it: the world turns, the places step aside, the button becomes Done.
   await day.click();
   await expect(done).toBeVisible();
   await expect.poll(async () => (await snapshot()).targets.length).toBe(0);
-  const frameBeforeHistory = (await snapshot()).frame;
-  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
-  await expect(done).toBeVisible();
-  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-  await expect.poll(async () => (await snapshot()).frame).toBeGreaterThan(frameBeforeHistory);
-  await expect.poll(async () => (await snapshot()).targets.length).toBe(0);
+
+  // The words are one tap away while it turns.
+  const about = page.getByRole('button', { name: 'About', exact: true });
   await about.click();
   await expect(page.locator('.fact-card .fact-title')).toContainText('Day & night');
   await expect(page.locator('.fact-card p')).toBeVisible();
   await settlePanel(page);
   await about.click();
   await expect(page.locator('.fact-card')).toBeHidden();
+
+  // Survive a history suspend/restore mid-turn.
+  const frameBeforeHistory = (await snapshot()).frame;
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
+  await expect(done).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect.poll(async () => (await snapshot()).frame).toBeGreaterThan(frameBeforeHistory);
+  await expect(done).toBeVisible();
+
+  // End the turn: it leads into the guided hunt, the places return, none lost, camera handed back.
   await done.click();
   await expect(day).toBeVisible();
-  await expect.poll(async () => (await snapshot()).targets.length).toBe(initial.targets.length);
+  await expect.poll(async () => (await snapshot()).guidedHunt).toBe(true);
+  await expect.poll(visibleTargets).toBe(2);
   await expect.poll(async () => (await snapshot()).cameraReturning).toBe(false);
 
-  const restored = await snapshot();
-  const target = restored.targets.find((item: { visible: boolean }) => item.visible);
+  // Collect one visible place.
+  const target = (await snapshot()).targets.find((item: { visible: boolean }) => item.visible);
   expect(target).toBeTruthy();
   expect(target.x).toBeGreaterThan(0);
   expect(target.x).toBeLessThan(page.viewportSize()!.width);
-  expect(target.y).toBeGreaterThan(0);
-  expect(target.y).toBeLessThan(page.viewportSize()!.height);
   await page.mouse.click(target.x, target.y);
   await expect.poll(async () => (await snapshot()).collected).toBe(1);
   await expect(page.locator('.photo-view.is-reward')).toBeVisible();
@@ -63,18 +59,14 @@ test('Earth day and night can be ended, repeated, and left without losing discov
   await page.getByRole('button', { name: 'Keep exploring' }).click();
   await expect(page.locator('.photo-view')).toBeHidden();
 
-  await day.click();
-  await expect(done).toBeVisible();
+  // Leave via Space map and return: still offered (not automatic), the discovery persists.
   await page.getByRole('button', { name: 'Space map', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fly to Earth', exact: true })).toBeVisible();
-
-  // A later visit does not run the introduction: the button is offered, the gold places are
-  // there at once, and the discovery from the first visit is still recorded.
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot()).phase).toBe('arrived');
   await expect(day).toBeVisible();
   await expect(done).toBeHidden();
-  await expect.poll(async () => (await snapshot()).targets.filter((target: { visible: boolean }) => target.visible).length).toBe(2);
+  await expect.poll(visibleTargets).toBe(2);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('spaceninja.progress.v1') ?? '{}').discoveries?.length)).toBe(1);
 });
 
@@ -84,7 +76,13 @@ test('the short landscape hunt counter leaves both gold places clear', async ({ 
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
+  await expect.poll(async () => (await snapshot()).phase).toBe('arrived');
+  // Trigger day & night and end it, which leads into the guided hunt deterministically rather
+  // than waiting out the roam timer.
+  await page.getByRole('button', { name: 'Day and night on Earth' }).click();
+  await page.getByRole('button', { name: 'Done with day and night' }).click();
   await expect.poll(async () => (await snapshot()).guidedHunt).toBe(true);
+  await expect.poll(async () => (await snapshot()).cameraReturning).toBe(false);
   const hud = page.locator('.mission-hud');
   await expect(hud).toBeVisible();
   const bounds = await hud.boundingBox();

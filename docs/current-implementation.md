@@ -109,25 +109,32 @@ captions now say "Tap the arrow, or swipe"; the recorded `hunt-*` lines still sa
 re-authored in the spoken-layer batch. Before/after captures of the hunt moment are in
 `design/hunt-review-2026-09-25/`.
 
-**Playtest fix 3, 25 September (day and night on Earth), same branch:** on a child's
-*first* visit to Earth (Earth not yet in `progress.visited` at arrival) the day turn runs by
-itself as the arrival introduction: a shorter six-second turn (`DAY_INTRO_TURN_DURATION`),
-no card, and the line "Watch. Earth is turning. That is day, and that is night."
-(`spin-intro-earth`) queued behind the welcome so it lands while the terminator crosses. Any
-tap ends it (the existing skip paths) and drops straight into the guided hunt. The data is
-`spin.intro` on the destination, so no id branches; the once-on-every-world automatic turn
-that was pulled is not back. On later visits nothing runs; `shouldInviteSpin` now asks after
-every hunt (4 s) and, on Earth only (`spinIsPrimary`), after 9 s idle mid-hunt: the button
-pulses, its globe turns faster, and "You can turn Earth. Tap the little globe."
-(`spin-invite-earth`, from `spin.invite`) is spoken once per visit through the new
-`ui.speakGuide`. Idle time now accumulates from arrival rather than from the guided hunt. The
-two lines are in `narration-script.json` but **not yet recorded**: the cloud session that
-built this could not reach huggingface.co for the Kokoro model, so until
-`npm install --no-save kokoro-js && npm run narration:generate` is run on the laptop (only the
-two missing cues are generated) the introduction turns with the dawn sound but no voice, and
-the invitation is visual only, because only recorded cues start by themselves. The `hunt-*`
-recordings still say "swipe"; re-authoring them to name the arrow tap first belongs with the
-spoken-layer batch. Captures are in `design/earth-intro-review-2026-09-25/`.
+**Day and night on Earth — child-triggered (26 September, supersedes the auto-intro):** the
+automatic first-visit day turn was removed. Even short and skippable, a sequence that takes the
+camera on arrival reads to a five-year-old as the game playing itself. Day & night is now always
+the child's own press. On the *first* visit to Earth (the one world whose turn is the screen's
+primary action — it alone carries `spin.intro`, still used as that marker) it is the guided first
+action: from arrival the button pulses and "You can turn Earth. Tap the little globe."
+(`spin-invite-earth`) is spoken, until they run one turn (`earthDayNightPrompt` in `main.ts`).
+Crucially the gold places are on screen the whole time, so a child who ignores the invitation is
+never stuck — no dead end. When they do end the turn, it leads straight into the guided hunt
+(`onDayTurnFinish` now calls `beginGuidedHunt`, idempotent), the same transition the old intro
+made. On later visits the button is simply offered and `shouldInviteSpin` invites after every
+hunt (4 s) and, on Earth, after 9 s idle mid-hunt. `startDayTurn` lost its `intro` parameter and
+`introTurn`/`DAY_INTRO_TURN_DURATION` with it; `spin-intro-earth` stays in the manifest (pinned
+by the test) but no longer plays. Unit + `earth-day.pw` (phone and short-landscape) and
+`visit.pw` (phone) pass.
+
+**Still open (the sun, a bigger visual change):** the turn ends side-on to the light but the Sun
+itself is not drawn, so the *cause* of day and night is left implicit. Showing a visible sun at a
+3/4 angle so a child sees "the light comes from there" is a scene/lighting + camera-choreography
+change, best done with a fast local render loop; it is handed to a separate pass (see the Codex
+handover). Whether the opening should also *start at Earth* for day & night before the first
+flight (rather than Moon-first) is folded into that pass, since a close Earth opening pairs
+naturally with the sun. `home-first` still sends the child to the Moon first; `nextWorld`
+deliberately avoids Earth because the ship is parked there and "fly to Earth" would be a
+near-zero flight — an open-at-Earth opening is the right vehicle for Earth-first, not the map
+suggestion.
 
 **The spoken layer, 25 September: recorded in one ElevenLabs voice and wired.** The whole
 75-cue pack is regenerated in the owner-chosen Australian voice **Emma**
