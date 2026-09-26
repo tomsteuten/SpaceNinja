@@ -3,6 +3,27 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-09-26 — Show the source of daylight during the child's day turn
+
+The side-on teaching view showed the terminator, but left the Sun outside the frame. The
+owner approved a visible Sun pass while retaining the child-triggered activity. The real
+Sun sits 105 Earth radii away, almost 90 degrees from this view: fitting it directly would
+sacrifice either the readable globe or its visible night hemisphere.
+
+The activity now uses a small, deliberately scale-compressed Sun visual along the same
+`SUN_DIRECTION` as the lighting and night-light shader. It shares the world's existing
+textures, adds two draw calls while active, and temporarily replaces the distant Sun's
+visuals without moving its light. Surface coordinates, held rotation and one full day
+remain unchanged. Camera framing accounts for the world's tilted axis and ring silhouette;
+portrait puts the Sun above the globe, short landscape uses the horizontal space, and tablet
+uses a diagonal composition. Reduced motion cuts the camera move and keeps the nine-second
+surface turn. Completion and skip restore the prior view and enter the existing guided hunt.
+
+The owner authorized implementation and a push once verified. Full-resolution before/after
+captures are in `design/day-sun-2026-09-26/`; geometry and lifecycle unit tests and the focused
+Earth browser checks cover framing and return behavior. Appearance, narration and performance
+on the actual Android tablet still require owner observation.
+
 ## 2026-09-12 — Rule hierarchy audit
 
 ### Why the rules changed

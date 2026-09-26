@@ -1,0 +1,22 @@
+{
+  "phase": "arrived",
+  "mapBodyIds": [
+    "earth",
+    "moon"
+  ],
+  "world": "earth",
+  "draws": 1,
+  "frame": 580,
+  "speaking": false,
+  "guidedHunt": false,
+  "cameraReturning": false,
+  "bodyScreenRadius": 125.18917073452683,
+  "collected": 0,
+  "ids": [
+    "earth-sahara",
+    "earth-amazon",
+    "earth-nightside"
+  ],
+  "targets": [],
+  "hidden": null
+}

@@ -25,6 +25,7 @@ import { BODY_IDS, createWorld, type BodyId, type CelestialBody } from './scene/
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
+import { TEACHING_SUN_RADIUS } from './scene/dayTurnFraming';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
@@ -287,10 +288,14 @@ async function main() {
     const body = world.bodies[follow];
     const spin = DESTINATIONS[follow]?.spin;
     if (!spin || dayTurn.active) return;
+    // A replay pressed during the hand-back must not create two camera owners. Keep the
+    // original return destination; the new turn starts from the current interpolated pose.
+    const returning = Boolean(cameraReturn);
+    cameraReturn = null;
     // Where the child was looking from before the turn swung the camera side-on, so it can
     // be handed back to them there. Relative to the body, which keeps orbiting throughout.
     body.getWorldPosition(focusPosition);
-    preTurnCameraOffset.copy(camera.position).sub(focusPosition);
+    if (!returning) preTurnCameraOffset.copy(camera.position).sub(focusPosition);
     ui.showNote(`spin-${follow}`, spin.name, spin.fact);
     ui.foldFact(true);
     if (follow === 'earth') {
@@ -315,6 +320,7 @@ async function main() {
   const dayTurn = createDayTurn({
     camera,
     controls,
+    teachingSun: world.teachingSun,
     reducedMotion,
     // The quietest thing in the game gets the sound that most needs one. Driven by the
     // turn's own progress rather than started and left to run, so the light and the sound
@@ -582,7 +588,7 @@ async function main() {
       controls.enabled = true;
       return;
     }
-    cameraReturn = { from: camera.position.clone().sub(focusPosition), t: 0 };
+    cameraReturn = { from: camera.position.clone().sub(focusPosition), rotation: camera.quaternion.clone(), t: 0 };
     controls.enabled = false;
   }
 
@@ -732,7 +738,9 @@ async function main() {
    */
   const CAMERA_RETURN_MS = 950;
   const returnOffset = new THREE.Vector3();
-  let cameraReturn: { from: THREE.Vector3; t: number } | null = null;
+  const returnLookMatrix = new THREE.Matrix4();
+  const returnRotation = new THREE.Quaternion();
+  let cameraReturn: { from: THREE.Vector3; rotation: THREE.Quaternion; t: number } | null = null;
 
   /*
    * The hunt arrow's own turn: a quarter of the world, eased, towards the hidden last place.
@@ -1109,7 +1117,9 @@ async function main() {
       const length = THREE.MathUtils.lerp(cameraReturn.from.length(), preTurnCameraOffset.length(), e);
       returnOffset.copy(cameraReturn.from).lerp(preTurnCameraOffset, e).setLength(length);
       camera.position.copy(focusPosition).add(returnOffset);
-      camera.lookAt(focusPosition);
+      returnLookMatrix.lookAt(camera.position, focusPosition, camera.up);
+      returnRotation.setFromRotationMatrix(returnLookMatrix);
+      camera.quaternion.copy(cameraReturn.rotation).slerp(returnRotation, e);
       if (cameraReturn.t >= 1) {
         cameraReturn = null;
         controls.syncFromCamera();
@@ -1134,7 +1144,7 @@ async function main() {
     // control for it so the two are not both writing the camera on the same frame.
     homeReturn.update(dt);
 
-    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn) {
+    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
       // Rotating the device changes how much fits on screen, so recompose the shot.
       // Deliberately overrides any manual zoom: a rotated view that cuts off the
       // destination is worse than losing the zoom level.
@@ -1174,6 +1184,14 @@ async function main() {
     Object.assign(window, { spaceNinjaSnapshot: () => {
       const center = world.bodies[follow].getWorldPosition(new THREE.Vector3());
       const view = camera.position.clone().sub(center).normalize();
+      const screenCircle = (position: THREE.Vector3, radius: number) => {
+        const point = position.clone().project(camera);
+        const edge = position.clone().addScaledVector(
+          new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), radius,
+        ).project(camera);
+        return { x: (point.x + 1) * innerWidth / 2, y: (1 - point.y) * innerHeight / 2,
+          radius: Math.abs(edge.x - point.x) * innerWidth / 2 };
+      };
       return {
         phase: flight.phase,
         mapBodyIds: [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId))],
@@ -1183,6 +1201,13 @@ async function main() {
         speaking: narrator.speaking,
         guidedHunt: huntGuidance?.active ?? false,
         cameraReturning: Boolean(cameraReturn),
+        dayTurning: dayTurn.active,
+        bodyScreen: screenCircle(center, world.bodies[follow].viewRadius ?? world.bodies[follow].radius),
+        teachingSun: (() => {
+          const cue = world.teachingSun.group;
+          return { visible: cue.visible,
+            ...screenCircle(cue.position, cue.scale.x * TEACHING_SUN_RADIUS) };
+        })(),
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
         ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,
@@ -1208,12 +1233,16 @@ async function main() {
     },
     reset: resetAdventure,
     dispose,
-    fail: (error) => fail('Space Ninja stopped', error, true),
+    fail: (error) => {
+      dayTurn.reset();
+      fail('Space Ninja stopped', error, true);
+    },
   });
   function restart() { lifecycle.restart(); }
   lifecycle.start();
 
   function dispose() {
+    dayTurn.reset();
     window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();

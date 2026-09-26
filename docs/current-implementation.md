@@ -125,13 +125,18 @@ hunt (4 s) and, on Earth, after 9 s idle mid-hunt. `startDayTurn` lost its `intr
 by the test) but no longer plays. Unit + `earth-day.pw` (phone and short-landscape) and
 `visit.pw` (phone) pass.
 
-**Still open (the sun, a bigger visual change):** the turn ends side-on to the light but the Sun
-itself is not drawn, so the *cause* of day and night is left implicit. Showing a visible sun at a
-3/4 angle so a child sees "the light comes from there" is a scene/lighting + camera-choreography
-change, best done with a fast local render loop; it is handed to a separate pass (see the Codex
-handover). Whether the opening should also *start at Earth* for day & night before the first
-flight (rather than Moon-first) is folded into that pass, since a close Earth opening pairs
-naturally with the sun. `home-first` still sends the child to the Moon first; `nextWorld`
+**Visible Sun during day and night (26 September):** the teaching shot now fits a small Sun
+cue along the real lighting direction, with Earth retaining both day and night in view.
+The cue shares existing textures and temporarily replaces the distant Sun's visuals; the
+lighting stays fixed. Portrait places it above the globe, short landscape beside it, and
+tablet diagonally. The camera uses the body's tilted axis, refits on resize, and restores
+the prior viewing direction and roll smoothly. Child-triggering, exact surface rotation,
+reduced-motion cuts, Done, Space map and the guided-hunt transition are preserved.
+Full-resolution comparisons are in `design/day-sun-2026-09-26/`. Focused Earth browser checks
+pass on all three viewports; Android tablet viewing and performance remain unverified.
+
+**Still open:** whether the opening should also *start at Earth* before the first flight is
+a separate product decision. `home-first` still sends the child to the Moon first; `nextWorld`
 deliberately avoids Earth because the ship is parked there and "fly to Earth" would be a
 near-zero flight — an open-at-Earth opening is the right vehicle for Earth-first, not the map
 suggestion.

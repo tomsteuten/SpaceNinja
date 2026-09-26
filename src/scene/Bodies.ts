@@ -27,6 +27,7 @@ import {
   resolveTexture,
 } from './textures';
 import type { QualitySettings } from './quality';
+import { createTeachingSun, type TeachingSun } from './TeachingSun';
 
 /**
  * The built scene bodies, as literal types so records keyed by them are exhaustive. The
@@ -103,6 +104,7 @@ export interface CelestialBody {
 
 export interface World {
   group: THREE.Group;
+  teachingSun: TeachingSun;
   bodies: Record<BodyId, CelestialBody>;
   /**
    * The tap targets for the bodies currently on screen. Hidden bodies drop out of it, so a
@@ -565,6 +567,12 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   corona.position.copy(SUN_POSITION);
 
   group.add(sunMesh, corona);
+  const teachingSun = createTeachingSun(sunMap, glowTexture, (visible) => {
+    // One Sun in the picture, even if a child started the turn looking at the real one.
+    // Its light remains unchanged; only the two visual representations are exchanged.
+    sunMesh.visible = corona.visible = !visible;
+  });
+  group.add(teachingSun.group);
 
   /* --- Lights ------------------------------------------------------------- */
 
@@ -816,6 +824,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
   return {
     group,
+    teachingSun,
     bodies,
     get hitMeshes() {
       return BODY_IDS
@@ -833,6 +842,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     },
 
     reset() {
+      teachingSun.hide();
       orbitSpeedScale = 1;
       // The map is full-strength again before any newly earned world is revealed on it.
       focused = null;
@@ -902,6 +912,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     },
 
     dispose() {
+      teachingSun.dispose();
       const meshes: THREE.Mesh[] = [sunMesh, earthMesh, atmosphere, earthHit];
       for (const body of orbiting.values()) {
         meshes.push(body.mesh, ...body.hitMeshes);

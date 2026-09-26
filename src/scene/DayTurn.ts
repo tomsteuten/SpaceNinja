@@ -15,8 +15,9 @@
  *     the sub-solar point so the destination reads as a bright full disc, which means the
  *     day/night line hugs the limb and the visible face is entirely lit. Turning the body
  *     from there shows continents sliding past a planet that never changes — correct, and
- *     completely missing the point. From side-on the line runs down the middle of the disc
- *     and both sunrise and sunset are on screen at once.
+ *     completely missing the point. Near side-on, both sunrise and sunset are visible.
+ *     A compressed Sun cue on the lighting axis makes their cause visible too. Portrait
+ *     frames it above the world; landscape uses the space beside it.
  *  2. **The body turns once, at a constant rate.** Exactly one turn, so every marker ends
  *     where it started and a hunt is undisturbed by having watched. Constant rather than
  *     eased: the eased version looks better and would be a lie about the one thing this
@@ -24,9 +25,10 @@
  */
 
 import * as THREE from 'three';
-import { SUN_DIRECTION } from '../config';
 import type { OrbitInput } from '../controls/OrbitInput';
 import type { CelestialBody } from './Bodies';
+import type { TeachingSun } from './TeachingSun';
+import { dayTurnPose } from './dayTurnFraming';
 
 const FULL_TURN = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -72,6 +74,7 @@ export interface DayTurnOptions {
   reducedMotion?: boolean;
   /** Borrowed for the swing and handed back at the end, as the flight does. */
   controls: OrbitInput;
+  teachingSun?: TeachingSun;
   /**
    * How much of the day has turned, every active frame: 0 throughout the camera swing,
    * then 0 → 1 across the turn itself, reaching exactly 1 on the frame it completes.
@@ -92,7 +95,7 @@ function smootherstep(t: number): number {
 }
 
 export function createDayTurn(options: DayTurnOptions): DayTurn {
-  const { camera, controls, onProgress, onFinish, reducedMotion = false } = options;
+  const { camera, controls, teachingSun, onProgress, onFinish, reducedMotion = false } = options;
   const swingDuration = DAY_SWING_DURATION;
   let rate = FULL_TURN / DAY_TURN_DURATION;
 
@@ -100,6 +103,16 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
   const from = new THREE.Vector3();
   const to = new THREE.Vector3();
   const offset = new THREE.Vector3();
+  const look = new THREE.Vector3();
+  const axis = new THREE.Vector3();
+  const sunPosition = new THREE.Vector3();
+  const fromUp = new THREE.Vector3();
+  const restoreUp = new THREE.Vector3();
+  const fromLook = new THREE.Vector3();
+  let pose: ReturnType<typeof dayTurnPose>;
+  let aspect = 0;
+  let fov = 0;
+  let shotRadius = 1;
 
   let turning: CelestialBody | null = null;
   let phase: 'swing' | 'turn' = 'swing';
@@ -112,14 +125,27 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
     const body = turning;
     if (!body) return;
     body.getWorldPosition(centre);
+    if (aspect !== camera.aspect || fov !== camera.fov) {
+      aspect = camera.aspect;
+      fov = camera.fov;
+      pose = dayTurnPose(shotRadius, axis, from, fov, aspect);
+      to.copy(pose.position).normalize();
+    }
     // Interpolated as directions and re-scaled, not as points: a straight line between
     // two points on a sphere dips through the middle, which here means through the planet.
-    offset.copy(from).lerp(to, t).normalize().multiplyScalar(distance);
+    offset.copy(from).lerp(to, t).normalize()
+      .multiplyScalar(THREE.MathUtils.lerp(distance, pose.position.length(), t));
     camera.position.copy(centre).add(offset);
-    camera.lookAt(centre);
+    look.copy(fromLook).lerp(pose.look, t).add(centre);
+    camera.up.copy(fromUp).lerp(pose.up, t).normalize();
+    camera.lookAt(look);
+    sunPosition.copy(centre).add(pose.sun);
+    teachingSun?.show(sunPosition, shotRadius, smootherstep(t));
   }
 
   function release() {
+    teachingSun?.hide();
+    camera.up.copy(restoreUp);
     turning = null;
     swung = 0;
     turned = 0;
@@ -144,23 +170,19 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       offset.subVectors(camera.position, centre);
       distance = offset.length();
       from.copy(offset).normalize();
+      restoreUp.copy(camera.up);
+      fromUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+      camera.getWorldDirection(fromLook).multiplyScalar(distance).add(offset);
 
-      /*
-       * Square to the Sun *and* level with the equator, which is a single direction (up
-       * to sign): the one perpendicular to both.
-       *
-       * Square to the Sun alone is not enough, and looks right until you watch it. The
-       * Sun sits well above the equator, so the nearest square direction from a camera
-       * that arrived high is also high — and from up there the day/night line lies
-       * *across* the disc. A body turns about its own axis, so its surface moves
-       * east-west, which from that viewpoint slides everything along the line instead of
-       * over it: no sunrise, just continents skating past a boundary they never cross.
-       * Level with the equator the line stands upright and places walk through it.
-       */
-      to.crossVectors(SUN_DIRECTION, UP).normalize();
-      // Two directions satisfy that. Take the near one, so the swing is the shorter way
-      // round and a child keeps their bearings.
-      if (to.dot(from) < 0) to.negate();
+      // The actual spin axis includes the body's axial/orbital tilt. Near its equator,
+      // surface features cross the terminator instead of sliding along it. The teaching
+      // Sun shares the lighting direction, with deliberately compressed diagram distances.
+      axis.copy(UP);
+      if (body.surface.parent) {
+        axis.applyQuaternion(body.surface.parent.getWorldQuaternion(new THREE.Quaternion()));
+      }
+      shotRadius = body.viewRadius ?? body.radius;
+      aspect = 0; // Re-fit against the current viewport, including a resize during a turn.
 
       controls.enabled = false;
       if (reducedMotion) {
@@ -217,6 +239,7 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
     },
 
     reset() {
+      teachingSun?.hide();
       if (!turning) return;
       release();
     },
