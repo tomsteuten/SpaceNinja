@@ -206,6 +206,10 @@ async function main() {
    * storage was cleared. `?voices` still works, since that is what the README said first.
    */
   const asked = /[?&](grownups|voices)\b/.test(window.location.search);
+  const greeting = shouldGreet(asked);
+  // With the splash up, the map is hidden behind it, so its opening line must not play yet —
+  // it did, over the parents' screen before space was visible. Hold it until "Start playing".
+  let mapIntroPending = greeting;
   const grownups = createGrownups({
     root: uiRoot,
     narrator,
@@ -217,8 +221,17 @@ async function main() {
     },
     onResetProgress: () => restart(),
     onTryFreeFlight: enterFreeFlight,
+    onStart: () => {
+      // The first real gesture: unlock audio, then speak the deferred opening line once, over
+      // the now-visible map. A later close of the grown-ups panel mid-game must not re-announce.
+      narrator.resume();
+      if (mapIntroPending) {
+        mapIntroPending = false;
+        announceMap(null, false);
+      }
+    },
   });
-  if (shouldGreet(asked)) grownups.show();
+  if (greeting) grownups.show();
 
   const ui = createUI({
     root: uiRoot,
@@ -885,10 +898,11 @@ async function main() {
   ui.setSoundOn(soundOn);
   applySuggestion();
   showOpeningHints();
-  // The map's opening line. On a device's very first load there has been no gesture yet, so
-  // the audio context is still locked and this fails silently; the map nudge repeats it once
-  // the child touches anything. A later load (visited not empty) names the suggested world.
-  announceMap(null, false);
+  // The map's opening line. Only when no splash is covering the map: with the grown-ups screen
+  // up, this is deferred to the "Start playing" press (onStart above), so it never talks over
+  // the splash. Without a splash (a later load, storage remembered), there has been no gesture
+  // yet, so it fails silently and the map nudge repeats it once the child touches anything.
+  if (!greeting) announceMap(null, false);
 
   /* --- restart ------------------------------------------------------------- */
 

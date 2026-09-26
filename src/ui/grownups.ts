@@ -100,12 +100,18 @@ export interface GrownupsOptions {
   onResetProgress(): void;
   /** Leave the normal adventure and open the optional manual-flight experiment. */
   onTryFreeFlight(): void;
+  /**
+   * The "Start playing" button was pressed: the panel is now closed and this press is the
+   * first reliable gesture, so it is the moment to unlock audio and speak the map's opening
+   * line — never before, or it talks over the splash while space is still hidden.
+   */
+  onStart?(): void;
   /** Route-specific description; the classic adventure's own words are the default. */
   about?: { lead: string; teaches: string; imagery?: string };
 }
 
 export function createGrownups(options: GrownupsOptions): Grownups {
-  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight, about } = options;
+  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight, onStart, about } = options;
   const panel = el('div', 'grownups');
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-modal', 'true');
@@ -226,7 +232,12 @@ export function createGrownups(options: GrownupsOptions): Grownups {
 
     const start = el('button', 'grownups__start', 'Start playing') as HTMLButtonElement;
     start.type = 'button';
-    start.addEventListener('click', close);
+    // Close first (which stops any voice sample), then hand back to the caller inside this same
+    // press so it can resume audio and speak the opening line over the now-visible map.
+    start.addEventListener('click', () => {
+      close();
+      onStart?.();
+    });
     inner.append(start);
 
     const what = el('section', 'grownups__section');
