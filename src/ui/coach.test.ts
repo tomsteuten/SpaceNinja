@@ -2,8 +2,10 @@ import { dragAngle } from '../controls/OrbitInput';
 import { describe, expect, it } from 'vitest';
 
 import {
+  COACH_ARROW_DELAY,
   COACH_DRAG_DELAY,
   COACH_TAP_DELAY,
+  SPIN_INVITE_AFTER_HUNT,
   SPIN_INVITE_DELAY,
   coachCue,
   coachSweep,
@@ -41,6 +43,16 @@ describe('coachCue', () => {
     expect(coachCue({ ...hidden, idleFor: COACH_TAP_DELAY })).toBeNull();
     expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY - 0.01 })).toBeNull();
     expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY })).toEqual({ kind: 'drag', side: 1 });
+  });
+
+  it('taps the arrow button before it ever shows the drag', () => {
+    const arrow = { x: 0.9, y: 0 };
+    const hidden = { ...hunting, hiddenSide: 1 as const, arrow };
+    expect(coachCue({ ...hidden, idleFor: COACH_ARROW_DELAY - 0.01 })).toBeNull();
+    expect(coachCue({ ...hidden, idleFor: COACH_ARROW_DELAY })).toEqual({ kind: 'tap', x: 0.9, y: 0 });
+    expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY - 0.01 })).toEqual({ kind: 'tap', x: 0.9, y: 0 });
+    expect(coachCue({ ...hidden, idleFor: COACH_DRAG_DELAY })).toEqual({ kind: 'drag', side: 1 });
+    expect(COACH_ARROW_DELAY).toBeLessThan(COACH_DRAG_DELAY);
   });
 
   it('prefers the tap while anything is still tappable', () => {
@@ -99,13 +111,14 @@ describe('cueChanged', () => {
 describe('shouldInviteSpin', () => {
   const done = { huntComplete: true, spinOffered: true, spinBusy: false };
 
-  it('waits out its own delay, which is longer than either coach cue', () => {
-    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY - 0.01 })).toBe(false);
-    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_DELAY })).toBe(true);
-    expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_DRAG_DELAY);
+  it('lets the celebration land after the hunt, then asks on every world', () => {
+    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_AFTER_HUNT - 0.01 })).toBe(false);
+    expect(shouldInviteSpin({ ...done, idleFor: SPIN_INVITE_AFTER_HUNT })).toBe(true);
   });
 
-  it('leaves an unfinished hunt alone unless a quiet Earth invitation is available', () => {
+  it('never competes with an unfinished hunt where the gold places are the invitation', () => {
+    // Finding places is the thing; a button asking to be pressed over the top of it would
+    // be the game interrupting its own instruction.
     expect(shouldInviteSpin({ ...done, huntComplete: false, idleFor: 600 })).toBe(false);
     expect(shouldInviteSpin({ ...done, huntComplete: false, earlyInvitation: true,
       idleFor: SPIN_INVITE_DELAY })).toBe(true);
@@ -116,6 +129,14 @@ describe('shouldInviteSpin', () => {
   it('stops inviting after the child has tried the activity this visit', () => {
     expect(shouldInviteSpin({ ...done, earlyInvitation: true, spinTried: true,
       idleFor: 600 })).toBe(false);
+  });
+
+  it('asks mid-hunt only where the turn is the primary action, after the tap hand', () => {
+    const earth = { ...done, huntComplete: false, spinIsPrimary: true };
+    expect(shouldInviteSpin({ ...earth, idleFor: SPIN_INVITE_DELAY - 0.01 })).toBe(false);
+    expect(shouldInviteSpin({ ...earth, idleFor: SPIN_INVITE_DELAY })).toBe(true);
+    // The coach shows the hunt first; the offer of the other thing comes second.
+    expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_TAP_DELAY);
   });
 
   it('stays quiet on a world with no day turn to offer', () => {

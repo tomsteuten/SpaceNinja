@@ -1,11 +1,24 @@
-import { test, expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test, expect, attachShot, settlePanel } from './fixtures';
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 async function launch(page: Page, world: string) {
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
-  await expect(page.locator('.mission-hud')).toBeVisible();
-  await expect(page.locator('.slot-row > *')).toHaveCount(3);
   await expect.poll(async () => (await snapshot(page)).draws).toBeGreaterThan(0);
+  // A first visit to Earth opens with the day turn as its introduction (no gold places
+  // yet); any tap on the world ends it straight into the guided hunt. Every other arrival
+  // begins with the calm roam-first beat, before the counter appears.
+  const done = page.getByRole('button', { name: 'Stop day and night' });
+  if (await done.isVisible()) {
+    const { width, height } = page.viewportSize()!;
+    await page.mouse.click(width / 2, height / 2);
+    await expect(done).toBeHidden();
+    await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
+    await expect.poll(async () => (await snapshot(page)).guidedHunt).toBe(true);
+  } else {
+    await expect(page.locator('.mission-hud')).toBeHidden();
+  }
+  await expect.poll(async () => (await snapshot(page)).targets.filter((t:any) => t.visible).length).toBe(2);
   const s = await snapshot(page);
   const visible = s.targets.filter((t:any) => t.visible);
   expect(visible).toHaveLength(2);
@@ -15,7 +28,10 @@ async function launch(page: Page, world: string) {
     expect(target.x).toBeGreaterThan(10);
     expect(target.x).toBeLessThan(page.viewportSize()!.width - 10);
     expect(target.y).toBeGreaterThan(100);
-    expect(target.y).toBeGreaterThan(hud!.y + hud!.height + 10);
+    if (await page.locator('.mission-hud').isVisible()) {
+      expect(target.x < hud!.x - 10 || target.x > hud!.x + hud!.width + 10 ||
+        target.y > hud!.y + hud!.height + 10 || target.y < hud!.y - 10).toBe(true);
+    }
     expect(target.y).toBeLessThan(dock!.y - 5);
   }
 }
@@ -28,6 +44,7 @@ async function collectVisible(page: Page) {
 }
 async function keepExploring(page: Page) {
   await expect(page.locator('.photo-view.is-reward')).toBeVisible();
+  await settlePanel(page);
   await page.getByRole('button',{name:'Keep exploring'}).click();
   await expect(page.locator('.photo-view')).toBeHidden();
 }
@@ -36,34 +53,56 @@ async function home(page: Page) {
   await expect(page.getByRole('button',{name:'Fly to Moon',exact:true})).toBeVisible();
 }
 test('rendered discoveries, drag, media, return, repeat and outer-world arrivals', async ({page}, info) => {
-  const errors: string[] = [];
-  page.on('pageerror', error => errors.push(error.message));
-  page.on('console', message => { if(message.type() === 'error') errors.push(message.text()); });
-  await page.addInitScript(() => {
-    // Exercise the supported older-device tier; software bloom can saturate CI hosts.
-    Object.defineProperty(navigator, 'hardwareConcurrency', {get:()=>4});
-    Object.defineProperty(navigator, 'deviceMemory', {get:()=>2});
-    Math.random = () => 0.1;
-  });
   await page.goto('/');
   await page.getByRole('button',{name:'Start playing',exact:true}).click();
   await expect(page.locator('#boot')).toBeHidden();
   await launch(page,'Moon');
-  await info.attach('moon-arrival',{body:await page.screenshot(),contentType:'image/png'});
+  await attachShot(page, 'moon-arrival', info);
   const firstIds = (await snapshot(page)).ids;
   await collectVisible(page);
+  await expect.poll(async () => (await snapshot(page)).guidedHunt).toBe(true);
+  await expect(page.locator('.mission-hud')).toBeVisible();
+  await expect(page.locator('.slot-row > *')).toHaveCount(3);
   // The first find is the postcard moment. Its photo is lazy, so the assertion waits for
   // the actual browser image rather than assuming a fast local disk/cache.
   await expect(page.locator('.photo-view.is-reward')).toBeVisible();
   await expect(page.getByRole('button',{name:'Keep exploring'})).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Keep exploring' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.getByRole('button', { name: 'Close the photo' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Keep exploring' })).toBeFocused();
   await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
-  await info.attach('first-find-postcard',{body:await page.screenshot(),contentType:'image/png'});
-  await page.getByRole('button',{name:'Keep exploring'}).click();
+  const detail = await page.locator('.photo-view__detail').boundingBox();
+  const exit = await page.getByRole('button', { name: 'Keep exploring' }).boundingBox();
+  expect(detail!.y + detail!.height, 'Postcard words must clear the exit').toBeLessThan(exit!.y);
+  await attachShot(page, 'first-find-postcard', info);
+  await page.keyboard.press('Escape');
   await expect(page.locator('.photo-view')).toBeHidden();
   await collectVisible(page);
   await keepExploring(page);
   await expect.poll(async () => (await snapshot(page)).hidden?.visible).toBe(false);
-  // Pull from the indicated side. This is a real drag through OrbitInput.
+  // The arrow is a button: one press turns the world a quarter turn towards the hidden place,
+  // which is always enough to bring it onto the visible face.
+  const arrow = page.getByRole('button', { name: 'Turn to the last place' });
+  await expect(arrow).toBeVisible();
+  const arrowBox = await arrow.boundingBox();
+  expect(arrowBox!.width).toBeGreaterThanOrEqual(54);
+  expect(arrowBox!.height).toBeGreaterThanOrEqual(54);
+  await arrow.click();
+  await expect.poll(async () => (await snapshot(page)).hidden?.visible).toBe(true);
+  await expect(arrow).toBeHidden();
+  await attachShot(page, 'after-arrow-press', info);
+  // And the drag still works: turn the place back round the far side by pulling *away* from
+  // it, then pull from the indicated side. Both are real drags through OrbitInput.
+  {
+    const {width,height}=page.viewportSize()!;
+    const away = (await snapshot(page)).hidden.side;
+    await page.mouse.move(width/2, height*0.45);
+    await page.mouse.down();
+    await page.mouse.move(width/2+away*width*0.3,height*0.45,{steps:15});
+    await page.mouse.up();
+  }
   for(let attempt=0; attempt<8 && !(await snapshot(page)).targets.some((t:any)=>t.visible); attempt++) {
     const side = (await snapshot(page)).hidden.side;
     const {width,height}=page.viewportSize()!;
@@ -86,10 +125,38 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     await photo.click();
     await expect(page.locator('.photo-view')).toBeVisible();
     await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
-    await info.attach('journal-photo',{body:await page.screenshot(),contentType:'image/png'});
-    await page.getByRole('button',{name:'Close the photo'}).click();
-    await page.getByRole('button',{name:'Read this discovery out loud'}).click();
-    await expect(page.getByRole('button',{name:'Stop reading discovery'})).toBeVisible();
+    await attachShot(page, 'journal-photo', info);
+    await expect(page.getByRole('button',{name:'Back to journal'})).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(photo).toBeFocused();
+    const readAloud = page.getByRole('button', { name: 'Read this discovery out loud' });
+    // The last discovery can still be narrating when the journal opens. Its button uses
+    // the same audio toggle, so wait for that recording to end before asking it to play.
+    await expect.poll(async () => (await snapshot(page)).speaking).toBe(false);
+    // A software-rendered frame can delay the driver until this short clip has ended.
+    // Observe the visible Stop state inside the browser, armed by the real click, so
+    // earlier narration cannot satisfy the check. The trace showed it before polling.
+    await readAloud.evaluate(button => {
+      button.addEventListener('click', () => {
+        const observer = new MutationObserver(() => {
+          if (button.getAttribute('aria-label') === 'Stop reading discovery' &&
+              button.getClientRects().length > 0) {
+            button.setAttribute('data-playtest-observed-speaking', 'true');
+            observer.disconnect();
+          }
+        });
+        observer.observe(button, { attributes: true, attributeFilter: ['aria-label'] });
+      }, { once: true, capture: true });
+    });
+    await readAloud.click();
+    // A queued completion line can begin in the gap between the idle check and this
+    // click. In that case the first press stops it; the second starts this discovery.
+    if (await readAloud.getAttribute('data-playtest-observed-speaking') !== 'true') {
+      await expect(readAloud).toHaveAttribute('aria-label', 'Read this discovery out loud');
+      await readAloud.click();
+    }
+    await expect(page.locator('.journal-panel .narrate-btn'))
+      .toHaveAttribute('data-playtest-observed-speaking', 'true');
     photoFound=true; break;
   }
   expect(photoFound,'The deterministic smoke visit must exercise a real photo').toBe(true);
@@ -100,12 +167,12 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await home(page);
   await launch(page,'Mars'); await home(page);
   await launch(page,'Saturn');
-  await info.attach('saturn-arrival',{body:await page.screenshot(),contentType:'image/png'});
+  await attachShot(page, 'saturn-arrival', info);
   await home(page);
   await launch(page,'Earth');
   await page.setViewportSize({width:768,height:1024});
   await expect.poll(async () => (await snapshot(page)).bodyScreenRadius).toBeGreaterThan(110);
-  await info.attach('earth-after-resize',{body:await page.screenshot(),contentType:'image/png'});
+  await attachShot(page, 'earth-after-resize', info);
   await home(page);
-  expect(errors).toEqual([]);
+
 });

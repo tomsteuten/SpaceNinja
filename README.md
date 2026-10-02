@@ -3,6 +3,14 @@
 A gentle 3D space explorer for young children (roughly ages 5–8). Five destinations so
 far: the Sun, Earth, the Moon, Mars, and Saturn.
 
+The guided adventure is the default game. Tap a world or its large destination button and
+ride with the spaceship to a close view. Earth and the Moon are available first; visiting
+the Moon reveals Mars, and visiting Mars reveals Saturn. Every world has real places to
+discover, a journal, recorded narration and a clear Fly Home route. Earth's **Day & night**
+activity shows a full turn of the globe and its city lights.
+
+### Guided adventure
+
 Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
 there. One tap, one journey: ride with the spaceship along its safe route and arrive close
 enough to see the surface.
@@ -46,6 +54,11 @@ npm run dev
 
 Then open <http://localhost:5173>.
 
+For a local browser preview, use <http://localhost:5173/>. The newer close-flight explorer
+remains available for comparison at <http://localhost:5173/?explorer>. Its worlds are all
+open, and holding and sliding steers the ship over real mapped places. It has not replaced
+the guided game while tablet playtesting and the screen-by-screen review continue.
+
 The optional manual-flight experiment is available from **Fly it yourself** in the grown-ups
 panel, with **Shift+F** on a keyboard, or directly at
 <http://localhost:5173/?freeflight>. The deployed route is
@@ -53,6 +66,10 @@ panel, with **Shift+F** on a keyboard, or directly at
 one-finger steering, assisted braking, collision protection and optional autopilot. **Back to
 adventure** returns to the normal game. The experiment is deliberately easy to test without
 assuming it has already earned a place in the main child loop.
+
+A second steering experiment, the Earth-to-Moon outing, is at
+<http://localhost:5173/?outing>: fly a visible ship to the Moon, find Tycho, see its photo and
+fly home. Its contract and ownership are in `docs/current-implementation.md`.
 
 ### On a phone or tablet on the same WiFi
 
@@ -101,6 +118,13 @@ account or API key.
 ## Artwork
 
 ### Credits
+
+**Explorer Moon maps and Tycho close-up** — NASA LROC and LOLA datasets from the
+[NASA CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/), plus the real LROC NAC M162350671
+[Tycho central-peak photograph](https://svs.gsfc.nasa.gov/4220/). Credit NASA/GSFC/ASU/SVS
+and NASA/GSFC/MIT for LOLA. Exact URLs, processing and original checksums are recorded in
+`public/assets/moon-trial/README.txt` and `sources.json`. `scripts/prepare-moon-assets.py`
+reproduces the compact files without shipping source TIFFs.
 
 **Planet and sky textures** — `earth.jpg`, `earth-night.jpg`, `moon.jpg`, `mars.jpg`,
 `saturn.jpg` and `starfield.jpg` in `public/assets/`, from [Solar System
@@ -178,7 +202,8 @@ sw/                      service worker (offline): sw.js template + build.ts, bu
 public/manifest.webmanifest  web app manifest — installable, runs standalone
 public/icons/            home-screen icons (icon.svg is the source; PNGs render from it)
 src/
-  main.ts                wiring, frame loop, teardown, offline + crash
+  main.ts                adventure wiring, frame loop and visit reset
+  session/               shared browser lifetime, offline registration and crash screen
   config.ts              scene scale, speeds, timings, and the destination copy
   scene/
     Stage.ts             renderer, camera, bloom, resize, adaptive quality
@@ -415,15 +440,13 @@ never auto-starts the browser's poor `SpeechSynthesis` voice; that fallback rema
 only from the speaker button. This makes a partial voice pack safe to ship and keeps silence
 preferable to bad narration.
 
-`npm run narration:generate` creates the MP3 pack locally with the Apache-licensed
-Kokoro-82M model. The default British `bf_emma` voice is slowed slightly, then every cue is
-normalised and compressed by `ffmpeg` for a phone speaker. The first run downloads about
-90MB of model weights into a temporary cache; no script text or audio is sent to a service.
-The command preserves existing files unless passed `--force`, and accepts `--voice=<name>`
-and `--speed=<number>`. OpenAI remains an optional alternative via
-`npm run narration:generate:openai`. Generated narration is disclosed as AI-generated in
-the grown-ups panel. The MP3s are Vite assets, fingerprinted and precached by the existing
-service worker, so playback is deterministic and offline.
+`npm run narration:generate` creates the shipped pack with the owner-selected ElevenLabs
+Emma voice (`ELEVENLABS_API_KEY` required). Its hash manifest regenerates only changed cues;
+`--only=<cue>` limits a run. `npm run narration:generate:kokoro` is the local, keyless fallback,
+and `npm run narration:generate:openai` is another keyed alternative. The Sun arrival currently
+uses Kokoro `bf_emma`; that exception is recorded in the narration provenance. Generated
+narration is disclosed in the grown-ups panel. The MP3s are fingerprinted Vite assets and
+precached by the service worker for offline playback.
 
 **Without recorded cues, the voice is chosen on the grown-ups panel.** It appears by itself
 the first time the game is opened on a device and lists every voice that device offers,
@@ -492,13 +515,16 @@ supersede the earlier all-or-none narration and text-only journal notes.
 
 `npm run test:e2e` builds an isolated `dist-playtest/` and serves it on port 4180.
 Run `npx playwright install chromium` once first (CI uses `--with-deps`). Set `PLAYTEST_PORT`
-to another port if a separate checkout is already using 4180. The suite uses
+to another port if a separate checkout is already using 4180. The suite runs every
+`e2e/*.pw.ts` file. For the adventure it uses
 phone, touch-tablet and short-landscape viewports on the existing low graphics tier; it checks real pointer-driven flights,
 three-slot hunts, target clearance above the dock, hidden-target dragging, journal photo
 and narration controls, repeat visits, outer-world arrivals, and Earth resizing. Screenshots
 are attached to `playwright-report/`; failures retain traces in `test-results/`. Larger
 viewports use half-resolution rasterisation while preserving CSS dimensions, keeping
-software rendering affordable. This suite is a layout/interaction gate, not a GPU benchmark.
+software rendering affordable. The `?outing` files cover steering, stop, help, Tycho, return,
+modal and Escape boundaries and reduced motion. Offline and history-suspension checks run on
+the adventure and both experiments. This suite is a layout/interaction gate, not a GPU benchmark.
 
 The test build alone enables `VITE_PLAYTEST=1`, a read-only scene snapshot for locating
 canvas targets and checking renderer activity. It cannot launch, collect or alter progress.
@@ -516,3 +542,13 @@ hidden target behind the limb, and view ring discoveries at least 24 degrees abo
 the ring plane. Tests also ensure no discovery is made unreachable by those constraints.
 The journal shows each world's collection; after visiting every world, the map suggests an
 unfinished page. Finds say New or Seen before, without penalising revisits.
+
+
+### Architecture review
+
+The [September 14 audit](docs/architecture-review.md) records the current extension boundaries,
+validated lifecycle fixes and remaining engineering risks. Both routes now pause on backgrounding,
+retain their scene for a cached browser-history return, and keep crashes stopped until reload.
+Browser screenshots are written to named PNGs under `test-results/` as well as attached to the
+HTML report. The history tests exercise browser lifecycle events deterministically; they do not
+assert that every browser will choose to put the page into its back/forward cache.

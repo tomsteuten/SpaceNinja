@@ -88,6 +88,19 @@ describe('advanceSpeed', () => {
 });
 
 describe('approachSpeedCap', () => {
+  it('lets a departure world keep collision clearance without braking the Moon approach', () => {
+    const earth = { ...body('earth', 0, 0, 0, 1), brakeOnApproach: false, canExplore: false };
+    const moon = body('moon', 2.034, 0, -1.452, 0.27);
+    const start = new THREE.Vector3(1, 0.5, 3);
+    const flight = createFreeFlight({ position: start, heading: moon.center.clone().sub(start).normalize() });
+    flight.engageAutopilot('moon');
+    for (let i = 0; i < 200 && flight.state.explorable !== 'moon'; i++) {
+      flight.update(0.05, { pointer: null }, [earth, moon]);
+      expect(flight.state.position.distanceTo(earth.center)).toBeGreaterThanOrEqual(earth.radius * T.clearFactor - 1e-6);
+    }
+    expect(flight.state.explorable).toBe('moon');
+    expect(flight.state.speed).toBeLessThan(T.cruiseSpeed * 0.06);
+  });
   it('is cruise far away and zero at the hover shell', () => {
     const earth = body('earth', 0, 0, 0, 1);
     expect(approachSpeedCap(new THREE.Vector3(0, 0, 20), [earth], T)).toBe(T.cruiseSpeed);

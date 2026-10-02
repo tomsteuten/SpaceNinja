@@ -7,9 +7,10 @@ import { worldCollections } from '../state/replay';
  */
 
 import type { Narrator } from '../audio/narration';
-import { DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
+import { cueText } from '../audio/script';
+import { DESTINATIONS, DISCOVERIES, JOURNAL_SLOTS, type Discovery } from '../config';
 import { STICKERS, foundEverything, loadProgress } from '../state/progress';
-import { createIcon, iconMarkup } from './icons';
+import { createIcon, iconMarkup, type IconName } from './icons';
 import {
   guideOnArrival,
   narrationOnEnd,
@@ -18,6 +19,8 @@ import {
   type PendingGuide,
 } from './narrationFlow';
 import { createPhotoViewer, findPhoto } from './photos';
+import { createDialogFocus } from './dialog';
+import { createPanelGuard, type PanelOpening } from './panelGuard';
 
 export interface DestinationChoice {
   id: string;
@@ -41,7 +44,8 @@ export interface DestinationChoice {
 export interface GameUI {
   /** A reward, journal, celebration or transcript currently has the child's attention. */
   readonly activityCovered: boolean;
-  setHint(text: string | null): void;
+  /** A short line at the top, optionally led by one of the interface's own icons. */
+  setHint(text: string | null, icon?: IconName): void;
   /** Large, stable alternatives to tapping small moving worlds in the canvas. */
   showDestinations(
     choices: readonly DestinationChoice[],
@@ -50,7 +54,8 @@ export interface GameUI {
   ): void;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
-  showArrival(cueId: string, label: string, fact: string, emoji: string): void;
+  /** With a `worldId`, the card's title is led by a small picture of that world. */
+  showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string): void;
   /** Take the fact card away entirely (not just fold it). Used when the day/night intro's
    *  card has done its job and the hunt is starting — a lingering card is clutter. */
   clearFact(): void;
@@ -65,6 +70,12 @@ export interface GameUI {
    */
   beginMission(caption: string, total: number, cueId?: string): void;
   setMissionCaption(text: string, cueId?: string): void;
+  /**
+   * Say something with no card: the Earth introduction while it turns, the invitation to
+   * turn it on a later visit. Waits behind whatever is being read, as the hunt line does,
+   * and only authored audio starts by itself.
+   */
+  speakGuide(text: string, cueId: string): void;
   /**
    * A place has been found: name it, and put it in the journal.
    *
@@ -90,7 +101,18 @@ export interface GameUI {
    * The celebration. `stickerId` is null when the sticker was already earned on an
    * earlier visit — the party happens either way, only the "new sticker" badge does not.
    */
-  completeMission(cueId: string, successLine: string, stickerId: string | null, title: string): void;
+  completeMission(
+    cueId: string,
+    successLine: string,
+    stickerId: string | null,
+    title: string,
+    /**
+     * A guide line to speak behind the success line once it is actually shown and read —
+     * the "you can fly home and pick another world" follow-up. Only passed when the hint
+     * names a next world, and it rides the success narration whichever path shows it.
+     */
+    followUp?: PendingGuide,
+  ): void;
   /**
    * The bigger celebration, for finding every place on every world. Follows the world's
    * own completion rather than replacing it.
@@ -144,9 +166,16 @@ export interface GameUI {
    * Point at the last place still to be found, or `null` to take the arrow away.
    *
    * `-1` for the left edge, `1` for the right. Only ever shown while the one remaining
-   * discovery is round the back: it is the drag lesson, made visible.
+   * discovery is round the back: it is the drag lesson, made visible — and a button that
+   * turns the world there for a child who would rather tap than drag.
    */
   setHuntArrow(side: -1 | 1 | null): void;
+  /**
+   * The centre of the hunt arrow button in client pixels while it is shown, else null. Read
+   * from layout rather than the animated box, so the idle coach's hand does not chase the
+   * arrow's own nudge.
+   */
+  huntArrowCentre(): { x: number; y: number } | null;
   /**
    * Shake a destination button. The wordless half of answering a press on a locked world —
    * the hint line says which world unlocks it, and a child who cannot read gets the shake
@@ -167,6 +196,8 @@ export interface UIOptions {
   /** The "turn this world through a day" button. Only offered where config has one. */
   onSpin(): void;
   onStopSpin(): void;
+  /** The hunt arrow was pressed: turn the world towards the hidden last place. */
+  onTurnToHidden(): void;
   /**
    * Someone held the journal button down. That is the way back into the grown-ups panel,
    * and it is deliberately a gesture rather than a button: a settings control on screen is
@@ -199,6 +230,7 @@ export function createUI(options: UIOptions): GameUI {
     onExploreAgain,
     onSpin,
     onStopSpin,
+    onTurnToHidden,
     onGrownups,
     onFinale,
   } = options;
@@ -234,6 +266,7 @@ export function createUI(options: UIOptions): GameUI {
     suggestedId: string | null = null,
     newlyRevealedId: string | null = null,
   ) {
+    root.classList.toggle('is-home', choices.length > 0);
     destinationBar.replaceChildren();
     destinationBar.style.setProperty('--destination-count', String(choices.length));
     for (const choice of choices) {
@@ -256,17 +289,24 @@ export function createUI(options: UIOptions): GameUI {
        */
       button.classList.toggle('is-locked', Boolean(choice.locked));
       // A suggestion, not a selection — nothing is ever in a chosen-but-not-acted-on state
-      // any more. It marks the world the map is pointing at, alongside the ring in the
-      // scene and the parked ship's nose.
+      // any more. It marks the world the map is pointing at, alongside the
+      // parked ship's nose.
       button.classList.toggle('is-suggested', choice.id === suggestedId);
       button.classList.toggle('is-new', choice.id === newlyRevealedId);
       // The world keeps its own picture even while locked — that picture is the whole
       // reason to want to go there, and a child who cannot read "Saturn" can want the one
       // with the rings. The padlock is a corner badge over it rather than a replacement.
-      button.append(
-        el('span', 'destination-choice__emoji', choice.emoji),
-        el('span', 'destination-choice__label', choice.label),
-      );
+      const orb = el('span', 'world-orb');
+      orb.classList.add('world-orb--' + choice.id);
+      orb.setAttribute('aria-hidden', 'true');
+      if (choice.id === 'sun') orb.textContent = '☀';
+      else orb.style.backgroundImage = 'url(./assets/' + choice.id + '.jpg)';
+      button.append(orb, el('span', 'destination-choice__label', choice.label));
+      if (choice.locked) {
+        const lock = createIcon('lock');
+        lock.classList.add('destination-choice__lock');
+        button.append(lock);
+      }
       button.dataset.destination = choice.id;
       button.addEventListener('click', () => onChooseDestination(choice.id));
       destinationBar.append(button);
@@ -364,7 +404,7 @@ export function createUI(options: UIOptions): GameUI {
   factCard.classList.add('is-hidden');
 
   /*
-   * The drag lesson, made visible.
+   * The drag lesson, made visible — and made a button.
    *
    * One discovery on every world sits past the horizon, and reaching it is how a child
    * learns the camera can be turned — the single most important thing the game teaches
@@ -372,15 +412,26 @@ export function createUI(options: UIOptions): GameUI {
    * spin around Earth"), which is a poor instrument for an audience that mostly cannot
    * read. This points at where the place actually is, and only while it is out of sight.
    *
-   * Outside the dock, because it belongs to the edge of the screen rather than to the
-   * cluster of controls at the bottom.
+   * On the tablet the drag itself was the frustrating part: the arrow said where, the
+   * child understood where, and turning the world there still took more than they had.
+   * So the arrow now also *does* it: a press turns the world a quarter turn towards the
+   * place. The drag still works and still turns further per swipe than it did; the button
+   * is the smaller ask, offered first. Outside the dock, because it belongs to the edge of
+   * the screen rather than to the cluster of controls at the bottom.
    */
-  const huntArrow = el('div', 'hunt-arrow is-hidden');
-  huntArrow.setAttribute('aria-hidden', 'true');
+  const huntArrow = el('button', 'hunt-arrow is-hidden') as HTMLButtonElement;
+  huntArrow.type = 'button';
+  huntArrow.setAttribute('aria-label', 'Turn to the last place');
   huntArrow.append(el('span', 'hunt-arrow__chevron', '❯'));
+  huntArrow.addEventListener('click', () => onTurnToHidden());
   root.append(huntArrow);
 
-  const photoViewer = createPhotoViewer(root);
+  /*
+   * One press counter for every panel the interface opens: the journal, the About words and
+   * the photo. A fast second tap must not close what the first one opened — see panelGuard.
+   */
+  const panelGuard = createPanelGuard(window);
+  const photoViewer = createPhotoViewer(root, { guard: panelGuard });
   /** What the thumbnail currently shows, so a tap opens the right one. */
   let photoShowing: { url: string; caption: string } | null = null;
 
@@ -394,6 +445,9 @@ export function createUI(options: UIOptions): GameUI {
     factPhoto.classList.remove('is-fresh');
     factPhotoImage.removeAttribute('src');
   }
+  // A successful HEAD probe cannot promise the browser can decode every image. Keep the
+  // existing no-photo state when a cached file is truncated or a connection changes mid-load.
+  factPhotoImage.addEventListener('error', clearPhoto);
 
   /**
    * Looks for this place's photo and shows it if it exists.
@@ -448,6 +502,11 @@ export function createUI(options: UIOptions): GameUI {
    * So: one button, always the same words, never hidden mid-mission. It stays visually
    * secondary to whatever the primary action is, but it is unmistakably a button with a
    * label, because "how do I get out of here" should never need a guess.
+   *
+   * "Fly Home" and a rocket said the wrong thing twice: a rocket means *go*, not *come back*,
+   * and "home" is the very world some children are standing on. It is now the solar-system map
+   * icon and "Space map" — it names the place it returns to (the map of all the worlds), which
+   * adults missed was always available and a pre-reader reads from the little orbit.
    */
   const homeButton = el('button', 'btn btn--secondary home-btn');
   homeButton.type = 'button';
@@ -471,6 +530,20 @@ export function createUI(options: UIOptions): GameUI {
   let visitEmoji = '🌍';
   let spinAccessibleLabel = 'Watch day and night';
 
+  const aboutButton = el('button', 'btn btn--secondary about-btn is-hidden', 'About');
+  aboutButton.type = 'button';
+  aboutButton.setAttribute('aria-expanded', 'false');
+  aboutButton.setAttribute('aria-controls', factText.id);
+  const earthHeading = el('div', 'earth-heading is-hidden');
+  const earthOrb = el('span', 'world-orb');
+  earthOrb.setAttribute('aria-hidden', 'true');
+  earthOrb.style.backgroundImage = 'url(./assets/earth.jpg)';
+  earthHeading.append(earthOrb, el('span', undefined, 'Earth'), aboutButton);
+  root.append(earthHeading);
+  let earthArrivalFact = '';
+  let earthAboutOpen = false;
+  let aboutOpening: PanelOpening | null = null;
+
   const visitActions = el('div', 'visit-actions is-hidden');
   visitActions.setAttribute('role', 'group');
   visitActions.setAttribute('aria-label', 'Explore this world');
@@ -487,7 +560,11 @@ export function createUI(options: UIOptions): GameUI {
 
   const journalPanel = el('div', 'panel journal-panel');
   journalPanel.classList.add('is-hidden');
+  journalPanel.setAttribute('role', 'dialog');
+  journalPanel.setAttribute('aria-modal', 'true');
   const journalTitle = el('h2', undefined, 'My Discoveries');
+  journalTitle.id = 'journal-title';
+  journalPanel.setAttribute('aria-labelledby', journalTitle.id);
   const collectionProgress = el('div', 'collection-progress');
   collectionProgress.setAttribute('aria-label', 'Places found on each world');
   const stickerGrid = el('div', 'sticker-grid');
@@ -515,6 +592,11 @@ export function createUI(options: UIOptions): GameUI {
   journalAudio.append(createIcon('speaker'));
   journalActions.append(journalPhoto, journalAudio);
   let journalPhotoUrl: string | null = null;
+  journalImage.addEventListener('error', () => {
+    journalPhotoUrl = null;
+    journalPhoto.classList.add('is-hidden');
+    journalImage.removeAttribute('src');
+  });
   journalPhoto.addEventListener('click', () => {
     const discovery = detailFor ? DISCOVERIES[detailFor] : undefined;
     if (journalPhotoUrl && discovery) photoViewer.show(journalPhotoUrl, `${discovery.emoji} ${discovery.name}`);
@@ -529,6 +611,7 @@ export function createUI(options: UIOptions): GameUI {
   const closeJournal = el('button', 'btn btn--quiet', 'Close');
   closeJournal.type = 'button';
   journalPanel.append(journalTitle, collectionProgress, stickerGrid, journalDetail, journalActions, closeJournal);
+  const journalFocus = createDialogFocus(journalPanel, () => closeJournal, () => setJournalOpen(false));
 
   root.append(journalButton, journalPanel);
 
@@ -612,15 +695,26 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   let journalOpen = false;
+  let journalOpening: PanelOpening | null = null;
   function setJournalOpen(open: boolean) {
     journalOpen = open;
     clearJournalDetail();
-    if (open) renderJournal();
+    if (open) {
+      renderJournal();
+      // The panel pops up in the button's own corner, so on a double tap the second touch
+      // lands on Close. Remember when and on which press it opened; Close asks before acting.
+      journalOpening = panelGuard.opened();
+    }
     journalPanel.classList.toggle('is-hidden', !open);
     journalButton.classList.toggle('is-hidden', open);
     // The panel and the fact card both want the lower half of a phone screen.
     dock.classList.toggle('is-hidden', open);
-    if (open) journalButton.removeAttribute('data-new');
+    if (open) {
+      journalButton.removeAttribute('data-new');
+      journalFocus.open();
+    } else {
+      journalFocus.close();
+    }
   }
 
   homeButton.addEventListener('click', () => {
@@ -630,6 +724,28 @@ export function createUI(options: UIOptions): GameUI {
   spinButton.addEventListener('click', () => {
     if (spinBusy) onStopSpin();
     else onSpin();
+  });
+  aboutButton.addEventListener('click', (event) => {
+    const opening = !earthAboutOpen;
+    // A toggle, so a double tap would open the words and shut them again in one go. The
+    // closing half waits for a fresh, deliberate press; the opening half is always honoured.
+    if (!opening && !panelGuard.allowsClose(aboutOpening, event)) return;
+    if (opening) {
+      aboutOpening = panelGuard.opened();
+      const duringDay = root.classList.contains('is-day-active');
+      showFact(
+        duringDay ? (DESTINATIONS.earth?.spin?.fact ?? earthArrivalFact) : earthArrivalFact,
+        duringDay ? 'Day & night' : 'Earth',
+        duringDay ? 'spin-earth' : 'arrival-earth',
+        false,
+      );
+      factCard.classList.add('is-transcript-open');
+      updateTranscriptButton();
+    } else {
+      factCard.classList.add('is-hidden');
+    }
+    earthAboutOpen = opening;
+    aboutButton.setAttribute('aria-expanded', String(opening));
   });
 
   /*
@@ -672,7 +788,10 @@ export function createUI(options: UIOptions): GameUI {
     }
     setJournalOpen(true);
   });
-  closeJournal.addEventListener('click', () => setJournalOpen(false));
+  closeJournal.addEventListener('click', (event) => {
+    if (!panelGuard.allowsClose(journalOpening, event)) return;
+    setJournalOpen(false);
+  });
   renderJournal();
 
   /* --- behaviour ----------------------------------------------------------- */
@@ -680,6 +799,21 @@ export function createUI(options: UIOptions): GameUI {
   let currentFact = '';
   let currentFactCueId: string | null = null;
   let pendingGuide: PendingGuide | null = null;
+
+  /**
+   * Say a guide line with no card: wait behind whatever is being read, and only ever start a
+   * cue that has an authored recording. The one place the arrival/queue/ignore decision is
+   * made for a spoken guide, shared by the `speakGuide` method and the finale below.
+   */
+  function playGuide(text: string, cueId: string) {
+    const arrival = guideOnArrival({
+      hasRecording: narrator.hasRecording(cueId),
+      soundOn,
+      speaking: narrator.speaking,
+    });
+    if (arrival === 'queue') pendingGuide = { text, cueId };
+    else if (arrival === 'speak') narrator.speak(text, cueId, false);
+  }
 
   function wordsVisible() {
     return (
@@ -870,6 +1004,9 @@ export function createUI(options: UIOptions): GameUI {
     if (stickerId) journalButton.setAttribute('data-new', 'true');
     if (journalOpen) renderJournal();
     onFinale();
+    // "You found every place. You are a Space Ninja!" — over the overlay, behind any success
+    // line still reading, and only when its own recording is present.
+    playGuide(cueText('finale'), 'finale');
     later(closeFinale, FINALE_MS);
   }
 
@@ -881,8 +1018,10 @@ export function createUI(options: UIOptions): GameUI {
     else root.append(journalButton);
   }
 
-  function setHint(text: string | null) {
-    hint.textContent = text ?? '';
+  function setHint(text: string | null, icon?: IconName) {
+    hint.replaceChildren();
+    if (text && icon) hint.append(createIcon(icon));
+    if (text) hint.append(el('span', undefined, text));
     hint.style.opacity = text ? '1' : '0';
   }
 
@@ -903,7 +1042,9 @@ export function createUI(options: UIOptions): GameUI {
    * had just been earned — so the one find that actually required the drag was the one
    * whose story got cut off after a second, which is precisely backwards.
    */
-  let pendingFact: { text: string; title?: string; cueId?: string } | null = null;
+  let pendingFact:
+    | { text: string; title?: string; cueId?: string; guide?: PendingGuide | null }
+    | null = null;
 
   /** The fact on screen has had its time: hand over to the next one, or fold away. */
   function factTimeUp() {
@@ -911,6 +1052,9 @@ export function createUI(options: UIOptions): GameUI {
     if (next) {
       pendingFact = null;
       showFact(next.text, next.title, next.cueId);
+      // showFact clears any queued guide; re-arm the success follow-up now that the success
+      // line is the one on screen, so it plays when this narration ends.
+      if (next.guide) pendingGuide = next.guide;
       return;
     }
     if (!currentFact) return;
@@ -946,6 +1090,8 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   function showFact(text: string, title?: string, cueId?: string, allowNarrate = true) {
+    earthAboutOpen = false;
+    aboutButton.setAttribute('aria-expanded', 'false');
     currentFact = text;
     currentFactCueId = cueId ?? null;
     pendingGuide = null;
@@ -971,6 +1117,7 @@ export function createUI(options: UIOptions): GameUI {
     clearPhoto();
     factTitle.textContent = title ?? '';
     factTitle.classList.toggle('is-hidden', !title);
+    factTitle.classList.remove('has-world');
     factText.textContent = text;
     factCard.classList.remove(
       'is-hidden',
@@ -998,7 +1145,7 @@ export function createUI(options: UIOptions): GameUI {
   return {
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        factCard.classList.contains('is-transcript-open');
+        (!factCard.classList.contains('is-hidden') && factCard.classList.contains('is-transcript-open'));
     },
     setHint,
     showDestinations,
@@ -1006,6 +1153,10 @@ export function createUI(options: UIOptions): GameUI {
     enterFlight() {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
+      root.classList.remove('is-home');
+      root.classList.remove('is-earth', 'is-day-active');
+      earthHeading.classList.add('is-hidden');
+      aboutButton.classList.add('is-hidden');
       destinationBar.classList.add('is-hidden');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
@@ -1017,7 +1168,13 @@ export function createUI(options: UIOptions): GameUI {
       setHint(null);
     },
 
-    showArrival(cueId: string, label: string, fact: string, emoji: string) {
+    showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string) {
+      root.classList.remove('is-home');
+      const isEarth = worldId === 'earth';
+      root.classList.toggle('is-earth', isEarth);
+      earthHeading.classList.toggle('is-hidden', !isEarth);
+      aboutButton.classList.toggle('is-hidden', !isEarth);
+      earthArrivalFact = isEarth ? fact : '';
       visitEmoji = emoji;
       visitActions.classList.remove('has-activity');
       setHint(null);
@@ -1026,8 +1183,24 @@ export function createUI(options: UIOptions): GameUI {
       // The name is the card's own title now, so a child arrives to "🌍 Earth" rather than
       // to a "Show words" pill floating with no content. It keeps carrying that identity,
       // right down to its folded pill, until Fly Home.
-      // The welcome and target instruction share a narration queue; discovery starts now.
-      showFact(fact, `${emoji}  ${label}`, cueId);
+      // The authored arrival cue is a pure welcome. Its end hands off to the day/night intro;
+      // the instruction to tap is a separate cue held until the targets actually appear.
+      if (!worldId || worldId === 'sun') {
+        showFact(fact, `${emoji}  ${label}`, cueId);
+        return;
+      }
+      // A small picture of the world itself, from its real surface map, instead of an
+      // operating-system emoji: the same identity for a pre-reader, drawn in the game's style.
+      showFact(fact, label, cueId);
+      const orb = el('span', 'world-orb');
+      orb.setAttribute('aria-hidden', 'true');
+      orb.style.backgroundImage = `url(./assets/${worldId}.jpg)`;
+      factTitle.prepend(orb);
+      factTitle.classList.add('has-world');
+      if (isEarth) {
+        factCard.classList.add('is-hidden');
+        this.showSpin('Day and night on Earth', DESTINATIONS.earth?.spin?.tint);
+      }
     },
 
     beginMission(caption: string, total: number, cueId?: string) {
@@ -1061,13 +1234,11 @@ export function createUI(options: UIOptions): GameUI {
       missionCaption.textContent = text;
       // Wait behind the discovery narration rather than interrupting the reward the child
       // just earned. Without an authored cue the visual hand/arrow remains the instruction.
-      const arrival = guideOnArrival({
-        hasRecording: narrator.hasRecording(cueId ?? null),
-        soundOn,
-        speaking: narrator.speaking,
-      });
-      if (arrival === 'queue') pendingGuide = { text, cueId: cueId as string };
-      else if (arrival === 'speak') narrator.speak(text, cueId, false);
+      if (cueId) this.speakGuide(text, cueId);
+    },
+
+    speakGuide(text: string, cueId: string) {
+      playGuide(text, cueId);
     },
 
     showNote(cueId: string, title: string, text: string) {
@@ -1075,6 +1246,8 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     clearFact() {
+      earthAboutOpen = false;
+      aboutButton.setAttribute('aria-expanded', 'false');
       window.clearTimeout(collapseTimer);
       currentFact = '';
       currentFactCueId = null;
@@ -1154,7 +1327,13 @@ export function createUI(options: UIOptions): GameUI {
       }
     },
 
-    completeMission(cueId: string, successLine: string, stickerId: string | null, title: string) {
+    completeMission(
+      cueId: string,
+      successLine: string,
+      stickerId: string | null,
+      title: string,
+      followUp?: PendingGuide,
+    ) {
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       missionHud.classList.remove('fade-in-centred');
@@ -1163,7 +1342,7 @@ export function createUI(options: UIOptions): GameUI {
       // Behind the last discovery rather than over it. The sticker and the chime land now;
       // the words wait their turn.
       if (currentFact) {
-        pendingFact = { text: successLine, title, cueId };
+        pendingFact = { text: successLine, title, cueId, guide: followUp ?? null };
         // And only their turn. The card's own timer is the eleven-second backstop for a
         // fact nobody is reading aloud, which is the right wait for *finishing* with one
         // and much too long for handing over to the next: the celebration would arrive
@@ -1172,6 +1351,9 @@ export function createUI(options: UIOptions): GameUI {
         scheduleCollapse(FACT_MINIMUM_MS);
       } else {
         showFact(successLine, title, cueId);
+        // Nothing was on the card, so the success line shows now; arm its follow-up so it
+        // plays when the success narration ends. showFact clears any queued guide first.
+        if (followUp) pendingGuide = followUp;
       }
       // The way home has been on screen throughout and stays exactly where it was. It
       // does not need promoting here — finishing is not the moment a child is looking
@@ -1214,7 +1396,9 @@ export function createUI(options: UIOptions): GameUI {
       missionHud.style.visibility = busy ? 'hidden' : '';
       spinLabel.textContent = busy ? 'Stop' : 'Day & night';
       spinButton.setAttribute('aria-label', busy ? 'Stop day and night' : spinAccessibleLabel);
+      spinButton.disabled = false;
       spinButton.classList.toggle('is-busy', busy);
+      root.classList.toggle('is-day-active', busy && root.classList.contains('is-earth'));
       if (busy) spinButton.classList.remove('is-inviting');
     },
 
@@ -1247,6 +1431,18 @@ export function createUI(options: UIOptions): GameUI {
       huntArrow.classList.toggle('is-hidden', side === null);
       huntArrow.classList.toggle('is-left', side === -1);
       huntArrow.classList.toggle('is-right', side === 1);
+    },
+
+    huntArrowCentre() {
+      if (huntArrow.classList.contains('is-hidden')) return null;
+      // offsetLeft/Top ignore the transform the arrow's own animation applies, so this is
+      // the resting centre. The root is the fixed full-screen layer, so its offsets are
+      // already client pixels; the root's rect is added for a page that ever insets it.
+      const rootRect = root.getBoundingClientRect();
+      return {
+        x: rootRect.left + huntArrow.offsetLeft + huntArrow.offsetWidth / 2,
+        y: rootRect.top + huntArrow.offsetTop + huntArrow.offsetHeight / 2,
+      };
     },
 
     showTapEcho(clientX: number, clientY: number) {
@@ -1284,6 +1480,11 @@ export function createUI(options: UIOptions): GameUI {
     reset() {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
+      root.classList.remove('is-earth', 'is-day-active');
+      earthHeading.classList.add('is-hidden');
+      aboutButton.classList.add('is-hidden');
+      earthAboutOpen = false;
+      aboutButton.setAttribute('aria-expanded', 'false');
       clearTimers();
       // Clear this before stop(): the narrator's onChange listener otherwise interprets
       // reset as the end of a discovery and queues the hunt line into the fresh home view.
@@ -1344,6 +1545,8 @@ export function createUI(options: UIOptions): GameUI {
       clearTimers();
       // Its own window listener, so it has to be told rather than just detached.
       photoViewer.dispose();
+      panelGuard.dispose();
+      journalFocus.dispose();
       root.replaceChildren();
     },
   };

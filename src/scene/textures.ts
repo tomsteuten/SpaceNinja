@@ -11,28 +11,92 @@ import * as THREE from 'three';
 
 const ASSET_BASE = 'assets/';
 
+/** HEAD-probe timeout. A late photo is optional; it must not pin the current fact forever. */
+export const IMAGE_PROBE_TIMEOUT_MS = 6_000;
+/** A stalled image request should degrade instead of keeping the boot screen up forever. */
+export const IMAGE_LOAD_TIMEOUT_MS = 4_000;
+
 /**
  * HEAD-probe first so a missing (expected) file does not spam the console with 404s.
  * The content-type check matters: dev servers answer unknown paths with the SPA
- * index.html at status 200, which would otherwise look like a hit.
+ * index.html at status 200, which would otherwise look like a hit. Only successful probes
+ * are retained: a train tunnel or a waking service worker gets another chance next time a
+ * child opens that discovery.
  */
 const probes = new Map<string, Promise<boolean>>();
+
+export type ImageProbeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+export async function probeImage(
+  url: string,
+  request: ImageProbeFetch = fetch,
+  timeoutMs = IMAGE_PROBE_TIMEOUT_MS,
+): Promise<boolean> {
+  const controller = typeof AbortController === 'undefined' ? null : new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => {
+      controller?.abort();
+      resolve(false);
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([
+      request(url, { method: 'HEAD', signal: controller?.signal })
+        .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
+        .catch(() => false),
+      timeout,
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
 
 export function imageExists(url: string): Promise<boolean> {
   let probe = probes.get(url);
   if (!probe) {
-    probe = fetch(url, { method: 'HEAD' })
-      .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
-      .catch(() => false);
+    probe = probeImage(url);
     probes.set(url, probe);
+    void probe.then((exists) => {
+      if (!exists && probes.get(url) === probe) probes.delete(url);
+    });
   }
   return probe;
 }
 
+/** Test seam and a safe recovery hook for a caller that has replaced an optional image. */
+export function clearImageProbe(url?: string): void {
+  if (url) probes.delete(url);
+  else probes.clear();
+}
+
 function loadImage(url: string): Promise<THREE.Texture> {
   return new Promise((resolve, reject) => {
-    new THREE.TextureLoader().load(url, resolve, undefined, () =>
-      reject(new Error('Failed to decode ' + url)),
+    let finished = false;
+    const timer = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      reject(new Error('Timed out loading ' + url));
+    }, IMAGE_LOAD_TIMEOUT_MS);
+
+    new THREE.TextureLoader().load(
+      url,
+      (texture) => {
+        if (finished) {
+          texture.dispose();
+          return;
+        }
+        finished = true;
+        clearTimeout(timer);
+        resolve(texture);
+      },
+      undefined,
+      () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        reject(new Error('Failed to decode ' + url));
+      },
     );
   });
 }
@@ -427,7 +491,27 @@ export async function resolveEarthMaps(size: number): Promise<EarthMaps> {
 }
 
 /** Grey, cratered, gently mottled. Doubles as its own bump map. */
+/** Red, green, blue in 0–255. */
+export type Rgb = readonly [number, number, number];
+
+/** The Moon: grey, very slightly warm. */
+export const MOON_TINT: Rgb = [255, 251, 242];
+/** Saturn's two golds: the dark band and the pale one. */
+export const SATURN_BANDS: readonly [Rgb, Rgb] = [
+  [196, 168, 116],
+  [232, 210, 158],
+];
+
 export function makeMoonTexture(width: number): THREE.CanvasTexture {
+  return makeCrateredTexture(width, MOON_TINT);
+}
+
+/**
+ * An airless, cratered world: broad dark plains under fine regolith speckle, then craters.
+ * `tint` scales the grey, so an icy moon can be bluish-white and a dark one brown without a
+ * generator each.
+ */
+export function makeCrateredTexture(width: number, tint: Rgb): THREE.CanvasTexture {
   const height = width / 2;
   const [el, ctx] = canvas2d(width, height);
   const image = ctx.createImageData(width, height);
@@ -449,9 +533,9 @@ export function makeMoonTexture(width: number): THREE.CanvasTexture {
       v = Math.max(40, Math.min(226, v));
 
       const o = (j * width + i) * 4;
-      data[o] = v;
-      data[o + 1] = v * 0.985;
-      data[o + 2] = v * 0.95;
+      data[o] = (v * tint[0]) / 255;
+      data[o + 1] = (v * tint[1]) / 255;
+      data[o + 2] = (v * tint[2]) / 255;
       data[o + 3] = 255;
     }
   }
@@ -564,6 +648,14 @@ export function makeMarsTexture(width: number): THREE.CanvasTexture {
  * the recognisable thing is the rings, which are a separate texture and a separate mesh.
  */
 export function makeSaturnTexture(width: number): THREE.CanvasTexture {
+  return makeBandedTexture(width, SATURN_BANDS);
+}
+
+/**
+ * A gas giant: soft cloud belts between pole and pole, lerped between two colours, with
+ * grain on top. Any giant is this generator and a palette.
+ */
+export function makeBandedTexture(width: number, [dark, light]: readonly [Rgb, Rgb]): THREE.CanvasTexture {
   const height = width / 2;
   const [el, ctx] = canvas2d(width, height);
   const image = ctx.createImageData(width, height);
@@ -587,9 +679,9 @@ export function makeSaturnTexture(width: number): THREE.CanvasTexture {
       // Two golds, lerped by the band value, with a little grain on top. Warmer and paler
       // than Mars so the two rusty-vs-buttery planets never read as the same colour.
       const t = THREE.MathUtils.clamp(band + grain * 0.22, 0, 1);
-      const r = mix(196, 232, t);
-      const g = mix(168, 210, t);
-      const b = mix(116, 158, t);
+      const r = mix(dark[0], light[0], t);
+      const g = mix(dark[1], light[1], t);
+      const b = mix(dark[2], light[2], t);
 
       const o = (j * width + i) * 4;
       data[o] = r;

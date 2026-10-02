@@ -20,6 +20,8 @@
 
 import { imageExists } from '../scene/textures';
 import { createIcon } from './icons';
+import { createDialogFocus } from './dialog';
+import { PANEL_OPEN_GUARD_MS, createPanelGuard, type PanelGuard, type PanelOpening } from './panelGuard';
 
 /**
  * Named after the discovery id rather than listed in config.ts, which is the same bargain
@@ -67,7 +69,14 @@ export function canFinishPhotoDismiss(
  * Escape. A child who opens this by accident must never be stuck in it, and at this age
  * "tap the small x" is not a reliable skill.
  */
-export function createPhotoViewer(root: HTMLElement): PhotoViewer {
+export interface PhotoViewerOptions {
+  /** Called whenever the viewer hides, by any route: button, backdrop, Escape or code. */
+  onHide?: () => void;
+  /** The interface's shared press counter, so every panel keeps the same double-tap rule. */
+  guard?: PanelGuard;
+}
+
+export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions = {}): PhotoViewer {
   const overlay = document.createElement('div');
   overlay.className = 'photo-view is-hidden';
   overlay.setAttribute('role', 'dialog');
@@ -112,22 +121,26 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
   figure.append(title, image, caption, detail);
   overlay.append(figure, continueButton, close);
 
-  let previousFocus: HTMLElement | null = null;
+  const focus = createDialogFocus(overlay, () => continueButton, hide);
+  const guard = options.guard ?? createPanelGuard(window);
+  const ownsGuard = !options.guard;
+  /** When and on which press the viewer last opened; the buttons ask before closing. */
+  let opening: PanelOpening | null = null;
+
   function reveal() {
-    if (overlay.classList.contains('is-hidden')) previousFocus = document.activeElement as HTMLElement;
     overlay.classList.remove('is-hidden');
-    continueButton.focus({ preventScroll: true });
-    openedAt = performance.now();
+    opening = guard.opened();
+    openedAt = opening.at;
     dismissPointer = null;
+    focus.open();
   }
   function hide() {
-    const wasOpen = !overlay.classList.contains('is-hidden');
     overlay.classList.add('is-hidden');
     // Dropped so a closed viewer is not holding a full-size decoded bitmap on a tablet
     // whose whole quality tier exists because memory is tight.
     image.removeAttribute('src');
-    if (wasOpen && previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
-    previousFocus = null;
+    focus.close();
+    options.onHide?.();
   }
 
   /*
@@ -145,7 +158,7 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
    * ghost lands within a few hundred milliseconds. A deliberate second tap to close is
    * well past both gates.
    */
-  const OPEN_GUARD_MS = 450;
+  const OPEN_GUARD_MS = PANEL_OPEN_GUARD_MS;
   let openedAt = 0;
   let dismissPointer: number | null = null;
 
@@ -166,27 +179,19 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
   overlay.addEventListener('pointercancel', () => {
     dismissPointer = null;
   });
-  // The close button is an explicit control, so it always closes — no ghost reaches a
-  // large target the finger deliberately found, and gating it would only make the X feel
-  // broken. stopPropagation so it does not also run the backdrop handler.
+  // The large X is always an immediate escape. The pictured return waits for a fresh press
+  // so the opening double-tap cannot immediately dismiss the postcard. The backdrop retains
+  // its stricter pointer-sequence guard; no compatibility-click handler belongs there.
   close.addEventListener('click', (event) => {
     event.stopPropagation();
     hide();
   });
-  // The arrow and destination picture lead a pre-reader back out of the postcard.
-  // It is an explicit control, so it follows the close button rather than
-  // the guarded backdrop route.
-  continueButton.addEventListener('click', hide);
-  const onKey = (event: KeyboardEvent) => {
-    if (overlay.classList.contains('is-hidden')) return;
-    if (event.key === 'Escape') hide();
-    if (event.key === 'Tab') {
-      event.preventDefault();
-      (document.activeElement === continueButton ? close : continueButton).focus();
-    }
-  };
-  window.addEventListener('keydown', onKey);
-
+  // A visible, worded exit makes the automatic postcard feel like a reward rather than a
+  // surprise modal.
+  continueButton.addEventListener('click', (event) => {
+    if (!guard.allowsClose(opening, event)) return;
+    hide();
+  });
   root.append(overlay);
 
   return {
@@ -216,7 +221,8 @@ export function createPhotoViewer(root: HTMLElement): PhotoViewer {
     },
     hide,
     dispose() {
-      window.removeEventListener('keydown', onKey);
+      focus.dispose();
+      if (ownsGuard) guard.dispose();
       overlay.remove();
     },
   };

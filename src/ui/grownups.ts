@@ -26,6 +26,7 @@ import {
 import { prefersReducedMotion } from '../scene/quality';
 import { loadProgress, resetProgress } from '../state/progress';
 import { loadSoundOn, saveSoundOn } from '../state/settings';
+import { createDialogFocus } from './dialog';
 
 /** Remembered per device, so it greets a new tablet and never nags a familiar one. */
 const SEEN_KEY = 'spaceninja.grownups.v1';
@@ -99,11 +100,22 @@ export interface GrownupsOptions {
   onResetProgress(): void;
   /** Leave the normal adventure and open the optional manual-flight experiment. */
   onTryFreeFlight(): void;
+  /**
+   * The "Start playing" button was pressed: the panel is now closed and this press is the
+   * first reliable gesture, so it is the moment to unlock audio and speak the map's opening
+   * line — never before, or it talks over the splash while space is still hidden.
+   */
+  onStart?(): void;
+  /** Route-specific description; the classic adventure's own words are the default. */
+  about?: { lead: string; teaches: string; imagery?: string };
 }
 
 export function createGrownups(options: GrownupsOptions): Grownups {
-  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight } = options;
+  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight, onStart, about } = options;
   const panel = el('div', 'grownups');
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-label', 'Grown-ups settings');
   const sample = sampleLine();
   let showing = false;
   let resetArmed = false;
@@ -116,7 +128,14 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     narrator.stop();
     panel.remove();
     markSeen();
+    focus.close();
   }
+
+  const focus = createDialogFocus(
+    panel,
+    () => panel.querySelector<HTMLButtonElement>('.grownups__start'),
+    close,
+  );
 
   function voiceSection(): HTMLElement {
     const section = el('section', 'grownups__section');
@@ -204,15 +223,21 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       el(
         'p',
         'grownups__lead',
-        'A quiet solar system for a child of about five to eight. There is nothing to ' +
-          'lose, nothing to get wrong, and no way to get stuck — once a world is reached, ' +
-          'Fly Home is always there.',
+        about?.lead ??
+          'A quiet solar system for a child of about five to eight. There is nothing to ' +
+            'lose, nothing to get wrong, and no way to get stuck — once a world is reached, ' +
+            'the Space map button returns to the worlds at any time.',
       ),
     );
 
     const start = el('button', 'grownups__start', 'Start playing') as HTMLButtonElement;
     start.type = 'button';
-    start.addEventListener('click', close);
+    // Close first (which stops any voice sample), then hand back to the caller inside this same
+    // press so it can resume audio and speak the opening line over the now-visible map.
+    start.addEventListener('click', () => {
+      close();
+      onStart?.();
+    });
     inner.append(start);
 
     const what = el('section', 'grownups__section');
@@ -221,13 +246,15 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       el(
         'p',
         'grownups__note',
-        'The places a child finds are real, at their real latitude and longitude on real ' +
-          'NASA maps — the Sahara, the Amazon, the Apollo 11 landing site, Olympus Mons. ' +
-          'One on each world is deliberately over the horizon, so reaching it means ' +
-          'learning to look around the world. Spin the Earth turns it through exactly one day, ' +
-          'with the city lights coming on as places cross into night.',
+        about?.teaches ??
+          'The places a child finds are real, at their real latitude and longitude on real ' +
+            'NASA maps — the Sahara, the Amazon, the Apollo 11 landing site, Olympus Mons. ' +
+            'One on each world is deliberately over the horizon, so reaching it means ' +
+            'learning to look around the world. Spin the Earth turns it through exactly one day, ' +
+            'with the city lights coming on as places cross into night.',
       ),
     );
+    if (about?.imagery) what.append(el('p', 'grownups__note', about.imagery));
     inner.append(what);
 
     const flight = el('section', 'grownups__section grownups__experiment');
@@ -414,6 +441,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       // choice made last time should be showing as chosen when it opens again.
       render();
       root.append(panel);
+      focus.open();
     },
 
     hide() {
@@ -422,6 +450,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
 
     dispose() {
       narrator.stop();
+      focus.dispose();
       panel.remove();
     },
   };

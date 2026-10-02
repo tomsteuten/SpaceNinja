@@ -56,6 +56,34 @@ for (const [path, url] of Object.entries(RECORDING_FILES)) {
   if (id) RECORDINGS.set(id, url);
 }
 
+/** A missing optional cue must not leave the speaker control busy forever on weak signal. */
+export const RECORDING_FETCH_TIMEOUT_MS = 8_000;
+
+export async function loadRecording(
+  url: string,
+  audio: BaseAudioContext,
+  request: typeof fetch = fetch,
+  timeoutMs = RECORDING_FETCH_TIMEOUT_MS,
+): Promise<AudioBuffer> {
+  const controller = typeof AbortController === 'undefined' ? null : new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const response = await Promise.race([
+      request(url, { signal: controller?.signal }),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          controller?.abort();
+          reject(new Error('Narration request timed out'));
+        }, timeoutMs);
+      }),
+    ]);
+    if (!response.ok) throw new Error(`narration ${response.status}`);
+    return audio.decodeAudioData(await response.arrayBuffer());
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 function recordingDisclosure(): string | null {
   const raw = Object.values(PROVENANCE_FILES)[0];
   if (!raw) return null;
@@ -324,12 +352,7 @@ export function createNarrator(): Narrator {
       if (audio.state === 'suspended') await audio.resume();
       let pending = buffers.get(url);
       if (!pending) {
-        pending = fetch(url)
-          .then((response) => {
-            if (!response.ok) throw new Error(`narration ${response.status}`);
-            return response.arrayBuffer();
-          })
-          .then((bytes) => audio.decodeAudioData(bytes));
+        pending = loadRecording(url, audio);
         buffers.set(url, pending);
       }
       const buffer = await pending;

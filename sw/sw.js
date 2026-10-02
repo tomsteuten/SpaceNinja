@@ -95,7 +95,9 @@ async function shell(request) {
 }
 
 async function resource(request) {
-  const cached = await caches.match(request, { ignoreSearch: true });
+  // ignoreVary: shell files are content-hashed and media is keyed by URL, so a host's
+  // `Vary: Origin` must not turn a module script's CORS-mode request into an offline miss.
+  const cached = await caches.match(request, { ignoreSearch: true, ignoreVary: true });
   if (cached) return cached;
   const response = await fetch(request);
   // Only images are kept: that is the textures and the photographs, and nothing else
@@ -111,7 +113,7 @@ async function probe(request) {
   try {
     return await fetch(request);
   } catch (error) {
-    const cached = await caches.match(request.url, { ignoreSearch: true });
+    const cached = await caches.match(request.url, { ignoreSearch: true, ignoreVary: true });
     if (cached) return new Response(null, { status: 200, headers: cached.headers });
     throw error;
   }

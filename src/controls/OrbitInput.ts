@@ -13,14 +13,17 @@ const TAP_MOVE_TOLERANCE = 12; // css px
 const TAP_DURATION = 400; // ms
 
 /**
- * A full drag across the short edge turns a little under 130 degrees.
+ * A full drag across the short edge turns half a turn.
  *
- * This used to be PI, but the drag delta was also accumulated as a velocity and then
- * applied again every frame. On a high-refresh phone that could turn several times for one
- * finger movement. The direct mapping below is deliberately calm while still putting the
- * hidden discovery (bounded to about 130 degrees) within one committed swipe.
+ * This was PI once, when the drag delta was also accumulated as a velocity and applied
+ * again every frame, so a high-refresh phone could turn several times for one finger
+ * movement; it went to 0.72 PI with the direct mapping, which was calm. Too calm, on the
+ * tablet: a child pulling the hidden last place round needed a whole committed swipe and
+ * often two, and gave up. The hidden place sits at most 60 degrees past the limb (see
+ * DRAG_BOUND and VISIBLE_LIMB in mission/selection.ts), which at half a turn per short
+ * edge is a third of the screen: one short swipe. The delta is still applied exactly once.
  */
-export const TOUCH_TURN_PER_SHORT_EDGE = Math.PI * 0.72;
+export const TOUCH_TURN_PER_SHORT_EDGE = Math.PI;
 const MAX_FLING_SPEED = 2.4; // radians / second
 const FLING_SAMPLE_BLEND = 0.45;
 const FLING_STALE_MS = 80;
@@ -107,6 +110,8 @@ export interface OrbitInput {
    * owns the target and the framing radius, exactly as it does at startup.
    */
   reset(): void;
+  /** Release interrupted touches without changing the camera or its owner. */
+  cancelGesture(): void;
   update(dt: number): void;
   dispose(): void;
 }
@@ -116,6 +121,8 @@ export interface OrbitInputOptions {
   element: HTMLElement;
   onTap(clientX: number, clientY: number): void;
   reducedMotion: boolean;
+  /** Opening polar angle from +Y. The default is the classic adventure's low, Earth-level view. */
+  openingPhi?: number;
 }
 
 interface PointerState {
@@ -133,7 +140,7 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
 
   const target = new THREE.Vector3();
   const desiredTarget = new THREE.Vector3();
-  const spherical = new THREE.Spherical(9, Math.PI / 2.35, 0.9);
+  const spherical = new THREE.Spherical(9, options.openingPhi ?? Math.PI / 2.35, 0.9);
   // Kept so reset() can restore the opening framing without the numbers living twice.
   const openingSpherical = spherical.clone();
   let desiredRadius = spherical.radius;
@@ -338,6 +345,19 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       desiredRadius = spherical.radius;
       velocityTheta = 0;
       velocityPhi = 0;
+    },
+
+    cancelGesture() {
+      const captured = [...pointers.keys()];
+      pointers.clear();
+      pinchDistance = 0;
+      velocityTheta = 0;
+      velocityPhi = 0;
+      for (const id of captured) {
+        try {
+          if (element.hasPointerCapture(id)) element.releasePointerCapture(id);
+        } catch { /* The browser may already have cancelled the touch. */ }
+      }
     },
 
     reset() {

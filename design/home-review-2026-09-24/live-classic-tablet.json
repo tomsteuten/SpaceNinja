@@ -1,0 +1,104 @@
+{
+  "url": "https://tomsteuten.github.io/SpaceNinja/?classic",
+  "viewport": {
+    "width": 1024,
+    "height": 768
+  },
+  "deviceScaleFactor": 1,
+  "errors": [
+    "Failed to load resource: the server responded with a status of 404 ()",
+    "Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "controls": [
+    {
+      "text": "👆 🌙 Tap Moon",
+      "label": null,
+      "classes": "hint",
+      "bounds": {
+        "x": 432.8125,
+        "y": 16,
+        "width": 158.375,
+        "height": 38.59375,
+        "top": 16,
+        "right": 591.1875,
+        "bottom": 54.59375,
+        "left": 432.8125
+      }
+    },
+    {
+      "text": "🌍Earth",
+      "label": "Fly to Earth",
+      "classes": "destination-choice",
+      "bounds": {
+        "x": 333,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 435.109375,
+        "bottom": 752,
+        "left": 333
+      }
+    },
+    {
+      "text": "🌙Moon",
+      "label": "Fly to Moon",
+      "classes": "destination-choice is-suggested",
+      "bounds": {
+        "x": 442.296875,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 544.40625,
+        "bottom": 752,
+        "left": 442.296875
+      }
+    },
+    {
+      "text": "🔴Mars",
+      "label": "Mars — visit The Moon first",
+      "classes": "destination-choice is-locked",
+      "bounds": {
+        "x": 551.59375,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 653.703125,
+        "bottom": 752,
+        "left": 551.59375
+      }
+    },
+    {
+      "text": "🪐Saturn",
+      "label": "Saturn — visit Mars first",
+      "classes": "destination-choice is-locked",
+      "bounds": {
+        "x": 660.890625,
+        "y": 688,
+        "width": 102.109375,
+        "height": 64,
+        "top": 688,
+        "right": 763,
+        "bottom": 752,
+        "left": 660.890625
+      }
+    },
+    {
+      "text": "",
+      "label": "Open your discovery journal",
+      "classes": "btn btn--round journal-btn",
+      "bounds": {
+        "x": 16,
+        "y": 690,
+        "width": 62,
+        "height": 62,
+        "top": 690,
+        "right": 78,
+        "bottom": 752,
+        "left": 16
+      }
+    }
+  ]
+}

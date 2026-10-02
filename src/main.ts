@@ -1,30 +1,31 @@
+import { createSessionLifecycle } from './session/lifecycle';
+import { fail } from './session/failure';
+import { registerOffline } from './session/offline';
 import { nextWorld } from './state/replay';
 /**
  * Entry point. Builds the scene, wires input to the flight sequence, the missions and the
- * UI, and owns both the restart and the teardown paths.
+ * UI. Session lifecycle owns browser transitions; this route supplies reset and disposal.
  *
  * Common destination behavior is data-driven; unusual bodies may expose explicit scene
  * capabilities instead of being forced through a false one-size-fits-all abstraction.
  */
 
 import './ui/ui.css';
+import './ui/theme.css';
 import * as THREE from 'three';
 import {
   DESTINATIONS,
-  FRAMING_RADIUS,
-  FRAMING_RADIUS_WIDE,
-  FRAMING_RADIUS_WIDER,
-  WIDE_FRAMING_VISIT,
-  WIDER_FRAMING_VISIT,
+  framingRadiusFor,
   revealedDestinations,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
 import { createSky } from './scene/Starfield';
-import { createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
+import { BODY_IDS, createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
+import { TEACHING_SUN_RADIUS } from './scene/dayTurnFraming';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
@@ -35,10 +36,12 @@ import {
   type CollectMission,
 } from './mission/CollectMission';
 import { createNarrator } from './audio/narration';
+import { cueText } from './audio/script';
 import { createSfx } from './audio/sfx';
 import { createUI } from './ui/ui';
 import { chooseDiscoveries } from './mission/selection';
 import { createCoach, shouldInviteSpin } from './ui/coach';
+import { dueNudge, shorteningPair, singleNudge } from './ui/nudge';
 import { createGrownups, shouldGreet } from './ui/grownups';
 import {
   FINALE_STICKER,
@@ -53,68 +56,6 @@ import { DISCOVERIES } from './config';
 
 const boot = document.getElementById('boot');
 
-/**
- * The boot screen doubles as the failure screen. `crash` is the mid-session case: the
- * frame loop threw, the picture underneath is the last good frame, and without this the
- * only signal a tablet gives is a child saying it stopped. The words differ, there is a
- * button that reloads, and the error itself is printed small for whoever reports it.
- */
-function fail(message: string, error: unknown, crash = false) {
-  console.error(message, error);
-  if (!boot) return;
-  boot.classList.add('has-error');
-  boot.classList.toggle('has-crash', crash);
-  boot.classList.remove('is-hidden');
-  if (!crash) return;
-  const detail = boot.querySelector('.boot-detail');
-  if (detail) detail.textContent = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  boot.querySelector('.boot-restart')?.addEventListener('click', () => window.location.reload(), {
-    once: true,
-  });
-}
-
-/**
- * Offline, from the second launch on. Only in a build: there is no bundle to cache in
- * development, and a worker there would serve stale modules over the live ones. A browser
- * without the API, or a registration that fails, simply leaves the game as it was.
- *
- * `canReloadNow` gates the one-launch auto-update below: it is asked at the moment a new
- * worker takes over, and answers false once a child is playing so the update waits.
- */
-function registerOffline(canReloadNow: () => boolean) {
-  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
-
-  /*
-   * Land a new build on the launch that fetched it, not the one after.
-   *
-   * A new build's worker calls skipWaiting()/clients.claim() (see sw/sw.js), so it takes
-   * control of this already-open page the instant it activates — that hand-over is
-   * `controllerchange`. But the page in front of the child is still the *old* shell it was
-   * served at load, so without this it only refreshes to the new build on the next launch:
-   * the "open the installed app twice" tax a cache-first PWA otherwise charges, and the
-   * thing that makes on-device testing feel like it is caching forever.
-   */
-  let reloading = false;
-  // A brand-new install claims a page that never had a controller; there is no older
-  // version to escape, so a reload there would be a pointless flash of the boot screen.
-  const hadController = Boolean(navigator.serviceWorker.controller);
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || reloading) return;
-    // Never pull the world out from under a child mid-flight. At the title the swap is
-    // invisible; once they have gone somewhere the new build simply waits for next launch,
-    // which is exactly the behaviour that was there before this.
-    if (!canReloadNow()) return;
-    reloading = true;
-    window.location.reload();
-  });
-
-  // The shell itself stays cache-first and atomic, but the update check for the tiny
-  // worker script must reach Pages rather than an HTTP cache holding yesterday's build.
-  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch((error: unknown) => {
-    console.warn('[offline] not available', error);
-  });
-}
-
 async function main() {
   const canvasElement = document.getElementById('scene');
   const uiRoot = document.getElementById('ui');
@@ -122,6 +63,16 @@ async function main() {
     throw new Error('Expected #scene canvas and #ui container in the document.');
   }
   const canvas: HTMLCanvasElement = canvasElement;
+
+  // The guided adventure remains the default. Keep the newer explorer available as an
+  // explicit experiment while its tablet playtest and product direction are reviewed.
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('explorer')) {
+    const { startExplorer } = await import('./explorer/main');
+    const explorer = await startExplorer(canvas, uiRoot);
+    if (explorer && import.meta.env.VITE_PLAYTEST !== '1') registerOffline(explorer.canReload);
+    return;
+  }
 
   // The assisted free-flight prototype, reached at `?freeflight`. Deliberately a separate
   // path with nothing below it running: it is a sandbox for a control scheme the shipped
@@ -131,6 +82,14 @@ async function main() {
   if (/[?&]freeflight\b/.test(window.location.search)) {
     const { startFreeFlight } = await import('./flight/freeFlightMode');
     await startFreeFlight(canvas, uiRoot);
+    return;
+  }
+
+  // The guided adventure is the game. The Earth-to-Moon outing stays reachable at
+  // `?outing` as a steering experiment, without running two owners at once.
+  if (/[?&]outing\b/.test(window.location.search)) {
+    const { startOuting } = await import('./experience/outing');
+    await startOuting(canvas, uiRoot);
     return;
   }
 
@@ -170,18 +129,11 @@ async function main() {
   scene.add(trail.group);
 
   /**
-   * The opening shot only takes in Earth and the Moon until the Moon has been visited, then
-   * widens for Mars, then wider again for Saturn. Fitting an outer world from the first
-   * frame would shrink the first destination to a speck for no reason a five-year-old could
-   * understand yet; going there is what makes the world visibly get bigger. Going, not
-   * finishing — flying out and looking is enough. Newest tier wins, so it does not matter
-   * which order the two gates were passed in.
+   * Keep the opening subjects readable; each visit widens the map to its next world. The
+   * shot fits exactly the worlds that are drawn, so framing and reveal cannot drift apart.
    */
   function framingRadius(): number {
-    const { visited } = loadProgress();
-    if (visited.includes(WIDER_FRAMING_VISIT)) return FRAMING_RADIUS_WIDER;
-    if (visited.includes(WIDE_FRAMING_VISIT)) return FRAMING_RADIUS_WIDE;
-    return FRAMING_RADIUS;
+    return framingRadiusFor(visibleDestinationIds());
   }
 
   /**
@@ -197,13 +149,7 @@ async function main() {
     return camera.aspect < 1 ? 0.3 : 0.16;
   }
 
-  /**
-   * Draw only the worlds a child has earned. Same gate the framing tiers widen on, applied to
-   * the bodies themselves so an outer world is not looming into the opening shot before it has
-   * been revealed (Saturn across a portrait phone during "Tap the Moon"), and Mars is not
-   * crossing Saturn's rings until Mars has actually been reached. Re-applied on every return to
-   * the map, since visiting a world is what unlocks the next. See revealedDestinations.
-   */
+  /** Scene visibility and navigation use the same visit gates as camera framing. */
   function visibleDestinationIds(): BodyId[] {
     return revealedDestinations(loadProgress().visited) as BodyId[];
   }
@@ -223,7 +169,7 @@ async function main() {
    */
   function mapChoices() {
     const visible = new Set(visibleDestinationIds());
-    return (Object.keys(DESTINATIONS) as BodyId[]).map((id) => ({
+    return BODY_IDS.map((id) => ({
       id,
       // The full scene name is "The Moon"; a four-choice phone bar has room for the
       // identity, not the article. Keeping this derivation here avoids duplicate copy.
@@ -234,7 +180,6 @@ async function main() {
     }));
   }
 
-  /** The world a locked one is waiting on, named the way a child hears it spoken. */
   function gateLabel(id: BodyId): string | undefined {
     const gate = DESTINATIONS[id]?.revealAfterVisiting;
     return gate ? world.bodies[gate as BodyId]?.label : undefined;
@@ -262,6 +207,10 @@ async function main() {
    * storage was cleared. `?voices` still works, since that is what the README said first.
    */
   const asked = /[?&](grownups|voices)\b/.test(window.location.search);
+  const greeting = shouldGreet(asked);
+  // With the splash up, the map is hidden behind it, so its opening line must not play yet —
+  // it did, over the parents' screen before space was visible. Hold it until "Start playing".
+  let mapIntroPending = greeting;
   const grownups = createGrownups({
     root: uiRoot,
     narrator,
@@ -273,8 +222,17 @@ async function main() {
     },
     onResetProgress: () => restart(),
     onTryFreeFlight: enterFreeFlight,
+    onStart: () => {
+      // The first real gesture: unlock audio, then speak the deferred opening line once, over
+      // the now-visible map. A later close of the grown-ups panel mid-game must not re-announce.
+      narrator.resume();
+      if (mapIntroPending) {
+        mapIntroPending = false;
+        announceMap(null, false);
+      }
+    },
   });
-  if (shouldGreet(asked)) grownups.show();
+  if (greeting) grownups.show();
 
   const ui = createUI({
     root: uiRoot,
@@ -284,6 +242,7 @@ async function main() {
       // A Fly Home during a day turn: stop the turn first so it is not still writing the
       // camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
       cameraReturn = null;
+      surfaceTurn = null;
       dayTurn.reset();
       sfx.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
@@ -301,29 +260,57 @@ async function main() {
     // The whole game finished. Played when the overlay lands, not when the last world
     // completes, or it would run under the world's own chime.
     onFinale: () => sfx.fanfare(),
+    onTurnToHidden: () => {
+      // Only while the arrow is genuinely on screen: the camera is the child's, the hunt is
+      // live and the last place is round the back. A late press on a fading arrow does
+      // nothing, which is the right nothing.
+      const hint = activeMission?.remainingHint();
+      if (!hint || hint.visible || !cameraIsOurs()) return;
+      // A second press mid-turn starts another quarter from here, so pressing twice turns
+      // twice: nothing a child taps is a wrong move.
+      surfaceTurn = { body: world.bodies[follow], direction: hint.turn, t: 0, applied: 0 };
+    },
     onSpin: () => {
-      const body = world.bodies[follow];
-      const spin = DESTINATIONS[follow]?.spin;
-      if (!spin || dayTurn.active) return;
-      // Where the child was looking from before the turn swung the camera side-on, so it can
-      // be handed back to them there. Relative to the body, which keeps orbiting throughout.
-      if (!cameraReturn) {
-        body.getWorldPosition(focusPosition);
-        preTurnCameraOffset.copy(camera.position).sub(focusPosition);
+      if (dayTurn.active) {
+        if (follow === 'earth') dayTurn.skip();
+        return;
       }
-      // A replay may interrupt the return ease, but only the day turn then owns the camera.
-      cameraReturn = null;
-      spinTried = true;
-      // Put the explanation one speaker-tap away before the camera starts moving. This is
-      // the one lesson whose content is entirely visual, and a full-width card during the
-      // 2.2s swing pulled the child's eyes away before the sunlight even began to move.
-      ui.showNote(`spin-${follow}`, spin.name, spin.fact);
-      ui.foldFact(true);
-      ui.setSpinBusy(true);
-      dayTurn.start(body);
+      startDayTurn();
     },
     onStopSpin: () => dayTurn.skip(),
   });
+
+  /**
+   * Turn the world through a day, always from the child's own press now (the automatic
+   * first-visit intro was removed — it took the camera without being asked). The explanation is
+   * put one speaker-tap away before the camera starts moving, since this lesson is entirely
+   * visual and a full-width card during the swing pulled the child's eyes off the light.
+   */
+  function startDayTurn() {
+    const body = world.bodies[follow];
+    const spin = DESTINATIONS[follow]?.spin;
+    if (!spin || dayTurn.active) return;
+    // A replay pressed during the hand-back must not create two camera owners. Keep the
+    // original return destination; the new turn starts from the current interpolated pose.
+    const returning = Boolean(cameraReturn);
+    cameraReturn = null;
+    // Where the child was looking from before the turn swung the camera side-on, so it can
+    // be handed back to them there. Relative to the body, which keeps orbiting throughout.
+    body.getWorldPosition(focusPosition);
+    if (!returning) preTurnCameraOffset.copy(camera.position).sub(focusPosition);
+    ui.showNote(`spin-${follow}`, spin.name, spin.fact);
+    ui.foldFact(true);
+    if (follow === 'earth') {
+      ui.clearFact();
+      ui.setHint(null);
+      ui.setHuntArrow(null);
+      coach.clear();
+      activeMission?.setPresentation(false);
+    }
+    spinTried = true;
+    ui.setSpinBusy(true);
+    dayTurn.start(body);
+  }
 
   /*
    * Turning a destination through one day, which is the thing children asked about.
@@ -336,6 +323,8 @@ async function main() {
   const dayTurn = createDayTurn({
     camera,
     controls,
+    teachingSun: world.teachingSun,
+    reducedMotion,
     // The quietest thing in the game gets the sound that most needs one. Driven by the
     // turn's own progress rather than started and left to run, so the light and the sound
     // arrive together however slowly the frames are coming.
@@ -363,6 +352,12 @@ async function main() {
       follow = destination.id;
       suggested = null;
       world.setSelected(null);
+      spinInvited = false;
+      // Each visit gets its nudges afresh; the clock for the spin follow-up starts here too.
+      arrivalNudgesGiven.clear();
+      spinIdle = 0;
+      // Read before the visit is recorded: a first visit is one that has not been.
+      const firstVisit = !loadProgress().visited.includes(destination.id);
       // Arriving is the achievement that opens the rest of the system up. The sticker is
       // still the collection's, and is still awarded by finishing it.
       markVisited(destination.id);
@@ -377,7 +372,7 @@ async function main() {
       if (!config) return;
       // The welcome: the world's name and what it is, read over a screen that already has
       // the gold targets on it. It no longer gates anything.
-      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji);
+      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji, destination.id);
 
       // The departure chose this visit already, so the camera and targets share one set.
       const mission = missions[destination.id];
@@ -390,6 +385,15 @@ async function main() {
       // once. There is nothing between arriving and having something to touch.
       mission.start();
       revealHunt();
+      /*
+       * Day & night no longer takes the camera on its own. On the child's first visit to a
+       * world whose spin can be invited (Earth), it is instead the guided first action: the
+       * button pulses and speaks its invitation from arrival, and the child triggers the turn
+       * themselves. The gold places are already on screen, so nothing is gated behind it.
+       */
+      // Earth is the only world whose day & night is the screen's primary action (it alone has
+      // spin.intro); elsewhere the gold places lead and the turn stays a quiet secondary offer.
+      earthDayNightPrompt = firstVisit && Boolean(config.spin?.intro && config.spin?.invite);
     },
   });
 
@@ -446,6 +450,7 @@ async function main() {
       quality: stage.quality,
       reducedMotion,
       onCollect: (discovery, found, total, at) => {
+        beginGuidedHunt();
         sfx.collect(found - 1, total);
         ui.setMissionProgress(found);
         // The mission reports where the marker was in normalised device coordinates,
@@ -484,17 +489,21 @@ async function main() {
         const worldComplete = definition.discoveries.every((d) => found.includes(d.id));
         const isNew = worldComplete && awardSticker(definition.stickerId);
         if (isNew) syncShipStickers();
+        const next = suggestedDestination();
+        const nextConfig = next ? DESTINATIONS[next] : undefined;
+        const namesNextWorld = Boolean(nextConfig && next !== body.id);
         ui.completeMission(
           `success-${body.id}`,
           definition.successLine,
           isNew ? definition.stickerId : null,
           `${config.emoji}  ${body.label}`,
+          // "You can fly home and pick another world." — behind the success line, but only when
+          // the hint below actually points at a next world to go to.
+          namesNextWorld ? { text: cueText('success-next'), cueId: 'success-next' } : undefined,
         );
-        const next = suggestedDestination();
-        const nextConfig = next ? DESTINATIONS[next] : undefined;
-        ui.setHint(nextConfig && next !== body.id
-          ? `✓ ✓ ✓  Found! 🚀 Home → ${nextConfig.emoji} ${world.bodies[next!].label}`
-          : '✓ ✓ ✓  Found! 📖 Look in your book · 🚀 Fly Home');
+        ui.setHint(namesNextWorld
+          ? `✓ ✓ ✓  Found! 🗺 Space map → ${nextConfig!.emoji} ${world.bodies[next!].label}`
+          : '✓ ✓ ✓  Found! 📖 Look in your book · 🗺 Space map');
         /*
          * And when this was the last place on the last world, the finale — once.
          *
@@ -534,6 +543,17 @@ async function main() {
 
   /* --- the hunt ------------------------------------------------------------ */
 
+  const HUNT_INVITE_HINT_DELAY = 5;
+  const HUNT_GUIDANCE_AUTO_START = 12;
+  let huntGuidance:
+    | {
+      world: BodyId;
+      elapsed: number;
+      inviteShown: boolean;
+      active: boolean;
+    }
+    | null = null;
+
   /*
    * Arriving used to be a sequence: a spoken welcome, then the world turning through one
    * whole day, then the gold targets. Every world has a `spin`, so it ran on every arrival,
@@ -544,37 +564,67 @@ async function main() {
    * A tap skipped it. That it needed a skip was the tell: the default was the thing you
    * skipped, and a five-year-old does not discover an unsignposted one.
    *
-   * So the day turn is a toy again rather than a toll — offered by its own button from the
-   * moment the hunt is live (see `showSpin`), which is where it was before it was promoted
-   * to an introduction. The lesson is unchanged and the child now chooses it, which is
+   * So the day turn is a toy again rather than a toll — offered by its own button. On Earth
+   * it is visible at arrival; elsewhere it enters with the guided hunt. The child chooses it, which is
    * worth more than being shown it. The welcome fact still speaks; it simply speaks over a
    * screen that already has something on it to touch.
    */
   /**
    * A day turn has finished (or been tapped through). Hand the camera back where the child
    * was looking from, rather than leaving them side-on to the Sun with the targets they were
-   * reaching for round the side of the world. An ease, not a cut: cutting read as a jerk on
-   * the tablet.
+   * reaching for round the side of the world. Reduced motion cuts back; other devices ease.
    */
   function onDayTurnFinish() {
     ui.setSpinBusy(false);
     ui.setSpinProgress(null);
+    // The guided first turn has been done; stop pulsing for it.
+    earthDayNightPrompt = false;
+    if (follow === 'earth') activeMission?.setPresentation(true);
+    // The child's day turn leads straight into the guided hunt, with the counter and the spoken
+    // "find the gold places" — the same transition the old automatic intro made, now off their
+    // own press. Idempotent: a no-op when the hunt is already running (a later Earth visit, or
+    // any turn pressed mid-hunt).
+    beginGuidedHunt();
     const body = world.bodies[follow];
     body.getWorldPosition(focusPosition);
-    cameraReturn = { from: camera.position.clone().sub(focusPosition), t: 0 };
+    if (reducedMotion) {
+      camera.position.copy(focusPosition).add(preTurnCameraOffset);
+      camera.lookAt(focusPosition);
+      camera.updateMatrixWorld(true);
+      controls.syncFromCamera();
+      controls.enabled = true;
+      return;
+    }
+    cameraReturn = { from: camera.position.clone().sub(focusPosition), rotation: camera.quaternion.clone(), t: 0 };
     controls.enabled = false;
   }
 
-  function revealHunt() {
+  function beginGuidedHunt() {
+    if (!huntGuidance || huntGuidance.world !== follow || huntGuidance.active) return;
     const config = DESTINATIONS[follow];
     const mission = missions[follow];
     if (!config?.mission || !mission) return;
-    mission.reveal();
-    // The instruction cue queues behind the arrival welcome rather than talking over it.
-    // Never auto-start the platform voice when a partial pack is installed.
+    huntGuidance.active = true;
+    ui.setHint(null);
     ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`);
-    // The optional day turn has this world's globe, a turn arrow and a reinforcing label.
-    ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
+    // The day turn remains discoverable, but now enters after the calm-arrival beat.
+    if (follow !== 'earth') ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
+  }
+
+  function revealHunt() {
+    const mission = missions[follow];
+    if (!DESTINATIONS[follow] || !mission) return;
+    mission.reveal();
+    // A short roam-first beat keeps arrivals calmer: the world and targets are already live,
+    // while explicit score/counter language enters only after interaction or a short pause.
+    huntGuidance = { world: follow, elapsed: 0, inviteShown: false, active: false };
+    if (follow === 'earth') {
+      ui.showSpin('Day and night on Earth', DESTINATIONS.earth?.spin?.tint);
+      ui.setHint(null);
+    } else {
+      ui.showSpin(null);
+      ui.setHint('Look around first. Tap a gold place when you are ready.', 'target');
+    }
   }
 
   /*
@@ -645,11 +695,12 @@ async function main() {
     if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
     if (!visibleDestinationIds().includes(id)) {
-      // A locked world is pressable and answers. Never silence: an unanswered press reads
-      // as a broken app at this age.
       const gate = gateLabel(id);
       ui.nudgeDestination(id);
-      ui.setHint(gate ? `🔒 Visit ${gate} first` : '🔒 Not yet');
+      ui.setHint(gate ? 'Visit ' + gate + ' first' : 'Not yet', 'lock');
+      // The spoken half of the padlock: "Not yet. You can visit the Moon first." Only the
+      // reveal-gated worlds have a locked cue, which is exactly the set that can be locked.
+      if (DESTINATIONS[id]?.revealAfterVisiting) ui.speakGuide(cueText(`locked-${id}`), `locked-${id}`);
       window.clearTimeout(nudge);
       nudge = window.setTimeout(() => {
         if (flight.phase === 'idle') showOpeningHints();
@@ -664,6 +715,7 @@ async function main() {
     const discoveries = buildMission(id)?.definition.discoveries;
     const aim = discoveries ? facingLatitude(discoveries) : undefined;
     if (!flight.start(destination, aim)) return;
+    huntGuidance = null;
     // The first reliable user gesture of the session, and the last one before the ship
     // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
     // suspended and only let it resume inside a gesture like this one.
@@ -697,7 +749,39 @@ async function main() {
    */
   const CAMERA_RETURN_MS = 950;
   const returnOffset = new THREE.Vector3();
-  let cameraReturn: { from: THREE.Vector3; t: number } | null = null;
+  const returnLookMatrix = new THREE.Matrix4();
+  const returnRotation = new THREE.Quaternion();
+  let cameraReturn: { from: THREE.Vector3; rotation: THREE.Quaternion; t: number } | null = null;
+
+  /*
+   * The hunt arrow's own turn: a quarter of the world, eased, towards the hidden last place.
+   *
+   * It drives the held surface through `turnSurface`, exactly as the day turn does, so the
+   * markers ride with the surface and the camera stays the child's — a drag during the turn
+   * simply adds to it. A quarter turn is always enough: the hidden place is at most 60
+   * degrees past the limb (mission/selection.ts), so one press brings it into view and a
+   * second, if the child dragged the wrong way first, brings it back. Eased rather than the
+   * day turn's honest constant rate, because this is a control answering a press, not a
+   * lesson about how planets move. Reduced motion cuts.
+   */
+  /** The spoken invitation to turn the world has been given this visit. */
+  let spinInvited = false;
+  /**
+   * The child's first-ever visit to Earth: day & night is the guided first thing to do here,
+   * so the button pulses and invites from arrival (not after an idle wait), until they run one
+   * turn. It replaces the old automatic turn, which took the camera without being asked — a
+   * five-year-old reads that as the game playing itself. The gold places stay available the
+   * whole time, so a child who ignores the invitation is never stuck.
+   */
+  let earthDayNightPrompt = false;
+
+  const QUARTER_TURN = Math.PI / 2;
+  const SURFACE_TURN_MS = 700;
+  let surfaceTurn: { body: CelestialBody; direction: -1 | 1; t: number; applied: number } | null = null;
+
+  function cameraIsOurs(): boolean {
+    return flight.phase !== 'flying' && !dayTurn.active && !homeReturn.active && !cameraReturn;
+  }
 
   /* --- hints --------------------------------------------------------------- */
 
@@ -719,6 +803,29 @@ async function main() {
   let idleFor = 0;
   let spinTried = false;
   /*
+   * The spoken layer's idle nudges (docs/current-implementation.md, "The spoken layer").
+   *
+   * Two clocks that reset on any press, and two "given" sets that do not, so a press quiets
+   * the nagging but the same words are never spoken twice in one visit or one map view. The
+   * arrival nudges (find/hunt/spin) run off `idleFor`, which already accumulates from arrival;
+   * `spinIdle` is the separate wait after the spin invitation; `mapIdle` is the map's own idle.
+   */
+  const arrivalNudgesGiven = new Set<string>();
+  const mapNudgesGiven = new Set<string>();
+  let spinIdle = 0;
+  let mapIdle = 0;
+
+  /** The hunt arrow button's centre in the canvas's NDC, the unit the coach places hands in. */
+  function arrowInCanvas(): { x: number; y: number } | null {
+    const centre = ui.huntArrowCentre();
+    if (!centre) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((centre.x - rect.left) / rect.width) * 2 - 1,
+      y: -(((centre.y - rect.top) / rect.height) * 2 - 1),
+    };
+  }
+  /*
    * Any press at all, anywhere, is the child doing something — a tap on a target, a drag, a
    * pinch, a dock button. Listened for on the window in the capture phase rather than wired
    * through OrbitInput, because a drag that the controls are ignoring (during a day turn,
@@ -727,7 +834,12 @@ async function main() {
    */
   function onAnyPress() {
     idleFor = 0;
+    spinIdle = 0;
+    mapIdle = 0;
     coach.clear();
+    // The first real gesture of the session unlocks the audio context, so a map cue attempted
+    // before any touch (it fails silently) is picked up by the nudge once the child taps.
+    narrator.resume();
   }
   window.addEventListener('pointerdown', onAnyPress, true);
 
@@ -743,42 +855,60 @@ async function main() {
     return nextWorld(loadProgress(), visibleDestinationIds()) as BodyId | null;
   }
 
-  /**
-   * Put the suggestion on screen in all three places at once — the ring in the scene, the
-   * highlighted button in the bar and the parked ship's nose — so they cannot disagree.
+  /** The light destination pill and the parked ship's nose share one suggestion.
+   * A broad scene halo overwhelmed the Moon and Saturn; leave their silhouettes clear.
    */
   function applySuggestion(newlyRevealed: BodyId | null = null) {
     suggested = suggestedDestination();
-    world.setSelected(suggested);
+    world.setSelected(null);
     ui.showDestinations(mapChoices(), suggested, newlyRevealed);
+    // A fresh suggestion is a fresh set of map nudges: the cue ids name this world, so the old
+    // "given" flags no longer apply, and the idle clock starts again.
+    mapIdle = 0;
+    mapNudgesGiven.clear();
+  }
+
+  /**
+   * The one spoken line on landing at the map, once per arrival there (the visual hint in
+   * `showOpeningHints` may be refreshed more often, e.g. after a locked press, and must not
+   * re-announce). A brand-new save is welcomed with `home-first`; a world just unlocked by the
+   * last visit with `revealed-<id>`; a plain Fly Home with nothing unlocked with `fly-home`;
+   * any other map with `home-<suggested>` (or `home-any` when nothing is suggested).
+   */
+  function announceMap(newlyRevealed: BodyId | null, viaFlyHome: boolean) {
+    const visited = loadProgress().visited;
+    const cue =
+      visited.length === 0
+        ? 'home-first'
+        : newlyRevealed
+          ? `revealed-${newlyRevealed}`
+          : viaFlyHome
+            ? 'fly-home'
+            : suggested
+              ? `home-${suggested}`
+              : 'home-any';
+    ui.speakGuide(cueText(cue), cue);
   }
 
   function showOpeningHints(newlyRevealed?: BodyId) {
     window.clearTimeout(nudge);
     if (newlyRevealed) {
-      const config = DESTINATIONS[newlyRevealed];
-      const label = world.bodies[newlyRevealed].label;
-      ui.setHint(`✨ ${config?.emoji ?? ''}  ${label} is ready`);
+      const label = world.bodies[newlyRevealed].label.replace(/^The /, '');
+      ui.setHint(label + ' is ready', 'rocket');
       nudge = window.setTimeout(() => {
-        if (flight.phase !== 'idle') return;
-        ui.setHint(`👆 ${config?.emoji ?? ''}  Tap ${label}`);
+        if (flight.phase === 'idle') ui.setHint('Tap ' + label, 'rocket');
       }, 3600);
       return;
     }
-    // Audio cannot do this first job because no user gesture has unlocked playback yet, so
-    // the gesture pictures still carry the action.
     const next = suggested;
     if (!next) {
-      ui.setHint('👆 Tap a world to go there');
+      ui.setHint('Tap a world to fly there', 'rocket');
       return;
     }
-    const nextBody = world.bodies[next];
-    const nextEmoji = DESTINATIONS[next]?.emoji ?? '✨';
+    const label = world.bodies[next].label.replace(/^The /, '');
     const revisit = loadProgress().visited.includes(next);
-    ui.setHint(revisit
-      ? `📖 ${nextEmoji} More to find · Tap ${nextBody.label.replace(/^The /, '')}`
-      : `👆 ${nextEmoji} Tap ${nextBody.label.replace(/^The /, '')}`);
-
+    ui.setHint(revisit ? 'More to find · Tap ' + label : 'Tap ' + label,
+      revisit ? 'journal' : 'rocket');
   }
 
   // Whatever was chosen last time, applied before anything can make a noise.
@@ -787,6 +917,11 @@ async function main() {
   ui.setSoundOn(soundOn);
   applySuggestion();
   showOpeningHints();
+  // The map's opening line. Only when no splash is covering the map: with the grown-ups screen
+  // up, this is deferred to the "Start playing" press (onStart above), so it never talks over
+  // the splash. Without a splash (a later load, storage remembered), there has been no gesture
+  // yet, so it fails silently and the map nudge repeats it once the child touches anything.
+  if (!greeting) announceMap(null, false);
 
   /* --- restart ------------------------------------------------------------- */
 
@@ -797,11 +932,17 @@ async function main() {
    * The bodies are deliberately not put back where they were: they have kept orbiting,
    * and the next flight simply aims at wherever the destination is now.
    */
-  function restart() {
+  function resetAdventure() {
     cameraReturn = null;
+    surfaceTurn = null;
+    spinInvited = false;
+    earthDayNightPrompt = false;
+    huntGuidance = null;
     coach.clear();
     idleFor = 0;
     spinTried = false;
+    spinIdle = 0;
+    arrivalNudgesGiven.clear();
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
@@ -834,6 +975,9 @@ async function main() {
     ui.reset();
     applySuggestion(newlyRevealed[0] ?? null);
     showOpeningHints(newlyRevealed[0]);
+    // Landing back at the map: a world just readied announces itself, a plain Fly Home says so,
+    // a progress reset (visited now empty) gets the first-run welcome.
+    announceMap(newlyRevealed[0] ?? null, true);
   }
 
   /* --- frame loop ---------------------------------------------------------- */
@@ -848,6 +992,15 @@ async function main() {
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
 
+    if (surfaceTurn) {
+      surfaceTurn.t = reducedMotion ? 1 : Math.min(1, surfaceTurn.t + (dt * 1000) / SURFACE_TURN_MS);
+      const eased = 1 - Math.pow(1 - surfaceTurn.t, 3);
+      const total = QUARTER_TURN * eased;
+      surfaceTurn.body.turnSurface(surfaceTurn.direction * (total - surfaceTurn.applied));
+      surfaceTurn.applied = total;
+      if (surfaceTurn.t >= 1) surfaceTurn = null;
+    }
+
     /*
      * Point at the last place, while it is round the back.
      *
@@ -856,40 +1009,116 @@ async function main() {
      * property of where the camera is now, not of an event. Nothing to point at during a
      * flight or a day turn, when the camera is not theirs to move.
      */
-    const cameraIsOurs =
-      flight.phase !== 'flying' && !dayTurn.active && !homeReturn.active && !cameraReturn;
-    const hint = cameraIsOurs ? (activeMission?.remainingHint() ?? null) : null;
+    const cameraOurs = cameraIsOurs();
+    if (cameraOurs && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
+      huntGuidance.elapsed += dt;
+      if (!huntGuidance.inviteShown && huntGuidance.elapsed >= HUNT_INVITE_HINT_DELAY) {
+        huntGuidance.inviteShown = true;
+        ui.setHint(follow === 'earth' ? 'Tap a gold place' : '✨ Ready for a challenge? Tap a gold place.');
+      }
+      if (huntGuidance.elapsed >= HUNT_GUIDANCE_AUTO_START) beginGuidedHunt();
+    }
+
+    const huntGuidanceActive =
+      Boolean(activeMission?.active) &&
+      huntGuidance?.active === true &&
+      huntGuidance.world === follow;
+    const hint = cameraOurs && huntGuidanceActive ? (activeMission?.remainingHint() ?? null) : null;
     const hiddenSide = hint && !hint.visible ? hint.side : null;
     ui.setHuntArrow(hiddenSide);
 
     /*
      * And the hand, on the same terms as the arrow: only while the camera is the child's to
      * move. Idle time accumulates only then too, so a seven-second flight does not arrive
-     * with the coach already convinced nobody is playing.
+     * with the coach already convinced nobody is playing. It accumulates from arrival, not
+     * from the guided hunt, so the day/night invitation on Earth can come during the calm
+     * first beat; the hand itself still waits for the guided hunt.
      */
-    if (cameraIsOurs && activeMission?.active && !ui.activityCovered) {
+    if (cameraOurs && activeMission?.active && !ui.activityCovered) {
       idleFor += dt;
-      // Offer one invitation at a time. The early Earth activity yields to the drag
-      // lesson, and photos/words/narration get their own quiet moment.
-      const invitingSpin = shouldInviteSpin({
-        idleFor,
-        huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
-        earlyInvitation: follow === 'earth' && activeMission.collected > 0 && hiddenSide === null,
-        spinTried,
-        spinOffered: Boolean(DESTINATIONS[follow]?.spin),
-        spinBusy: dayTurn.active || narrator.speaking,
-      });
-      ui.setSpinAttention(invitingSpin);
+      const spin = DESTINATIONS[follow]?.spin;
+      const inviting =
+        // First Earth visit: invite from arrival (until a turn runs), not after an idle wait.
+        (earthDayNightPrompt && !dayTurn.active) ||
+        shouldInviteSpin({
+          idleFor,
+          huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
+          spinOffered: Boolean(spin),
+          spinBusy: dayTurn.active || narrator.speaking,
+          spinTried,
+          spinIsPrimary: follow === 'earth',
+        });
+      const target = activeMission.nextTarget();
       coach.update({
         idleFor,
-        huntActive: !invitingSpin,
-        target: activeMission.nextTarget(),
+        huntActive: huntGuidanceActive && !inviting,
+        target,
         hiddenSide,
+        arrow: hiddenSide === null ? null : arrowInCanvas(),
       });
+      /*
+       * The spoken find/hunt nudges, once the guided hunt is live: 8s and 16s idle name the
+       * gesture that fits right now — the arrow when the last place is round the back, else a
+       * gold place in view. The visual hand shows it too; these speak it for a child not
+       * watching. Each level once per visit, spoken alongside the hand.
+       */
+      if (huntGuidanceActive && !inviting) {
+        const nudge =
+          hiddenSide !== null
+            ? dueNudge(idleFor, shorteningPair('hunt-nudge', 'hunt-nudge-short'), arrivalNudgesGiven)
+            : target
+              ? dueNudge(idleFor, shorteningPair('find-nudge', 'find-nudge-short'), arrivalNudgesGiven)
+              : null;
+        if (nudge) {
+          arrivalNudgesGiven.add(nudge);
+          ui.speakGuide(cueText(nudge), nudge);
+        }
+      }
+      /*
+       * The day turn asking to be noticed: after every hunt, and during the hunt on Earth,
+       * where it is the arrival's primary action. The button pulses and its globe turns; the
+       * world's spoken invitation is given once per visit, the first time this comes true.
+       */
+      ui.setSpinAttention(inviting);
+      if (inviting && !spinInvited) {
+        spinInvited = true;
+        spinIdle = 0;
+        if (spin?.invite) ui.speakGuide(spin.invite, `spin-invite-${follow}`);
+      } else if (inviting && spinInvited) {
+        // 8s after the invitation, still inviting and nothing pressed: one short "the little
+        // globe" and then silence. The clock resets on any press, the flag does not.
+        spinIdle += dt;
+        const nudge = dueNudge(spinIdle, singleNudge('spin-nudge'), arrivalNudgesGiven);
+        if (nudge) {
+          arrivalNudgesGiven.add(nudge);
+          ui.speakGuide(cueText(nudge), nudge);
+        }
+      }
     } else {
       idleFor = 0;
       coach.update({ idleFor: 0, huntActive: false, target: null, hiddenSide: null });
       ui.setSpinAttention(false);
+      /*
+       * At the home map (no visit in progress and the camera settled): its own gentle nudges,
+       * naming the suggested world at 8s and shortening at 16s, then silence — the map is not a
+       * nag. `activeMission` is null only between arriving home and the next launch, which is
+       * exactly the map.
+       */
+      const atMap = activeMission === null && cameraOurs && flight.phase === 'idle';
+      if (atMap && suggested) {
+        mapIdle += dt;
+        const nudge = dueNudge(
+          mapIdle,
+          shorteningPair(`home-nudge-${suggested}`, `home-nudge-short-${suggested}`),
+          mapNudgesGiven,
+        );
+        if (nudge) {
+          mapNudgesGiven.add(nudge);
+          ui.speakGuide(cueText(nudge), nudge);
+        }
+      } else if (!atMap) {
+        mapIdle = 0;
+      }
     }
 
     // Ease the camera from the side-on day-turn pose back to the arrival composition. Owns
@@ -902,7 +1131,9 @@ async function main() {
       const length = THREE.MathUtils.lerp(cameraReturn.from.length(), preTurnCameraOffset.length(), e);
       returnOffset.copy(cameraReturn.from).lerp(preTurnCameraOffset, e).setLength(length);
       camera.position.copy(focusPosition).add(returnOffset);
-      camera.lookAt(focusPosition);
+      returnLookMatrix.lookAt(camera.position, focusPosition, camera.up);
+      returnRotation.setFromRotationMatrix(returnLookMatrix);
+      camera.quaternion.copy(cameraReturn.rotation).slerp(returnRotation, e);
       if (cameraReturn.t >= 1) {
         cameraReturn = null;
         controls.syncFromCamera();
@@ -927,7 +1158,7 @@ async function main() {
     // control for it so the two are not both writing the camera on the same frame.
     homeReturn.update(dt);
 
-    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn) {
+    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
       // Rotating the device changes how much fits on screen, so recompose the shot.
       // Deliberately overrides any manual zoom: a rotated view that cuts off the
       // destination is worse than losing the zoom level.
@@ -961,28 +1192,36 @@ async function main() {
     }
   });
 
-  stage.onCrash((error) => {
-    // The loop has stopped; the sounds it was driving have not, and the engine would
-    // otherwise drone under the crash screen at whatever gain it had reached.
-    sfx.reset();
-    narrator.stop();
-    fail('Space Ninja stopped', error, true);
-  });
-
   // Read-only instrumentation exists only in the dedicated browser-test build. Tests
   // still launch, drag and collect through ordinary pointer events, never state setters.
   if (import.meta.env.VITE_PLAYTEST === '1') {
     Object.assign(window, { spaceNinjaSnapshot: () => {
       const center = world.bodies[follow].getWorldPosition(new THREE.Vector3());
       const view = camera.position.clone().sub(center).normalize();
+      const screenCircle = (position: THREE.Vector3, radius: number) => {
+        const point = position.clone().project(camera);
+        const edge = position.clone().addScaledVector(
+          new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), radius,
+        ).project(camera);
+        return { x: (point.x + 1) * innerWidth / 2, y: (1 - point.y) * innerHeight / 2,
+          radius: Math.abs(edge.x - point.x) * innerWidth / 2 };
+      };
       return {
         phase: flight.phase,
+        mapBodyIds: [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId))],
         world: follow,
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,
         speaking: narrator.speaking,
-        dayTurning: dayTurn.active,
+        guidedHunt: huntGuidance?.active ?? false,
         cameraReturning: Boolean(cameraReturn),
+        dayTurning: dayTurn.active,
+        bodyScreen: screenCircle(center, world.bodies[follow].viewRadius ?? world.bodies[follow].radius),
+        teachingSun: (() => {
+          const cue = world.teachingSun.group;
+          return { visible: cue.visible,
+            ...screenCircle(cue.position, cue.scale.x * TEACHING_SUN_RADIUS) };
+        })(),
         surfaceRotation: world.bodies[follow].surface.rotation.y,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
@@ -1000,31 +1239,29 @@ async function main() {
       };
     } });
   }
-  stage.start();
-
-  /* --- lifecycle ----------------------------------------------------------- */
-
-  // Stop drawing while backgrounded; on a tablet this is most of the battery win.
-  function onVisibilityChange() {
-    if (document.hidden) {
-      stage.stop();
+  const lifecycle = createSessionLifecycle({
+    stage, document, window,
+    suspend: () => {
       narrator.stop();
-      // Continuous sound is driven a frame at a time, and stopping the loop stops the
-      // driving — leaving the engine held at whatever gain it had reached, droning out of
-      // a backgrounded tab forever. Both sounds rebuild themselves on the next frame.
       sfx.reset();
-    } else {
-      stage.start();
-    }
-  }
-  document.addEventListener('visibilitychange', onVisibilityChange);
+      controls.cancelGesture();
+    },
+    reset: resetAdventure,
+    dispose,
+    fail: (error) => {
+      dayTurn.reset();
+      fail('Space Ninja stopped', error, true);
+    },
+  });
+  function restart() { lifecycle.restart(); }
+  lifecycle.start();
 
   function dispose() {
+    dayTurn.reset();
     window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
-    document.removeEventListener('visibilitychange', onVisibilityChange);
     document.removeEventListener('keydown', onFreeFlightShortcut);
     controls.dispose();
     ui.dispose();
@@ -1038,8 +1275,6 @@ async function main() {
     sky.dispose();
     stage.dispose();
   }
-
-  window.addEventListener('pagehide', dispose, { once: true });
 }
 
 main().catch((error: unknown) => {

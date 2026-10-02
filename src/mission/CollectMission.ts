@@ -52,6 +52,8 @@ export interface CollectMission {
    * A world with no intro simply calls this immediately after `start()`. Idempotent.
    */
   reveal(): void;
+  /** Hide targets and remove their hit meshes during a visual lesson, preserving progress. */
+  setPresentation(visible: boolean): void;
   /** Feed a raycast hit. Returns true if it was one of ours and was collected. */
   collectFrom(object: THREE.Object3D): boolean;
   /**
@@ -61,8 +63,13 @@ export interface CollectMission {
    * screen and does not need pointing anywhere. `visible` is the same visible-face test a
    * tap has to pass, so the arrow disappears the instant the place could be tapped — an
    * arrow still pointing at something already on screen is just clutter.
+   *
+   * `turn` is the sign `body.turnSurface` needs to bring the place *towards* the camera:
+   * the arrow is a button now as well as a pointer, and pressing it turns the world rather
+   * than asking for the drag. Exact rather than inferred from `side`, so it holds whatever
+   * the tilt and the camera's height happen to be.
    */
-  remainingHint(): { side: -1 | 1; visible: boolean } | null;
+  remainingHint(): { side: -1 | 1; visible: boolean; turn: -1 | 1 } | null;
   /**
    * Where an unfound place is on screen right now, for the idle coach to point a finger at.
    *
@@ -198,6 +205,8 @@ const _dir = new THREE.Vector3();
 const _view = new THREE.Vector3();
 const _screen = new THREE.Vector3();
 const _right = new THREE.Vector3();
+const _up = new THREE.Vector3();
+const _tangent = new THREE.Vector3();
 /** The plane RingGeometry is built in, and so the axis every marker is turned off. */
 const FACE = new THREE.Vector3(0, 0, 1);
 
@@ -359,6 +368,9 @@ export function markerPlacement(discovery: Discovery, bodyRadius: number): Marke
   };
 }
 
+/** Still gold, because the recorded narration asks children to tap the gold places. */
+const MARKER_GOLD = 0xf5c65b;
+
 interface Collectible {
   discovery: Discovery;
   group: THREE.Group;
@@ -422,6 +434,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
 
   let active = false;
   let revealed = false;
+  let presentationVisible = true;
   // Ramps 0 → 1 over the first half-second after reveal, so the targets grow and fade in
   // rather than snapping on. Non-reduced-motion only; reduced motion has them simply present.
   let revealT = 0;
@@ -461,7 +474,9 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     node.add(target);
 
     const outlineMaterial = new THREE.MeshBasicMaterial({
-      color: 0x21143f,
+      // The interface's own navy: the marker reads as a small badge from the same set as
+      // the panels, a thin gold ring and a solid gold centre on a dark disc.
+      color: 0x0b141d,
       transparent: true,
       opacity: 0.9,
       depthWrite: false,
@@ -470,7 +485,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     target.add(new THREE.Mesh(backingGeometry, outlineMaterial));
 
     const ringMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffbd45,
+      color: MARKER_GOLD,
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -489,7 +504,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     let sonarMaterial: THREE.MeshBasicMaterial | null = null;
     if (!reducedMotion) {
       sonarMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffbd45,
+        color: MARKER_GOLD,
         transparent: true,
         opacity: 0,
         depthWrite: false,
@@ -623,18 +638,21 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     body.holdSurface();
 
     ringGeometry = new THREE.RingGeometry(
-      markerRadius * 0.66,
-      markerRadius,
+      markerRadius * 0.76,
+      markerRadius * 0.94,
       detail.ringSegments,
     );
+    // A solid centre dot rather than a second ring: a pin, not a dartboard.
     innerRingGeometry = new THREE.RingGeometry(
-      markerRadius * 0.18,
-      markerRadius * 0.34,
+      0,
+      markerRadius * 0.3,
       detail.ringSegments,
     );
+    // A full dark disc behind both, so the gold keeps its contrast on bright ground (the
+    // lit Moon, Saturn's rings) as well as on the night side.
     outlineGeometry = new THREE.RingGeometry(
-      markerRadius * 0.58,
-      markerRadius * 1.12,
+      0,
+      markerRadius * 1.06,
       detail.ringSegments,
     );
     // A thin ring the size of the target, which the idle loop scales outward and fades. One
@@ -751,6 +769,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       if (active) return;
       active = true;
       revealed = false;
+      presentationVisible = true;
       revealT = 0;
       collected = 0;
       completionTimer = -1;
@@ -762,13 +781,24 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       revealed = true;
       revealT = 0;
       for (const collectible of collectibles) {
-        collectible.group.visible = true;
+        collectible.group.visible = presentationVisible;
         // Only ones still there to find go into the raycast list.
-        if (collectible.state === 'idle') hitMeshes.push(collectible.hit);
+        if (presentationVisible && collectible.state === 'idle') hitMeshes.push(collectible.hit);
+      }
+    },
+
+    setPresentation(visible: boolean) {
+      presentationVisible = visible;
+      hitMeshes.length = 0;
+      if (!revealed) return;
+      for (const collectible of collectibles) {
+        collectible.group.visible = visible;
+        if (visible && collectible.state === 'idle') hitMeshes.push(collectible.hit);
       }
     },
 
     collectFrom(object: THREE.Object3D) {
+      if (!presentationVisible) return false;
       const index = object.userData.collectibleIndex as number | undefined;
       if (typeof index !== 'number') return false;
       const collectible = collectibles[index];
@@ -829,7 +859,20 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
        * gesture a hand makes on a globe.
        */
       _right.setFromMatrixColumn(camera.matrixWorld, 0);
-      return { side: _dir.dot(_right) < 0 ? (-1 as const) : (1 as const), visible };
+      /*
+       * A positive `turnSurface` rotates the surface about its own axis, so a place at
+       * direction d moves along axis × d. Its component towards the camera says whether a
+       * positive turn brings the place nearer or takes it further round the back. The axis
+       * comes from the surface mesh's world matrix, so the axial tilt is already in it.
+       */
+      _up.set(0, 1, 0).transformDirection(body.surface.matrixWorld);
+      _tangent.crossVectors(_up, _dir);
+      _view.divideScalar(distance);
+      return {
+        side: _dir.dot(_right) < 0 ? (-1 as const) : (1 as const),
+        visible,
+        turn: _tangent.dot(_view) >= 0 ? (1 as const) : (-1 as const),
+      };
     },
 
     update(dt: number, elapsed: number) {
@@ -928,6 +971,7 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
       teardown();
       active = false;
       revealed = false;
+      presentationVisible = true;
       revealT = 0;
       collected = 0;
       completionTimer = -1;

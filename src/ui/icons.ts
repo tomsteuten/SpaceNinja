@@ -20,6 +20,7 @@ const ICONS = {
     '<circle cx="44" cy="17" r="6" fill="#4cb8ed" stroke="#b2edff" stroke-width="1"/>' +
     '<path d="m42 12 3 2-1 3-3 1 1 4 3-1 2-5-2-4Z" fill="#6ab878" stroke="none"/>' +
     '<circle cx="51" cy="5" r="3.5" fill="#bbb5ca" stroke="#f3eeff" stroke-width="1"/>',
+  lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/>',
   rocket:
     '<path d="M12 2.6c2.7 2.4 4.1 5.5 4.1 8.9v3.2l1.8 1.9v3.2l-2.9-1.3-3 1.3-3-1.3-2.9 1.3v-3.2l1.8-1.9v-3.2c0-3.4 1.4-6.5 4.1-8.9Z"/>' +
     '<circle cx="12" cy="10" r="1.7"/>',
@@ -43,6 +44,14 @@ const ICONS = {
   expand:
     '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/>' +
     '<path d="M4 15v5h5"/><path d="M20 15v5h-5"/>',
+  /**
+   * The way back to the solar-system map: a little sun with a planet on its orbit. It stands
+   * for the whole home view a child returns to, which "home" (they are standing on a world
+   * that is also called home) and a rocket (which means go, not come back) both failed to say.
+   */
+  orbit:
+    '<circle cx="12" cy="12" r="2.3"/>' +
+    '<g transform="rotate(-20 12 12)"><ellipse cx="12" cy="12" rx="9" ry="4.2"/><circle cx="21" cy="12" r="1.5"/></g>',
   /** Turning a world through a day. A sun, because what moves is the light on the ground. */
 } as const;
 

@@ -1,0 +1,407 @@
+/* ---------------------------------------------------------------------------
+   Space Ninja visual theme, layered over ui.css.
+
+   The look comes from the 22 September explorer: calm dark glass, a hairline edge, a light
+   primary pill, line icons and a serif name for each world. The sizes are not the
+   explorer's: its 10–13px labels were for adults, and this game is for 5–8 year olds, so
+   touch targets stay at 54–62px and labels stay at a readable size.
+
+   One file on purpose. Removing its import in main.ts restores the previous look exactly.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --ink: #f1efe8;
+  --ink-soft: rgba(241, 239, 232, 0.74);
+  --panel: rgba(11, 20, 29, 0.9);
+  --panel-edge: rgba(255, 255, 255, 0.14);
+  --glow: transparent;
+  --mint: #a8d7d3;
+  --primary-bg: #e3e7dd;
+  --primary-ink: #13242c;
+  --glass: rgba(11, 20, 29, 0.86);
+  --glass-hover: rgba(37, 50, 59, 0.92);
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Roboto, sans-serif;
+  --font-title: Georgia, "Times New Roman", serif;
+}
+
+html,
+body {
+  background: #050a10;
+}
+
+/* --- surfaces ------------------------------------------------------------- */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 24px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* --- buttons: flat, calm, and still obviously pressable ---------------------- */
+
+.btn {
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  color: var(--primary-ink);
+  background: var(--primary-bg);
+  border: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  transition: transform 0.1s ease, background-color 0.15s ease;
+}
+
+.btn:hover {
+  background: #ffffff;
+}
+
+.btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--mint);
+  outline-offset: 4px;
+}
+
+.btn--secondary,
+.btn--quiet,
+.journal-btn {
+  color: var(--ink);
+  background: var(--glass);
+  border: 1px solid var(--panel-edge);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.btn--secondary:hover,
+.btn--quiet:hover,
+.journal-btn:hover {
+  background: var(--glass-hover);
+}
+
+.btn--secondary:active,
+.btn--quiet:active,
+.journal-btn:active {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn--quiet {
+  font-weight: 500;
+  box-shadow: none;
+}
+
+/* Inside a panel the quiet button is a hairline pill, not a second slab of glass. */
+.panel .btn--quiet {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.icon {
+  width: 1.35em;
+  height: 1.35em;
+}
+
+/* --- hint ----------------------------------------------------------------- */
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.25rem;
+  border-radius: 18px;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--glass);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  /* Fits the screen and wraps rather than running off a phone's edges. */
+  width: max-content;
+  max-width: calc(100vw - var(--pad-left) - var(--pad-right));
+  white-space: normal;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.hint .icon-slot {
+  color: var(--mint);
+}
+
+/* --- fact card -------------------------------------------------------------- */
+
+.fact-title {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.fact-title.has-world {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+/* A tiny globe cut from the world's real surface map, shaded like a sphere. */
+.world-orb {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-size: 200% 100%;
+  background-position: 30% 50%;
+  box-shadow:
+    inset -6px -4px 10px rgba(0, 0, 0, 0.65),
+    inset 2px 2px 6px rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* No taller than the old title line: the card's top edge is what gold places must clear. */
+.fact-card .fact-title {
+  font-size: 1.15rem;
+  line-height: 1.15;
+}
+
+.fact-title.has-world {
+  gap: 0.5rem;
+}
+
+@media (max-height: 500px) {
+  .fact-card .fact-title {
+    font-size: 0.95rem;
+  }
+
+  .world-orb {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.fact-card p {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* The speaker is the card's one primary action: hear about this world. */
+.narrate-btn {
+  color: var(--primary-ink);
+}
+
+.narrate-btn.is-speaking {
+  background: var(--mint);
+}
+
+/* --- the always-there corner and the way home -------------------------------- */
+
+.journal-btn {
+  border-radius: 50%;
+}
+
+.home-btn {
+  font-weight: 600;
+}
+
+.home-btn .icon-slot {
+  color: var(--mint);
+}
+
+/* --- home map: one destination tray, with the journal above the playfield ----- */
+
+.destination-bar {
+  left: 50%;
+  width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right)));
+  padding: 6px;
+  gap: 6px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 36px;
+  background: var(--glass);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+}
+
+.destination-choice {
+  min-height: 62px;
+  padding: 6px;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  background: transparent;
+  box-shadow: none;
+  font: 400 1rem/1.1 var(--font-title);
+  color: var(--ink);
+  transition: transform 0.1s ease, background-color 0.15s ease;
+}
+
+.destination-choice:hover { background: var(--glass-hover); }
+.destination-choice:active { transform: scale(0.96); box-shadow: none; }
+.destination-choice:focus-visible { outline: 3px solid var(--mint); outline-offset: 2px; }
+
+.destination-choice.is-suggested {
+  color: var(--primary-ink);
+  background: var(--primary-bg);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.destination-choice.is-suggested:hover { background: #fff; }
+.destination-choice.is-locked {
+  color: var(--ink-soft);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.destination-choice.is-locked:hover { background: var(--glass-hover); }
+.destination-choice.is-locked::after { content: none; }
+.destination-choice.is-new::after { background: var(--mint); box-shadow: none; }
+
+.destination-choice .world-orb {
+  position: relative;
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+.destination-choice .world-orb--saturn::after {
+  content: '';
+  position: absolute;
+  inset: 7px -7px;
+  border: 3px solid #c8b68f;
+  border-radius: 50%;
+  transform: rotate(-28deg);
+}
+.destination-choice__lock {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  color: var(--ink-soft);
+}
+.destination-choice__lock .icon { width: 14px; height: 14px; }
+
+.is-home .journal-btn {
+  top: var(--pad-top);
+  right: var(--pad-right);
+  bottom: auto;
+  left: auto;
+  width: 62px;
+  height: 62px;
+}
+
+.is-home .hint {
+  top: calc(var(--pad-top) + 8px);
+  max-width: calc(100vw - var(--pad-left) - var(--pad-right) - 78px);
+  min-height: 46px;
+  border-radius: 24px;
+}
+
+@media (min-width: 600px) {
+  .destination-choice { flex-direction: row; gap: 10px; font-size: 1.2rem; }
+  .destination-choice .world-orb { width: 30px; height: 30px; }
+}
+
+@media (max-width: 599px) {
+  .is-home .hint { left: var(--pad-left); transform: none; padding-inline: 14px; }
+}
+
+@media (max-height: 480px) {
+  .destination-bar { width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right))); }
+  .destination-choice { min-height: 54px; }
+  .is-home .journal-btn { width: 54px; height: 54px; }
+  .is-home .hint { top: var(--pad-top); }
+}
+
+/* Earth arrival: the teaching action lives in one stable row and the globe keeps the stage. */
+.ui.is-earth .earth-heading {
+  position: absolute;
+  top: var(--pad-top);
+  left: var(--pad-left);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 54px;
+  padding: 5px 14px 5px 9px;
+  border-radius: 30px;
+  border: 1px solid var(--panel-edge);
+  background: var(--glass);
+  font: 400 1.35rem/1 var(--font-title);
+  color: var(--ink);
+  pointer-events: none;
+}
+.ui.is-earth .earth-heading .world-orb { width: 34px; height: 34px; }
+.ui.is-earth .hint {
+  top: calc(var(--pad-top) + 66px);
+  left: var(--pad-left);
+  transform: none;
+  max-width: 190px;
+  padding: 8px 12px;
+}
+.ui.is-earth .mission-hud { top: calc(var(--pad-top) + 66px); }
+.ui.is-earth .fact-card:not(.is-hidden) {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - var(--pad-left) - var(--pad-right)));
+  max-height: min(48dvh, 340px);
+  overflow-y: auto;
+}
+.ui.is-earth.is-day-active .fact-card:not(.is-transcript-open) { display: none; }
+.ui.is-earth.is-day-active .mission-hud,
+.ui.is-earth.is-day-active .hint { visibility: hidden; }
+@media (min-width: 600px) and (orientation: landscape) {
+  /* The centered hunt counter covered the upper gold place on a short tablet. */
+  .ui.is-earth .mission-hud {
+    top: calc(var(--pad-top) + 66px);
+    left: var(--pad-left);
+    transform: none;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .ui.is-earth .mission-hud.fade-in-centred { animation: none; }
+  .ui.is-earth .slot-row { gap: 8px; }
+  .ui.is-earth .slot {
+    width: clamp(46px, 5vw, 54px);
+    height: clamp(46px, 5vw, 54px);
+  }
+  .ui.is-earth .mission-caption {
+    max-width: min(210px, calc((100vw - 340px) / 2));
+    padding: 7px 10px;
+    border-radius: 16px;
+    text-align: left;
+  }
+}
+@media (max-width: 399px) {
+  .ui.is-earth .dock { gap: 6px; }
+  .ui.is-earth .spin-btn { padding-inline: 9px; }
+  .ui.is-earth .about-btn,
+  .ui.is-earth .home-btn { padding-inline: 10px; }
+  .ui.is-earth .home-btn .icon-slot { display: none; }
+}
+@media (max-height: 480px) {
+  .ui.is-earth .earth-heading,
+  .ui.is-earth .journal-btn { min-height: 50px; height: 50px; }
+  .ui.is-earth .dock { width: min(430px, calc(100vw - 32px)); }
+  .ui.is-earth .spin-btn,
+  .ui.is-earth .about-btn,
+  .ui.is-earth .home-btn { min-height: 54px; height: 54px; }
+  .ui.is-earth .fact-card:not(.is-hidden) { max-height: 42dvh; }
+}
+
+/* Child-feedback iteration: one pictured exit row on every destination. */
+.ui.is-earth .dock { flex-flow: column nowrap; width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right))); }
+.ui .visit-actions > .btn {
+  position: relative; inset: auto; width: 100%; height: 64px; min-height: 64px;
+  padding: 5px 4px; border-radius: 18px; flex: none; flex-direction: column;
+  min-width: 0; gap: 3px; font-size: 0.85rem;
+}
+.ui .visit-actions .home-btn { order: initial; grid-column: 2; grid-row: auto; background: var(--primary-bg); color: var(--primary-ink); }
+.ui .visit-actions:not(.has-activity) .home-btn { grid-column: 2 / 4; }
+.ui .visit-actions .spin-btn { order: initial; grid-column: 3; grid-row: auto; }
+.ui.is-earth .visit-actions .home-btn .icon-slot, .ui .visit-actions .home-btn .icon-slot { display: inline-flex; color: var(--primary-ink); }
+.ui .visit-actions .journal-btn { grid-column: 1; }
+.ui .visit-actions .home-btn .icon { width: 60px; height: 34px; }
+.ui.is-earth .earth-heading { pointer-events: none; }
+.ui.is-earth .earth-heading .about-btn { pointer-events: auto; min-width: 54px; min-height: 54px; padding: 6px 10px; border-radius: 22px; font-size: 0.85rem; }
+.destination-choice .world-orb--sun { background: #f5b963; color: #683809; font: 700 26px/26px var(--font); text-align: center; }
+.ui.is-earth .day-legend { top: calc(var(--pad-top) + 64px); }
+@media (min-width: 600px) and (orientation: landscape) {
+  .ui.is-earth .dock { width: min(750px, calc(100vw - var(--pad-left) - var(--pad-right))); flex-flow: row wrap; }
+  .ui.is-earth .mission-hud { flex-direction: column; }
+}

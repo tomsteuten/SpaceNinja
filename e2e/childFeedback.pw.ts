@@ -75,6 +75,7 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
   await page.getByRole('button', { name: 'See a photo of this place', exact: true }).click();
   await expect(page.locator('.photo-view__return-world')).toHaveText('🌙');
   await expect(page.getByRole('button', { name: 'Keep exploring', exact: true })).toBeVisible();
+  await page.waitForTimeout(650);
   await page.getByRole('button', { name: 'Close the photo' }).click();
   await expect(page.locator('.photo-view')).toBeHidden();
   await fits(page, '.home-btn');

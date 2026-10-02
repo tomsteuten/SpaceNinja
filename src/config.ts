@@ -11,65 +11,39 @@
 
 import * as THREE from 'three';
 
-export const EARTH_RADIUS = 1;
+import { FRAMING_MARGIN, framingRadiusFor, worldGeometry } from './worlds/catalogue';
 
-export const MOON_RADIUS = 0.27;
-export const MOON_ORBIT_RADIUS = 2.5;
-export const MOON_ORBIT_TILT = 0.11; // radians, so the Moon does not track a flat line
-export const MOON_START_ANGLE = 0.62;
+/*
+ * Geometry lives in the world catalogue (src/worlds/catalogue.ts), one entry per world, with
+ * the reasoning for each number beside it. The named constants below are kept so existing
+ * callers and tests read as they always did; new code should read the catalogue.
+ */
+const earthWorld = worldGeometry('earth');
+const moonWorld = worldGeometry('moon');
+const marsWorld = worldGeometry('mars');
+const saturnWorld = worldGeometry('saturn');
 
-/**
- * Mars is given its own compressed path around the scene centre rather than a real
- * heliocentric orbit. At true scale it would be several thousand Earth-radii away and
- * the Sun is already at 105; this keeps every destination inside one composable frame.
- * Tilt and start angle are chosen to keep it well away from the Moon on screen.
- */
-export const MARS_RADIUS = 0.53;
-export const MARS_ORBIT_RADIUS = 5.0;
-export const MARS_ORBIT_TILT = -0.19;
-export const MARS_START_ANGLE = 3.4;
+export const EARTH_RADIUS = earthWorld.radius;
 
-/**
- * Saturn is the one body whose radius is *not* true to life, and that is deliberate.
- *
- * The rule everywhere else — Moon 0.27, Mars 0.53 — is that radii are real, because
- * relative size is a thing a child can learn from a picture. A gas giant breaks it: Saturn
- * is really 9.1 Earth radii, which at these compressed distances would be larger than the
- * rendered Sun (7) and would dwarf every other body and its own orbit. So its size is
- * compressed the way the *distances* already are. 1.5 still reads clearly as "much the
- * biggest planet" without swallowing the scene. It is a constant precisely so the one place
- * the invariant is broken can be found and tuned; the composition it produces is a thing to
- * watch on the real tablet, not a number to trust from here.
- */
-export const SATURN_RADIUS = 1.5;
-/**
- * Just beyond Mars (5.0). Kept as near in as composition allows because a fourth, farther
- * body is what forced MAX_ORBIT_DISTANCE up: the wider the orbit, the further the camera
- * has to pull back to show Saturn for tapping, and the smaller the inner worlds get in that
- * shot. See FRAMING_RADIUS_WIDER.
- */
-export const SATURN_ORBIT_RADIUS = 6.6;
-export const SATURN_ORBIT_TILT = 0.15;
-/** Chosen to keep Saturn clear of Mars (3.4) and the Moon on screen at the opening. */
-export const SATURN_START_ANGLE = 5.5;
-/** A calm turn, like the others — not the real 10-hour day, which would read as spinning. */
-export const SATURN_SPIN = 0.03;
-/** Slower than Mars: an outer body that raced round would read as wrong. */
-export const SATURN_ORBIT_SPEED = 0.018;
-/**
- * Axial tilt, ~26.7° in life, and load-bearing here rather than cosmetic: it is the plane
- * the rings lie in, and the equatorial plane the one ring discovery is placed in. Carried
- * on a container above the sphere, like Earth's, so it never sits inside the surface's own
- * y-rotation and quietly moves markers off their coordinates.
- */
-export const SATURN_AXIAL_TILT = 0.47;
-/**
- * The ring system, as multiples of Saturn's radius. Real proportions: the bright rings run
- * from about 1.24 R (inner C/B) to 2.27 R (outer A). The gap near 1.95 is the Cassini
- * Division, drawn into the ring texture rather than modelled.
- */
-export const SATURN_RING_INNER_RATIO = 1.28;
-export const SATURN_RING_OUTER_RATIO = 2.3;
+export const MOON_RADIUS = moonWorld.radius;
+export const MOON_ORBIT_RADIUS = moonWorld.orbit!.radius;
+export const MOON_ORBIT_TILT = moonWorld.orbit!.tilt;
+export const MOON_START_ANGLE = moonWorld.orbit!.startAngle;
+
+export const MARS_RADIUS = marsWorld.radius;
+export const MARS_ORBIT_RADIUS = marsWorld.orbit!.radius;
+export const MARS_ORBIT_TILT = marsWorld.orbit!.tilt;
+export const MARS_START_ANGLE = marsWorld.orbit!.startAngle;
+
+export const SATURN_RADIUS = saturnWorld.radius;
+export const SATURN_ORBIT_RADIUS = saturnWorld.orbit!.radius;
+export const SATURN_ORBIT_TILT = saturnWorld.orbit!.tilt;
+export const SATURN_START_ANGLE = saturnWorld.orbit!.startAngle;
+export const SATURN_SPIN = saturnWorld.spin;
+export const SATURN_ORBIT_SPEED = saturnWorld.orbit!.speed;
+export const SATURN_AXIAL_TILT = saturnWorld.axialTilt!;
+export const SATURN_RING_INNER_RATIO = saturnWorld.rings!.inner;
+export const SATURN_RING_OUTER_RATIO = saturnWorld.rings!.outer;
 
 export const SUN_RADIUS = 7;
 export const SUN_DISTANCE = 105;
@@ -79,18 +53,10 @@ export const SUN_POSITION = SUN_DIRECTION.clone().multiplyScalar(SUN_DISTANCE);
 
 export const STAR_SHELL_RADIUS = 420;
 
-/** Radians per second. Slow enough to feel calm rather than spinny. */
-export const EARTH_SPIN = 0.045;
-/*
- * There is deliberately no MOON_SPIN. The Moon is tidally locked here, as it is in life,
- * and locking means its surface simply rides the orbit — any rotation of its own would be
- * the thing that unlocks it. It had one, at 0.012, and that is exactly what stopped the
- * near side facing Earth.
- */
-export const MOON_ORBIT_SPEED = 0.055;
-export const MARS_SPIN = 0.02;
-/** Slower than the Moon: an outer body that raced round would read as wrong. */
-export const MARS_ORBIT_SPEED = 0.03;
+export const EARTH_SPIN = earthWorld.spin;
+export const MOON_ORBIT_SPEED = moonWorld.orbit!.speed;
+export const MARS_SPIN = marsWorld.spin;
+export const MARS_ORBIT_SPEED = marsWorld.orbit!.speed;
 
 export const CAMERA_FOV_LANDSCAPE = 52;
 export const CAMERA_FOV_PORTRAIT = 68;
@@ -118,28 +84,26 @@ export const CAMERA_NEAR = 0.05;
 export const CAMERA_FAR = 800;
 
 /**
- * How much of the scene the opening shot tries to fit, and the distance clamp around it.
- * This has to cover the Moon at the far side of its orbit, or a portrait phone — whose
- * horizontal field of view is tiny — loses the destination off the edge of the screen.
+ * The three framing tiers, as the catalogue derives them: the opening shot fits Earth and
+ * the Moon; visiting the Moon widens it to Mars; visiting Mars widens it to Saturn's outer
+ * ring. They are instances of one rule (`framingRadiusFor`) rather than three hand-tuned
+ * numbers, and main.ts asks the rule directly for whatever set of worlds is revealed. The
+ * names remain for the explorer and the tests.
+ *
+ * The opening tier has to cover the Moon at the far side of its orbit, or a portrait phone
+ * — whose horizontal field of view is tiny — loses the destination off the edge of the
+ * screen. The wide tier is deliberately not the opening framing: fitting Mars shrinks Earth
+ * and the Moon to a third of the size, a bad first impression for a five-year-old who has
+ * not been given a reason to care yet. The widest tier is the one that costs the most: a
+ * fourth, far body can only be framed for tapping on a narrow portrait phone by pulling
+ * right back, which shrinks Earth, the Moon and Mars to specks in that one shot. That trade
+ * was made on purpose (there is no other way to keep the tap-the-world-you-see model with
+ * an outer planet) and it is the composition to watch on the real tablet.
  */
-export const FRAMING_RADIUS = MOON_ORBIT_RADIUS + MOON_RADIUS + 0.18;
-/**
- * The wider shot, used once Mars is worth pointing at. Deliberately not the opening
- * framing: fitting Mars shrinks Earth and the Moon to a third of the size, which is a
- * bad first impression for a five-year-old who has not been given a reason to care yet.
- */
-export const FRAMING_RADIUS_WIDE = MARS_ORBIT_RADIUS + MARS_RADIUS + 0.18;
-/**
- * The widest shot, used once Saturn is worth pointing at. It has to reach past the *outer
- * ring*, not just the planet, or the thing that makes Saturn Saturn sits off the edge. This
- * is the tier that costs the most: a fourth, far body can only be framed for tapping on a
- * narrow portrait phone by pulling right back, which shrinks Earth, the Moon and Mars to
- * specks in this one shot. That trade was made on purpose (there is no other way to keep the
- * tap-the-world-you-see model with an outer planet) and it is the composition to watch on
- * the real tablet.
- */
-export const FRAMING_RADIUS_WIDER =
-  SATURN_ORBIT_RADIUS + SATURN_RADIUS * SATURN_RING_OUTER_RATIO + 0.18;
+export const FRAMING_RADIUS = framingRadiusFor(['earth', 'moon']);
+export const FRAMING_RADIUS_WIDE = framingRadiusFor(['earth', 'moon', 'mars']);
+export const FRAMING_RADIUS_WIDER = framingRadiusFor(['earth', 'moon', 'mars', 'saturn']);
+export { FRAMING_MARGIN, framingRadiusFor };
 export const MIN_ORBIT_DISTANCE = 0.6;
 /**
  * Raised from 20 so FRAMING_RADIUS_WIDER fits on the narrowest phone in portrait, where the
@@ -286,6 +250,19 @@ export interface DestinationConfig {
     name: string;
     fact: string;
     /**
+     * Spoken while the turn runs *by itself* on a child's first visit, as the arrival
+     * introduction. Only Earth has one, by the owner's decision after watching a child never
+     * find the day/night button: once, on the first visit, short, and any tap ends it. This
+     * is not the automatic-on-every-arrival turn that was pulled (see the note above); that
+     * ran on every world and every visit and nobody could skip it without knowing to.
+     */
+    intro?: string;
+    /**
+     * Spoken once per later visit when the button asks to be noticed (`shouldInviteSpin`),
+     * in the child's register: what they *can* do, not what they must.
+     */
+    invite?: string;
+    /**
      * This world's colour, for the small day/night disc on its own button.
      *
      * The button used to be a stroked sun, which is a symbol of the *topic* rather than a
@@ -344,6 +321,8 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       label: 'Spin the Earth',
       tint: '#3f7fb8',
       name: 'Your Day and Night',
+      intro: 'Watch. Earth is turning. That is day, and that is night.',
+      invite: 'You can turn Earth. Tap the little globe.',
       fact:
         'The Sun does not move. Earth turns! When your part of it turns towards the Sun ' +
         'that is morning, and when it turns away the sky goes dark and the lights come on.',
@@ -353,7 +332,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'with water you can swim in, air you can breathe, and anybody at all to talk to.',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around Earth.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around Earth.',
       successLine: 'You found all three! You know your own planet from space now.',
       stickerId: 'earth-explorer',
       discoveries: [
@@ -465,6 +444,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   moon: {
     emoji: '🌙',
     spin: {
+      invite: 'You can turn the Moon. Tap the globe.',
       label: 'Spin the Moon',
       tint: '#9a958f',
       name: 'Two Weeks of Sunshine',
@@ -479,7 +459,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'nothing to carry a sound, so it is the quietest place there is.',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around the Moon.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around the Moon.',
       successLine: 'You found all three! What a brilliant explorer you are.',
       stickerId: 'moon-explorer',
       discoveries: [
@@ -574,6 +554,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     // Revealed once the Moon has been visited — the same gate WIDE_FRAMING_VISIT widens on.
     revealAfterVisiting: 'moon',
     spin: {
+      invite: 'You can turn Mars. Tap the globe.',
       label: 'Spin Mars',
       tint: '#b4593a',
       name: 'A Day Almost Like Yours',
@@ -586,7 +567,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'bike left out in the rain. The whole planet is a bit rusty!',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around Mars.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around Mars.',
       successLine: 'You found all three! You are a real space explorer now.',
       stickerId: 'mars-explorer',
       discoveries: [
@@ -684,6 +665,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     // The animated turn is a calm one like the others (SATURN_SPIN_RATE), not the real
     // ten-hour whirl — the fact tells the truth the picture would only make dizzying.
     spin: {
+      invite: 'You can turn Saturn. Tap the globe.',
       label: 'Spin Saturn',
       tint: '#c2a366',
       name: 'The Fastest Day',
@@ -697,7 +679,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'bath, if anyone could find a bath big enough.',
     mission: {
       instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Swipe sideways to look around Saturn.',
+      huntLine: 'One more! Tap the arrow, or swipe, to look around Saturn.',
       successLine: 'You found all three! You have been all the way out to Saturn.',
       stickerId: 'saturn-explorer',
       discoveries: [

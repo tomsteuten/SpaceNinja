@@ -8,8 +8,35 @@
  * genuinely needs a real device is answered by `?voices` instead of by guessing.
  */
 
-import { describe, expect, it } from 'vitest';
-import { pickVoice, rankVoices, recordingCueId, speechText } from './narration';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadRecording, pickVoice, rankVoices, recordingCueId, speechText } from './narration';
+
+afterEach(() => vi.useRealTimers());
+
+describe('recording loading', () => {
+  it('decodes a successful recorded cue', async () => {
+    const buffer = {} as AudioBuffer;
+    const audio = { decodeAudioData: vi.fn().mockResolvedValue(buffer) } as unknown as BaseAudioContext;
+    const request = vi.fn().mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
+    expect(await loadRecording('cue.mp3', audio, request)).toBe(buffer);
+    expect(audio.decodeAudioData).toHaveBeenCalledOnce();
+  });
+
+  it('abandons and aborts a slow cue so a later replay can retry', async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const request = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
+      signal = init?.signal ?? undefined;
+      return new Promise<Response>(() => undefined);
+    });
+    const audio = { decodeAudioData: vi.fn() } as unknown as BaseAudioContext;
+    const result = loadRecording('slow.mp3', audio, request, 20);
+    const rejection = expect(result).rejects.toThrow('timed out');
+    await vi.advanceTimersByTimeAsync(20);
+    await rejection;
+    expect(signal?.aborted).toBe(true);
+  });
+});
 
 /** Enough of a SpeechSynthesisVoice for the ranking, which reads four fields. */
 function voice(

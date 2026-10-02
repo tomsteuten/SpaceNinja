@@ -10,10 +10,11 @@
 
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
-import { DAY_SWING_DURATION, DAY_TURN_DURATION, createDayTurn } from './DayTurn';
+import { DAY_INTRO_TURN_DURATION, DAY_SWING_DURATION, DAY_TURN_DURATION, createDayTurn } from './DayTurn';
 import { SUN_DIRECTION } from '../config';
 import type { OrbitInput } from '../controls/OrbitInput';
 import type { CelestialBody } from './Bodies';
+import { createTeachingSun } from './TeachingSun';
 
 const FULL_TURN = Math.PI * 2;
 
@@ -22,6 +23,8 @@ function stubBody() {
   let turned = 0;
   const body = {
     id: 'earth',
+    radius: 1,
+    surface: new THREE.Object3D(),
     turnSurface: (delta: number) => {
       turned += delta;
     },
@@ -43,13 +46,13 @@ function stubCamera() {
 }
 
 /** Runs a turn to completion at a given frame time, returning how long it took. */
-function runToFinish(dt: number) {
+function runToFinish(dt: number, duration?: number) {
   const onFinish = vi.fn();
   const camera = stubCamera();
   const controls = stubControls();
   const turn = createDayTurn({ camera, controls, onFinish });
   const { body, turnedBy } = stubBody();
-  turn.start(body);
+  turn.start(body, duration);
 
   let frames = 0;
   while (turn.active && frames < 100000) {
@@ -86,13 +89,13 @@ describe('createDayTurn', () => {
    * The reason the swing exists at all. The flight arrives near the sub-solar point so the
    * destination reads as a bright full disc, which puts the day/night line on the limb —
    * turn the body from there and a child watches continents slide past a planet whose
-   * lighting never changes. Square to the Sun, the line runs down the middle of the disc
-   * and sunrise and sunset are both on screen.
+   * lighting never changes. Near side-on, sunrise and sunset are both on screen. The
+   * teaching composition can lean toward daylight without hiding the night hemisphere.
    */
-  it('ends up looking at the destination side-on to the Sun', () => {
+  it('keeps substantial day and night visible together', () => {
     const { camera } = runToFinish(1 / 60);
     const view = camera.position.clone().normalize();
-    expect(Math.abs(view.dot(SUN_DIRECTION))).toBeLessThan(0.02);
+    expect(Math.abs(view.dot(SUN_DIRECTION))).toBeLessThan(0.35);
   });
 
   /*
@@ -101,10 +104,10 @@ describe('createDayTurn', () => {
    * line lies across the disc while the surface moves east-west along it. Everything
    * slides past the boundary and nothing crosses it, which is a sunrise that never happens.
    */
-  it('ends up level with the equator, so the line stands upright', () => {
+  it('stays near the equator, so places cross the terminator', () => {
     const { camera } = runToFinish(1 / 60);
     const view = camera.position.clone().normalize();
-    expect(Math.abs(view.y)).toBeLessThan(0.02);
+    expect(Math.abs(view.y)).toBeLessThan(0.2);
   });
 
   it('swings the short way round', () => {
@@ -127,11 +130,11 @@ describe('createDayTurn', () => {
       });
       turn.start(stubBody().body);
       while (turn.active) turn.update(1 / 60);
-      expect(camera.position.clone().normalize().dot(level)).toBeCloseTo(sign, 5);
+      expect(camera.position.clone().normalize().dot(level) * sign).toBeGreaterThan(0.9);
     }
   });
 
-  it('keeps the camera the same distance out as it swings', () => {
+  it('pulls back around the body without dipping through its surface', () => {
     const camera = stubCamera();
     const controls = stubControls();
     const started = camera.position.length();
@@ -140,8 +143,10 @@ describe('createDayTurn', () => {
     turn.start(body);
     // Part-way through the swing: a straight line between two points on a sphere dips
     // through the middle, which here would be through the planet.
-    for (let i = 0; i < 30; i++) turn.update(1 / 60);
-    expect(camera.position.length()).toBeCloseTo(started, 6);
+    for (let i = 0; i < 140; i++) {
+      turn.update(1 / 60);
+      expect(camera.position.length()).toBeGreaterThanOrEqual(started);
+    }
   });
 
   it('borrows the camera and gives it back', () => {
@@ -158,25 +163,79 @@ describe('createDayTurn', () => {
     expect(controls.syncFromCamera).toHaveBeenCalled();
   });
 
-  /*
-   * There is no reduced-motion variant of this any more, and its absence is the point.
-   *
-   * There used to be one, at 0.7 + 3 seconds against 2.2 + 9. That is the identical camera
-   * swing and the identical rotation played three times as fast, which is three times the
-   * angular rate — more motion per second, not less, and reported from the tablet as
-   * exactly that. The accommodation was making the thing it accommodates worse.
-   */
-  it('takes the same time however the device feels about motion', () => {
-    const dt = 1 / 60;
-    const total = DAY_SWING_DURATION + DAY_TURN_DURATION;
-    const { frames, turnedBy } = runToFinish(dt);
-    expect(turnedBy()).toBeCloseTo(FULL_TURN, 10);
-    expect(frames * dt).toBeGreaterThan(total * 0.95);
-  });
-
   it('reports finishing exactly once', () => {
     const { onFinish } = runToFinish(1 / 60);
     expect(onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it('cuts only the camera sweep for reduced motion, keeping the full nine-second day', () => {
+    const camera = stubCamera();
+    const { body, turnedBy } = stubBody();
+    const turn = createDayTurn({ camera, controls: stubControls(), reducedMotion: true, onFinish: vi.fn() });
+    const before = camera.position.clone();
+    turn.start(body);
+    expect(camera.position.distanceTo(before)).toBeGreaterThan(1);
+    expect(turnedBy()).toBe(0);
+    turn.update(4.5);
+    expect(turnedBy()).toBeCloseTo(Math.PI, 10);
+    expect(turn.active).toBe(true);
+    turn.update(4.5);
+    expect(turnedBy()).toBeCloseTo(FULL_TURN, 10);
+    expect(turn.active).toBe(false);
+  });
+
+  it.each(['finish', 'skip', 'reset'] as const)('cleans up the Sun on %s and supports a second turn', (end) => {
+    const texture = new THREE.Texture();
+    const sun = createTeachingSun(texture, texture);
+    const onFinish = vi.fn();
+    const { body, turnedBy } = stubBody();
+    const turn = createDayTurn({ camera: stubCamera(), controls: stubControls(),
+      teachingSun: sun, reducedMotion: true, onFinish });
+    turn.start(body);
+    expect(sun.group.visible).toBe(true);
+    expect(sun.group.position.clone().normalize().dot(SUN_DIRECTION)).toBeCloseTo(1, 10);
+    turn.update(1);
+    if (end === 'finish') turn.update(9);
+    else turn[end]();
+    expect(sun.group.visible).toBe(false);
+    expect(onFinish).toHaveBeenCalledTimes(end === 'reset' ? 0 : 1);
+    if (end !== 'reset') expect(turnedBy()).toBeCloseTo(FULL_TURN, 10);
+    turn.start(body);
+    expect(sun.group.visible).toBe(true);
+    turn.reset();
+    sun.dispose();
+    texture.dispose();
+  });
+
+  it('reframes a moving tilted world on resize and restores the camera up direction', () => {
+    const { body } = stubBody();
+    const parent = new THREE.Group();
+    parent.rotation.z = 0.41;
+    parent.add(body.surface);
+    const center = new THREE.Vector3(3, 2, 1);
+    body.getWorldPosition = target => target.copy(center);
+    const camera = stubCamera();
+    camera.position.add(center);
+    camera.lookAt(center);
+    const sun = createTeachingSun(new THREE.Texture(), new THREE.Texture());
+    const turn = createDayTurn({ camera, controls: stubControls(), teachingSun: sun,
+      reducedMotion: true, onFinish: vi.fn() });
+    turn.start(body);
+    const before = camera.position.clone();
+    center.x += 1;
+    turn.update(0.01);
+    expect(camera.position.x - before.x).toBeCloseTo(1, 10);
+    camera.aspect = 390 / 844;
+    camera.fov = 68;
+    camera.updateProjectionMatrix();
+    turn.update(0.01);
+    camera.updateMatrixWorld(true);
+    expect(sun.group.position.clone().sub(center).normalize().dot(SUN_DIRECTION)).toBeCloseTo(1, 10);
+    expect(Math.abs(sun.group.position.clone().project(camera).y)).toBeLessThan(0.75);
+    expect(camera.up.distanceTo(new THREE.Vector3(0, 1, 0))).toBeGreaterThan(0.1);
+    turn.reset();
+    expect(camera.up.toArray()).toEqual([0, 1, 0]);
+    sun.dispose();
   });
 
   it('ignores a second press while one is already running', () => {
@@ -292,5 +351,18 @@ describe('createDayTurn', () => {
     expect(turnedBy()).toBeLessThan(FULL_TURN);
     // Flying home mid-turn must not leave the camera stuck in the cutscene.
     expect(controls.enabled).toBe(true);
+  });
+});
+
+describe('a shorter introduction turn', () => {
+  it('is still exactly one turn, and finishes sooner', () => {
+    const dt = 1 / 60;
+    const lesson = runToFinish(dt);
+    const intro = runToFinish(dt, DAY_INTRO_TURN_DURATION);
+    expect(intro.turnedBy()).toBeCloseTo(FULL_TURN, 10);
+    expect(intro.onFinish).toHaveBeenCalledTimes(1);
+    expect(intro.frames).toBeLessThan(lesson.frames);
+    expect(intro.frames * dt).toBeCloseTo(DAY_SWING_DURATION + DAY_INTRO_TURN_DURATION, 0);
+    expect(DAY_INTRO_TURN_DURATION).toBeLessThan(DAY_TURN_DURATION);
   });
 });

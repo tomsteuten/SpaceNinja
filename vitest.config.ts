@@ -1,8 +1,5 @@
-import { configDefaults, defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 
-export default defineConfig({
-  test: {
-    // Local experimental checkouts must run their tests from their own project root.
-    exclude: [...configDefaults.exclude, '**/.worktrees/**'],
-  },
-});
+// Nested historical worktrees are preserved inside this checkout. Only the canonical
+// source and service-worker trees belong to this run.
+export default defineConfig({ test: { include: ['src/**/*.test.ts', 'sw/**/*.test.ts'] } });

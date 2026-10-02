@@ -31,6 +31,12 @@ export interface CoachInput {
   target: { x: number; y: number } | null;
   /** The hunt arrow's side, set only while the one remaining place is round the back. */
   hiddenSide: -1 | 1 | null;
+  /**
+   * Where the hunt arrow button is on screen, in NDC, while it is shown. The arrow is a
+   * button that turns the world, and a tap on it is a smaller ask than a drag, so the hand
+   * taps it first. Null when the arrow is not on screen.
+   */
+  arrow?: { x: number; y: number } | null;
 }
 
 /**
@@ -43,26 +49,41 @@ export interface CoachInput {
  */
 export const COACH_TAP_DELAY = 6;
 /**
- * And longer again before demonstrating the drag, which only ever comes up once the visible
- * places are gone. It is the harder gesture and the child has just succeeded twice, so they
- * have earned a moment to try it themselves first.
+ * The arrow is a button, and a tap is the smaller ask, so the hand taps it on the same
+ * delay as any other tap. On the tablet the drag was the frustrating part of the whole game,
+ * so the tap gets a proper go before the drag is shown at all.
  */
-export const COACH_DRAG_DELAY = 8;
+export const COACH_ARROW_DELAY = COACH_TAP_DELAY;
 /**
- * And longer still before the day/night button asks to be noticed.
- *
- * The completed hunt can offer another activity. Earth can also invite a turn after
- * a first discovery, while another visible target remains; the drag lesson takes priority.
+ * And longer again before demonstrating the drag, which only ever comes up once the visible
+ * places are gone. It is the harder gesture, the arrow tap has been shown for a while by
+ * now, and the child has just succeeded twice, so they have earned a moment to try it
+ * themselves first.
+ */
+export const COACH_DRAG_DELAY = 13;
+/**
+ * How long a child gets, mid-hunt, before the day/night button asks to be noticed — on a
+ * world where that button is the screen's primary action, which today is Earth. Nine
+ * seconds: after the coach's tap hand at six, so a stuck child is shown the hunt first and
+ * offered the other thing second.
  */
 export const SPIN_INVITE_DELAY = 9;
+/**
+ * And how long after the hunt is finished, on every world. The world's own celebration has
+ * to land first (2.4s of sticker, and up to 3.2s more if the finale follows); after that the
+ * remaining offers are turn a day, open the journal, or go home, and the day turn is the one
+ * with anything in it and the one a child has no way of guessing at.
+ */
+export const SPIN_INVITE_AFTER_HUNT = 4;
 
 /**
  * What the coach should be showing, if anything.
  *
  * Pure, and total: called every frame with the current facts and returns the whole answer,
  * so there is no coach state to get stuck on. A tap cue whenever something tappable is on
- * screen; the drag only when the arrow says the last place is round the back, which is the
- * one moment the gesture is genuinely required rather than merely available.
+ * screen; once the last place is round the back, a tap on the arrow button that turns the
+ * world to it; and only after that the drag, which is the one moment the gesture is
+ * genuinely required rather than merely available.
  */
 export function coachCue(input: CoachInput): CoachCue | null {
   if (!input.huntActive) return null;
@@ -72,7 +93,11 @@ export function coachCue(input: CoachInput): CoachCue | null {
       : null;
   }
   if (input.hiddenSide !== null) {
-    return input.idleFor >= COACH_DRAG_DELAY ? { kind: 'drag', side: input.hiddenSide } : null;
+    if (input.idleFor >= COACH_DRAG_DELAY) return { kind: 'drag', side: input.hiddenSide };
+    if (input.arrow && input.idleFor >= COACH_ARROW_DELAY) {
+      return { kind: 'tap', x: input.arrow.x, y: input.arrow.y };
+    }
+    return null;
   }
   return null;
 }
@@ -84,10 +109,15 @@ export function coachCue(input: CoachInput): CoachCue | null {
  * applies to, and a hand flying down to the dock to press a button would be a different and
  * worse idea — the button can simply pulse where it already is, which costs no space and no
  * position plumbing between modules. The *decision* lives here with the other coaching
- * decisions so it is pure and tested; `ui.setSpinAttention` does the drawing.
+ * decisions so it is pure and tested; `ui.setSpinAttention` does the drawing, and main.ts
+ * speaks the world's invitation the first time this turns true in a visit.
  *
- * A finished hunt or a quiet Earth gap can invite the activity. The caller suppresses
- * invitations during media/reading, and lets the drag lesson take priority.
+ * After the hunt, everywhere. During the hunt only where the turn is the screen's primary
+ * action (`spinIsPrimary`: Earth, whose arrival offers Day & night first) — on the tablet a
+ * child never found it there, because nothing moved or spoke to invite it. Elsewhere the
+ * gold places are the invitation and this must not compete with them. Never while the turn
+ * is already running: a button asking to be pressed while doing the thing it was pressed
+ * for is nonsense.
  */
 export function shouldInviteSpin(opts: {
   idleFor: number;
@@ -97,10 +127,11 @@ export function shouldInviteSpin(opts: {
   spinTried?: boolean;
   spinOffered: boolean;
   spinBusy: boolean;
+  spinIsPrimary?: boolean;
 }): boolean {
   if (!opts.spinOffered || opts.spinBusy || opts.spinTried) return false;
-  if (!opts.huntComplete && !opts.earlyInvitation) return false;
-  return opts.idleFor >= SPIN_INVITE_DELAY;
+  if (opts.huntComplete) return opts.idleFor >= SPIN_INVITE_AFTER_HUNT;
+  return Boolean(opts.spinIsPrimary || opts.earlyInvitation) && opts.idleFor >= SPIN_INVITE_DELAY;
 }
 
 /** True when the two cues would put the hand in a different place or mode. */

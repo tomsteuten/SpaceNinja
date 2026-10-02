@@ -3,6 +3,27 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-09-26 — Show the source of daylight during the child's day turn
+
+The side-on teaching view showed the terminator, but left the Sun outside the frame. The
+owner approved a visible Sun pass while retaining the child-triggered activity. The real
+Sun sits 105 Earth radii away, almost 90 degrees from this view: fitting it directly would
+sacrifice either the readable globe or its visible night hemisphere.
+
+The activity now uses a small, deliberately scale-compressed Sun visual along the same
+`SUN_DIRECTION` as the lighting and night-light shader. It shares the world's existing
+textures, adds two draw calls while active, and temporarily replaces the distant Sun's
+visuals without moving its light. Surface coordinates, held rotation and one full day
+remain unchanged. Camera framing accounts for the world's tilted axis and ring silhouette;
+portrait puts the Sun above the globe, short landscape uses the horizontal space, and tablet
+uses a diagonal composition. Reduced motion cuts the camera move and keeps the nine-second
+surface turn. Completion and skip restore the prior view and enter the existing guided hunt.
+
+The owner authorized implementation and a push once verified. Full-resolution before/after
+captures are in `design/day-sun-2026-09-26/`; geometry and lifecycle unit tests and the focused
+Earth browser checks cover framing and return behavior. Appearance, narration and performance
+on the actual Android tablet still require owner observation.
+
 ## 2026-09-12 — Rule hierarchy audit
 
 ### Why the rules changed
@@ -115,3 +136,71 @@ Sun travel and return, persistence and onward planet travel. A sampled flight ge
 checks the camera and ship remain outside the Sun. Screenshots establish rendering and
 responsive layout; a further child check should establish whether the pictured exits are
 understood without an adult prompt.
+
+## 2026-09-14 — Shared browser lifetime for both routes
+
+Code review found three inconsistent lifetime paths: adventure resumed its stage on visibility
+without remembering a crash; free flight never suspended its loop on visibility and used only a
+hint for crashes; both disposed GPU resources on every `pagehide`, including cached history
+navigation. The latter can restore an already-disposed scene when navigating back.
+
+`src/session/lifecycle.ts` now owns browser pause/resume, terminal crash and final disposal for
+both routes. Persisted history navigation suspends and retains resources, while ordinary exit
+disposes once. Interrupted input is released without resetting the camera or changing its owner.
+Adventure restart delegates to the existing ordered reset callback; it does not write progress.
+Free flight uses the reusable crash screen and registers offline support after its first frame,
+with automatic update reload disabled during the experiment.
+
+This extracts a tested ownership boundary without replacing the adventure's mission/camera
+orchestration with an unproven state-machine rewrite. Unit tests exercise crash permanence,
+history retention, hidden startup and idempotent disposal. Browser checks exercise the actual
+route integrations, interrupted steering and an adventure trip after exiting free flight.
+Manual flight remains an explicitly entered experiment.
+
+
+## 2026-09-14 — Postcard clearance in short landscape
+
+The screenshot review at 844 by 390 exposed discovery text behind the fixed Keep exploring
+button, although the button remained clickable and the prior browser suite passed. Short
+viewports now reserve an exit row and cap photo height against the remaining vertical space.
+A browser assertion checks the full text ends above the exit in every tested viewport. Photo
+loading, first-find behavior and the Android backdrop dismissal guard are unchanged.
+
+
+## 2026-09-24 — Restore the guided home map's staged opening
+
+The pre-home-review branch revealed all four worlds immediately and always framed the outer
+orbit. Full-resolution captures from untouched commit `6f86ca5` show Saturn's suggestion halo
+overlapping the much smaller Earth, on both phone and tablet. The live `?classic` route still
+shows a more readable Earth/Moon opening (the live root URL currently opens the explorer).
+
+Restore the existing visit gates for scene visibility, launch eligibility and camera framing
+together: visiting Moon reveals Mars; visiting Mars reveals Saturn. Collection is not a gate.
+The four world thumbnails remain in the home tray, and pressing a future world answers with a
+lock icon, a visible refusal and the prerequisite. Remove the broad suggestion halo at home:
+it dominates Saturn and clips at the phone edge around Moon. The light destination pill and
+ship direction now carry that suggestion; actual discovery markers remain gold to match audio.
+
+The home restyle stays in `theme.css`, with home-only positioning for the journal and hint.
+The owner must judge the phone/tablet comparisons before another screen is redesigned.
+This restores a composition that fits the current guided game, rather than ruling out a freely
+accessible solar-system map if a future design and device observation support one.
+
+## 2026-09-24 — Integrate the newer explorer without changing the chosen game
+
+Remote `main` developed a close-flight explorer after this branch split and made it the root
+route. The owner's later direction selected the guided adventure as the game, with UI polish
+screen by screen. The merge retains the explorer and its assets at `?explorer`, while the
+guided adventure remains the default. This preserves the newer work for comparison without
+reversing the owner's current product choice. Real-device evaluation is still pending.
+
+## 2026-10-03 — Integrate the child-navigation iteration for Pages
+
+The publishing checkout predated 47 commits already on main. The combined version preserves
+its shared lifecycle, explorer/outing experiments, catalogue-built worlds, owner-selected
+ElevenLabs pack and visible teaching Sun. The pictured discovery return and map exit remain
+in one stable visit row; Earth's About control joins its small heading so it does not become
+a fourth control in that row. The large photo X remains immediate, while the pictured return
+and backdrop preserve their opening-press guards. The Sun arrival has an explicit Kokoro
+fallback provenance exception until that one cue can be regenerated in the newer pack voice.
+The owner explicitly requested publishing this iteration to GitHub Pages.

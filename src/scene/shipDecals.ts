@@ -7,16 +7,16 @@
  */
 
 import * as THREE from 'three';
+import { FINALE_STICKER } from '../state/progress';
+import { WORLDS, stickerIdFor } from '../worlds/catalogue';
 
-export const SHIP_DECAL_IDS = [
-  'earth-explorer',
-  'moon-explorer',
-  'mars-explorer',
-  'saturn-explorer',
-  'space-ninja',
-] as const;
+/** One emblem per world in the catalogue, in catalogue order, then the title reward. */
+export const SHIP_DECAL_IDS: readonly string[] = [
+  ...WORLDS.map((world) => stickerIdFor(world.id)),
+  FINALE_STICKER,
+];
 
-export type ShipDecalId = (typeof SHIP_DECAL_IDS)[number];
+export type ShipDecalId = string;
 
 /** Known rewards only, in the stable order in which their places are laid onto the ship. */
 export function activeShipDecalIds(ids: readonly string[]): ShipDecalId[] {
@@ -68,6 +68,21 @@ function polygon(context: CanvasRenderingContext2D, points: readonly number[], f
   context.closePath();
   context.fillStyle = fill;
   context.fill();
+}
+
+/**
+ * The badge for a world with no hand-drawn emblem yet: a cream disc with a coloured ring
+ * and the world's initial. Legible at the size these are shown, and enough for a new world
+ * to earn something on the ship the day it lands; a drawn emblem can replace it later.
+ */
+function drawGenericBadge(context: CanvasRenderingContext2D, id: string) {
+  circle(context, CENTRE, CENTRE, 70, CREAM, ORANGE, 14);
+  const initial = id.replace(/-explorer$/, '').charAt(0).toUpperCase();
+  context.fillStyle = INK;
+  context.font = 'bold 96px sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(initial, CENTRE, CENTRE + 6);
 }
 
 function drawBadge(context: CanvasRenderingContext2D, id: ShipDecalId) {
@@ -127,6 +142,11 @@ function drawBadge(context: CanvasRenderingContext2D, id: ShipDecalId) {
     return;
   }
 
+  if (id !== FINALE_STICKER) {
+    drawGenericBadge(context, id);
+    return;
+  }
+
   // The finale emblem: a friendly masked face inside a four-point navigation star.
   polygon(context, [96, 35, 112, 67, 151, 61, 124, 91, 151, 125, 111, 120, 96, 155, 80, 120, 41, 125, 68, 91, 41, 61, 80, 67], SKY);
   circle(context, CENTRE, 99, 43, INK);
@@ -169,15 +189,36 @@ interface Mount {
   size: number;
 }
 
+/**
+ * Where the first four world badges go: one on each rear side, two on the broad top panel.
+ * Worlds beyond the fourth take the top panel further forward, two per row, a little
+ * smaller — a first version, to be looked at on the ship when a fifth world exists.
+ */
+const WORLD_SLOTS: readonly Omit<Mount, 'id'>[] = [
+  { position: [-0.0765, 0, -0.083], rotation: [0, -Math.PI / 2, 0], size: 0.052 },
+  { position: [0.0765, 0, -0.083], rotation: [0, Math.PI / 2, 0], size: 0.052 },
+  { position: [-0.039, 0.0645, -0.083], rotation: [-Math.PI / 2, 0, 0], size: 0.046 },
+  { position: [0.039, 0.0645, -0.083], rotation: [-Math.PI / 2, 0, 0], size: 0.046 },
+];
+
+function worldSlot(index: number): Omit<Mount, 'id'> {
+  const named = WORLD_SLOTS[index];
+  if (named) return named;
+  const extra = index - WORLD_SLOTS.length;
+  const row = Math.floor(extra / 2);
+  const side = extra % 2 === 0 ? -1 : 1;
+  return {
+    position: [side * 0.039, 0.0645, -0.083 + 0.04 * (row + 1)],
+    rotation: [-Math.PI / 2, 0, 0],
+    size: 0.036,
+  };
+}
+
 const MOUNTS: readonly Mount[] = [
-  // One badge on each rear side, plus two on the broad top panel.
-  { id: 'earth-explorer', position: [-0.0765, 0, -0.083], rotation: [0, -Math.PI / 2, 0], size: 0.052 },
-  { id: 'moon-explorer', position: [0.0765, 0, -0.083], rotation: [0, Math.PI / 2, 0], size: 0.052 },
-  { id: 'mars-explorer', position: [-0.039, 0.0645, -0.083], rotation: [-Math.PI / 2, 0, 0], size: 0.046 },
-  { id: 'saturn-explorer', position: [0.039, 0.0645, -0.083], rotation: [-Math.PI / 2, 0, 0], size: 0.046 },
+  ...WORLDS.map((world, index) => ({ id: stickerIdFor(world.id), ...worldSlot(index) })),
   // The title reward is the ship's crest, repeated on both front sides like an insignia.
-  { id: 'space-ninja', position: [-0.0675, 0, 0.073], rotation: [0, -Math.PI / 2, 0], size: 0.058 },
-  { id: 'space-ninja', position: [0.0675, 0, 0.073], rotation: [0, Math.PI / 2, 0], size: 0.058 },
+  { id: FINALE_STICKER, position: [-0.0675, 0, 0.073], rotation: [0, -Math.PI / 2, 0], size: 0.058 },
+  { id: FINALE_STICKER, position: [0.0675, 0, 0.073], rotation: [0, Math.PI / 2, 0], size: 0.058 },
 ];
 
 export function createShipDecals(): ShipDecals {
