@@ -47,7 +47,7 @@ import {
 } from './textures';
 import type { QualitySettings } from './quality';
 
-export type BodyId = 'earth' | 'moon' | 'mars' | 'saturn';
+export type BodyId = 'sun' | 'earth' | 'moon' | 'mars' | 'saturn';
 
 /** Long enough to read as a reveal, short enough not to hold up the next choice. */
 export const WORLD_REVEAL_DURATION = 0.9;
@@ -75,12 +75,14 @@ export interface CelestialBody {
   radius: number;
   /**
    * The radius the flight and the framing should fit, when it is larger than the body
-   * itself. Only Saturn sets it — its rings reach out to 2.3 radii, and framing on the
+   * itself. Saturn's rings reach out to 2.3 radii, and framing on the
    * sphere alone would put the very thing that makes it Saturn off the edge of the shot.
    * Everything that is about the *body* (marker size, the hit sphere, the day-turn) still
    * uses `radius`; callers that are about the *shot* use `viewRadius ?? radius`.
    */
   viewRadius?: number;
+  /** An emissive star is approached from the departure side, not its illuminated side. */
+  approachFromHome?: boolean;
   /** Object whose world position is the centre of the body. */
   anchor: THREE.Object3D;
   /**
@@ -587,9 +589,13 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
   const sunMaterial = new THREE.MeshBasicMaterial({ map: sunMap, fog: false });
   // Values above 1 push the Sun past the bloom threshold and let ACES burn the core white.
-  sunMaterial.color.setRGB(2.9, 2.1, 1.25);
+  sunMaterial.color.setRGB(1.5, 1.2, 0.85);
   const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(SUN_RADIUS, 32, 20), sunMaterial);
-  sunMesh.position.copy(SUN_POSITION);
+  const sunAnchor = new THREE.Group();
+  sunAnchor.position.copy(SUN_POSITION);
+  const sunHit = createHitMesh(SUN_RADIUS * 1.15);
+  sunHit.userData.bodyId = 'sun';
+  sunAnchor.add(sunMesh, sunHit);
 
   const coronaMaterial = new THREE.SpriteMaterial({
     map: glowTexture,
@@ -601,9 +607,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   coronaMaterial.color.setRGB(1.5, 1.05, 0.6);
   const corona = new THREE.Sprite(coronaMaterial);
   corona.scale.setScalar(SUN_RADIUS * 6.5);
-  corona.position.copy(SUN_POSITION);
+  sunAnchor.add(corona);
 
-  group.add(sunMesh, corona);
+  group.add(sunAnchor);
 
   /* --- Lights ------------------------------------------------------------- */
 
@@ -693,6 +699,21 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   const holds: Partial<Record<BodyId, number>> = {};
 
   const bodies: Record<BodyId, CelestialBody> = {
+    sun: {
+      id: 'sun',
+      label: 'The Sun',
+      radius: SUN_RADIUS,
+      // Include the inner glow and keep the disc above the short-landscape controls.
+      viewRadius: SUN_RADIUS * 1.35,
+      approachFromHome: true,
+      anchor: sunAnchor,
+      surface: sunMesh,
+      hitMesh: sunHit,
+      holdSurface: () => { holds.sun = sunMesh.rotation.y; },
+      releaseSurface: () => { delete holds.sun; },
+      turnSurface: delta => { if (holds.sun !== undefined) holds.sun += delta; },
+      getWorldPosition: target => sunAnchor.getWorldPosition(target),
+    },
     earth: {
       id: 'earth',
       label: 'Earth',
@@ -801,12 +822,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
    * earthAnchor; the orbiting bodies each hang off their own `tilt` group.
    */
   const roots: Record<BodyId, THREE.Object3D> = {
+    sun: sunAnchor,
     earth: earthAnchor,
     moon: moon.tilt,
     mars: mars.tilt,
     saturn: saturn.tilt,
   };
   const bodyHits: Record<BodyId, THREE.Mesh[]> = {
+    sun: [sunHit],
     earth: [earthHit],
     moon: [moon.hit],
     mars: [mars.hit],
@@ -949,6 +972,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       // A held body subtracts its orbit back out, so the surface stays put in the world
       // while the body itself keeps travelling. Earth has no orbit to subtract.
       const earthHold = holds.earth;
+      sunMesh.rotation.y = holds.sun ?? elapsed * 0.008;
       if (earthHold === undefined) earthMesh.rotation.y += EARTH_SPIN * dt;
       else earthMesh.rotation.y = earthHold;
 
@@ -997,6 +1021,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     dispose() {
       const meshes = [
         sunMesh,
+        sunHit,
         earthMesh,
         atmosphere,
         earthHit,

@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { DESTINATIONS, WIDE_FRAMING_VISIT, WIDER_FRAMING_VISIT, revealedDestinations } from './config';
 
 describe('revealedDestinations', () => {
-  it('opens on Earth and the Moon alone', () => {
-    expect(new Set(revealedDestinations([]))).toEqual(new Set(['earth', 'moon']));
+  it('opens on the Sun, Earth and the Moon', () => {
+    expect(new Set(revealedDestinations([]))).toEqual(new Set(['sun', 'earth', 'moon']));
   });
 
   it('reveals Mars once the Moon has been visited', () => {
@@ -23,7 +23,7 @@ describe('revealedDestinations', () => {
 
   it('reveals Saturn once Mars has been visited', () => {
     expect(new Set(revealedDestinations([WIDE_FRAMING_VISIT, WIDER_FRAMING_VISIT]))).toEqual(
-      new Set(['earth', 'moon', 'mars', 'saturn']),
+      new Set(['sun', 'earth', 'moon', 'mars', 'saturn']),
     );
   });
 

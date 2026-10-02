@@ -285,6 +285,7 @@ async function main() {
       // camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
       cameraReturn = null;
       dayTurn.reset();
+      sfx.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
       if (homeReturn.start()) {
@@ -306,8 +307,13 @@ async function main() {
       if (!spin || dayTurn.active) return;
       // Where the child was looking from before the turn swung the camera side-on, so it can
       // be handed back to them there. Relative to the body, which keeps orbiting throughout.
-      body.getWorldPosition(focusPosition);
-      preTurnCameraOffset.copy(camera.position).sub(focusPosition);
+      if (!cameraReturn) {
+        body.getWorldPosition(focusPosition);
+        preTurnCameraOffset.copy(camera.position).sub(focusPosition);
+      }
+      // A replay may interrupt the return ease, but only the day turn then owns the camera.
+      cameraReturn = null;
+      spinTried = true;
       // Put the explanation one speaker-tap away before the camera starts moving. This is
       // the one lesson whose content is entirely visual, and a full-width card during the
       // 2.2s swing pulled the child's eyes away before the sunlight even began to move.
@@ -316,6 +322,7 @@ async function main() {
       ui.setSpinBusy(true);
       dayTurn.start(body);
     },
+    onStopSpin: () => dayTurn.skip(),
   });
 
   /*
@@ -374,7 +381,10 @@ async function main() {
 
       // The departure chose this visit already, so the camera and targets share one set.
       const mission = missions[destination.id];
-      if (!mission) return;
+      if (!mission) {
+        ui.showSpin(null);
+        return;
+      }
       activeMission = mission;
       // Builds the targets and holds the surface still, then puts the gold on screen at
       // once. There is nothing between arriving and having something to touch.
@@ -422,15 +432,16 @@ async function main() {
   function buildMission(id: BodyId): CollectMission | null {
     const config = DESTINATIONS[id];
     const body = world.bodies[id] as CelestialBody | undefined;
-    if (!config || !body) return null;
+    const definition = config?.mission;
+    if (!config || !definition || !body) return null;
     missions[id]?.dispose();
     const discoveries = chooseDiscoveries(
-      config.mission.discoveries,
+      definition.discoveries,
       loadProgress().discoveries,
       body.radius,
     );
     const mission = createCollectMission({
-      definition: { body, ...config.mission, discoveries },
+      definition: { body, ...definition, discoveries },
       camera,
       quality: stage.quality,
       reducedMotion,
@@ -454,7 +465,7 @@ async function main() {
         ui.showDiscovery(discovery, true, !isNew);
         // Only the hidden one left: name the gesture now that the child needs it.
         if (found === total - 1) {
-          ui.setMissionCaption(config.mission.huntLine, `hunt-${body.id}`);
+          ui.setMissionCaption(definition.huntLine, `hunt-${body.id}`);
         }
       },
       onComplete: () => {
@@ -470,13 +481,13 @@ async function main() {
          * moment-to-moment reward is unchanged: the celebration still fires every visit.
          */
         const found = loadProgress().discoveries;
-        const worldComplete = config.mission.discoveries.every((d) => found.includes(d.id));
-        const isNew = worldComplete && awardSticker(config.mission.stickerId);
+        const worldComplete = definition.discoveries.every((d) => found.includes(d.id));
+        const isNew = worldComplete && awardSticker(definition.stickerId);
         if (isNew) syncShipStickers();
         ui.completeMission(
           `success-${body.id}`,
-          config.mission.successLine,
-          isNew ? config.mission.stickerId : null,
+          definition.successLine,
+          isNew ? definition.stickerId : null,
           `${config.emoji}  ${body.label}`,
         );
         const next = suggestedDestination();
@@ -557,13 +568,12 @@ async function main() {
   function revealHunt() {
     const config = DESTINATIONS[follow];
     const mission = missions[follow];
-    if (!config || !mission) return;
+    if (!config?.mission || !mission) return;
     mission.reveal();
     // The instruction cue queues behind the arrival welcome rather than talking over it.
     // Never auto-start the platform voice when a partial pack is installed.
     ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`);
-    // The day turn, offered rather than imposed — and the button wears this world's own
-    // globe, so what it will do is legible without a word on it.
+    // The optional day turn has this world's globe, a turn arrow and a reinforcing label.
     ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
   }
 
@@ -604,6 +614,10 @@ async function main() {
       return;
     }
 
+    if (flight.phase === 'arrived') {
+      ui.showTapEcho(clientX, clientY);
+      return;
+    }
     const hit = raycaster.intersectObjects(world.hitMeshes, false)[0];
     const id = hit?.object.userData.bodyId as BodyId | undefined;
 
@@ -703,6 +717,7 @@ async function main() {
   });
 
   let idleFor = 0;
+  let spinTried = false;
   /*
    * Any press at all, anywhere, is the child doing something — a tap on a target, a drag, a
    * pinch, a dock button. Listened for on the window in the capture phase rather than wired
@@ -786,6 +801,7 @@ async function main() {
     cameraReturn = null;
     coach.clear();
     idleFor = 0;
+    spinTried = false;
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
@@ -851,27 +867,25 @@ async function main() {
      * move. Idle time accumulates only then too, so a seven-second flight does not arrive
      * with the coach already convinced nobody is playing.
      */
-    if (cameraIsOurs && activeMission?.active) {
+    if (cameraIsOurs && activeMission?.active && !ui.activityCovered) {
       idleFor += dt;
+      // Offer one invitation at a time. The early Earth activity yields to the drag
+      // lesson, and photos/words/narration get their own quiet moment.
+      const invitingSpin = shouldInviteSpin({
+        idleFor,
+        huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
+        earlyInvitation: follow === 'earth' && activeMission.collected > 0 && hiddenSide === null,
+        spinTried,
+        spinOffered: Boolean(DESTINATIONS[follow]?.spin),
+        spinBusy: dayTurn.active || narrator.speaking,
+      });
+      ui.setSpinAttention(invitingSpin);
       coach.update({
         idleFor,
-        huntActive: true,
+        huntActive: !invitingSpin,
         target: activeMission.nextTarget(),
         hiddenSide,
       });
-      /*
-       * And once every place is found, the one remaining offer with anything in it. The
-       * child has just been celebrated and the alternatives are the journal and going home;
-       * the day turn is the only thing here they have no way of guessing at.
-       */
-      ui.setSpinAttention(
-        shouldInviteSpin({
-          idleFor,
-          huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
-          spinOffered: Boolean(DESTINATIONS[follow]?.spin),
-          spinBusy: dayTurn.active,
-        }),
-      );
     } else {
       idleFor = 0;
       coach.update({ idleFor: 0, huntActive: false, target: null, hiddenSide: null });
@@ -967,6 +981,9 @@ async function main() {
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,
         speaking: narrator.speaking,
+        dayTurning: dayTurn.active,
+        cameraReturning: Boolean(cameraReturn),
+        surfaceRotation: world.bodies[follow].surface.rotation.y,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
         ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,

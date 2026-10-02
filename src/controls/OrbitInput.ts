@@ -158,7 +158,7 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
   }
 
   function clampRadius(value: number): number {
-    return THREE.MathUtils.clamp(value, minDistance(), MAX_ORBIT_DISTANCE);
+    return THREE.MathUtils.clamp(value, minDistance(), Math.max(MAX_ORBIT_DISTANCE, focusRadius * 6.5));
   }
 
   /* --- pointer handling ---------------------------------------------------- */

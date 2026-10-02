@@ -182,6 +182,8 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
       .addScaledVector(axis, -0.5)
       .addScaledVector(UP, 0.18)
       .normalize();
+    // A star emits its own light. Arrive on the near side so the journey stays outside it.
+    if (destination.approachFromHome) endDirection.copy(axis).negate();
 
     /*
      * Steer away from anything else that would loom in the shot.

@@ -105,10 +105,17 @@ describe('shouldInviteSpin', () => {
     expect(SPIN_INVITE_DELAY).toBeGreaterThan(COACH_DRAG_DELAY);
   });
 
-  it('never competes with an unfinished hunt', () => {
-    // Finding places is the thing; a button asking to be pressed over the top of it would
-    // be the game interrupting its own instruction.
+  it('leaves an unfinished hunt alone unless a quiet Earth invitation is available', () => {
     expect(shouldInviteSpin({ ...done, huntComplete: false, idleFor: 600 })).toBe(false);
+    expect(shouldInviteSpin({ ...done, huntComplete: false, earlyInvitation: true,
+      idleFor: SPIN_INVITE_DELAY })).toBe(true);
+    expect(shouldInviteSpin({ ...done, huntComplete: false, earlyInvitation: true,
+      idleFor: SPIN_INVITE_DELAY - 0.01 })).toBe(false);
+  });
+
+  it('stops inviting after the child has tried the activity this visit', () => {
+    expect(shouldInviteSpin({ ...done, earlyInvitation: true, spinTried: true,
+      idleFor: 600 })).toBe(false);
   });
 
   it('stays quiet on a world with no day turn to offer', () => {

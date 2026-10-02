@@ -50,11 +50,11 @@ const RADII: Record<string, number> = {
 };
 
 /** Every destination, so a new world is covered the day it lands. */
-const WORLDS: Array<[string, Discovery[], number]> = Object.entries(DESTINATIONS).map(
+const WORLDS: Array<[string, Discovery[], number]> = Object.entries(DESTINATIONS).filter(([, config]) => config.mission).map(
   ([id, config]) => {
     const radius = RADII[id];
     if (radius === undefined) throw new Error(`No radius for ${id}; add it here.`);
-    return [id, config.mission.discoveries, radius];
+    return [id, config.mission!.discoveries, radius];
   },
 );
 
@@ -175,7 +175,7 @@ describe.each(WORLDS)('%s', (_id, pool, radius) => {
 });
 
 describe('isPlayableSet', () => {
-  const moon = DESTINATIONS.moon?.mission.discoveries ?? [];
+  const moon = DESTINATIONS.moon?.mission?.discoveries ?? [];
 
   it('rejects a set with nothing over the horizon', () => {
     // Two places side by side and a third between them: nothing to drag for.
@@ -199,7 +199,7 @@ describe('isPlayableSet', () => {
   it('rejects a ring place as the hidden one', () => {
     // A ring point does not swing behind the limb the way a longitude does, so the drag it
     // asks for would never reveal anything. Saturn is the only world this can arise on.
-    const saturn = DESTINATIONS.saturn?.mission.discoveries ?? [];
+    const saturn = DESTINATIONS.saturn?.mission?.discoveries ?? [];
     const ringPlace = saturn.find((d) => d.ring !== undefined);
     expect(ringPlace).toBeDefined();
     const surface = saturn.filter((d) => d.ring === undefined).slice(0, 2);
@@ -221,7 +221,7 @@ describe('isPlayableSet', () => {
 });
 
 describe('chooseDiscoveries', () => {
-  const moon = DESTINATIONS.moon?.mission.discoveries ?? [];
+  const moon = DESTINATIONS.moon?.mission?.discoveries ?? [];
 
   it('hands back a short pool untouched rather than inventing a rule for it', () => {
     const three = moon.slice(0, 3);

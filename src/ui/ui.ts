@@ -39,6 +39,8 @@ export interface DestinationChoice {
 }
 
 export interface GameUI {
+  /** A reward, journal, celebration or transcript currently has the child's attention. */
+  readonly activityCovered: boolean;
   setHint(text: string | null): void;
   /** Large, stable alternatives to tapping small moving worlds in the canvas. */
   showDestinations(
@@ -116,16 +118,14 @@ export interface GameUI {
    * rather than a generic one.
    */
   showSpin(label: string | null, tint?: string): void;
-  /** Greys the spin button out while a turn is running, so a press cannot stack. */
+  /** Turns the activity button into an explicit stop control while a day is turning. */
   setSpinBusy(busy: boolean): void;
   /**
-   * Let the day/night button ask to be noticed, once the hunt is done and the child has gone
-   * idle. See `shouldInviteSpin` — the decision is there, this only draws it.
+   * Let the day/night button ask to be noticed in a quiet gap. See `shouldInviteSpin`.
    */
   setSpinAttention(on: boolean): void;
   /**
-   * Drive the button's own globe from the real turn, 0 → 1, or `null` to hand it back to its
-   * idle crawl.
+   * Drive the button's own globe from the real turn, 0 → 1, or `null` for a resting half-lit globe.
    *
    * The small globe and the big planet then turn together, at the same rate, finishing
    * together — so the child watches the thing they pressed doing exactly what the world is
@@ -166,6 +166,7 @@ export interface UIOptions {
   onExploreAgain(): void;
   /** The "turn this world through a day" button. Only offered where config has one. */
   onSpin(): void;
+  onStopSpin(): void;
   /**
    * Someone held the journal button down. That is the way back into the grown-ups panel,
    * and it is deliberately a gesture rather than a button: a settings control on screen is
@@ -197,6 +198,7 @@ export function createUI(options: UIOptions): GameUI {
     onChooseDestination,
     onExploreAgain,
     onSpin,
+    onStopSpin,
     onGrownups,
     onFinale,
   } = options;
@@ -282,6 +284,8 @@ export function createUI(options: UIOptions): GameUI {
   const missionCaption = el('p', 'mission-caption');
   missionHud.append(slotRow, missionCaption);
   root.append(missionHud);
+  const dayLegend = el('div', 'day-legend is-hidden', '☀ Day  ·  ☾ Night');
+  root.append(dayLegend);
 
   let slots: HTMLElement[] = [];
 
@@ -346,7 +350,8 @@ export function createUI(options: UIOptions): GameUI {
   transcriptButton.type = 'button';
   transcriptButton.setAttribute('aria-controls', factText.id);
   const transcriptLabel = el('span');
-  transcriptButton.append(transcriptLabel);
+  const transcriptIcon = createIcon('journal');
+  transcriptButton.append(transcriptIcon, transcriptLabel);
 
   // The words get their own full width, and the picture and the speaker share the row
   // beneath. Flanking the text with both used to squeeze a long fact into a column so
@@ -380,7 +385,7 @@ export function createUI(options: UIOptions): GameUI {
   let photoShowing: { url: string; caption: string } | null = null;
 
   factPhoto.addEventListener('click', () => {
-    if (photoShowing) photoViewer.show(photoShowing.url, photoShowing.caption);
+    if (photoShowing) photoViewer.show(photoShowing.url, photoShowing.caption, visitEmoji);
   });
 
   function clearPhoto() {
@@ -423,7 +428,7 @@ export function createUI(options: UIOptions): GameUI {
       return;
     }
     if (photoFor !== discovery.id) return;
-    photoViewer.showDiscovery(url, `${discovery.emoji} ${discovery.name}`, discovery.short);
+    photoViewer.showDiscovery(url, `${discovery.emoji} ${discovery.name}`, discovery.short, visitEmoji);
   }
 
   /** The discovery the card is currently about, or null for anything else. */
@@ -446,39 +451,37 @@ export function createUI(options: UIOptions): GameUI {
    */
   const homeButton = el('button', 'btn btn--secondary home-btn');
   homeButton.type = 'button';
-  homeButton.append(createIcon('rocket'), el('span', undefined, 'Fly Home'));
+  homeButton.setAttribute('aria-label', 'Back to the space map');
+  homeButton.append(createIcon('spaceMap'), el('span', undefined, 'Space map'));
   homeButton.classList.add('is-hidden');
 
-  /*
-   * A small round button carrying a working model of what it does.
-   *
-   * It was a stroked sun, and a sun is a symbol of the *topic* rather than a picture of the
-   * *action*: ☀ means "sun", it does not mean "turn this world so you can watch morning
-   * arrive". Worse, it sat in a row of identical round buttons — the same shape and weight
-   * as the speaker and the journal — so nothing marked out the one that changes the planet.
-   * It is now a tiny globe of that world, half in night, with the terminator crawling across
-   * it: the button is a small version of the thing it will do to the big one.
-   *
-   * Deliberately the same 62px it always was. The dock is the most contested space on the
-   * screen and this buys legibility with none of it.
-   *
-   * It sits above Fly Home in the column, so the exit keeps the bottom (a button that moves
-   * teaches that buttons move) and nothing is displaced.
-   */
-  const spinButton = el('button', 'btn btn--round btn--secondary spin-btn');
+  // Picture + action + words: the globe explains the light, the arrow shows a turn,
+  // and the short label reinforces its meaning. It stays in one place when it becomes Stop.
+  const spinButton = el('button', 'btn btn--secondary spin-btn');
   spinButton.type = 'button';
+  const spinPicture = el('span', 'spin-picture');
+  spinPicture.setAttribute('aria-hidden', 'true');
   const spinGlobe = el('span', 'spin-globe');
   spinGlobe.append(el('span', 'spin-globe__night'));
-  spinButton.append(spinGlobe);
+  spinPicture.append(spinGlobe, el('span', 'spin-arrow', '↻'));
+  const spinLabel = el('span', 'control-label', 'Day & night');
+  spinButton.append(spinPicture, spinLabel);
   spinButton.classList.add('is-hidden');
+  let spinBusy = false;
+  let visitEmoji = '🌍';
+  let spinAccessibleLabel = 'Watch day and night';
 
-  dock.append(factCard, spinButton, homeButton);
+  const visitActions = el('div', 'visit-actions is-hidden');
+  visitActions.setAttribute('role', 'group');
+  visitActions.setAttribute('aria-label', 'Explore this world');
+  visitActions.append(homeButton, spinButton);
+  dock.append(factCard, visitActions);
   root.append(dock);
 
   /* --- journal ------------------------------------------------------------- */
 
   const journalButton = el('button', 'btn btn--round journal-btn');
-  journalButton.append(createIcon('journal'));
+  journalButton.append(createIcon('journal'), el('span', 'control-label journal-label', 'Journal'));
   journalButton.type = 'button';
   journalButton.setAttribute('aria-label', 'Open your discovery journal');
 
@@ -625,7 +628,8 @@ export function createUI(options: UIOptions): GameUI {
   });
 
   spinButton.addEventListener('click', () => {
-    onSpin();
+    if (spinBusy) onStopSpin();
+    else onSpin();
   });
 
   /*
@@ -690,6 +694,7 @@ export function createUI(options: UIOptions): GameUI {
     transcriptButton.classList.toggle('is-hidden', !enabled);
     if (!enabled) return;
     const state = transcriptControlState(wordsVisible());
+    transcriptIcon.innerHTML = iconMarkup(wordsVisible() ? 'back' : 'journal');
     transcriptLabel.textContent = state.label;
     transcriptButton.setAttribute('aria-expanded', state.expanded);
   }
@@ -870,6 +875,10 @@ export function createUI(options: UIOptions): GameUI {
 
   function setHomeAvailable(available: boolean) {
     homeButton.classList.toggle('is-hidden', !available);
+    visitActions.classList.toggle('is-hidden', !available);
+    // One journal button owns both tap and grown-up hold behavior in either context.
+    if (available) visitActions.prepend(journalButton);
+    else root.append(journalButton);
   }
 
   function setHint(text: string | null) {
@@ -987,10 +996,16 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   return {
+    get activityCovered() {
+      return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
+        factCard.classList.contains('is-transcript-open');
+    },
     setHint,
     showDestinations,
 
     enterFlight() {
+      dayLegend.classList.add('is-hidden');
+      missionHud.style.visibility = '';
       destinationBar.classList.add('is-hidden');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
@@ -1003,14 +1018,15 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     showArrival(cueId: string, label: string, fact: string, emoji: string) {
+      visitEmoji = emoji;
+      visitActions.classList.remove('has-activity');
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
       // The name is the card's own title now, so a child arrives to "🌍 Earth" rather than
       // to a "Show words" pill floating with no content. It keeps carrying that identity,
       // right down to its folded pill, until Fly Home.
-      // The authored arrival cue is a pure welcome. Its end hands off to the day/night intro;
-      // the instruction to tap is a separate cue held until the targets actually appear.
+      // The welcome and target instruction share a narration queue; discovery starts now.
       showFact(fact, `${emoji}  ${label}`, cueId);
     },
 
@@ -1171,10 +1187,10 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     showSpin(label: string | null, tint?: string) {
-      // Offered from the moment the hunt is live: the turn no longer plays on its own, so
-      // this is the whole way in to it. Its name lives on the aria-label rather than in a
-      // full-width bar; the globe on its face is what says so without words.
-      spinButton.setAttribute('aria-label', label ?? 'Turn this world through a day');
+      visitActions.classList.toggle('has-activity', Boolean(label));
+      spinAccessibleLabel = label ? `${label}: watch day and night` : 'Watch day and night';
+      spinButton.setAttribute('aria-label', spinAccessibleLabel);
+      spinLabel.textContent = 'Day & night';
       if (tint) spinGlobe.style.setProperty('--world', tint);
       spinButton.classList.toggle('is-hidden', !label);
       if (label) spinButton.classList.add('fade-in');
@@ -1192,7 +1208,12 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     setSpinBusy(busy: boolean) {
-      spinButton.disabled = busy;
+      spinBusy = busy;
+      dayLegend.classList.toggle('is-hidden', !busy);
+      // Preserve the hunt's display state even if its delayed reveal happens mid-turn.
+      missionHud.style.visibility = busy ? 'hidden' : '';
+      spinLabel.textContent = busy ? 'Stop' : 'Day & night';
+      spinButton.setAttribute('aria-label', busy ? 'Stop day and night' : spinAccessibleLabel);
       spinButton.classList.toggle('is-busy', busy);
       if (busy) spinButton.classList.remove('is-inviting');
     },
@@ -1261,6 +1282,8 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     reset() {
+      dayLegend.classList.add('is-hidden');
+      missionHud.style.visibility = '';
       clearTimers();
       // Clear this before stop(): the narrator's onChange listener otherwise interprets
       // reset as the end of a discovery and queues the hunt line into the fresh home view.
@@ -1274,6 +1297,8 @@ export function createUI(options: UIOptions): GameUI {
       finale = null;
       setHomeAvailable(false);
       spinButton.classList.add('is-hidden');
+      spinBusy = false;
+      spinLabel.textContent = 'Day & night';
       spinButton.disabled = false;
       spinButton.classList.remove('is-busy', 'is-inviting', 'fade-in');
       spinGlobe.classList.remove('is-turning');

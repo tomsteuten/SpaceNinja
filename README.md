@@ -1,7 +1,7 @@
 # Space Ninja
 
-A gentle 3D space explorer for young children (roughly ages 5–8). Four destinations so
-far: Earth, the Moon, Mars, and Saturn.
+A gentle 3D space explorer for young children (roughly ages 5–8). Five destinations so
+far: the Sun, Earth, the Moon, Mars, and Saturn.
 
 Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
 there. One tap, one journey: ride with the spaceship along its safe route and arrive close
@@ -10,6 +10,16 @@ Three real places are marked on each world — the first footprints on the Moon,
 Mars, the Sahara from orbit — and finding one tells you about it and puts it in the discovery
 journal. One of the three is always round the back, so getting it means learning to drag. Or
 just look around and fly home.
+
+The Sun is available from the start. Fly close to look around our star from space, then
+use the same **Space map** control to choose another trip. It has no surface hunt or
+day/night button: it emits light and has no solid ground to land on, as described in
+[NASA's Sun facts](https://science.nasa.gov/sun/facts/). Its welcome uses bundled narration,
+and its textured appearance is a generated illustration.
+
+Discovery photographs have a large return arrow beside a picture of the world you are
+exploring, plus a large X. The space-map exit uses a Sun/Earth/Moon picture and a return
+arrow in a contrasting button; words reinforce both exits without being their only clue.
 
 Each world holds **six** real places and shows three of them, picked fresh each visit and
 weighted towards the ones you have not found, so going back to the Moon is not the same Moon.
@@ -254,12 +264,15 @@ whole day, then the targets — which put more than twenty seconds between press
 being allowed to touch anything, on every visit. A tap skipped it, and needing a skip was the
 tell. The day turn is a button again.
 
-**The day/night button wears the thing it does.** Its face is a small globe of the world you
-are at, half in night, with the terminator crawling across it — a working model of the action
-at the size of an icon, in the same space a drawn sun used to take. While a real turn runs
-that little globe is driven by the real one, so they turn together and finish together. And
-once every place on a world is found and nothing is happening, it pulses to say it is still
-there.
+**Day & night is an activity with a visible name.** The visit controls share one row:
+Journal, Space map, and Day & night. A half-lit globe and turn arrow reinforce the label;
+during a turn that globe follows the real one and the same button becomes **Stop**.
+The hunt prompt gives way to a small day/night legend while the turn runs.
+Earth can invite the activity after a discovery and a quiet pause, while another visible
+target remains. Other worlds invite it after the hunt. Photos, narration, open words and
+the hidden-target drag lesson take priority, and an activity already tried this visit no
+longer pulses. It never starts automatically. This earlier invitation remains an experiment
+until child and tablet observation establish whether it helps.
 
 **A hand shows the gesture when nothing is happening.** After six seconds with nothing
 touched, a finger appears on a gold place and taps it; once only the hidden one is left, it
@@ -478,7 +491,8 @@ supersede the earlier all-or-none narration and text-only journal notes.
 ## Browser regression checks
 
 `npm run test:e2e` builds an isolated `dist-playtest/` and serves it on port 4180.
-Run `npx playwright install chromium` once first (CI uses `--with-deps`). The suite uses
+Run `npx playwright install chromium` once first (CI uses `--with-deps`). Set `PLAYTEST_PORT`
+to another port if a separate checkout is already using 4180. The suite uses
 phone, touch-tablet and short-landscape viewports on the existing low graphics tier; it checks real pointer-driven flights,
 three-slot hunts, target clearance above the dock, hidden-target dragging, journal photo
 and narration controls, repeat visits, outer-world arrivals, and Earth resizing. Screenshots
@@ -490,6 +504,11 @@ The test build alone enables `VITE_PLAYTEST=1`, a read-only scene snapshot for l
 canvas targets and checking renderer activity. It cannot launch, collect or alter progress.
 Normal `npm run build` omits it. Passing geometry checks and browser automation do not
 establish narration quality or child comprehension; review the saved screenshots too.
+
+The day/night browser pass also checks its optional arrival, earlier Earth invitation,
+64px-high contextual controls, keyboard start/stop, preserved surface orientation after
+skipping, canvas skipping, and Fly Home during a turn. It includes 319 × 561 and 640 × 360
+layouts alongside the configured phone, tablet and short-landscape viewports.
 
 Arrivals now choose elevation against the real tilted surface axis. Every selectable set
 must offer two surface directions at least 0.46 aligned with the arrival camera, leave its

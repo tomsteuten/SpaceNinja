@@ -10,10 +10,12 @@ async function launch(page: Page, world: string) {
   const visible = s.targets.filter((t:any) => t.visible);
   expect(visible).toHaveLength(2);
   const dock = await page.locator('.dock').boundingBox();
+  const hud = await page.locator('.mission-hud').boundingBox();
   for (const target of visible) {
     expect(target.x).toBeGreaterThan(10);
     expect(target.x).toBeLessThan(page.viewportSize()!.width - 10);
     expect(target.y).toBeGreaterThan(100);
+    expect(target.y).toBeGreaterThan(hud!.y + hud!.height + 10);
     expect(target.y).toBeLessThan(dock!.y - 5);
   }
 }
@@ -30,7 +32,7 @@ async function keepExploring(page: Page) {
   await expect(page.locator('.photo-view')).toBeHidden();
 }
 async function home(page: Page) {
-  await page.getByRole('button',{name:'Fly Home',exact:true}).click();
+  await page.getByRole('button',{name:'Back to the space map',exact:true}).click();
   await expect(page.getByRole('button',{name:'Fly to Moon',exact:true})).toBeVisible();
 }
 test('rendered discoveries, drag, media, return, repeat and outer-world arrivals', async ({page}, info) => {

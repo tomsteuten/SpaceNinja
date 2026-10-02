@@ -34,7 +34,7 @@ import {
 } from './freeFlightModel';
 import { adventureHref } from './freeFlightRoute';
 
-const ALL_BODIES: BodyId[] = ['earth', 'moon', 'mars', 'saturn'];
+const ALL_BODIES: BodyId[] = ['earth', 'moon', 'mars', 'saturn', 'sun'];
 
 /** Where the ship starts: out from Earth, nose toward the middle of the neighbourhood. */
 const START_POSITION = new THREE.Vector3(0, 1.2, 5.5);

@@ -25,10 +25,12 @@ function cuesByBody(): Record<string, string[]> {
       bodyId,
       [
         `arrival-${bodyId}`,
-        `find-${bodyId}`,
-        ...destination.mission.discoveries.map((discovery) => `discovery-${discovery.id}`),
-        `hunt-${bodyId}`,
-        `success-${bodyId}`,
+        ...(destination.mission ? [
+          `find-${bodyId}`,
+          ...destination.mission.discoveries.map(discovery => `discovery-${discovery.id}`),
+          `hunt-${bodyId}`,
+          `success-${bodyId}`,
+        ] : []),
         ...(destination.spin ? [`spin-${bodyId}`] : []),
       ],
     ]),
@@ -58,7 +60,9 @@ describe('narration script', () => {
   it('welcomes before the intro and saves the target instruction for the hunt', () => {
     for (const bodyId of Object.keys(DESTINATIONS)) {
       expect(script.cues[`arrival-${bodyId}`]).not.toMatch(/\b(?:tap|target)\b/i);
-      expect(script.cues[`find-${bodyId}`]).toMatch(/\btap\b.*\bgold\b|\bgold\b.*\btap\b/i);
+      if (DESTINATIONS[bodyId]?.mission) {
+        expect(script.cues[`find-${bodyId}`]).toMatch(/\btap\b.*\bgold\b|\bgold\b.*\btap\b/i);
+      }
     }
   });
 
@@ -83,11 +87,11 @@ describe('narration script', () => {
      * is a half-narrated arrival with no runtime fallback to catch it.
      */
     for (const bodyId of Object.keys(DESTINATIONS)) {
-      const framing = [`arrival-${bodyId}`, `find-${bodyId}`];
+      const framing = [`arrival-${bodyId}`, ...(DESTINATIONS[bodyId]?.mission ? [`find-${bodyId}`] : [])];
       const have = framing.filter((cue) => recorded.has(cue));
       expect(
         have.length === 0 || have.length === framing.length,
-        `${bodyId} has ${have.length}/2 framing cues recorded — record both or neither`,
+        `${bodyId} has ${have.length}/${framing.length} framing cues recorded — record every framing cue or none`,
       ).toBe(true);
     }
 

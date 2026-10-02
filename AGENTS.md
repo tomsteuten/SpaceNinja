@@ -60,11 +60,17 @@ result for WebGL work; DOM assertions alone do not establish visual quality.
 - The home map offers stable destination controls as well as tappable moving worlds.
 - A tap launches one journey and must acknowledge misses or locked choices.
 - Arrival exposes discoveries immediately. Finding is ambient and Fly Home remains available.
+- The Sun is also visitable from the start as a view from space, without a surface hunt or
+  day/night activity. Its visit uses the same camera and return lifecycle.
 - Each world carries six real places and selects three per visit, favoring unseen places while
   requiring every authored place to remain reachable over repeated visits.
 - A short visual coach may demonstrate tapping or looking around after inactivity.
 - Day/night is a contextual activity. It must be discoverable and understandable, especially
   on Earth, but it must not trap the child in a long uninterruptible introduction.
+
+The visible return control is now **Space map**, with an arrow and a Sun/planet picture;
+“Fly Home” below refers to that same return route. Discovery postcards have a pictured
+world-return control as well as a large X, because child feedback found the worded exit unclear.
 
 These are current choices, not permanent markup requirements. In particular, the destination
 bar, journal, fact card, day/night control and Fly Home may be recomposed into a clearer

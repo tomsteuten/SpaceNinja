@@ -51,10 +51,8 @@ export const COACH_DRAG_DELAY = 8;
 /**
  * And longer still before the day/night button asks to be noticed.
  *
- * Only once the hunt is finished, so it never competes with it — at that point the world's
- * own celebration has landed (2.4s of sticker, and up to 3.2s more if the finale follows)
- * and the remaining offers are turn a day, open the journal, or go home. The day turn is
- * the one with anything in it, and it is the one a child has no way of guessing at.
+ * The completed hunt can offer another activity. Earth can also invite a turn after
+ * a first discovery, while another visible target remains; the drag lesson takes priority.
  */
 export const SPIN_INVITE_DELAY = 9;
 
@@ -88,17 +86,20 @@ export function coachCue(input: CoachInput): CoachCue | null {
  * position plumbing between modules. The *decision* lives here with the other coaching
  * decisions so it is pure and tested; `ui.setSpinAttention` does the drawing.
  *
- * Gated on the hunt being finished so it can never compete with finding places, and on the
- * turn not already running, because a button asking to be pressed while doing the thing it
- * was pressed for is nonsense.
+ * A finished hunt or a quiet Earth gap can invite the activity. The caller suppresses
+ * invitations during media/reading, and lets the drag lesson take priority.
  */
 export function shouldInviteSpin(opts: {
   idleFor: number;
   huntComplete: boolean;
+  /** A quiet gap after a discovery on Earth, without a competing drag lesson. */
+  earlyInvitation?: boolean;
+  spinTried?: boolean;
   spinOffered: boolean;
   spinBusy: boolean;
 }): boolean {
-  if (!opts.spinOffered || opts.spinBusy || !opts.huntComplete) return false;
+  if (!opts.spinOffered || opts.spinBusy || opts.spinTried) return false;
+  if (!opts.huntComplete && !opts.earlyInvitation) return false;
   return opts.idleFor >= SPIN_INVITE_DELAY;
 }
 

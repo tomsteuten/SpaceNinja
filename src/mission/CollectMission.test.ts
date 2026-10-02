@@ -42,7 +42,7 @@ const LIMB = 1.25; // radians, ~72°
  * more places than they show, and a *set* is chosen per visit. Whether a chosen set composes
  * is `selection.test.ts`'s job; this file tests the maths underneath it.
  */
-const MOON = authoredSet(DESTINATIONS.moon?.mission.discoveries ?? []);
+const MOON = authoredSet(DESTINATIONS.moon?.mission?.discoveries ?? []);
 
 /** A local position, compared component-wise so a wrong axis is named rather than summed. */
 type THREENumberTriple = [number, number, number];

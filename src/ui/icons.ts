@@ -12,6 +12,14 @@
  */
 
 const ICONS = {
+  back: '<path d="m10 5-7 7 7 7"/><path d="M3 12h11a6 6 0 0 1 6 6"/>',
+  spaceMap:
+    '<path d="m11 3-6 6 6 6M5 9h12"/>' +
+    '<ellipse cx="32" cy="18" rx="23" ry="11" stroke="currentColor" stroke-width="1"/>' +
+    '<circle cx="24" cy="20" r="7" fill="#ffb266" stroke="#ffd08a" stroke-width="1"/>' +
+    '<circle cx="44" cy="17" r="6" fill="#4cb8ed" stroke="#b2edff" stroke-width="1"/>' +
+    '<path d="m42 12 3 2-1 3-3 1 1 4 3-1 2-5-2-4Z" fill="#6ab878" stroke="none"/>' +
+    '<circle cx="51" cy="5" r="3.5" fill="#bbb5ca" stroke="#f3eeff" stroke-width="1"/>',
   rocket:
     '<path d="M12 2.6c2.7 2.4 4.1 5.5 4.1 8.9v3.2l1.8 1.9v3.2l-2.9-1.3-3 1.3-3-1.3-2.9 1.3v-3.2l1.8-1.9v-3.2c0-3.4 1.4-6.5 4.1-8.9Z"/>' +
     '<circle cx="12" cy="10" r="1.7"/>',
@@ -46,7 +54,7 @@ export type IconName = keyof typeof ICONS;
  */
 export function iconMarkup(name: IconName): string {
   return (
-    '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" ' +
+    `<svg class="icon" viewBox="${name === 'spaceMap' ? '0 0 56 32' : '0 0 24 24'}" aria-hidden="true" focusable="false" ` +
     'fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round">' +
     ICONS[name] +

@@ -310,7 +310,8 @@ export interface DestinationConfig {
    * of a Bodies.ts import. Earth and the Moon set nothing — they are there from the start.
    */
   revealAfterVisiting?: string;
-  mission: {
+  /** Surface hunts are a capability; a star visit has no solid places to collect. */
+  mission?: {
     instruction: string;
     huntLine: string;
     successLine: string;
@@ -321,6 +322,11 @@ export interface DestinationConfig {
 }
 
 export const DESTINATIONS: Record<string, DestinationConfig> = {
+  sun: {
+    emoji: '☀️',
+    fact: 'The Sun is our nearest star! It gives Earth light and warmth. ' +
+      'There is no solid ground to land on, so our spaceship looks from space.',
+  },
   /*
    * Earth is a destination like any other, which is the point: a five-year-old's first
    * instinct is to tap their own planet, and until this entry existed the game answered
@@ -809,7 +815,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
  */
 export const DISCOVERIES: Record<string, Discovery> = Object.fromEntries(
   Object.values(DESTINATIONS).flatMap((destination) =>
-    destination.mission.discoveries.map((discovery) => [discovery.id, discovery]),
+    (destination.mission?.discoveries ?? []).map((discovery) => [discovery.id, discovery]),
   ),
 );
 

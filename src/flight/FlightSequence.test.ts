@@ -18,7 +18,7 @@
 import * as THREE from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { createFlightSequence, smootherstep } from './FlightSequence';
-import { FLIGHT_FOV_PUNCH, fovForAspect } from '../config';
+import { FLIGHT_FOV_PUNCH, SUN_POSITION, SUN_RADIUS, fovForAspect } from '../config';
 import type { CelestialBody, World } from '../scene/Bodies';
 import type { EngineTrail } from '../scene/EngineTrail';
 import type { OrbitInput } from '../controls/OrbitInput';
@@ -69,11 +69,10 @@ function stubBody(id: string, at: THREE.Vector3, radius: number): CelestialBody 
 }
 
 /** Everything the flight touches, recording only the two things under test. */
-function flightHarness(reducedMotion: boolean) {
+function flightHarness(reducedMotion: boolean, destination = stubBody('moon', new THREE.Vector3(9, 1, 4), 0.27)) {
   const camera = new THREE.PerspectiveCamera(52, 4 / 3, 0.05, 800);
   const scene = new THREE.Scene();
   const home = stubBody('earth', new THREE.Vector3(0, 0, 0), 1);
-  const destination = stubBody('moon', new THREE.Vector3(9, 1, 4), 0.27);
 
   /** What the exhaust was actually emitted at, frame by frame. */
   const emitted: number[] = [];
@@ -108,8 +107,25 @@ function flightHarness(reducedMotion: boolean) {
     onArrive: vi.fn(),
   });
 
-  return { flight, camera, destination, emitted, reported };
+  return { flight, camera, ship, destination, emitted, reported };
 }
+
+describe('emissive star approach', () => {
+  it('keeps the camera and ship outside the Sun throughout a near-side journey', () => {
+    const sun = stubBody('sun', SUN_POSITION, SUN_RADIUS);
+    sun.viewRadius = SUN_RADIUS * 1.35;
+    sun.approachFromHome = true;
+    const { flight, camera, ship } = flightHarness(false, sun);
+    flight.start(sun);
+    while (flight.phase === 'flying') {
+      flight.update(1 / 120);
+      expect(camera.position.distanceTo(SUN_POSITION)).toBeGreaterThan(SUN_RADIUS);
+      expect(ship.group.position.distanceTo(SUN_POSITION)).toBeGreaterThan(SUN_RADIUS);
+    }
+    expect(camera.position.clone().sub(SUN_POSITION).dot(SUN_POSITION)).toBeLessThan(0);
+    expect(flight.phase).toBe('arrived');
+  });
+});
 
 /** Flies the whole way and hands back what was reported on the way. */
 function fly(reducedMotion = false, dt = 1 / 60) {

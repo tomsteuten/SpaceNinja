@@ -10,6 +10,7 @@
     "speed": 0.95
   },
   "cues": {
+    "arrival-sun": "We made it to the Sun! It is our nearest star. It gives Earth light and warmth. There is no ground to land on, so we look from space.",
     "arrival-earth": "We made it to Earth! This is our home, seen from space.",
     "find-earth": "Now, can you find the three gold places? Tap each one you see.",
     "arrival-moon": "We made it to the Moon! There is no air or weather here.",

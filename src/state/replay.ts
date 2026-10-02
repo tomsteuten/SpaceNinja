@@ -3,13 +3,13 @@ import type { Progress } from './progress';
 
 export function worldCollections(found: readonly string[]) {
   const ids = new Set(found);
-  return Object.entries(DESTINATIONS).map(([id, world]) => ({
+  return Object.entries(DESTINATIONS).flatMap(([id, world]) => world.mission ? [{
     id,
     label: id.charAt(0).toUpperCase() + id.slice(1),
     emoji: world.emoji,
     found: world.mission.discoveries.filter(d => ids.has(d.id)).length,
     total: world.mission.discoveries.length,
-  }));
+  }] : []);
 }
 
 /** Unvisited worlds first; then help finish a collection instead of suggesting nothing. */

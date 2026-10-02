@@ -232,12 +232,12 @@ body {
   left: calc(50% + 36px);
   bottom: var(--pad-bottom);
   width: min(
-    430px,
+    500px,
     calc(100vw - var(--pad-left) - var(--pad-right) - 78px)
   );
   transform: translateX(-50%);
   display: grid;
-  grid-template-columns: repeat(var(--destination-count), minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
@@ -398,88 +398,15 @@ body {
   }
 }
 
-/* --- bottom cluster (selection + fact) ------------------------------------ */
-
+/* --- contextual dock ------------------------------------------------------ */
 .dock {
   position: absolute;
-  left: 50%;
   bottom: var(--pad-bottom);
   transform: translateX(-50%);
-  width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right)));
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.85rem;
   pointer-events: none;
 }
-
-.dock > * {
-  pointer-events: auto;
-}
-
-/*
- * The dock used to be narrowed by 74px and shifted right on a phone, to keep it off the
- * journal button in the bottom-left corner. Measured at 390x844, that collision does not
- * happen: the buttons are centred and about 200px wide, so they never reach that corner,
- * and the fact card sits hundreds of pixels above it. What the narrowing *did* do was
- * squeeze the arrival fact into a column ten lines deep — a card 410px tall on an 844px
- * screen, covering 93% of the planet a child had just flown to.
- *
- * Full width, and the words fit in six lines instead of ten.
- */
-@media (max-width: 560px) {
-  .dock {
-    width: calc(100vw - var(--pad-left) - var(--pad-right));
-  }
-
-}
-
-/*
- * On a landscape screen the dock lies down.
- *
- * It is a centred column, which is right on a phone held upright — the destination is
- * framed by width there, so the space under it is genuinely empty. In landscape the
- * destination is framed by *height* and fills the middle of the screen, and the same
- * column then runs from the planet's equator to the bottom of the window, straight down
- * the middle of the thing it is asking a child to look at. Reported from a Surface: "the
- * buttons and crap still cover too much of the Earth", with a name pill, a speaker and two
- * big buttons stacked over the Atlantic.
- *
- * Laid out as one band along the bottom instead, the same controls clear the disc
- * entirely. No control is removed and every tap target keeps its full height: a
- * five-year-old's finger needs every one of them at the size it is.
- */
-/* A 640px-wide older tablet or small phone is still unmistakably landscape: leaving the
-   old 760px floor in place stacked the folded fact, replay and Fly Home straight through
-   Saturn's middle. Flex wrapping below is already the narrow-screen fallback, so let every
-   practical landscape viewport use the bottom band. */
-@media (min-width: 600px) and (orientation: landscape) {
-  .dock {
-    width: min(1040px, calc(100vw - var(--pad-left) - var(--pad-right)));
-    flex-flow: row wrap;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 0.7rem 0.8rem;
-  }
-
-  /* Open, the card still earns a row of its own: it is the words, and they wrap. */
-  .fact-card {
-    flex: 1 0 100%;
-  }
-
-  /* Folded to its speaker button, it joins the others rather than hovering alone in the
-     middle of the planet — which is the state the game spends most of its time in. */
-  .fact-card.is-collapsed {
-    order: 2;
-    flex: 0 0 auto;
-  }
-
-  .spin-btn,
-  .home-btn {
-    order: 3;
-  }
-}
-
+.dock > * { pointer-events: auto; }
 /* A column: the name, then the words at full width, then a row with the picture and the
    speaker. It used to flank the words with the picture on one side and the speaker on the
    other, which squeezed a long fact into a narrow strip ten lines deep — a card that
@@ -671,8 +598,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  background: rgba(6, 4, 16, 0.94);
+  padding: 88px 1rem 116px;
+  background: rgba(6, 4, 16, 0.86);
   pointer-events: auto;
   z-index: 60;
 }
@@ -696,7 +623,7 @@ body {
 /* A newly found place deserves to read as a postcard, not as a thumbnail that happened to
    appear. The regular viewer stays deliberately spare for journal/replay photos. */
 .photo-view.is-reward {
-  padding: clamp(1rem, 4vw, 2rem);
+  padding: 88px clamp(1rem, 4vw, 2rem) 116px;
 }
 
 .photo-view.is-reward .photo-view__figure {
@@ -705,8 +632,7 @@ body {
 }
 
 .photo-view.is-reward .photo-view__title,
-.photo-view.is-reward .photo-view__detail,
-.photo-view.is-reward .photo-view__continue {
+.photo-view.is-reward .photo-view__detail {
   display: block;
 }
 
@@ -731,7 +657,9 @@ body {
   display: block;
   max-width: 100%;
   /* Room for the caption underneath, whatever the viewport. */
-  max-height: calc(100% - 3.5rem);
+  max-height: calc(100dvh - 260px);
+  min-height: 0;
+  flex-shrink: 1;
   object-fit: contain;
   border-radius: 14px;
 }
@@ -739,7 +667,7 @@ body {
 .photo-view.is-reward .photo-view__image {
   /* Reserve a readable title, fact and exit on a phone instead of letting a landscape image
      eat the whole screen. The image is still the largest thing in the reward. */
-  max-height: min(55vh, 28rem);
+  max-height: min(48vh, calc(100dvh - 330px), 28rem);
 }
 
 .photo-view__caption {
@@ -749,18 +677,47 @@ body {
   text-align: center;
 }
 
-.photo-view__close {
+.photo-view .photo-view__close {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  font-size: 1.3rem;
+  width: 68px;
+  height: 68px;
+  font-size: 2rem;
   font-weight: 700;
 }
 
-.photo-view__continue {
+.photo-view .photo-view__continue {
+  display: flex;
   position: absolute;
   bottom: max(1rem, env(safe-area-inset-bottom));
-  min-width: min(18rem, calc(100% - 3rem));
+  width: min(22rem, calc(100% - 2rem));
+  min-height: 84px;
+  gap: 14px;
+  font-size: 1.05rem;
+}
+.photo-view__return-picture { display: flex; align-items: center; gap: 6px; }
+.photo-view__return-picture .icon { width: 36px; height: 36px; }
+.photo-view__return-world { font-size: 2.5rem; line-height: 1; }
+@media (min-width: 600px) {
+  .destination-bar { grid-template-columns: repeat(var(--destination-count), minmax(0, 1fr)); }
+}
+@media (min-width: 600px) and (max-height: 480px) {
+  .destination-bar { width: min(500px, calc(100vw - var(--pad-left) - var(--pad-right) - 78px)); }
+  .photo-view, .photo-view.is-reward { padding: 16px 96px 116px 16px; }
+  .photo-view.is-reward .photo-view__figure {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px 18px;
+  }
+  .photo-view.is-reward .photo-view__image {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    max-height: calc(100dvh - 148px);
+  }
+  .photo-view__title, .photo-view__detail { grid-column: 2; }
+  .photo-view__title { font-size: 1.3rem; }
+  .photo-view__detail { font-size: 0.95rem; }
 }
 
 .narrate-btn.is-speaking {
@@ -1174,35 +1131,6 @@ body {
   }
   .dock {
     gap: 0.6rem;
-  }
-}
-
-/* The compact landscape band also shares its row with the fixed journal corner. Preserve
-   every 54px tap target, but spend less horizontal padding and shift the dock into the free
-   space; otherwise the book sits on top of the fact title at 640px wide. */
-@media (min-width: 600px) and (max-width: 759px) and (orientation: landscape) and (max-height: 480px) {
-  .dock {
-    left: calc(50% + 32px);
-    width: calc(100vw - var(--pad-left) - var(--pad-right) - 64px);
-    gap: 0.4rem;
-  }
-
-  .fact-card.is-collapsed {
-    gap: 0.35rem;
-    padding-left: 0.7rem;
-  }
-
-  .fact-card.is-collapsed .fact-actions {
-    gap: 0.25rem;
-  }
-
-  .dock .transcript-btn {
-    padding-inline: 0.55rem;
-    font-size: 0.88rem;
-  }
-
-  .dock .home-btn {
-    padding-inline: 0.55rem;
   }
 }
 
@@ -1746,14 +1674,8 @@ body {
   color: #b9b2e0;
 }
 
-/* The day/night button's face: a small globe of the world you are at, half in night, with
-   the terminator crawling across it.
-
-   It replaced a stroked sun. A sun is a symbol of the *topic*; it does not say "turn this
-   world so morning arrives", and in a row of identical round buttons nothing marked out the
-   one that changes the planet. This is a working model of the action at the size of an icon
-   — the same 62px the button always occupied, which matters because the dock is the most
-   contested space on the screen. */
+/* The activity's half-lit globe shows the same light/dark idea as the visited world.
+   The live turn drives its terminator; at rest it is still, except for an invitation. */
 .spin-globe {
   position: relative;
   display: block;
@@ -1859,17 +1781,6 @@ body {
       0 4px 0 rgba(38, 27, 74, 0.9),
       0 0 16px 3px rgba(255, 208, 138, 0.34);
   }
-}
-
-/* Disabled while a day is turning. Faded rather than hidden: a button that vanishes under
-   the finger that just pressed it reads as a broken app at this age.
-
-   Only lightly faded, though — 0.72 rather than the 0.55 it started at, and no desaturation.
-   While the turn runs this is not a dead control, it is a live miniature of what the planet
-   is doing, and dimming it to unreadability would throw away the one moment the link between
-   the button and its effect can be shown rather than implied. */
-.spin-btn.is-busy {
-  opacity: 0.72;
 }
 
 /* Removes the motion, keeps the meaning: a globe frozen half in night still says what the
@@ -1982,12 +1893,110 @@ body {
 .journal-panel .journal-detail { flex-shrink: 0; }
 .journal-panel > .btn { flex-shrink: 0; }
 
-/* Phone controls share one bottom row; the book keeps its existing left corner. */
-@media (max-width: 599px), (orientation: portrait) {
-  .dock { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; gap: 8px; }
-  .dock .fact-card { grid-column: 1 / -1; max-width: none; }
-  .dock .home-btn { grid-column: 2; grid-row: 2; min-width: 0; padding-inline: 6px; font-size: 1rem; }
-  .dock .spin-btn { grid-column: 3; grid-row: 2; width: 64px; height: 64px; }
+/* Contextual controls form one stable row. Facts stay full-width above it on phones;
+   a compact fact shares the bottom band on wider screens. Empty space accepts drags. */
+.dock {
+  left: 50%;
+  width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right)));
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.visit-actions {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  width: min(100%, 340px);
+  padding: 5px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 24px;
+  background: var(--panel);
+  pointer-events: none;
+}
+.visit-actions > .btn {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  min-width: 0;
+  padding: 5px 4px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.85rem;
+  pointer-events: auto;
+  box-shadow: 0 3px 0 var(--trim-lip), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.visit-actions > .btn:active { box-shadow: 0 1px 0 var(--trim-lip); }
+.visit-actions .journal-btn { grid-column: 1; }
+.visit-actions .home-btn { grid-column: 2; }
+.visit-actions:not(.has-activity) .home-btn { grid-column: 2 / 4; }
+.visit-actions .home-btn .icon { width: 60px; height: 34px; }
+.visit-actions .home-btn {
+  background: linear-gradient(180deg, var(--accent-lit), var(--accent));
+  color: #24132d;
+  border: 1px solid var(--warm);
+}
+.visit-actions .spin-btn { grid-column: 3; border: 1px solid var(--warm); }
+.visit-actions .icon { width: 25px; height: 25px; }
+.journal-label { display: none; }
+.visit-actions .journal-label { display: inline; }
+.control-label { font-weight: 800; line-height: 1.1; }
+.day-legend {
+  position: absolute;
+  top: var(--pad-top);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--warm);
+  font-size: 1rem;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.spin-picture { display: flex; align-items: center; gap: 3px; }
+.spin-picture .spin-globe { width: 25px; height: 25px; }
+.spin-arrow { color: var(--warm); font-size: 1.6rem; line-height: 1; }
+.spin-globe__night { animation: none; }
+.spin-btn.is-inviting .spin-globe__night { animation: spinGlobeTurn 5s linear 2; }
+.spin-globe.is-turning .spin-globe__night { animation: none; }
+.spin-btn.is-busy { opacity: 1; }
+.spin-btn.is-busy .spin-arrow { font-size: 0; }
+.spin-btn.is-busy .spin-arrow::after { content: '■'; font-size: 1.1rem; }
+.btn:focus-visible, .destination-choice:focus-visible, .fact-photo:focus-visible {
+  outline: 3px solid var(--spark);
+  outline-offset: 4px;
+}
+/* Short screens need a single top band so the caption cannot sit over an upper marker. */
+@media (min-width: 600px) and (max-height: 480px) {
+  .mission-hud { flex-direction: row; align-items: center; gap: 12px; }
+  .slot-row { gap: 0.4rem; }
+  .mission-caption { margin: 0; max-width: 210px; }
+}
+@media (min-width: 600px) and (orientation: landscape) {
+  .dock {
+    width: min(750px, calc(100vw - var(--pad-left) - var(--pad-right)));
+    flex-flow: row wrap;
+    align-items: flex-end;
+  }
+  .dock .fact-card { order: 0; flex: 1 0 100%; }
+  .dock .fact-card.is-collapsed,
+  .dock .fact-card.is-audio-first:not(.is-transcript-open) {
+    flex: 1 1 220px;
+    min-width: 0;
+    max-width: 420px;
+    align-self: auto;
+  }
+  .visit-actions { flex: 0 0 310px; margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin-btn.is-inviting .spin-globe__night { animation: none; }
 }
 
 .collection-progress { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }

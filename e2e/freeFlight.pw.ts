@@ -26,7 +26,7 @@ test('assisted free flight boots, flies, arrives and hands control back', async 
   await expect(page).toHaveURL(/\?freeflight$/);
   await expect(page.locator('#boot')).toBeHidden();
   await expect(page.locator('.ff-hint')).toContainText('Hold anywhere and steer');
-  await expect(page.getByRole('button', { name: /^Autopilot to / })).toHaveCount(4);
+  await expect(page.getByRole('button', { name: /^Autopilot to / })).toHaveCount(5);
   await expect(page.getByRole('button', { name: 'Back to the Space Ninja adventure' })).toBeVisible();
   await attachShot(page, 'free-flight-ready', info);
 
