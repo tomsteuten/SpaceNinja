@@ -26,6 +26,12 @@ escape routes and narration/lifecycle correctness remain constraints. The camera
 the approved row through its projection rather than by shifting the canvas. The layout
 has a single CSS owner instead of another layer of screen-specific overrides.
 
+The deployment gate caught a resize race in that projection: applying the row offset
+could publish a new camera aspect before the renderer applied its matching field of
+view, leaving Earth too small after rotating back to portrait. Stage now owns both
+viewport sizing and projection offsets, so reframing sees a consistent lens. The
+existing phone rotation check reproduced the failure locally before this correction.
+
 The owner also reported a preview stuck on loading. The real startup shell now handles
 script failures independently of the game bundle and offers a retry after failed or
 prolonged loading. The offline shell is restricted to actual game routes so a nested

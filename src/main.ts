@@ -988,8 +988,6 @@ async function main() {
   let lastAspect = camera.aspect;
 
   let viewOffset = 0;
-  let viewWidth = 0;
-  let viewHeight = 0;
   stage.onFrame((dt, elapsed) => {
     // Off-center projection reserves the row without changing camera ownership or
     // translating the canvas. Projection, marker picking and screenshots stay in sync.
@@ -997,11 +995,7 @@ async function main() {
       flight.phase !== 'idle' && !homeReturn.active, dayTurn.active);
     const nextOffset = THREE.MathUtils.damp(viewOffset, desiredOffset, 8, dt);
     viewOffset = Math.abs(nextOffset - desiredOffset) < 0.05 ? desiredOffset : nextOffset;
-    if (viewWidth !== innerWidth || viewHeight !== innerHeight || camera.view?.offsetY !== viewOffset) {
-      viewWidth = innerWidth;
-      viewHeight = innerHeight;
-      camera.setViewOffset(viewWidth, viewHeight, 0, viewOffset, viewWidth, viewHeight);
-    }
+    stage.setVerticalViewOffset(viewOffset);
     sky.update(dt);
     world.update(dt, elapsed, camera);
     trail.update(dt);

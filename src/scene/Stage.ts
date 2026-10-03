@@ -21,6 +21,8 @@ export interface Stage {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   quality: QualitySettings;
+  /** Shift the projection in pixels using the renderer's applied viewport. */
+  setVerticalViewOffset(offset: number): void;
   onFrame(callback: FrameCallback): void;
   /**
    * Something inside a frame threw. The loop has already stopped by the time this is
@@ -89,17 +91,23 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
   /* --- sizing ------------------------------------------------------------- */
 
   let resizePending = false;
+  let viewportWidth = 1;
+  let viewportHeight = 1;
+  let verticalViewOffset: number | null = null;
 
   function applySize() {
     resizePending = false;
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
     const aspect = width / height;
+    viewportWidth = width;
+    viewportHeight = height;
 
     camera.aspect = aspect;
     // Portrait phones are narrow; widening the vertical FOV keeps the scene in frame.
     camera.fov = fovForAspect(aspect);
-    camera.updateProjectionMatrix();
+    if (verticalViewOffset === null) camera.updateProjectionMatrix();
+    else camera.setViewOffset(width, height, 0, verticalViewOffset, width, height);
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, quality.maxPixelRatio);
     renderer.setPixelRatio(pixelRatio);
@@ -221,6 +229,14 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
     camera,
     get quality() {
       return quality;
+    },
+
+    setVerticalViewOffset(offset: number) {
+      if (verticalViewOffset === offset) return;
+      verticalViewOffset = offset;
+      // setViewOffset also writes camera.aspect. Use only the applied size: reading
+      // innerWidth here could expose a new aspect with the old FOV before resize runs.
+      camera.setViewOffset(viewportWidth, viewportHeight, 0, offset, viewportWidth, viewportHeight);
     },
 
     onFrame(callback: FrameCallback) {
