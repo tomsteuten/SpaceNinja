@@ -27,7 +27,10 @@ async function launch(page: Page, world: string) {
   for (const target of visible) {
     expect(target.x).toBeGreaterThan(10);
     expect(target.x).toBeLessThan(page.viewportSize()!.width - 10);
-    expect(target.y).toBeGreaterThan(100);
+    expect(target.y).toBeGreaterThan(20);
+    const heading = (await page.locator('.world-heading').boundingBox())!;
+    expect(target.x < heading.x - 10 || target.x > heading.x + heading.width + 10 ||
+      target.y > heading.y + heading.height + 10 || target.y < heading.y - 10).toBe(true);
     if (await page.locator('.mission-hud').isVisible()) {
       expect(target.x < hud!.x - 10 || target.x > hud!.x + hud!.width + 10 ||
         target.y > hud!.y + hud!.height + 10 || target.y < hud!.y - 10).toBe(true);
@@ -113,7 +116,7 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   }
   await collectVisible(page);
   await keepExploring(page);
-  await expect(page.locator('.hint')).toContainText('Found!');
+  await expect(page.locator('.world-heading__caption')).toContainText('All three found!');
   await page.getByRole('button',{name:'Open your discovery journal'}).click();
   await expect(page.locator('.collection-progress')).toContainText('3/6');
   const tiles=page.locator('.sticker-grid button');

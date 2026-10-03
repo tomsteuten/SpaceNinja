@@ -1,0 +1,611 @@
+{
+  "phone-map": {
+    "phase": "idle",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 106,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 195,
+      "y": 422,
+      "radius": 63.10745072723028
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 195,
+      "y": 422,
+      "radius": 18.932235218169087
+    },
+    "surfaceRotation": 0.05258250000016764,
+    "bodyScreenRadius": 63.10745072723028,
+    "collected": 0,
+    "ids": [],
+    "targets": []
+  },
+  "phone-moon": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "moon",
+    "draws": 1,
+    "frame": 878,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 195,
+      "y": 421.99999999999994,
+      "radius": 132.97641403237805
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 1013.2866026940852,
+      "y": 1030.9350667398974,
+      "radius": 225.89590051175313
+    },
+    "surfaceRotation": -2.783262033411233,
+    "bodyScreenRadius": 132.97641403237805,
+    "collected": 0,
+    "ids": [
+      "moon-tranquility",
+      "moon-tycho",
+      "moon-farside"
+    ],
+    "targets": [
+      {
+        "x": 246.83927550098164,
+        "y": 368.12603169741317,
+        "visible": true
+      },
+      {
+        "x": 156.2600444042612,
+        "y": 487.8608557911566,
+        "visible": true
+      },
+      {
+        "x": 290.1558849885344,
+        "y": 488.35172282817683,
+        "visible": false
+      }
+    ],
+    "hidden": null
+  },
+  "phone-earth": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 912,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 195.00000000000006,
+      "y": 421.99999999999994,
+      "radius": 132.97641403237813
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 195.00000000000006,
+      "y": 421.99999999999994,
+      "radius": 39.89292420971344
+    },
+    "surfaceRotation": -0.7671509607022429,
+    "bodyScreenRadius": 132.97641403237813,
+    "collected": 0,
+    "ids": [
+      "earth-sahara",
+      "earth-amazon",
+      "earth-nightside"
+    ],
+    "targets": [
+      {
+        "x": 258.98363937386387,
+        "y": 345.8737139311462,
+        "visible": true
+      },
+      {
+        "x": 116.64391891099622,
+        "y": 483.0782612095275,
+        "visible": true
+      },
+      {
+        "x": 270.54313402691184,
+        "y": 349.91778752252577,
+        "visible": false
+      }
+    ],
+    "hidden": null
+  },
+  "phone-day": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 1114,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": true,
+    "bodyScreen": {
+      "x": 203.8782689660932,
+      "y": 494.6930562765884,
+      "radius": 114.09950557523311
+    },
+    "teachingSun": {
+      "visible": true,
+      "x": 167.76960131097107,
+      "y": 199.04427384491302,
+      "radius": 36.88691608237719
+    },
+    "surfaceRotation": 1.1919462180888358,
+    "bodyScreenRadius": 114.09950557523311,
+    "collected": 0,
+    "ids": [
+      "earth-sahara",
+      "earth-amazon",
+      "earth-nightside"
+    ],
+    "targets": [],
+    "hidden": null
+  },
+  "phone-sun": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon",
+      "mars"
+    ],
+    "world": "sun",
+    "draws": 1,
+    "frame": 2564,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 195.00000000000006,
+      "y": 422,
+      "radius": 132.97641403237813
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 195.00000000000009,
+      "y": 422.0000000000001,
+      "radius": 3.23391520485163
+    },
+    "surfaceRotation": 0.27360320000001787,
+    "bodyScreenRadius": 98.50104743139121,
+    "collected": 0,
+    "ids": [],
+    "targets": []
+  },
+  "tablet-map": {
+    "phase": "idle",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 98,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 512,
+      "y": 384,
+      "radius": 101.1800538400021
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 512,
+      "y": 384,
+      "radius": 30.354016152000625
+    },
+    "surfaceRotation": 0.04760550000010059,
+    "bodyScreenRadius": 101.1800538400021,
+    "collected": 0,
+    "ids": [],
+    "targets": []
+  },
+  "tablet-moon": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "moon",
+    "draws": 1,
+    "frame": 506,
+    "speaking": false,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 512.0000000000005,
+      "y": 383.9999999999998,
+      "radius": 246.52636698491435
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 1148.3684086082378,
+      "y": 891.4783403897779,
+      "radius": 186.41094908755446
+    },
+    "surfaceRotation": -2.8108149444821873,
+    "bodyScreenRadius": 246.52636698491435,
+    "collected": 0,
+    "ids": [
+      "moon-tranquility",
+      "moon-tycho",
+      "moon-farside"
+    ],
+    "targets": [
+      {
+        "x": 620.2382804977835,
+        "y": 271.5681293443457,
+        "visible": true
+      },
+      {
+        "x": 431.17607793998747,
+        "y": 521.3303118099101,
+        "visible": true
+      },
+      {
+        "x": 682.5809694224024,
+        "y": 503.0069516828764,
+        "visible": false
+      }
+    ],
+    "hidden": null
+  },
+  "tablet-earth": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 520,
+    "speaking": false,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 512,
+      "y": 384,
+      "radius": 246.52636698491443
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 512,
+      "y": 384,
+      "radius": 73.95791009547432
+    },
+    "surfaceRotation": -0.7671509607022429,
+    "bodyScreenRadius": 246.52636698491443,
+    "collected": 0,
+    "ids": [
+      "earth-sahara",
+      "earth-amazon",
+      "earth-nightside"
+    ],
+    "targets": [
+      {
+        "x": 643.2151356202515,
+        "y": 227.8832012598677,
+        "visible": true
+      },
+      {
+        "x": 351.2966849672392,
+        "y": 509.26761058479536,
+        "visible": true
+      },
+      {
+        "x": 645.8677511517689,
+        "y": 256.26524545611437,
+        "visible": false
+      }
+    ],
+    "hidden": null
+  },
+  "tablet-day": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 664,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": true,
+    "bodyScreen": {
+      "x": 595.357230773877,
+      "y": 438.41482162190584,
+      "radius": 155.0955528586556
+    },
+    "teachingSun": {
+      "visible": true,
+      "x": 254.7354091413203,
+      "y": 216.06007815707608,
+      "radius": 50.45439060522946
+    },
+    "surfaceRotation": 1.234881317677494,
+    "bodyScreenRadius": 155.0955528586556,
+    "collected": 0,
+    "ids": [
+      "earth-sahara",
+      "earth-amazon",
+      "earth-nightside"
+    ],
+    "targets": [],
+    "hidden": null
+  },
+  "tablet-sun": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon",
+      "mars"
+    ],
+    "world": "sun",
+    "draws": 1,
+    "frame": 1418,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 512,
+      "y": 383.99999999999983,
+      "radius": 246.52636698491426
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 512.0000000000001,
+      "y": 384.00000000000017,
+      "radius": 3.2659664757355715
+    },
+    "surfaceRotation": 0.35383679999998213,
+    "bodyScreenRadius": 182.61212369252908,
+    "collected": 0,
+    "ids": [],
+    "targets": []
+  },
+  "landscape-map": {
+    "phase": "idle",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 42,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 422,
+      "y": 195,
+      "radius": 51.38049609062607
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 422,
+      "y": 195,
+      "radius": 15.414148827187818
+    },
+    "surfaceRotation": 0.01956600000003353,
+    "bodyScreenRadius": 51.38049609062607,
+    "collected": 0,
+    "ids": [],
+    "targets": []
+  },
+  "landscape-moon": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "moon",
+    "draws": 1,
+    "frame": 842,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 421.9999999999999,
+      "y": 195.00000000000009,
+      "radius": 125.18917073452684
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 768.3234363888376,
+      "y": 456.1667574372811,
+      "radius": 96.50342795191777
+    },
+    "surfaceRotation": -2.7870521443787277,
+    "bodyScreenRadius": 125.18917073452684,
+    "collected": 0,
+    "ids": [
+      "moon-tranquility",
+      "moon-tycho",
+      "moon-farside"
+    ],
+    "targets": [
+      {
+        "x": 477.0615501024001,
+        "y": 137.99903686025527,
+        "visible": true
+      },
+      {
+        "x": 380.83832990064286,
+        "y": 264.66830628859555,
+        "visible": true
+      },
+      {
+        "x": 508.5204809761651,
+        "y": 255.5801124911984,
+        "visible": false
+      }
+    ],
+    "hidden": null
+  },
+  "landscape-earth": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 846,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 422,
+      "y": 195,
+      "radius": 125.18917073452687
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 422,
+      "y": 195,
+      "radius": 37.556751220358045
+    },
+    "surfaceRotation": -0.7671509607022429,
+    "bodyScreenRadius": 125.18917073452687,
+    "collected": 0,
+    "ids": [
+      "earth-sahara",
+      "earth-amazon",
+      "earth-nightside"
+    ],
+    "targets": [
+      {
+        "x": 488.632686057159,
+        "y": 115.72193813977655,
+        "visible": true
+      },
+      {
+        "x": 340.39284783492616,
+        "y": 258.6124585000914,
+        "visible": true
+      },
+      {
+        "x": 489.9797173817576,
+        "y": 130.13469495818308,
+        "visible": false
+      }
+    ],
+    "hidden": null
+  },
+  "landscape-day": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon"
+    ],
+    "world": "earth",
+    "draws": 1,
+    "frame": 1040,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": true,
+    "bodyScreen": {
+      "x": 489.61196280560637,
+      "y": 195,
+      "radius": 105.34142606063192
+    },
+    "teachingSun": {
+      "visible": true,
+      "x": 207.21354873310327,
+      "y": 194.99999999999997,
+      "radius": 35.27324500812715
+    },
+    "surfaceRotation": 1.3287102182740715,
+    "bodyScreenRadius": 105.34142606063192,
+    "collected": 0,
+    "ids": [
+      "earth-sahara",
+      "earth-amazon",
+      "earth-nightside"
+    ],
+    "targets": [],
+    "hidden": null
+  },
+  "landscape-sun": {
+    "phase": "arrived",
+    "mapBodyIds": [
+      "sun",
+      "earth",
+      "moon",
+      "mars"
+    ],
+    "world": "sun",
+    "draws": 1,
+    "frame": 2446,
+    "speaking": true,
+    "guidedHunt": false,
+    "cameraReturning": false,
+    "dayTurning": false,
+    "bodyScreen": {
+      "x": 422,
+      "y": 194.99999999999991,
+      "radius": 125.18917073452677
+    },
+    "teachingSun": {
+      "visible": false,
+      "x": 422.0000000000001,
+      "y": 195.00000000000009,
+      "radius": 1.65849860095947
+    },
+    "surfaceRotation": 0.27211599999999997,
+    "bodyScreenRadius": 92.73271906261245,
+    "collected": 0,
+    "ids": [],
+    "targets": []
+  }
+}

@@ -12,6 +12,8 @@ import { nextWorld } from './state/replay';
 
 import './ui/ui.css';
 import './ui/theme.css';
+import './ui/adventure.css';
+import { adventureViewOffset } from './ui/viewport';
 import * as THREE from 'three';
 import {
   DESTINATIONS,
@@ -299,7 +301,6 @@ async function main() {
     body.getWorldPosition(focusPosition);
     if (!returning) preTurnCameraOffset.copy(camera.position).sub(focusPosition);
     ui.showNote(`spin-${follow}`, spin.name, spin.fact);
-    ui.foldFact(true);
     if (follow === 'earth') {
       ui.clearFact();
       ui.setHint(null);
@@ -460,7 +461,7 @@ async function main() {
         ui.showFindLabel(
           rect.left + ((at.x + 1) / 2) * rect.width,
           rect.top + ((1 - at.y) / 2) * rect.height,
-          discovery.emoji,
+          discovery.id,
           discovery.name,
         );
         const isNew = recordDiscovery(discovery.id);
@@ -496,14 +497,14 @@ async function main() {
           `success-${body.id}`,
           definition.successLine,
           isNew ? definition.stickerId : null,
-          `${config.emoji}  ${body.label}`,
+          body.label,
           // "You can fly home and pick another world." — behind the success line, but only when
           // the hint below actually points at a next world to go to.
           namesNextWorld ? { text: cueText('success-next'), cueId: 'success-next' } : undefined,
         );
         ui.setHint(namesNextWorld
-          ? `✓ ✓ ✓  Found! 🗺 Space map → ${nextConfig!.emoji} ${world.bodies[next!].label}`
-          : '✓ ✓ ✓  Found! 📖 Look in your book · 🗺 Space map');
+          ? `All three found! Next: ${world.bodies[next!].label}`
+          : 'All three found! Look in your journal.');
         /*
          * And when this was the last place on the last world, the finale — once.
          *
@@ -622,8 +623,9 @@ async function main() {
       ui.showSpin('Day and night on Earth', DESTINATIONS.earth?.spin?.tint);
       ui.setHint(null);
     } else {
-      ui.showSpin(null);
-      ui.setHint('Look around first. Tap a gold place when you are ready.', 'target');
+      const spin = DESTINATIONS[follow]?.spin;
+      ui.showSpin(spin?.label ?? null, spin?.tint);
+      ui.setHint('Tap a gold place', 'target');
     }
   }
 
@@ -985,7 +987,21 @@ async function main() {
   let booted = false;
   let lastAspect = camera.aspect;
 
+  let viewOffset = 0;
+  let viewWidth = 0;
+  let viewHeight = 0;
   stage.onFrame((dt, elapsed) => {
+    // Off-center projection reserves the row without changing camera ownership or
+    // translating the canvas. Projection, marker picking and screenshots stay in sync.
+    const desiredOffset = adventureViewOffset(innerWidth, innerHeight,
+      flight.phase !== 'idle' && !homeReturn.active, dayTurn.active);
+    const nextOffset = THREE.MathUtils.damp(viewOffset, desiredOffset, 8, dt);
+    viewOffset = Math.abs(nextOffset - desiredOffset) < 0.05 ? desiredOffset : nextOffset;
+    if (viewWidth !== innerWidth || viewHeight !== innerHeight || camera.view?.offsetY !== viewOffset) {
+      viewWidth = innerWidth;
+      viewHeight = innerHeight;
+      camera.setViewOffset(viewWidth, viewHeight, 0, viewOffset, viewWidth, viewHeight);
+    }
     sky.update(dt);
     world.update(dt, elapsed, camera);
     trail.update(dt);
@@ -1014,7 +1030,7 @@ async function main() {
       huntGuidance.elapsed += dt;
       if (!huntGuidance.inviteShown && huntGuidance.elapsed >= HUNT_INVITE_HINT_DELAY) {
         huntGuidance.inviteShown = true;
-        ui.setHint(follow === 'earth' ? 'Tap a gold place' : '✨ Ready for a challenge? Tap a gold place.');
+        ui.setHint('Tap a gold place');
       }
       if (huntGuidance.elapsed >= HUNT_GUIDANCE_AUTO_START) beginGuidedHunt();
     }

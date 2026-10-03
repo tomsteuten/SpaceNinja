@@ -18,6 +18,7 @@
  * broken image — it is simply a place without a photo.
  */
 
+import { worldPicture } from './pictures';
 import { imageExists } from '../scene/textures';
 import { createIcon } from './icons';
 import { createDialogFocus } from './dialog';
@@ -41,9 +42,9 @@ export async function findPhoto(discoveryId: string): Promise<string | null> {
 
 export interface PhotoViewer {
   readonly isOpen: boolean;
-  show(url: string, caption: string, worldEmoji?: string): void;
+  show(url: string, caption: string, worldId?: string): void;
   /** The first find is a reward, not a thumbnail a pre-reader has to notice. */
-  showDiscovery(url: string, title: string, detail: string, worldEmoji: string): void;
+  showDiscovery(url: string, title: string, detail: string, worldId: string): void;
   hide(): void;
   dispose(): void;
 }
@@ -70,6 +71,7 @@ export function canFinishPhotoDismiss(
  * "tap the small x" is not a reliable skill.
  */
 export interface PhotoViewerOptions {
+  onShow?: () => void;
   /** Called whenever the viewer hides, by any route: button, backdrop, Escape or code. */
   onHide?: () => void;
   /** The interface's shared press counter, so every panel keeps the same double-tap rule. */
@@ -103,7 +105,7 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
   const close = document.createElement('button');
   close.className = 'btn btn--round photo-view__close';
   close.type = 'button';
-  close.textContent = '✕';
+  close.append(createIcon('close'));
   close.setAttribute('aria-label', 'Close the photo');
 
   const continueButton = document.createElement('button');
@@ -118,8 +120,14 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
   const returnLabel = document.createElement('span');
   continueButton.append(returnPicture, returnLabel);
 
-  figure.append(title, image, caption, detail);
-  overlay.append(figure, continueButton, close);
+  const panel = document.createElement('div');
+  panel.className = 'photo-view__panel';
+  const header = document.createElement('div');
+  header.className = 'dialog-head';
+  header.append(title, close);
+  figure.append(image, caption);
+  panel.append(header, figure, detail, continueButton);
+  overlay.append(panel);
 
   const focus = createDialogFocus(overlay, () => continueButton, hide);
   const guard = options.guard ?? createPanelGuard(window);
@@ -133,6 +141,7 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
     openedAt = opening.at;
     dismissPointer = null;
     focus.open();
+    options.onShow?.();
   }
   function hide() {
     overlay.classList.add('is-hidden');
@@ -196,26 +205,28 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
 
   return {
     get isOpen() { return !overlay.classList.contains('is-hidden'); },
-    show(url: string, text: string, worldEmoji?: string) {
+    show(url: string, text: string, worldId?: string) {
       image.src = url;
-      caption.textContent = text;
+      caption.textContent = '';
+      image.alt = text;
       // Hidden visually in the journal viewer, but still the dialog name for assistive tech.
       title.textContent = text;
       detail.textContent = '';
       overlay.classList.remove('is-reward');
-      returnWorld.textContent = worldEmoji ?? '📖';
-      returnLabel.textContent = worldEmoji ? 'Keep exploring' : 'Back to journal';
+      returnWorld.replaceChildren(worldId ? worldPicture(worldId) : createIcon('journal'));
+      returnLabel.textContent = worldId ? 'Keep exploring' : 'Back to journal';
       continueButton.classList.remove('is-hidden');
       reveal();
     },
-    showDiscovery(url: string, discoveryTitle: string, discoveryDetail: string, worldEmoji: string) {
+    showDiscovery(url: string, discoveryTitle: string, discoveryDetail: string, worldId: string) {
       image.src = url;
       title.textContent = discoveryTitle;
+      image.alt = discoveryTitle;
       detail.textContent = discoveryDetail;
       caption.textContent = '';
       overlay.classList.add('is-reward');
       continueButton.classList.remove('is-hidden');
-      returnWorld.textContent = worldEmoji;
+      returnWorld.replaceChildren(worldPicture(worldId));
       returnLabel.textContent = 'Keep exploring';
       reveal();
     },

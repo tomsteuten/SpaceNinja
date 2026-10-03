@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Space Ninja — UI layout study</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eeeef0;color:#202b3c;font:15px/1.5 system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:16px}h1{font-size:24px;letter-spacing:-.6px;margin:0}p{margin:6px 0 18px;color:#566173}.tag{font-size:12px;font-weight:750;letter-spacing:1.4px;text-transform:uppercase;color:#516579}.controls{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;margin:16px 0}.group{display:flex;gap:4px;flex-wrap:wrap}button{font:600 14px system-ui;border:1px solid #c6cbd2;border-radius:8px;background:white;color:#27364b;padding:9px 14px;cursor:pointer}button[aria-pressed=true]{background:#213750;color:white;border-color:#213750}button:focus-visible{outline:3px solid #4b9ab6;outline-offset:3px}.stage{position:relative;margin:auto;background:#080819;border-radius:18px;overflow:hidden;box-shadow:0 12px 35px #1d2b4520}iframe{border:0;display:block;transform-origin:top left}.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:22px}.notes strong{display:block;color:#24374c;margin-bottom:4px}.notes p{font-size:14px}footer{font-size:12px;color:#626e7e;margin-top:14px}@media(max-width:700px){main{padding:14px}h1{font-size:20px}header{align-items:start}.notes{grid-template-columns:1fr;gap:0}.tag{font-size:10px}.controls{gap:8px}button{padding:8px 10px}}
+</style>
+<main>
+  <header><div><div class="tag">Space Ninja · design study 01</div><h1>One row. Familiar pictures. A clear way back.</h1></div><span class="tag">For review</span></header>
+  <p>Click the controls inside the scene. Compare the layout at its intended screen size.</p>
+  <div class="controls">
+    <div class="group" id="states" aria-label="Preview screen">
+      <button data-state="moon" aria-pressed="true">Moon</button><button data-state="earth">Earth</button><button data-state="sun">Sun</button><button data-state="map">Space map</button><button data-state="photo">Photo exit</button><button data-state="day">Day & night</button>
+    </div>
+    <div class="group" id="devices" aria-label="Preview device"><button data-device="tablet" aria-pressed="true">Tablet</button><button data-device="phone">Phone</button><button data-device="landscape">Landscape</button></div>
+    <div class="group" id="versions" aria-label="Compare version"><button data-version="proposed" aria-pressed="true">Proposed</button><button data-version="current">Current</button></div>
+  </div>
+  <div class="stage"><iframe title="Interactive Space Ninja layout study" src="scene.html?state=moon"></iframe></div>
+  <div class="notes">
+    <p><strong>Stable navigation</strong>Map at the left, journal at the right. Every button shares a height, icon baseline and label baseline.</p>
+    <p><strong>Pictures with a purpose</strong>World thumbnails, a picture book and a half-lit globe. No operating-system emoji or decorative badges.</p>
+    <p><strong>More room for the world</strong>Facts appear on demand. Photo exits use an arrow and the world you return to. The Sun has three equally sized controls.</p>
+  </div>
+  <footer>Layout prototype using real game captures. Travel, discovery and day/night transitions are simulated. Recorded narration is reused. This is not a deployed game change or a tablet playtest.</footer>
+</main>
+<script type="module">
+let state='moon',device='tablet',version='proposed';const frame=document.querySelector('iframe'),stage=document.querySelector('.stage');
+const sizes={tablet:[1024,768],phone:[390,844],landscape:[844,390]};
+function resize(){const[w,h]=sizes[device];const scale=Math.min(1,(document.querySelector('main').clientWidth-(innerWidth<700?28:48))/w);frame.style.width=w+'px';frame.style.height=h+'px';frame.style.transform=`scale(${scale})`;stage.style.width=w*scale+'px';stage.style.height=h*scale+'px';}
+function update(){for(const kind of ['state','device','version'])for(const b of document.querySelectorAll(`[data-${kind}]`))b.setAttribute('aria-pressed',String(b.dataset[kind]===({state,device,version})[kind]));frame.src=`scene.html?state=${state}&version=${version}`;resize();}
+document.querySelector('#states').onclick=e=>{if(e.target.dataset.state){state=e.target.dataset.state;update();}};
+document.querySelector('#devices').onclick=e=>{if(e.target.dataset.device){device=e.target.dataset.device;update();}};
+document.querySelector('#versions').onclick=e=>{if(e.target.dataset.version){version=e.target.dataset.version;update();}};
+addEventListener('resize',resize);resize();
+</script>
+</html>

@@ -15,7 +15,7 @@ const FOCUSABLE = [
 ].join(', ');
 
 function targets(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((node) => !node.hidden);
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((node) => !node.hidden && node.getClientRects().length > 0);
 }
 
 interface OpenDialog {

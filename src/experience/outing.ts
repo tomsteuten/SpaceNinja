@@ -184,7 +184,7 @@ export async function startOuting(canvas: HTMLCanvasElement, uiRoot: HTMLElement
     // Superseded by flying home, a later request or disposal; that path owns the state.
     if (request !== photoRequest) return;
     if (url) {
-      if (reward) photo.showDiscovery(url, TYCHO.name, TYCHO_VOICE, '🌙');
+      if (reward) photo.showDiscovery(url, TYCHO.name, TYCHO_VOICE, 'moon');
       else photo.show(url, `${TYCHO.name} — ${TYCHO_VOICE}`, '🌙');
     } else {
       photoUnavailable = true;

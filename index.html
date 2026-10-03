@@ -96,7 +96,7 @@
         filter: grayscale(1);
         opacity: 0.4;
       }
-      #boot.has-error:not(.has-crash) .boot-error--start {
+      #boot.has-error:not(.has-crash):not(.has-load-error) .boot-error--start {
         display: block;
       }
       #boot.has-error .boot-status {
@@ -107,12 +107,14 @@
       #boot.has-crash .boot-error--crash {
         display: block;
       }
-      #boot.has-crash .boot-restart {
+      #boot.has-error .boot-restart {
         display: inline-flex;
       }
       #boot.has-crash .boot-detail:not(:empty) {
         display: block;
       }
+      #boot.has-load-error .boot-error--load { display: block; }
+      #boot.has-load-error .boot-detail:not(:empty) { display: block; }
       .boot-restart {
         display: none;
         align-items: center;
@@ -176,10 +178,41 @@
         Oh no — the spaceship stopped. Press the button and it will start again. Everything in
         your journal is safe.
       </p>
-      <button class="boot-restart" type="button">🚀 Start again</button>
+      <p class="boot-error boot-error--load">
+        The stars could not load. Try again when your connection is ready.
+        Everything in your journal is safe.
+      </p>
+      <button class="boot-restart" type="button">Start again</button>
       <code class="boot-detail"></code>
     </div>
 
+    <!-- Independent of the game bundle: a missing module must have an escape too. -->
+    <script>
+      (() => {
+        const boot = document.getElementById('boot');
+        const retry = boot.querySelector('.boot-restart');
+        retry.addEventListener('click', () => location.reload());
+        function failed(detail) {
+          if (boot.classList.contains('is-hidden') || boot.classList.contains('has-error')) return;
+          boot.classList.add('has-error', 'has-load-error');
+          boot.querySelector('.boot-detail').textContent = detail;
+        }
+        function error(event) {
+          if (event.target instanceof HTMLScriptElement || event instanceof ErrorEvent) {
+            failed('The game could not start. Please try again.');
+          }
+        }
+        window.addEventListener('error', error, true);
+        const timeout = setTimeout(() => failed('Loading took too long. Please try again.'), 45000);
+        const observer = new MutationObserver(() => {
+          if (!boot.classList.contains('is-hidden') && !boot.classList.contains('has-error')) return;
+          clearTimeout(timeout);
+          window.removeEventListener('error', error, true);
+          observer.disconnect();
+        });
+        observer.observe(boot, { attributes: true, attributeFilter: ['class'] });
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

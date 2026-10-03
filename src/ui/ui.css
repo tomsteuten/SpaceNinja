@@ -1,19 +1,9 @@
-/* ---------------------------------------------------------------------------
-   Space Ninja interface layer.
-   Warm, rounded, low-clutter. Everything sits above the canvas but only the
-   controls themselves capture pointer events, so dragging the sky always works.
-   --------------------------------------------------------------------------- */
-
 :root {
   --ink: #f3eeff;
   --ink-soft: rgba(243, 238, 255, 0.72);
   --panel: rgba(30, 22, 62, 0.82);
   --panel-edge: rgba(168, 150, 255, 0.28);
   --glow: rgba(150, 128, 255, 0.35);
-
-  /* The ship's palette, so the interface belongs to the same world as the thing it is
-     flying. Each colour comes in three: a lit top, the colour itself, and a solid lip
-     underneath that gives the button a thickness to be pressed into. */
   --accent-lit: #ffb266;
   --accent: #f4762a;
   --accent-deep: #d2551a;
@@ -33,9 +23,6 @@
   --pad-left: max(1rem, env(safe-area-inset-left));
   --pad-right: max(1rem, env(safe-area-inset-right));
 }
-
-/* Without this, a width:100% panel plus its padding overshoots its parent - which is
-   exactly what the fact card was doing, hanging ~23px off each screen edge. */
 *,
 *::before,
 *::after {
@@ -64,7 +51,6 @@ body {
   width: 100%;
   height: 100%;
   display: block;
-  /* Stops Android from stealing drags for page scroll / pull-to-refresh. */
   touch-action: none;
 }
 
@@ -81,8 +67,6 @@ body {
   pointer-events: auto;
 }
 
-/* --- shared surfaces ------------------------------------------------------ */
-
 .panel {
   background: var(--panel);
   border: 1px solid var(--panel-edge);
@@ -91,12 +75,6 @@ body {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
-
-/* A button is a physical object with a thickness: a lit top edge, the face, and a solid
-   unblurred lip below it. Pressing translates it down onto that lip and takes the lip
-   away, which is a press you can see rather than an opacity change. A flat two-stop
-   vertical gradient with a blurred drop shadow — what this was — is the shape of a
-   mockup, not of a thing a five-year-old wants to prod. */
 .btn {
   font: inherit;
   font-weight: 800;
@@ -128,11 +106,6 @@ body {
     0 5px 12px rgba(6, 4, 20, 0.4),
     inset 0 2px 0 rgba(255, 255, 255, 0.3);
 }
-
-/* --- icons ---------------------------------------------------------------- */
-
-/* Sized in em, so an icon always matches the label beside it rather than being pinned to
-   a pixel size that only looks right at one breakpoint. */
 .icon-slot {
   display: inline-flex;
   flex: none;
@@ -143,9 +116,6 @@ body {
   height: 1.5em;
   display: block;
 }
-
-/* Dismissals inside a panel. Still a solid object with a lip — just a shallower one, so
-   it sits back from the actions without going flat and dead next to them. */
 .btn--quiet {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.12);
@@ -161,10 +131,6 @@ body {
     0 1px 0 rgba(6, 4, 20, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
-
-/* Reads as the same *kind* of object as the primary button — same shape, same weight of
-   label, same press — in the second colour rather than at a lower volume. That is the
-   difference between "the other thing you can do" and "probably not for you". */
 .btn--secondary {
   color: var(--ink);
   background: linear-gradient(180deg, var(--trim-lit) 0%, var(--trim) 52%, var(--trim-deep) 100%);
@@ -186,136 +152,7 @@ body {
   width: 62px;
   height: 62px;
   padding: 0;
-  /* Drives the icon, which is sized in em. 1.6rem was tuned for an emoji glyph, whose
-     drawn area is much smaller than its font size; a stroked icon at that size overflows. */
   font-size: 1.3rem;
-}
-
-/* --- hint ----------------------------------------------------------------- */
-
-.hint {
-  position: absolute;
-  top: var(--pad-top);
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
-  padding: 0.55rem 1.2rem;
-  border-radius: 999px;
-  font-size: 1rem;
-  color: var(--ink-soft);
-  background: rgba(20, 14, 44, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-  text-align: center;
-  white-space: nowrap;
-}
-
-@media (max-width: 420px) {
-  .hint {
-    font-size: 0.92rem;
-    padding: 0.5rem 1rem;
-  }
-}
-
-/* --- destination chooser ------------------------------------------------- */
-
-/*
- * The worlds still exist and can still be tapped in the scene. This is the dependable
- * route: it does not move, and every option stays finger-sized even when the widest map
- * has reduced Earth and the Moon to specks. The left offset reserves the journal corner.
- */
-.destination-bar {
-  --destination-count: 2;
-  position: absolute;
-  left: calc(50% + 36px);
-  bottom: var(--pad-bottom);
-  width: min(
-    500px,
-    calc(100vw - var(--pad-left) - var(--pad-right) - 78px)
-  );
-  transform: translateX(-50%);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
-}
-
-.destination-choice {
-  position: relative;
-  min-width: 0;
-  min-height: 64px;
-  padding: 0.35rem 0.3rem 0.45rem;
-  border: 1px solid rgba(168, 150, 255, 0.38);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(74, 61, 132, 0.94), rgba(40, 31, 82, 0.96));
-  color: var(--ink);
-  box-shadow:
-    0 4px 0 rgba(22, 16, 50, 0.9),
-    0 9px 20px rgba(6, 4, 20, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.1rem;
-  font: 750 0.76rem/1.05 var(--font);
-  cursor: pointer;
-}
-
-.destination-choice:active {
-  transform: translateY(3px);
-  box-shadow:
-    0 1px 0 rgba(22, 16, 50, 0.9),
-    0 4px 10px rgba(6, 4, 20, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
-}
-
-.destination-choice.is-suggested {
-  border-color: var(--warm);
-  background: linear-gradient(180deg, rgba(116, 87, 147, 0.98), rgba(67, 48, 111, 0.98));
-  box-shadow:
-    0 4px 0 rgba(76, 45, 94, 0.95),
-    0 0 24px rgba(255, 208, 138, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-
-.destination-choice.is-new {
-  animation: destinationReveal 1.05s cubic-bezier(0.2, 1.35, 0.4, 1) both;
-}
-
-/* Earned, but not yet. Quiet enough not to compete with the worlds that can be pressed,
-   legible enough to say "there is more out there" — which the bar could not say at all
-   while it listed only revealed worlds. The body itself stays undrawn; see
-   DestinationChoice.locked. */
-.destination-choice.is-locked {
-  border-color: rgba(150, 138, 198, 0.3);
-  background: linear-gradient(180deg, rgba(44, 34, 74, 0.7), rgba(30, 22, 56, 0.7));
-  box-shadow: 0 2px 0 rgba(30, 20, 54, 0.6);
-  color: rgba(226, 219, 255, 0.5);
-}
-
-.destination-choice.is-locked .destination-choice__emoji {
-  opacity: 0.55;
-}
-
-/* The padlock sits over the world's own picture rather than replacing it: the picture is
-   the reason to want to go there, and a child who cannot read "Saturn" can still want the
-   one with the rings. */
-.destination-choice.is-locked::after {
-  content: '🔒';
-  position: absolute;
-  top: 3px;
-  right: 5px;
-  font-size: 0.72rem;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-/* The wordless half of the answer to pressing one. The hint line names the world that
-   unlocks it for whoever can read; this is what a five-year-old gets. */
-.destination-choice.is-refused {
-  animation: destinationRefused 0.42s ease both;
 }
 
 @keyframes destinationRefused {
@@ -334,31 +171,6 @@ body {
   }
 }
 
-
-.destination-choice.is-new::after {
-  content: "";
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--warm);
-  box-shadow: 0 0 12px var(--warm);
-}
-
-.destination-choice__emoji {
-  font-size: 1.55rem;
-  line-height: 1;
-}
-
-.destination-choice__label {
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @keyframes destinationReveal {
   from {
     opacity: 0;
@@ -367,215 +179,6 @@ body {
   65% {
     transform: translateY(0) scale(1.07);
   }
-}
-
-@media (max-height: 480px) {
-  .destination-bar {
-    width: min(390px, calc(100vw - var(--pad-left) - var(--pad-right) - 70px));
-  }
-
-  .destination-choice {
-    min-height: 54px;
-  }
-
-  .destination-choice__emoji {
-    font-size: 1.25rem;
-  }
-
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* The refusal still has to be visible without moving: the padlock and the hint carry it,
-     and a held border says the press landed. */
-  .destination-choice.is-refused {
-    animation: none;
-    border-color: rgba(255, 150, 150, 0.75);
-  }
-
-  .destination-choice.is-new {
-    animation: none;
-    border-color: var(--warm);
-  }
-}
-
-/* --- contextual dock ------------------------------------------------------ */
-.dock {
-  position: absolute;
-  bottom: var(--pad-bottom);
-  transform: translateX(-50%);
-  align-items: center;
-  pointer-events: none;
-}
-.dock > * { pointer-events: auto; }
-/* A column: the name, then the words at full width, then a row with the picture and the
-   speaker. It used to flank the words with the picture on one side and the speaker on the
-   other, which squeezed a long fact into a narrow strip ten lines deep — a card that
-   covered the planet a child had just flown to and hid the very markers it was asking them
-   to tap. Full-width words wrap in half as many lines, so the card is far shorter. */
-.fact-card {
-  width: 100%;
-  padding: 1.15rem 1.35rem 1.2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.55rem;
-  text-align: left;
-}
-
-.fact-title {
-  font-size: 1.05rem;
-  letter-spacing: 0.02em;
-  color: #ffd89a;
-}
-
-/* Folded down to a small pill that still names where you are: the emoji-and-name title,
-   the labelled "Show words" control (kept in the folded state, as the transcript invariant
-   requires) and the speaker. It used to reduce to the speaker alone, which threw away the
-   one piece of identity a child who cannot read can still use — and, now the separate name
-   pill is gone for the whole visit, would leave nothing on screen saying which world this
-   is. Laid out as a row so it is a compact chip rather than a full-width empty panel. */
-.fact-card.is-collapsed {
-  width: auto;
-  align-self: center;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.4rem 0.5rem 0.4rem 1rem;
-}
-
-.fact-card.is-collapsed .fact-title {
-  /* Already at its natural size; just stop it forcing the row taller than the buttons. */
-  line-height: 1.1;
-}
-
-.fact-card.is-collapsed p {
-  display: none;
-}
-
-/* The actions no longer stretch across their own line in the folded chip. */
-.fact-card.is-collapsed .fact-actions {
-  gap: 0.4rem;
-}
-
-.fact-card p {
-  margin: 0;
-  font-size: 1.16rem;
-  line-height: 1.42;
-  font-weight: 600;
-}
-
-/*
- * Authored audio is the primary telling; the card keeps the name, real photograph and
- * replay control while the paragraph waits one tap away. This is not `.is-collapsed`:
- * that older state reduces the whole card to the speaker and would throw away the picture,
- * which is the useful part for a child who cannot read.
- */
-.fact-card.is-audio-first {
-  padding-block: 0.8rem;
-}
-
-.fact-card.is-audio-first p {
-  display: none;
-}
-
-/* With the paragraph hidden, the card is just a name and its controls — so lay them on one
-   row rather than stacking a heading above a right-aligned button cluster with a gap
-   between. The name takes the slack and pushes "Show words" and the speaker to the end. When
-   the child opens the words it drops back to the column below so the paragraph gets its full
-   width. */
-.fact-card.is-audio-first:not(.is-transcript-open) {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.fact-card.is-audio-first:not(.is-transcript-open) .fact-title {
-  flex: 1;
-}
-
-/* The child explicitly asked to read it. The card may remain audio-first so the labelled
-   control survives after it opens, but the paragraph is now full-width again. */
-.fact-card.is-audio-first.is-transcript-open p {
-  display: block;
-}
-
-/* The picture and the speaker, together on one row under the words. The speaker is pushed
-   to the far end so the picture leads: on this world the photograph is the payoff, and it
-   is the one thing a child who cannot read the paragraph can still take from the card. */
-.fact-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.fact-actions .narrate-btn {
-  margin-left: auto;
-}
-
-/* A written label rather than another mystery icon. It is shown only on cards whose
-   automatic narration compacted the paragraph, so silent/manual cards gain no clutter. */
-.transcript-btn {
-  min-height: 54px;
-  padding: 0 1.05rem;
-  font-size: 0.98rem;
-}
-
-.fact-card.has-transcript-toggle .transcript-btn {
-  margin-left: auto;
-}
-
-.fact-card.has-transcript-toggle .narrate-btn {
-  margin-left: 0;
-}
-
-/* The real photograph of the place. Bigger than it was and unmistakably a button: a
-   thumbnail read as decoration and neither a child nor an adult learned it opens. */
-.fact-photo {
-  position: relative;
-  flex: 0 0 auto;
-  width: 56px;
-  height: 56px;
-  padding: 0;
-  border-radius: 14px;
-  border: 2px solid rgba(255, 214, 150, 0.6);
-  background: rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.fact-photo img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* Cropped rather than letterboxed: a thumbnail with bars is mostly bars. */
-  object-fit: cover;
-}
-
-/* The wordless "this gets bigger". A warm chip in the corner, over the photo, carrying the
-   expand icon — the only signal a pre-reader gets that the picture is a door. */
-.fact-photo__zoom {
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-content: center;
-  border-radius: 9px;
-  color: #2a1a05;
-  background: var(--warm);
-  box-shadow: 0 2px 7px rgba(6, 4, 20, 0.5);
-}
-
-.fact-photo__zoom .icon {
-  width: 17px;
-  height: 17px;
-}
-
-/* Two soft pulses when a photo first lands, then still — enough to pull the eye to the new
-   thing without becoming a light that never stops blinking next to a child. */
-.fact-photo.is-fresh {
-  animation: photoAttention 0.9s ease-in-out 2;
 }
 
 @keyframes photoAttention {
@@ -589,281 +192,6 @@ body {
     box-shadow: 0 0 0 7px rgba(255, 208, 138, 0.28);
   }
 }
-
-/* Big, on a tap. Closing is over-served on purpose — a child who opens this by accident
-   must never be stuck in it, so the backdrop, the button and Escape all work. */
-.photo-view {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 88px 1rem 116px;
-  background: rgba(6, 4, 16, 0.86);
-  pointer-events: auto;
-  z-index: 60;
-}
-
-.photo-view__figure {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-  max-width: 100%;
-  max-height: 100%;
-}
-
-.photo-view__title,
-.photo-view__detail,
-.photo-view__continue {
-  display: none;
-}
-
-/* A newly found place deserves to read as a postcard, not as a thumbnail that happened to
-   appear. The regular viewer stays deliberately spare for journal/replay photos. */
-.photo-view.is-reward {
-  padding: 88px clamp(1rem, 4vw, 2rem) 116px;
-}
-
-.photo-view.is-reward .photo-view__figure {
-  width: min(42rem, 100%);
-  gap: 0.65rem;
-}
-
-.photo-view.is-reward .photo-view__title,
-.photo-view.is-reward .photo-view__detail {
-  display: block;
-}
-
-.photo-view__title {
-  margin: 0;
-  color: #fff3dc;
-  font-size: clamp(1.35rem, 5vw, 2rem);
-  line-height: 1.08;
-  text-align: center;
-}
-
-.photo-view__detail {
-  margin: 0;
-  max-width: 38rem;
-  color: rgba(255, 243, 220, 0.9);
-  font-size: clamp(0.95rem, 3.4vw, 1.08rem);
-  line-height: 1.35;
-  text-align: center;
-}
-
-.photo-view__image {
-  display: block;
-  max-width: 100%;
-  /* Room for the caption underneath, whatever the viewport. */
-  max-height: calc(100dvh - 260px);
-  min-height: 0;
-  flex-shrink: 1;
-  object-fit: contain;
-  border-radius: 14px;
-}
-
-.photo-view.is-reward .photo-view__image {
-  /* Reserve a readable title, fact and exit on a phone instead of letting a landscape image
-     eat the whole screen. The image is still the largest thing in the reward. */
-  max-height: min(48vh, calc(100dvh - 330px), 28rem);
-}
-
-.photo-view__caption {
-  color: #fff3dc;
-  font-size: 1.2rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-.photo-view .photo-view__close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 68px;
-  height: 68px;
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.photo-view .photo-view__continue {
-  display: flex;
-  position: absolute;
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  width: min(22rem, calc(100% - 2rem));
-  min-height: 84px;
-  gap: 14px;
-  font-size: 1.05rem;
-}
-.photo-view__return-picture { display: flex; align-items: center; gap: 6px; }
-.photo-view__return-picture .icon { width: 36px; height: 36px; }
-.photo-view__return-world { font-size: 2.5rem; line-height: 1; }
-@media (min-width: 600px) {
-  .destination-bar { grid-template-columns: repeat(var(--destination-count), minmax(0, 1fr)); }
-}
-@media (min-width: 600px) and (max-height: 480px) {
-  .destination-bar { width: min(500px, calc(100vw - var(--pad-left) - var(--pad-right) - 78px)); }
-  .photo-view, .photo-view.is-reward { padding: 16px 96px 116px 16px; }
-  .photo-view.is-reward .photo-view__figure {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 12px 18px;
-  }
-  .photo-view.is-reward .photo-view__image {
-    grid-column: 1;
-    grid-row: 1 / 4;
-    max-height: calc(100dvh - 148px);
-  }
-  .photo-view__title, .photo-view__detail { grid-column: 2; }
-  .photo-view__title { font-size: 1.3rem; }
-  .photo-view__detail { font-size: 0.95rem; }
-}
-
-/* Short landscape needs a reserved exit row; otherwise the fixed button covers the fact. */
-@media (max-height: 500px) {
-  .photo-view.is-reward {
-    padding-bottom: max(6rem, calc(env(safe-area-inset-bottom) + 5rem));
-  }
-
-  .photo-view.is-reward .photo-view__image {
-    max-height: min(55vh, calc(100vh - 15rem));
-  }
-}
-
-.narrate-btn.is-speaking {
-  animation: pulse 1.1s ease-in-out infinite;
-}
-
-/* --- journal -------------------------------------------------------------- */
-
-/* The one always-there button. Trim-coloured like the other secondary action, so the two
-   things that are always available look like each other and neither looks like the one
-   thing the game is currently asking for. */
-.journal-btn {
-  position: absolute;
-  left: var(--pad-left);
-  bottom: var(--pad-bottom);
-  color: var(--ink);
-  background: linear-gradient(180deg, var(--trim-lit) 0%, var(--trim) 52%, var(--trim-deep) 100%);
-  box-shadow:
-    0 5px 0 var(--trim-lip),
-    0 12px 20px rgba(6, 4, 20, 0.45),
-    inset 0 2px 0 rgba(255, 255, 255, 0.28);
-}
-
-.journal-btn:active {
-  box-shadow:
-    0 1px 0 var(--trim-lip),
-    0 5px 12px rgba(6, 4, 20, 0.4),
-    inset 0 2px 0 rgba(255, 255, 255, 0.2);
-}
-
-.journal-btn[data-new="true"]::after {
-  content: "";
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: var(--spark);
-  box-shadow: 0 0 12px var(--spark);
-  border: 2px solid var(--trim-deep);
-}
-
-.journal-panel {
-  position: absolute;
-  inset: auto auto var(--pad-bottom) var(--pad-left);
-  width: min(340px, calc(100vw - var(--pad-left) - var(--pad-right)));
-  padding: 1.2rem 1.3rem 1.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  transform-origin: bottom left;
-  animation: popCorner 0.28s cubic-bezier(0.2, 1.4, 0.4, 1);
-}
-
-.journal-panel h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 800;
-}
-
-/* Fits its rows to the width rather than insisting on three.
-   The journal doubled from twelve slots to twenty-four when worlds started carrying more
-   places than they show, and twenty-four tiles at three columns ran about 818px tall — off
-   the bottom of a 844px phone, taking the Close button with it. Auto-fit gives three on the
-   narrowest phone and four with any room to spare, and the cap keeps the panel on screen
-   whatever the count grows to next. */
-.sticker-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
-  gap: 0.65rem;
-  max-height: min(52vh, 420px);
-  overflow-y: auto;
-  /* Room for the scrollbar so the last column is not clipped by it, and momentum scrolling
-     on the tablet this is played on. */
-  padding-right: 0.2rem;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-.sticker {
-  /* A button now — pressing one tells the whole story of that place. Resets the UA button
-     styling the grid was never written against. */
-  appearance: none;
-  color: inherit;
-  font: inherit;
-  padding: 0;
-  cursor: pointer;
-  aspect-ratio: 1;
-  border-radius: 22px;
-  display: grid;
-  place-content: center;
-  gap: 0.2rem;
-  font-size: 1.9rem;
-  text-align: center;
-  background: radial-gradient(circle at 40% 32%, rgba(255, 220, 170, 0.28), rgba(120, 96, 220, 0.22));
-  border: 1px solid var(--panel-edge);
-}
-
-.sticker span {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--ink-soft);
-  max-width: 9ch;
-  line-height: 1.2;
-}
-
-/* The long fact, for whoever is reading it out. One at a time and text only: the discovery
-   photographs are fetched only when a place is found, which is what makes twelve of them
-   cost nothing at startup, and a journal showing twelve thumbnails would have fetched all
-   twelve. */
-.journal-detail {
-  margin: 0.7rem 0 0;
-  padding: 0.65rem 0.8rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--panel-edge);
-  font-size: 0.86rem;
-  line-height: 1.45;
-  color: var(--ink-soft);
-  text-align: left;
-}
-
-.sticker--empty {
-  background: rgba(255, 255, 255, 0.04);
-  border-style: dashed;
-  opacity: 0.5;
-}
-
-/* --- sticker award celebration -------------------------------------------- */
-
-/* Top centre: the hint has been cleared by this point, the destination sits mid-screen,
-   and the bottom belongs to the fact card. The badge on the journal button is what says
-   where the sticker went. */
 .award {
   position: absolute;
   top: var(--pad-top);
@@ -897,12 +225,6 @@ body {
   font-size: 0.85rem;
   color: var(--ink-soft);
 }
-
-/* --- the finale ----------------------------------------------------------- */
-
-/* Over everything in the game but under the grown-ups panel and the crash screen. The
-   backdrop is a tap target in its own right: closing is over-served for the same reason
-   the photo viewer's is. */
 .finale {
   position: absolute;
   inset: 0;
@@ -929,15 +251,8 @@ body {
   max-width: min(420px, 100%);
   text-align: center;
   animation: popDown 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) both;
-  /* popDown centres with a translateX; this is centred by flex, so undo that. */
   transform: none;
 }
-
-/* The full book, three by three like the journal itself, so it is recognisably the
-   same thing — only bigger, and with no question marks left. */
-/* Same reasoning as the journal grid: the finale shows every place found, and that is now
-   twenty-four rather than twelve. It fits its columns to the width and scrolls past the cap
-   instead of growing the overlay off the screen. */
 .finale__badges {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
@@ -959,7 +274,6 @@ body {
   background: radial-gradient(circle at 40% 32%, rgba(255, 220, 170, 0.32), rgba(120, 96, 220, 0.24));
   border: 1px solid var(--panel-edge);
   box-shadow: 0 0 22px var(--glow);
-  /* One after another, in the order they were found. */
   animation: badgePop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
   animation-delay: calc(0.35s + var(--i, 0) * 0.14s);
 }
@@ -1025,7 +339,6 @@ body {
 }
 
 @media (max-height: 480px) {
-  /* Sideways on a phone there is no height for a column: badges beside the words. */
   .finale__inner {
     flex-direction: row;
     max-width: min(560px, 100%);
@@ -1045,8 +358,6 @@ body {
     animation: none;
   }
 }
-
-/* --- animation ------------------------------------------------------------ */
 
 @keyframes popCorner {
   from {
@@ -1087,48 +398,7 @@ body {
   display: none !important;
 }
 
-/* --- narrow screens -------------------------------------------------------- */
-
-/*
- * Deliberately down here rather than beside the other phone rule up by `.dock`: media
- * queries add no specificity, so a `.fact-card p` override written above the base
- * `.fact-card p` simply loses to it. That is how the fact card came to be running at full
- * desktop size on a 390px phone — eight lines deep, most of a screen, over the planet a
- * child had just flown to.
- *
- * The type only drops to what a short *landscape* screen already used; a phone held
- * upright is just as narrow and had never been given it.
- */
-@media (max-width: 560px) {
-  .fact-card {
-    padding: 1rem 1.1rem;
-  }
-
-  .fact-card p {
-    font-size: 1.05rem;
-    line-height: 1.4;
-  }
-
-  .dock {
-    gap: 0.65rem;
-  }
-
-  .fact-actions {
-    gap: 0.55rem;
-  }
-
-  .transcript-btn {
-    padding-inline: 0.8rem;
-    font-size: 0.9rem;
-  }
-}
-
-/* --- short / landscape screens -------------------------------------------- */
-
 @media (max-height: 480px) {
-  .fact-card p {
-    font-size: 1.05rem;
-  }
   .btn {
     min-height: 54px;
     font-size: 1.05rem;
@@ -1137,124 +407,17 @@ body {
     width: 54px;
     height: 54px;
   }
-  .hint {
-    font-size: 0.9rem;
-  }
-  .dock {
-    gap: 0.6rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .award,
-  .journal-panel,
-  .fade-in,
-  .narrate-btn.is-speaking,
-  .fact-photo.is-fresh {
+  .fade-in {
     animation: none;
   }
   .btn {
     transition: none;
   }
 }
-
-/* --- mission HUD ---------------------------------------------------------- */
-
-/* Top band. The destination sits mid-screen and the dock owns the bottom, so this is
-   the only place that stays clear of both the body and the collectibles in portrait
-   and in landscape. Non-interactive, so a drag that starts up here still turns the
-   camera - which is exactly the gesture the third collectible is teaching. */
-.mission-hud {
-  position: absolute;
-  top: var(--pad-top);
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  pointer-events: none;
-  max-width: calc(100vw - var(--pad-left) - var(--pad-right));
-}
-
-.slot-row {
-  display: flex;
-  gap: 0.7rem;
-}
-
-/* Empty and filled differ by outline style, contents and size as well as colour, so
-   the state is still readable without colour vision. */
-.slot {
-  position: relative;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: grid;
-  place-content: center;
-  font-size: 1.7rem;
-  line-height: 1;
-  /* Warm gold rather than a cold grey dashed hole: an empty slot is a place still to find,
-     drawn in the same colour as the target on the planet it stands for, not an abstract
-     placeholder. Still dashed, so it reads as empty without relying on colour. */
-  border: 3px dashed rgba(255, 200, 120, 0.5);
-  background: rgba(20, 14, 44, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: transform 0.2s ease;
-}
-
-.slot .slot-icon {
-  opacity: 0.75;
-  color: var(--warm);
-  font-size: 1.2rem;
-  display: inline-flex;
-}
-
-.slot.is-filled {
-  border-style: solid;
-  border-color: var(--accent-lit);
-  background: radial-gradient(circle at 42% 34%, rgba(255, 214, 150, 0.5), rgba(120, 96, 220, 0.3));
-  box-shadow: 0 0 22px var(--glow);
-  animation: slotPop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
-}
-
-.slot.is-filled .slot-icon {
-  opacity: 1;
-  font-size: 1.45rem;
-  color: var(--warm);
-}
-
-/* A tick as well as the rock, so "done" is two signals rather than one. */
-.slot.is-filled::after {
-  content: "✓";
-  position: absolute;
-  right: -4px;
-  bottom: -2px;
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #2a1a05;
-  background: var(--warm);
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-content: center;
-}
-
-.mission-caption {
-  margin: 0;
-  padding: 0.5rem 1.1rem;
-  border-radius: 999px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  text-align: center;
-  color: var(--ink);
-  background: rgba(20, 14, 44, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-/* Same idea as .fade-in, but keeping the centring transform the element depends on. */
 .fade-in-centred {
   animation: fadeInCentred 0.4s ease both;
 }
@@ -1275,64 +438,12 @@ body {
   }
 }
 
-@media (max-width: 420px) {
-  .slot {
-    width: 54px;
-    height: 54px;
-  }
-  .mission-caption {
-    font-size: 0.95rem;
-    padding: 0.45rem 0.9rem;
-  }
-}
-
-@media (max-height: 480px) {
-  .slot {
-    width: 48px;
-    height: 48px;
-  }
-  .slot .slot-icon,
-  .slot.is-filled .slot-icon {
-    font-size: 1.25rem;
-  }
-  .slot.is-filled::after {
-    width: 18px;
-    height: 18px;
-    font-size: 0.8rem;
-  }
-  .mission-caption {
-    font-size: 0.95rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .slot,
-  .slot.is-filled,
   .fade-in-centred {
     animation: none;
     transition: none;
   }
 }
-
-/* --- go home -------------------------------------------------------------- */
-
-/* In the dock, under whatever the primary action is. Not a screen corner: every corner
-   is claimed by the journal button, the mission slots or the award card at one viewport
-   size or another, whereas the dock lays itself out and cannot collide.
-
-   Secondary to the primary action, but never *quiet*: it carries a word, it is button
-   sized, and it is the same shape as everything else that can be pressed. A child who
-   wants to leave should recognise it as a button without having to try it. */
-.home-btn {
-  min-height: 54px;
-  font-size: 1.05rem;
-}
-
-/* --- tap echo ------------------------------------------------------------- */
-
-/* A tap that hits nothing still gets an answer. Deliberately not a failure signal -
-   just "I saw you" - because an unresponsive tap reads to a small child as a broken
-   app rather than as a miss. */
 .tap-echo {
   position: absolute;
   width: 44px;
@@ -1356,7 +467,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Still answers the tap, without the expanding ring. */
   .tap-echo {
     animation: tapFade 0.4s ease-out forwards;
   }
@@ -1370,17 +480,6 @@ body {
     opacity: 0;
   }
 }
-
-/*
- * "It is round this way." Sits at the edge of the screen on the side the last place lies,
- * and nudges towards it — the drag lesson without words, for an audience that mostly cannot
- * read the line of text that used to be the only cue.
- *
- * Vertically centred rather than in a corner, because that is where a hand goes to turn a
- * globe. It is a button: a press turns the world towards the place, so it takes the tap
- * that lands on it. A drag started on it does not reach the globe, which is the accepted
- * cost of a 62px target at the very edge; drags start on the world.
- */
 .hunt-arrow {
   position: absolute;
   top: 50%;
@@ -1424,9 +523,6 @@ body {
 .hunt-arrow.is-right {
   right: var(--pad-right);
 }
-
-/* The nudge is on the chevron, not the button: a tap target that travels is harder to hit
-   and reads as flinching from the finger. The disc stays put; the mark inside it beckons. */
 .hunt-arrow.is-left .hunt-arrow__chevron {
   transform: scaleX(-1);
   animation: huntLeft 1.6s ease-in-out infinite;
@@ -1457,7 +553,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Still has to be noticed, so it pulses in place rather than travelling. */
   .hunt-arrow.is-left .hunt-arrow__chevron,
   .hunt-arrow.is-right .hunt-arrow__chevron {
     animation: huntFade 1.8s ease-in-out infinite;
@@ -1473,9 +568,6 @@ body {
     opacity: 0.45;
   }
 }
-
-/* The name of a place, at the place. Rises and fades so it never has to be dismissed, and
-   never sits on top of what a child is about to tap next. */
 .find-label {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1491,7 +583,6 @@ body {
   color: #fff3dc;
   font-size: 1.05rem;
   font-weight: 700;
-  /* Or it wraps to two words on a phone and stops being a label. */
   white-space: nowrap;
   pointer-events: none;
   z-index: 30;
@@ -1523,8 +614,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* The label still has to appear and leave on its own — it is how the find is named —
-     but it does so without travelling. animationend still fires, so it still cleans up. */
   .find-label {
     animation: findLabelStill 2.4s ease-out forwards;
   }
@@ -1544,13 +633,6 @@ body {
     opacity: 0;
   }
 }
-
-/* The `?voices` readout. Deliberately plain and deliberately on top of everything: it is
-   a diagnostic for an adult holding the tablet, not part of the game. */
-/*
- * The grown-ups panel. Reached deliberately by an adult, so it can be plain — but every
- * row is a tap target on a tablet, which is what the generous padding is for.
- */
 .grownups {
   position: absolute;
   inset: 0;
@@ -1581,9 +663,6 @@ body {
   max-width: 56ch;
   color: #c4bde8;
 }
-
-/* The biggest thing on the panel and the first thing under the opening line, because the
-   failure mode here is a child opening the game alone and meeting text they cannot read. */
 .grownups__start {
   display: block;
   width: min(24rem, 100%);
@@ -1683,7 +762,6 @@ body {
 }
 
 .voice-option {
-  /* Comfortably over the 44px a fingertip needs, since the whole page is tapping. */
   padding: 0.75rem 0.9rem;
 }
 
@@ -1707,52 +785,6 @@ body {
   color: #b9b2e0;
 }
 
-/* The activity's half-lit globe shows the same light/dark idea as the visited world.
-   The live turn drives its terminator; at rest it is still, except for an invitation. */
-.spin-globe {
-  position: relative;
-  display: block;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  overflow: hidden;
-  /* Lit warm from the upper left, like every body in the scene — and warm on purpose. The
-     lit half has to read as *sunlit*, because that is the half of the idea a drawn sun used
-     to carry; a neutrally lit ball is just a ball. --world is set per destination from
-     config, so this is that world's globe rather than a generic one. */
-  background:
-    radial-gradient(circle at 30% 26%, rgba(255, 246, 226, 0.92), rgba(255, 226, 178, 0.4) 42%, transparent 66%),
-    var(--world, #6f6ab0);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.26),
-    0 0 10px rgba(255, 214, 150, 0.32);
-}
-
-/* Twice the disc's width and carrying two night bands, so translating it by exactly half
-   its own width loops with no seam and no pop — the terminator simply keeps crossing. A
-   hard-edged half would read as a shadow cast on it; a soft one reads as the curve of a
-   world turning. */
-.spin-globe__night {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 200%;
-  background: linear-gradient(
-    90deg,
-    rgba(2, 1, 9, 0.88) 0%,
-    rgba(2, 1, 9, 0.88) 17%,
-    rgba(2, 1, 9, 0) 47%,
-    rgba(2, 1, 9, 0) 53%,
-    rgba(2, 1, 9, 0.88) 83%,
-    rgba(2, 1, 9, 0.88) 100%
-  );
-  /* The resting pose is half-lit, which is the whole idea stated in one frame — so the
-     button still says it under reduced motion, and while the animation is paused. */
-  transform: translateX(-25%);
-  animation: spinGlobeTurn 5s linear infinite;
-}
-
 @keyframes spinGlobeTurn {
   from {
     transform: translateX(-50%);
@@ -1761,35 +793,6 @@ body {
     transform: translateX(0);
   }
 }
-
-/* While a real turn is running the globe stops idling and is *driven* by it: --turn is the
-   turn's own reported progress, and one full turn walks the night through exactly one loop
-   of the same travel the idle animation uses. The button and the planet then turn together
-   and finish together. */
-.spin-globe.is-turning .spin-globe__night {
-  animation: none;
-  transform: translateX(calc(-50% + 50% * var(--turn, 0)));
-}
-
-/* Asking to be noticed, once the hunt is finished and the child has gone idle. The button
-   pulses where it already is rather than a hand flying down to the dock to press it: the
-   coach's hand belongs over the canvas, on the thing a gesture applies to, and this costs
-   no screen space at all. A halo and a breath, not a jump — the tone of this whole game is
-   gentle, and a button that leaps about would be the loudest thing in it. */
-.spin-btn.is-inviting {
-  animation: spinInvite 2.6s ease-in-out infinite;
-}
-
-/* The halo breathes; the button does not move.
-   The first version scaled the button 7%, which looks livelier and is the wrong trade for
-   this audience: a five-year-old on a tablet already has imprecise aim, and a target that
-   is growing and shrinking under the finger reaching for it is a target that moves. The
-   whole game is built around not asking that of them — the hit spheres are many times the
-   size of the markers they surround for exactly this reason. A glow attracts attention
-   without touching the geometry of the thing being pressed.
-
-   Found by driving the built app: the automation refused to click it, reporting the element
-   as not stable, which is the same objection a small finger has. */
 @keyframes spinInvite {
   0%,
   100% {
@@ -1805,48 +808,9 @@ body {
       0 0 22px 6px rgba(255, 208, 138, 0.38);
   }
 }
-
-/* And the little globe turns while it asks: the button's own picture of what it does,
-   sped up from its idle crawl so the motion reads as "this one turns". */
-.spin-btn.is-inviting .spin-globe:not(.is-turning) .spin-globe__night {
-  animation-duration: 1.6s;
-}
-
-/* Removes the motion, keeps the invitation: a held warm ring still says "this one". */
-@media (prefers-reduced-motion: reduce) {
-  .spin-btn.is-inviting {
-    animation: none;
-    box-shadow:
-      0 4px 0 rgba(38, 27, 74, 0.9),
-      0 0 16px 3px rgba(255, 208, 138, 0.34);
-  }
-}
-
-/* Removes the motion, keeps the meaning: a globe frozen half in night still says what the
-   button does, which a stroked sun never did. */
-@media (prefers-reduced-motion: reduce) {
-  .spin-globe__night {
-    animation: none;
-  }
-}
-
-/* --- the idle coach ------------------------------------------------------- */
-
-/* A hand that shows the gesture on the thing the gesture applies to. Every instruction in
-   this game was a caption written for an audience that cannot read; narration answered that
-   once per cue, and a child looking out of the window at that moment got nothing. The drag
-   is the worst case — an arrow means "look over there", never "put your finger down and
-   slide it" — so this demonstrates it.
-
-   pointer-events: none is load-bearing: the hand sits directly over the target it is
-   pointing at, and it must never intercept the tap it is asking for. */
 .coach {
   position: fixed;
   z-index: 26;
-  /* The fingertip of 👆 is at the top of the glyph, so the hand hangs *below* the point it
-     is indicating and reaches up to it — at the peak of the tap animation the fingertip
-     lands on the target. Centred on it instead, the hand simply covered the thing it was
-     asking the child to press. */
   margin-left: -18px;
   margin-top: 8px;
   font-size: 2.3rem;
@@ -1863,10 +827,6 @@ body {
 .coach.is-drag {
   animation: coachDrag 2.1s ease-in-out infinite;
 }
-
-/* Removes the motion, keeps the instruction. Taking the hand away entirely under reduced
-   motion would remove the only wordless instruction in the game from the children most
-   likely to need it; the same rule the flight and the day turn follow. */
 .coach.is-still {
   animation: none;
 }
@@ -1885,10 +845,6 @@ body {
     transform: translateY(0) scale(0.9);
   }
 }
-
-/* Starts in the middle and sweeps towards the side the hidden place lies round, which is
-   the direction the finger goes: dragging right brings what is round to the left into
-   view. --coach-sweep carries the signed distance. */
 @keyframes coachDrag {
   0%,
   100% {
@@ -1910,140 +866,8 @@ body {
     animation: none;
   }
 }
-
-/* Keep the reward photograph and replay available without covering the world. */
-.fact-card.is-audio-first:not(.is-transcript-open),
-.fact-card.is-collapsed {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  /* Shrink to the name, photo and controls and centre, rather than stretching to a fixed
-     bar with an empty middle. The expanded reading card is a different state and still gets
-     its full width above, so the paragraph never narrows into a tall column. */
-  width: auto;
-  align-self: center;
-  max-width: 420px;
-  gap: 0.35rem;
-  padding: 0.45rem 0.65rem;
-}
-.fact-card.is-collapsed .fact-actions { display: flex; }
-.fact-card .fact-actions { gap: 0.4rem; }
-.fact-card .fact-title { font-size: 0.95rem; line-height: 1.15; }
-.fact-card .transcript-btn { padding-inline: 0.65rem; font-size: 0.85rem; }
-.fact-card .narrate-btn { width: 54px; height: 54px; min-height: 54px; }
-.journal-panel { max-height: calc(100dvh - var(--pad-top) - var(--pad-bottom)); overflow-y: auto; }
-.journal-panel .sticker-grid { flex: 1 1 auto; min-height: 100px; }
-.journal-panel .journal-detail { flex-shrink: 0; }
-.journal-panel > .btn { flex-shrink: 0; }
-
-/* Contextual controls form one stable row. Facts stay full-width above it on phones;
-   a compact fact shares the bottom band on wider screens. Empty space accepts drags. */
-.dock {
-  left: 50%;
-  width: min(560px, calc(100vw - var(--pad-left) - var(--pad-right)));
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 8px;
-}
-.visit-actions {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr);
-  gap: 6px;
-  width: min(100%, 340px);
-  padding: 5px;
-  border: 1px solid var(--panel-edge);
-  border-radius: 24px;
-  background: var(--panel);
-  pointer-events: none;
-}
-.visit-actions > .btn {
-  position: relative;
-  inset: auto;
-  width: 100%;
-  height: 64px;
-  min-height: 64px;
-  min-width: 0;
-  padding: 5px 4px;
-  border-radius: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 0.85rem;
-  pointer-events: auto;
-  box-shadow: 0 3px 0 var(--trim-lip), inset 0 1px 0 rgba(255,255,255,0.3);
-}
-.visit-actions > .btn:active { box-shadow: 0 1px 0 var(--trim-lip); }
-.visit-actions .journal-btn { grid-column: 1; }
-.visit-actions .home-btn { grid-column: 2; }
-.visit-actions:not(.has-activity) .home-btn { grid-column: 2 / 4; }
-.visit-actions .home-btn .icon { width: 60px; height: 34px; }
-.visit-actions .home-btn {
-  background: linear-gradient(180deg, var(--accent-lit), var(--accent));
-  color: #24132d;
-  border: 1px solid var(--warm);
-}
-.visit-actions .spin-btn { grid-column: 3; border: 1px solid var(--warm); }
-.visit-actions .icon { width: 25px; height: 25px; }
-.journal-label { display: none; }
-.visit-actions .journal-label { display: inline; }
 .control-label { font-weight: 800; line-height: 1.1; }
-.day-legend {
-  position: absolute;
-  top: var(--pad-top);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 16px;
-  border: 1px solid var(--panel-edge);
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--warm);
-  font-size: 1rem;
-  font-weight: 800;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.spin-picture { display: flex; align-items: center; gap: 3px; }
-.spin-picture .spin-globe { width: 25px; height: 25px; }
-.spin-arrow { color: var(--warm); font-size: 1.6rem; line-height: 1; }
-.spin-globe__night { animation: none; }
-.spin-btn.is-inviting .spin-globe__night { animation: spinGlobeTurn 5s linear 2; }
-.spin-globe.is-turning .spin-globe__night { animation: none; }
-.spin-btn.is-busy { opacity: 1; }
-.spin-btn.is-busy .spin-arrow { font-size: 0; }
-.spin-btn.is-busy .spin-arrow::after { content: '■'; font-size: 1.1rem; }
-.btn:focus-visible, .destination-choice:focus-visible, .fact-photo:focus-visible {
+.btn:focus-visible {
   outline: 3px solid var(--spark);
   outline-offset: 4px;
 }
-/* Short screens need a single top band so the caption cannot sit over an upper marker. */
-@media (min-width: 600px) and (max-height: 480px) {
-  .mission-hud { flex-direction: row; align-items: center; gap: 12px; }
-  .slot-row { gap: 0.4rem; }
-  .mission-caption { margin: 0; max-width: 210px; }
-}
-@media (min-width: 600px) and (orientation: landscape) {
-  .dock {
-    width: min(750px, calc(100vw - var(--pad-left) - var(--pad-right)));
-    flex-flow: row wrap;
-    align-items: flex-end;
-  }
-  .dock .fact-card { order: 0; flex: 1 0 100%; }
-  .dock .fact-card.is-collapsed,
-  .dock .fact-card.is-audio-first:not(.is-transcript-open) {
-    flex: 1 1 220px;
-    min-width: 0;
-    max-width: 420px;
-    align-self: auto;
-  }
-  .visit-actions { flex: 0 0 310px; margin-left: auto; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .spin-btn.is-inviting .spin-globe__night { animation: none; }
-}
-
-.collection-progress { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
-.collection-progress__world { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; font-size: 0.8rem; }
-.collection-progress__track { display: flex; width: 100%; gap: 3px; }
-.collection-progress__track span { flex: 1; height: 7px; border-radius: 5px; background: #473c61; }
-.collection-progress__track .is-found { background: #ffc36a; }

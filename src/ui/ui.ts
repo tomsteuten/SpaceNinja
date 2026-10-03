@@ -1,6 +1,7 @@
+import { worldPicture, discoveryPicture } from './pictures';
 import { worldCollections } from '../state/replay';
 /**
- * The interface layer: selection prompt, the big fly button, the arrival fact card, the
+ * The adventure interface: destination tray, contextual actions, deliberate reading, the
  * mission HUD and the discovery journal.
  *
  * Kept deliberately sparse — for this age group, one clear thing to press at a time.
@@ -15,7 +16,6 @@ import {
   guideOnArrival,
   narrationOnEnd,
   shouldAutoNarrate,
-  transcriptControlState,
   type PendingGuide,
 } from './narrationFlow';
 import { createPhotoViewer, findPhoto } from './photos';
@@ -80,7 +80,7 @@ export interface GameUI {
    * A place has been found: name it, and put it in the journal.
    *
    * Available recordings play independently; missing recordings remain manual.
-   * Show words remains available even when a recording is absent.
+   * The reading panel remains available even when a recording is absent.
    */
   showDiscovery(discovery: Discovery, narrate?: boolean, revisited?: boolean): void;
   /**
@@ -88,13 +88,7 @@ export interface GameUI {
    * speaker button, but nothing goes into the journal, because nothing was collected.
    */
   showNote(cueId: string, title: string, text: string): void;
-  /**
-   * Fold the card away to its speaker button now, because something has started that is
-   * worth more than the words are. Idempotent, and normally yields to a reading in
-   * progress. The explicit override is reserved for a visual lesson whose card would
-   * cover the thing the narration asks the child to watch.
-   */
-  foldFact(forceWhileSpeaking?: boolean): void;
+
   /** Fills `collected` of the slots. */
   setMissionProgress(collected: number): void;
   /**
@@ -132,7 +126,7 @@ export interface GameUI {
    * Name a place at the point on screen where it was found, so the answer arrives at the
    * thing that was touched rather than only in a card at the bottom of the screen.
    */
-  showFindLabel(clientX: number, clientY: number, emoji: string, name: string): void;
+  showFindLabel(clientX: number, clientY: number, discoveryId: string, name: string): void;
   /**
    * Offer to turn the destination through a day, or take the offer away. Null hides it.
    *
@@ -296,11 +290,7 @@ export function createUI(options: UIOptions): GameUI {
       // The world keeps its own picture even while locked — that picture is the whole
       // reason to want to go there, and a child who cannot read "Saturn" can want the one
       // with the rings. The padlock is a corner badge over it rather than a replacement.
-      const orb = el('span', 'world-orb');
-      orb.classList.add('world-orb--' + choice.id);
-      orb.setAttribute('aria-hidden', 'true');
-      if (choice.id === 'sun') orb.textContent = '☀';
-      else orb.style.backgroundImage = 'url(./assets/' + choice.id + '.jpg)';
+      const orb = worldPicture(choice.id);
       button.append(orb, el('span', 'destination-choice__label', choice.label));
       if (choice.locked) {
         const lock = createIcon('lock');
@@ -324,12 +314,15 @@ export function createUI(options: UIOptions): GameUI {
   const missionCaption = el('p', 'mission-caption');
   missionHud.append(slotRow, missionCaption);
   root.append(missionHud);
-  const dayLegend = el('div', 'day-legend is-hidden', '☀ Day  ·  ☾ Night');
+  const dayLegend = el('div', 'day-legend is-hidden');
+  dayLegend.append(el('span', 'day-key', 'Day'), el('span', 'night-key', 'Night'));
   root.append(dayLegend);
 
   let slots: HTMLElement[] = [];
 
   function buildSlots(total: number) {
+    missionHud.setAttribute('role', 'img');
+    missionHud.setAttribute('aria-label', `0 of ${total} places found`);
     slotRow.replaceChildren();
     slots = [];
     for (let i = 0; i < total; i++) {
@@ -386,22 +379,25 @@ export function createUI(options: UIOptions): GameUI {
    * the paragraph, but only after starting audio again, and nothing on it said the words
    * were behind it to a child with hearing loss or one playing in a noisy room.
    */
-  const transcriptButton = el('button', 'btn btn--quiet transcript-btn is-hidden');
-  transcriptButton.type = 'button';
-  transcriptButton.setAttribute('aria-controls', factText.id);
-  const transcriptLabel = el('span');
-  const transcriptIcon = createIcon('journal');
-  transcriptButton.append(transcriptIcon, transcriptLabel);
-
-  // The words get their own full width, and the picture and the speaker share the row
-  // beneath. Flanking the text with both used to squeeze a long fact into a column so
-  // narrow it ran ten lines deep and buried the planet — the very thing a child has just
-  // flown to and is being asked to look at.
   const factActions = el('div', 'fact-actions');
-  factActions.append(factPhoto, transcriptButton, narrateButton);
-
-  factCard.append(factTitle, factText, factActions);
-  factCard.classList.add('is-hidden');
+  const factClose = el('button', 'btn panel-close');
+  factClose.type = 'button';
+  factClose.setAttribute('aria-label', 'Close the words');
+  factClose.append(createIcon('close'));
+  const factReturn = el('button', 'btn panel-return');
+  factReturn.type = 'button';
+  const factHeader = el('div', 'dialog-head');
+  factTitle.id = 'fact-title';
+  factHeader.append(factTitle, factClose);
+  factActions.append(factPhoto, narrateButton, factReturn);
+  factCard.append(factHeader, factText, factActions);
+  factCard.setAttribute('role', 'dialog');
+  factCard.setAttribute('aria-modal', 'true');
+  factCard.setAttribute('aria-labelledby', factTitle.id);
+  const factShade = el('div', 'panel-shade is-hidden');
+  factShade.append(factCard);
+  root.append(factShade);
+  const factFocus = createDialogFocus(factCard, () => factReturn, () => setFactOpen(false));
 
   /*
    * The drag lesson, made visible — and made a button.
@@ -431,12 +427,16 @@ export function createUI(options: UIOptions): GameUI {
    * the photo. A fast second tap must not close what the first one opened — see panelGuard.
    */
   const panelGuard = createPanelGuard(window);
-  const photoViewer = createPhotoViewer(root, { guard: panelGuard });
+  const photoViewer = createPhotoViewer(root, {
+    guard: panelGuard,
+    onShow: () => { factCard.inert = true; journalPanel.inert = true; },
+    onHide: () => { factCard.inert = false; journalPanel.inert = false; },
+  });
   /** What the thumbnail currently shows, so a tap opens the right one. */
   let photoShowing: { url: string; caption: string } | null = null;
 
   factPhoto.addEventListener('click', () => {
-    if (photoShowing) photoViewer.show(photoShowing.url, photoShowing.caption, visitEmoji);
+    if (photoShowing) photoViewer.show(photoShowing.url, photoShowing.caption, visitWorldId);
   });
 
   function clearPhoto() {
@@ -462,7 +462,7 @@ export function createUI(options: UIOptions): GameUI {
     const url = await findPhoto(discovery.id);
     if (!url || photoFor !== discovery.id) return;
     factPhotoImage.src = url;
-    photoShowing = { url, caption: `${discovery.emoji} ${discovery.name}` };
+    photoShowing = { url, caption: discovery.name };
     factPhoto.classList.remove('is-hidden');
     // Pulse once to say "this is new, and it opens". Retriggered by removing the class and
     // forcing a reflow, because the element persists between finds and a CSS animation
@@ -482,7 +482,7 @@ export function createUI(options: UIOptions): GameUI {
       return;
     }
     if (photoFor !== discovery.id) return;
-    photoViewer.showDiscovery(url, `${discovery.emoji} ${discovery.name}`, discovery.short, visitEmoji);
+    photoViewer.showDiscovery(url, discovery.name, discovery.short, visitWorldId);
   }
 
   /** The discovery the card is currently about, or null for anything else. */
@@ -522,34 +522,72 @@ export function createUI(options: UIOptions): GameUI {
   spinPicture.setAttribute('aria-hidden', 'true');
   const spinGlobe = el('span', 'spin-globe');
   spinGlobe.append(el('span', 'spin-globe__night'));
-  spinPicture.append(spinGlobe, el('span', 'spin-arrow', '↻'));
+  const spinArrow = el('span', 'spin-arrow');
+  spinArrow.append(createIcon('turnArrow'));
+  spinPicture.append(spinGlobe, spinArrow);
   const spinLabel = el('span', 'control-label', 'Day & night');
   spinButton.append(spinPicture, spinLabel);
   spinButton.classList.add('is-hidden');
   let spinBusy = false;
-  let visitEmoji = '🌍';
+  let preDayCaption = '';
+  let visitWorldId = 'earth';
   let spinAccessibleLabel = 'Watch day and night';
 
-  const aboutButton = el('button', 'btn btn--secondary about-btn is-hidden', 'About');
-  aboutButton.type = 'button';
-  aboutButton.setAttribute('aria-expanded', 'false');
-  aboutButton.setAttribute('aria-controls', factText.id);
-  const earthHeading = el('div', 'earth-heading is-hidden');
-  const earthOrb = el('span', 'world-orb');
-  earthOrb.setAttribute('aria-hidden', 'true');
-  earthOrb.style.backgroundImage = 'url(./assets/earth.jpg)';
-  earthHeading.append(earthOrb, el('span', undefined, 'Earth'), aboutButton);
-  root.append(earthHeading);
-  let earthArrivalFact = '';
-  let earthAboutOpen = false;
-  let aboutOpening: PanelOpening | null = null;
+  const listenButton = el('button', 'btn btn--secondary listen-btn is-hidden');
+  const listenLabel = el('span', 'control-label', 'Listen');
+  listenButton.append(createIcon('speaker'), listenLabel);
+  listenButton.type = 'button';
+  listenButton.setAttribute('aria-expanded', 'false');
+  listenButton.setAttribute('aria-controls', 'fact-title');
+  const worldHeading = el('div', 'world-heading is-hidden');
+  const headingName = el('strong');
+  const headingCaption = el('span', 'world-heading__caption');
+  const headingCopy = el('div');
+  headingCopy.append(headingName, headingCaption);
+  worldHeading.append(headingCopy);
+  root.append(worldHeading);
+  let arrivalFact = '';
+  let arrivalCue = '';
+  let factOpen = false;
+  let readingOpening: PanelOpening | null = null;
+
+  function setFactOpen(open: boolean) {
+    if (open === factOpen) return;
+    factOpen = open;
+    factShade.classList.toggle('is-hidden', !open);
+    listenButton.setAttribute('aria-expanded', String(open));
+    if (open) {
+      readingOpening = panelGuard.opened();
+      factCard.classList.remove('is-hidden');
+      factReturn.replaceChildren(createIcon('back'), worldPicture(visitWorldId), el('span', '', 'Keep exploring'));
+      factFocus.open();
+    } else {
+      factFocus.close();
+      pendingGuide = null;
+      narrator.stop();
+      scheduleFactAdvance(FACT_MINIMUM_MS);
+    }
+  }
+  factClose.addEventListener('click', () => setFactOpen(false));
+  factReturn.addEventListener('click', event => {
+    if (panelGuard.allowsClose(readingOpening, event)) setFactOpen(false);
+  });
 
   const visitActions = el('div', 'visit-actions is-hidden');
   visitActions.setAttribute('role', 'group');
   visitActions.setAttribute('aria-label', 'Explore this world');
-  visitActions.append(homeButton, spinButton);
-  dock.append(factCard, visitActions);
+  visitActions.append(homeButton, listenButton, spinButton);
+  dock.append(visitActions);
   root.append(dock);
+
+  listenButton.addEventListener('click', () => {
+    const spin = DESTINATIONS[visitWorldId]?.spin;
+    if (spinBusy && spin) showFact(spin.fact, 'Day & night', 'spin-' + visitWorldId, false);
+    else if (!currentFact) showFact(arrivalFact, headingName.textContent ?? '', arrivalCue, false);
+    setFactOpen(true);
+    pendingGuide = null;
+    if (soundOn && !narrator.speaking) narrator.speak(currentFact, currentFactCueId);
+  });
 
   /* --- journal ------------------------------------------------------------- */
 
@@ -568,6 +606,8 @@ export function createUI(options: UIOptions): GameUI {
   const collectionProgress = el('div', 'collection-progress');
   collectionProgress.setAttribute('aria-label', 'Places found on each world');
   const stickerGrid = el('div', 'sticker-grid');
+  // Scrollable containers otherwise become an extra Tab stop in Chromium even when empty.
+  stickerGrid.tabIndex = -1;
   /*
    * Where the long fact lives now that the card in play carries the short one.
    *
@@ -599,7 +639,7 @@ export function createUI(options: UIOptions): GameUI {
   });
   journalPhoto.addEventListener('click', () => {
     const discovery = detailFor ? DISCOVERIES[detailFor] : undefined;
-    if (journalPhotoUrl && discovery) photoViewer.show(journalPhotoUrl, `${discovery.emoji} ${discovery.name}`);
+    if (journalPhotoUrl && discovery) photoViewer.show(journalPhotoUrl, discovery.name);
   });
   journalAudio.addEventListener('click', () => {
     const discovery = detailFor ? DISCOVERIES[detailFor] : undefined;
@@ -608,12 +648,22 @@ export function createUI(options: UIOptions): GameUI {
     if (narrator.speaking) narrator.stop();
     else narrator.speak(discovery.short, `discovery-${discovery.id}`);
   });
-  const closeJournal = el('button', 'btn btn--quiet', 'Close');
+  const closeJournal = el('button', 'btn panel-return');
+  closeJournal.setAttribute('aria-label', 'Close');
+  const journalClose = el('button', 'btn panel-close');
+  journalClose.type = 'button';
+  journalClose.setAttribute('aria-label', 'Close journal');
+  journalClose.append(createIcon('close'));
+  journalClose.addEventListener('click', () => setJournalOpen(false));
+  const journalHeader = el('div', 'dialog-head');
+  journalHeader.append(journalTitle, journalClose);
   closeJournal.type = 'button';
-  journalPanel.append(journalTitle, collectionProgress, stickerGrid, journalDetail, journalActions, closeJournal);
+  journalPanel.append(journalHeader, collectionProgress, stickerGrid, journalDetail, journalActions, closeJournal);
   const journalFocus = createDialogFocus(journalPanel, () => closeJournal, () => setJournalOpen(false));
 
-  root.append(journalButton, journalPanel);
+  const journalShade = el('div', 'panel-shade journal-shade is-hidden');
+  journalShade.append(journalPanel);
+  root.append(journalButton, journalShade);
 
   function renderJournal() {
     stickerGrid.replaceChildren();
@@ -622,7 +672,9 @@ export function createUI(options: UIOptions): GameUI {
     for (const world of worldCollections(found)) {
       const row = el('div', 'collection-progress__world');
       row.setAttribute('aria-label', `${world.label}: ${world.found} of ${world.total} places found`);
-      row.append(el('span', '', `${world.emoji} ${world.label}`),
+      const label = el('span', 'collection-progress__label', world.label);
+      label.prepend(worldPicture(world.id));
+      row.append(label,
         el('span', '', `${world.found}/${world.total}`));
       const track = el('span', 'collection-progress__track');
       track.setAttribute('aria-hidden', 'true');
@@ -633,7 +685,7 @@ export function createUI(options: UIOptions): GameUI {
     // A full book says so. A child who cannot read the title can still see there are no
     // question marks left, which is the same fact in the picture.
     journalTitle.textContent = foundEverything(found, Object.keys(DISCOVERIES))
-      ? 'Every place found! 🥷'
+      ? 'Every place found!'
       : 'My Discoveries';
     let filled = 0;
     for (const id of found) {
@@ -646,7 +698,7 @@ export function createUI(options: UIOptions): GameUI {
       tile.type = 'button';
       tile.setAttribute('aria-label', `${discovery.name} — read more`);
       tile.append(
-        el('div', undefined, discovery.emoji),
+        discoveryPicture(discovery.id),
         el('span', undefined, discovery.name),
       );
       tile.addEventListener('click', () => showJournalDetail(discovery));
@@ -668,7 +720,7 @@ export function createUI(options: UIOptions): GameUI {
     }
     clearJournalDetail();
     detailFor = discovery.id;
-    journalDetail.textContent = `${discovery.emoji}  ${discovery.fact}`;
+    journalDetail.textContent = discovery.fact;
     journalDetail.hidden = false;
     journalActions.classList.remove('is-hidden');
     journalAudio.classList.toggle('is-hidden', !soundOn || !narrator.available);
@@ -705,9 +757,13 @@ export function createUI(options: UIOptions): GameUI {
       // lands on Close. Remember when and on which press it opened; Close asks before acting.
       journalOpening = panelGuard.opened();
     }
+    journalShade.classList.toggle('is-hidden', !open);
     journalPanel.classList.toggle('is-hidden', !open);
+    closeJournal.replaceChildren(createIcon('back'),
+      root.classList.contains('is-home') ? createIcon('spaceMap') : worldPicture(visitWorldId),
+      el('span', '', root.classList.contains('is-home') ? 'Back to space' : 'Keep exploring'));
     journalButton.classList.toggle('is-hidden', open);
-    // The panel and the fact card both want the lower half of a phone screen.
+    // Keep the underlying row out of this modal.
     dock.classList.toggle('is-hidden', open);
     if (open) {
       journalButton.removeAttribute('data-new');
@@ -725,29 +781,6 @@ export function createUI(options: UIOptions): GameUI {
     if (spinBusy) onStopSpin();
     else onSpin();
   });
-  aboutButton.addEventListener('click', (event) => {
-    const opening = !earthAboutOpen;
-    // A toggle, so a double tap would open the words and shut them again in one go. The
-    // closing half waits for a fresh, deliberate press; the opening half is always honoured.
-    if (!opening && !panelGuard.allowsClose(aboutOpening, event)) return;
-    if (opening) {
-      aboutOpening = panelGuard.opened();
-      const duringDay = root.classList.contains('is-day-active');
-      showFact(
-        duringDay ? (DESTINATIONS.earth?.spin?.fact ?? earthArrivalFact) : earthArrivalFact,
-        duringDay ? 'Day & night' : 'Earth',
-        duringDay ? 'spin-earth' : 'arrival-earth',
-        false,
-      );
-      factCard.classList.add('is-transcript-open');
-      updateTranscriptButton();
-    } else {
-      factCard.classList.add('is-hidden');
-    }
-    earthAboutOpen = opening;
-    aboutButton.setAttribute('aria-expanded', String(opening));
-  });
-
   /*
    * Tap opens the journal; hold opens the grown-ups panel.
    *
@@ -815,64 +848,16 @@ export function createUI(options: UIOptions): GameUI {
     else if (arrival === 'speak') narrator.speak(text, cueId, false);
   }
 
-  function wordsVisible() {
-    return (
-      !factCard.classList.contains('is-collapsed') &&
-      (!factCard.classList.contains('is-audio-first') ||
-        factCard.classList.contains('is-transcript-open'))
-    );
-  }
-
-  function updateTranscriptButton() {
-    const enabled = factCard.classList.contains('has-transcript-toggle') && Boolean(currentFact);
-    transcriptButton.classList.toggle('is-hidden', !enabled);
-    if (!enabled) return;
-    const state = transcriptControlState(wordsVisible());
-    transcriptIcon.innerHTML = iconMarkup(wordsVisible() ? 'back' : 'journal');
-    transcriptLabel.textContent = state.label;
-    transcriptButton.setAttribute('aria-expanded', state.expanded);
-  }
-
-  transcriptButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    if (!currentFact) return;
-    if (wordsVisible()) {
-      factCard.classList.add('is-collapsed');
-      factCard.classList.remove('is-transcript-open');
-    } else {
-      factCard.classList.remove('is-collapsed');
-      factCard.classList.add('is-transcript-open');
-      // A child asking for the words gets a fresh reading window, even if narration had
-      // nearly reached the old fold timer when they pressed it.
-      factShownAt = Date.now();
-      scheduleCollapse(FACT_MINIMUM_MS);
-    }
-    updateTranscriptButton();
-  });
-
-  // Tapping the words puts them away. The card is wide and the destination is now close
-  // enough to fill the frame behind it, so a place worth finding can end up underneath it
-  // — and a tap that lands on the card instead of on the ring it is covering has to do
-  // something. Folding is the something: the next tap reaches the ring.
-  factCard.addEventListener('click', (event) => {
-    if (event.target instanceof Element && event.target.closest('button')) return;
-    // Advances rather than simply closing, so a tap during a discovery still gets to the
-    // completion line that was queued behind it.
-    factTimeUp();
-  });
-
   narrateButton.addEventListener('click', () => {
     if (narrator.speaking) {
       // Stop means stop. Do not let the queued hunt cue begin a moment later.
       pendingGuide = null;
       narrator.stop();
     } else if (currentFact) {
-      // Replay leaves the planet clear; Show words owns the paragraph.
-      factCard.classList.remove('is-collapsed');
-      updateTranscriptButton();
+      // Replay is an explicit action inside the reading panel.
       factShownAt = Date.now();
       narrator.speak(currentFact, currentFactCueId);
-      scheduleCollapse(11000);
+      scheduleFactAdvance(11000);
     }
   });
   narrator.onChange((speaking) => {
@@ -892,7 +877,7 @@ export function createUI(options: UIOptions): GameUI {
       } else {
         // Fold away shortly after the reading finishes rather than on a fixed timer, so the
         // card is never taken away mid-sentence.
-        scheduleCollapse(1600);
+        scheduleFactAdvance(1600);
       }
     }
   });
@@ -922,7 +907,10 @@ export function createUI(options: UIOptions): GameUI {
       el('strong', undefined, 'New sticker!'),
       el('small', undefined, definition.label),
     );
-    award.append(el('div', 'award-icon', definition.emoji), awardText);
+    const awardIcon = el('div', 'award-icon');
+    const worldId = Object.keys(DESTINATIONS).find(id => DESTINATIONS[id]?.mission?.stickerId === stickerId);
+    awardIcon.append(worldId ? worldPicture(worldId) : createIcon('rocket'));
+    award.append(awardIcon, awardText);
     root.append(award);
     awardCard = award;
     journalButton.setAttribute('data-new', 'true');
@@ -979,7 +967,8 @@ export function createUI(options: UIOptions): GameUI {
       ...Object.values(DISCOVERIES).filter((d) => !found.includes(d.id)),
     ];
     ordered.forEach((discovery, index) => {
-      const badge = el('span', 'finale__badge', discovery.emoji);
+      const badge = el('span', 'finale__badge');
+      badge.append(discoveryPicture(discovery.id));
       badge.style.setProperty('--i', String(index));
       badge.setAttribute('title', discovery.name);
       badges.append(badge);
@@ -989,7 +978,7 @@ export function createUI(options: UIOptions): GameUI {
     const line = el('p', 'finale__line');
     const hero = STICKERS[stickerId] ?? STICKERS['space-ninja'];
     line.append(
-      el('span', 'finale__hero', hero?.emoji ?? '🥷'),
+      createIcon('rocket'),
       el('span', undefined, `New sticker: ${hero?.label ?? 'Space Ninja'}`),
     );
     const done = el('button', 'btn finale__close', 'Hooray!');
@@ -1014,11 +1003,16 @@ export function createUI(options: UIOptions): GameUI {
     homeButton.classList.toggle('is-hidden', !available);
     visitActions.classList.toggle('is-hidden', !available);
     // One journal button owns both tap and grown-up hold behavior in either context.
-    if (available) visitActions.prepend(journalButton);
+    if (available) visitActions.append(journalButton);
     else root.append(journalButton);
   }
 
   function setHint(text: string | null, icon?: IconName) {
+    if (!worldHeading.classList.contains('is-hidden')) {
+      if (text) headingCaption.textContent = text;
+      hint.style.opacity = '0';
+      return;
+    }
     hint.replaceChildren();
     if (text && icon) hint.append(createIcon(icon));
     if (text) hint.append(el('span', undefined, text));
@@ -1046,8 +1040,9 @@ export function createUI(options: UIOptions): GameUI {
     | { text: string; title?: string; cueId?: string; guide?: PendingGuide | null }
     | null = null;
 
-  /** The fact on screen has had its time: hand over to the next one, or fold away. */
+  /** Advance queued narration only after the fact has had its time and the reader is done. */
   function factTimeUp() {
+    if (factOpen) return;
     const next = pendingFact;
     if (next) {
       pendingFact = null;
@@ -1057,10 +1052,7 @@ export function createUI(options: UIOptions): GameUI {
       if (next.guide) pendingGuide = next.guide;
       return;
     }
-    if (!currentFact) return;
-    factCard.classList.add('is-collapsed');
-    factCard.classList.remove('is-transcript-open');
-    updateTranscriptButton();
+
   }
 
   /**
@@ -1070,7 +1062,7 @@ export function createUI(options: UIOptions): GameUI {
    * still up replaces the words in the card, and the arrival's fold was already in flight
    * — it fired a second later and shut the discovery away before it had been read.
    */
-  let collapseTimer = 0;
+  let factAdvanceTimer = 0;
   let factShownAt = 0;
   /**
    * How long a fact is guaranteed to stay up, however the reading went.
@@ -1082,16 +1074,15 @@ export function createUI(options: UIOptions): GameUI {
    */
   const FACT_MINIMUM_MS = 6500;
 
-  function scheduleCollapse(delay: number) {
-    window.clearTimeout(collapseTimer);
+  function scheduleFactAdvance(delay: number) {
+    window.clearTimeout(factAdvanceTimer);
     const held = Math.max(delay, FACT_MINIMUM_MS - (Date.now() - factShownAt));
-    collapseTimer = window.setTimeout(factTimeUp, Math.max(0, held));
-    timers.push(collapseTimer);
+    factAdvanceTimer = window.setTimeout(factTimeUp, Math.max(0, held));
+    timers.push(factAdvanceTimer);
   }
 
   function showFact(text: string, title?: string, cueId?: string, allowNarrate = true) {
-    earthAboutOpen = false;
-    aboutButton.setAttribute('aria-expanded', 'false');
+    setFactOpen(false);
     currentFact = text;
     currentFactCueId = cueId ?? null;
     pendingGuide = null;
@@ -1119,14 +1110,7 @@ export function createUI(options: UIOptions): GameUI {
     factTitle.classList.toggle('is-hidden', !title);
     factTitle.classList.remove('has-world');
     factText.textContent = text;
-    factCard.classList.remove(
-      'is-hidden',
-      'is-collapsed',
-      'is-audio-first',
-      'is-transcript-open',
-      'has-transcript-toggle',
-    );
-    factCard.classList.add('fade-in');
+    factCard.classList.remove('is-hidden');
     // Only authored audio starts itself. A partial voice pack never makes the platform's
     // fallback begin talking. Show words is available for every cue.
     // `allowNarrate` is a narrow caller veto for a visual moment that needs silence; arrival
@@ -1134,29 +1118,28 @@ export function createUI(options: UIOptions): GameUI {
     const autoNarrate =
       allowNarrate && shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn);
     // Words are always available by choice, even when this particular recording is absent.
-    factCard.classList.add('is-audio-first', 'has-transcript-toggle');
     if (autoNarrate) {
       narrator.speak(text, currentFactCueId, false);
     }
-    updateTranscriptButton();
-    scheduleCollapse(11000);
+    scheduleFactAdvance(11000);
   }
 
   return {
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        (!factCard.classList.contains('is-hidden') && factCard.classList.contains('is-transcript-open'));
+        factOpen;
     },
     setHint,
     showDestinations,
 
     enterFlight() {
+      setFactOpen(false);
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-home');
       root.classList.remove('is-earth', 'is-day-active');
-      earthHeading.classList.add('is-hidden');
-      aboutButton.classList.add('is-hidden');
+      worldHeading.classList.add('is-hidden');
+      listenButton.classList.add('is-hidden');
       destinationBar.classList.add('is-hidden');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
@@ -1168,39 +1151,23 @@ export function createUI(options: UIOptions): GameUI {
       setHint(null);
     },
 
-    showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string) {
+    showArrival(cueId: string, label: string, fact: string, _emoji: string, worldId = 'earth') {
       root.classList.remove('is-home');
-      const isEarth = worldId === 'earth';
-      root.classList.toggle('is-earth', isEarth);
-      earthHeading.classList.toggle('is-hidden', !isEarth);
-      aboutButton.classList.toggle('is-hidden', !isEarth);
-      earthArrivalFact = isEarth ? fact : '';
-      visitEmoji = emoji;
-      visitActions.classList.remove('has-activity');
+      root.classList.toggle('is-earth', worldId === 'earth');
+      worldHeading.classList.remove('is-hidden');
+      listenButton.classList.remove('is-hidden');
+      headingName.textContent = label;
+      headingCaption.textContent = worldId === 'sun' ? 'Our nearest star' : worldId === 'earth' ? 'Turn Earth. See day and night.' : 'Tap a gold place';
+      worldHeading.replaceChildren(worldPicture(worldId), headingCopy);
+      arrivalFact = fact;
+      arrivalCue = cueId;
+      visitWorldId = worldId;
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
-      // The name is the card's own title now, so a child arrives to "🌍 Earth" rather than
-      // to a "Show words" pill floating with no content. It keeps carrying that identity,
-      // right down to its folded pill, until Fly Home.
-      // The authored arrival cue is a pure welcome. Its end hands off to the day/night intro;
-      // the instruction to tap is a separate cue held until the targets actually appear.
-      if (!worldId || worldId === 'sun') {
-        showFact(fact, `${emoji}  ${label}`, cueId);
-        return;
-      }
-      // A small picture of the world itself, from its real surface map, instead of an
-      // operating-system emoji: the same identity for a pre-reader, drawn in the game's style.
       showFact(fact, label, cueId);
-      const orb = el('span', 'world-orb');
-      orb.setAttribute('aria-hidden', 'true');
-      orb.style.backgroundImage = `url(./assets/${worldId}.jpg)`;
-      factTitle.prepend(orb);
-      factTitle.classList.add('has-world');
-      if (isEarth) {
-        factCard.classList.add('is-hidden');
-        this.showSpin('Day and night on Earth', DESTINATIONS.earth?.spin?.tint);
-      }
+      const spin = DESTINATIONS[worldId]?.spin;
+      this.showSpin(spin ? (worldId === 'earth' ? 'Day and night on Earth' : spin.label) : null, spin?.tint);
     },
 
     beginMission(caption: string, total: number, cueId?: string) {
@@ -1232,6 +1199,7 @@ export function createUI(options: UIOptions): GameUI {
 
     setMissionCaption(text: string, cueId?: string) {
       missionCaption.textContent = text;
+      headingCaption.textContent = text;
       // Wait behind the discovery narration rather than interrupting the reward the child
       // just earned. Without an authored cue the visual hand/arrow remains the instruction.
       if (cueId) this.speakGuide(text, cueId);
@@ -1246,9 +1214,10 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     clearFact() {
-      earthAboutOpen = false;
-      aboutButton.setAttribute('aria-expanded', 'false');
-      window.clearTimeout(collapseTimer);
+      // An explicitly opened reading panel stays until its reader chooses an exit.
+      if (factOpen) return;
+      setFactOpen(false);
+      window.clearTimeout(factAdvanceTimer);
       currentFact = '';
       currentFactCueId = null;
       pendingFact = null;
@@ -1258,53 +1227,20 @@ export function createUI(options: UIOptions): GameUI {
       factTitle.textContent = '';
       factTitle.classList.add('is-hidden');
       factText.textContent = '';
-      transcriptButton.classList.add('is-hidden');
       factCard.classList.add('is-hidden');
-      factCard.classList.remove(
-        'is-collapsed',
-        'is-audio-first',
-        'is-transcript-open',
-        'has-transcript-toggle',
-        'fade-in',
-      );
-    },
 
-    foldFact(forceWhileSpeaking = false) {
-      // Already out of the way, or there is nothing to fold.
-      if (factCard.classList.contains('is-hidden')) return;
-      if (factCard.classList.contains('is-collapsed')) return;
-      // Somebody asked for this to be read. Taking it away mid-sentence is worse than
-      // covering the planet, and the fold that follows a reading is scheduled already.
-      if (narrator.speaking && !forceWhileSpeaking) return;
-
-      /*
-       * Deliberately bypasses FACT_MINIMUM_MS, which every other fold respects.
-       *
-       * That floor exists because a *timed* fold hung off the end of a reading fires
-       * instantly on a device where speech fails, flashing the card away in under two
-       * seconds. This fold is not a timer running out — it is an event, and the event is
-       * the thing the card was introducing actually starting. Holding the words over it
-       * for another four seconds would cover exactly what they were pointing at.
-       */
-      window.clearTimeout(collapseTimer);
-      factCard.classList.add('is-collapsed');
-      factCard.classList.remove('is-transcript-open');
-      updateTranscriptButton();
     },
 
     showDiscovery(discovery: Discovery, narrate = true, revisited = false) {
-      // Straight into the fact card. Authored audio reads it aloud; the platform fallback
+      // Keep the fact ready for Listen. Authored audio reads it aloud; the platform fallback
       // remains opt-in. This is the whole payoff for
       // going and looking: the old collectible answered a tap with a counter going up.
       //
-      // The emoji is in the title so the card, the badge now left on the planet and the
-      // journal entry are visibly the same thing. For a child who cannot read the name,
-      // that picture is the only part of the title that carries.
       // The short line, not the long one. The long one is the journal's, where an adult can
       // read it out; see Discovery.short for why one card cannot serve both audiences.
       showFact(
         discovery.short,
-        `${revisited ? "✓ Seen before · " : "✨ New · "}${discovery.emoji} ${discovery.name}`,
+        discovery.name,
         `discovery-${discovery.id}`,
         narrate,
       );
@@ -1319,6 +1255,7 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     setMissionProgress(collected: number) {
+      missionHud.setAttribute('aria-label', `${collected} of ${slots.length} places found`);
       for (const [index, slot] of slots.entries()) {
         const filled = index < collected;
         slot.classList.toggle('is-filled', filled);
@@ -1348,7 +1285,7 @@ export function createUI(options: UIOptions): GameUI {
         // and much too long for handing over to the next: the celebration would arrive
         // after the sticker that announced it had already faded. Cut it to the time the
         // discovery is guaranteed and no more.
-        scheduleCollapse(FACT_MINIMUM_MS);
+        scheduleFactAdvance(FACT_MINIMUM_MS);
       } else {
         showFact(successLine, title, cueId);
         // Nothing was on the card, so the success line shows now; arm its follow-up so it
@@ -1390,7 +1327,9 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     setSpinBusy(busy: boolean) {
+      if (busy && !spinBusy) preDayCaption = headingCaption.textContent ?? '';
       spinBusy = busy;
+      headingCaption.textContent = busy ? 'Sunlight makes day.' : preDayCaption;
       dayLegend.classList.toggle('is-hidden', !busy);
       // Preserve the hunt's display state even if its delayed reveal happens mid-turn.
       missionHud.style.visibility = busy ? 'hidden' : '';
@@ -1398,20 +1337,14 @@ export function createUI(options: UIOptions): GameUI {
       spinButton.setAttribute('aria-label', busy ? 'Stop day and night' : spinAccessibleLabel);
       spinButton.disabled = false;
       spinButton.classList.toggle('is-busy', busy);
-      root.classList.toggle('is-day-active', busy && root.classList.contains('is-earth'));
+      root.classList.toggle('is-day-active', busy);
       if (busy) spinButton.classList.remove('is-inviting');
     },
 
     setSoundOn(on: boolean) {
       soundOn = on;
+      listenLabel.textContent = on ? 'Listen' : 'Words';
       if (!on) narrator.stop();
-      if (!on && currentFact && factCard.classList.contains('is-audio-first')) {
-        factCard.classList.remove('is-audio-first', 'is-collapsed');
-        factCard.classList.add('is-transcript-open');
-        factShownAt = Date.now();
-        scheduleCollapse(FACT_MINIMUM_MS);
-        updateTranscriptButton();
-      }
       updateNarrateButton();
     },
 
@@ -1455,7 +1388,7 @@ export function createUI(options: UIOptions): GameUI {
       root.append(echo);
     },
 
-    showFindLabel(clientX: number, clientY: number, emoji: string, name: string) {
+    showFindLabel(clientX: number, clientY: number, discoveryId: string, name: string) {
       /*
        * The name, right where the finger was.
        *
@@ -1464,11 +1397,11 @@ export function createUI(options: UIOptions): GameUI {
        * dot they just touched to the words that changed hundreds of pixels away. Reported
        * from the tablet by an adult who also had not made the connection.
        *
-       * Kept to the emoji and the short name. This is the label on the thing, not the
+       * Kept to the real thumbnail and the short name. This is the label on the thing, not the
        * story about it; the story is still the card's job.
        */
       const label = el('div', 'find-label');
-      label.append(el('span', 'find-label__emoji', emoji), el('span', '', name));
+      label.append(discoveryPicture(discoveryId), el('span', '', name));
       label.style.left = clientX + 'px';
       label.style.top = clientY + 'px';
       // Removed by its own animation, like the tap echo, so a Fly Home part-way through
@@ -1481,10 +1414,9 @@ export function createUI(options: UIOptions): GameUI {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-earth', 'is-day-active');
-      earthHeading.classList.add('is-hidden');
-      aboutButton.classList.add('is-hidden');
-      earthAboutOpen = false;
-      aboutButton.setAttribute('aria-expanded', 'false');
+      worldHeading.classList.add('is-hidden');
+      listenButton.classList.add('is-hidden');
+      setFactOpen(false);
       clearTimers();
       // Clear this before stop(): the narrator's onChange listener otherwise interprets
       // reset as the end of a discovery and queues the hunt line into the fresh home view.
@@ -1515,14 +1447,8 @@ export function createUI(options: UIOptions): GameUI {
       photoFor = null;
       clearPhoto();
       photoViewer.hide();
-      window.clearTimeout(collapseTimer);
-      factCard.classList.remove(
-        'is-collapsed',
-        'is-audio-first',
-        'is-transcript-open',
-        'has-transcript-toggle',
-      );
-      transcriptButton.classList.add('is-hidden');
+      window.clearTimeout(factAdvanceTimer);
+
       factTitle.textContent = '';
       factTitle.classList.add('is-hidden');
       factText.textContent = '';
@@ -1547,6 +1473,7 @@ export function createUI(options: UIOptions): GameUI {
       photoViewer.dispose();
       panelGuard.dispose();
       journalFocus.dispose();
+      factFocus.dispose();
       root.replaceChildren();
     },
   };

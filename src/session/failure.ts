@@ -10,12 +10,10 @@ export function fail(message: string, error: unknown, crash = false) {
   console.error(message, error);
   if (!boot) return;
   boot.classList.add('has-error');
+  boot.classList.remove('has-load-error');
   boot.classList.toggle('has-crash', crash);
   boot.classList.remove('is-hidden');
   if (!crash) return;
   const detail = boot.querySelector('.boot-detail');
   if (detail) detail.textContent = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  boot.querySelector('.boot-restart')?.addEventListener('click', () => window.location.reload(), {
-    once: true,
-  });
 }

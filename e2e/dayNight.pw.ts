@@ -42,7 +42,7 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
   const activity = page.locator('.spin-btn');
-  await expect(activity).toHaveText('↻Day & night');
+  await expect(activity).toHaveText('Day & night');
   await expect(activity).toHaveAccessibleName('Day and night on Earth: watch day and night');
   expect((await snapshot(page)).dayTurning).toBe(false);
   await assertControlsFit(page);
@@ -79,14 +79,14 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'Stop day and night', exact: true })).toBeEnabled();
   await expect(page.locator('.day-legend')).toBeVisible();
-  await expect(page.locator('.mission-caption')).toBeHidden();
+  await expect(page.locator('.mission-hud')).toBeHidden();
   expect((await snapshot(page)).dayTurning).toBe(true);
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await snapshot(page)).dayTurning).toBe(false);
   await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
   const after = await snapshot(page);
   await expect(page.locator('.day-legend')).toBeHidden();
-  await expect(page.locator('.mission-caption')).toBeVisible();
+  await expect(page.locator('.mission-hud')).toBeVisible();
   expect(after.ids).toEqual(before.ids);
   expect(after.collected).toBe(before.collected);
   expect(Math.cos(after.surfaceRotation)).toBeCloseTo(Math.cos(before.surfaceRotation), 6);
@@ -104,14 +104,14 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
 
   const controlsBeforeWords = await page.locator('.visit-actions').boundingBox();
-  await page.getByRole('button', { name: 'About', exact: true }).click();
+  await page.getByRole('button', { name: 'Words', exact: true }).click();
   await assertControlsFit(page);
   const controlsWithWords = await page.locator('.visit-actions').boundingBox();
   expect(controlsWithWords!.x).toBeCloseTo(controlsBeforeWords!.x, 1);
   expect(controlsWithWords!.y).toBeCloseTo(controlsBeforeWords!.y, 1);
   await screenshot(page, info, 'earth-day-night-words');
   await page.waitForTimeout(650);
-  await page.getByRole('button', { name: 'About', exact: true }).click();
+  await page.getByRole('button', { name: 'Close the words', exact: true }).click();
 
   // Returning home interrupts a turn without leaving a second camera owner behind.
   await activity.click();

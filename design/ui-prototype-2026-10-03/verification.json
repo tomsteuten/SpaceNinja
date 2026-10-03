@@ -1,0 +1,132 @@
+{
+  "results": [
+    {
+      "device": "phone",
+      "state": "moon",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "phone",
+      "state": "earth",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "phone",
+      "state": "sun",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 3
+    },
+    {
+      "device": "phone",
+      "state": "map",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "phone",
+      "state": "photo",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 2
+    },
+    {
+      "device": "phone",
+      "state": "day",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 4
+    },
+    {
+      "device": "tablet",
+      "state": "moon",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "tablet",
+      "state": "earth",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "tablet",
+      "state": "sun",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 3
+    },
+    {
+      "device": "tablet",
+      "state": "map",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "tablet",
+      "state": "photo",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 2
+    },
+    {
+      "device": "tablet",
+      "state": "day",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 4
+    },
+    {
+      "device": "landscape",
+      "state": "moon",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "landscape",
+      "state": "earth",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "landscape",
+      "state": "sun",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 3
+    },
+    {
+      "device": "landscape",
+      "state": "map",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 6
+    },
+    {
+      "device": "landscape",
+      "state": "photo",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 2
+    },
+    {
+      "device": "landscape",
+      "state": "day",
+      "aligned": true,
+      "onscreen": true,
+      "buttons": 4
+    }
+  ],
+  "errors": [],
+  "scope": "Prototype UI only; no game behavior or physical device claims"
+}

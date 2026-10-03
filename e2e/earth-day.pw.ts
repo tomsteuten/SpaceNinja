@@ -29,20 +29,20 @@ test('Earth day and night is child-triggered, repeatable, and leaves discoveries
   for (const subject of [teaching.teachingSun, teaching.bodyScreen]) {
     expect(subject.x - subject.radius).toBeGreaterThan(12);
     expect(subject.x + subject.radius).toBeLessThan(page.viewportSize()!.width - 12);
-    expect(subject.y - subject.radius).toBeGreaterThan(72);
-    expect(subject.y + subject.radius).toBeLessThan(page.viewportSize()!.height - 72);
+    expect(subject.y - subject.radius).toBeGreaterThan(56);
+    expect(subject.y + subject.radius).toBeLessThan(page.viewportSize()!.height - 90);
   }
   expect(Math.hypot(teaching.teachingSun.x - teaching.bodyScreen.x,
     teaching.teachingSun.y - teaching.bodyScreen.y)).toBeGreaterThan(
       teaching.teachingSun.radius + teaching.bodyScreen.radius + 12);
 
   // The words are one tap away while it turns.
-  const about = page.getByRole('button', { name: 'About', exact: true });
+  const about = page.getByRole('button', { name: 'Listen', exact: true });
   await about.click();
   await expect(page.locator('.fact-card .fact-title')).toContainText('Day & night');
   await expect(page.locator('.fact-card p')).toBeVisible();
   await settlePanel(page);
-  await about.click();
+  await page.getByRole('button', { name: 'Close the words', exact: true }).click();
   await expect(page.locator('.fact-card')).toBeHidden();
 
   // Survive a history suspend/restore mid-turn.
@@ -108,7 +108,7 @@ test('the teaching Sun survives resize and leaves with Space map', async ({ page
   expect(resized.dayTurning).toBe(true);
   expect(resized.teachingSun.visible).toBe(true);
   for (const subject of [resized.teachingSun, resized.bodyScreen]) {
-    expect(subject.y - subject.radius).toBeGreaterThan(72);
+    expect(subject.y - subject.radius).toBeGreaterThan(56);
     expect(subject.y + subject.radius).toBeLessThan(318);
   }
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();

@@ -13,6 +13,8 @@ test('grown-ups panel and journal keep keyboard focus with a clear escape route'
   const close = journal.getByRole('button', { name: 'Close', exact: true });
   await expect(close).toBeFocused();
   await page.keyboard.press('Tab');
+  await expect(journal.getByRole('button', { name: 'Close journal', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(close).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(journal).toBeHidden();

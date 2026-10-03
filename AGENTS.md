@@ -94,6 +94,11 @@ The visible return control is now **Space map**, with an arrow and a Sun/planet 
 “Fly Home” below refers to that same return route. Discovery postcards have a pictured
 world-return control as well as a large X, because child feedback found the worded exit unclear.
 
+The approved October layout uses one aligned bottom row: Space map, Listen, supported
+Day & night, Journal. Stop keeps its cell; Sun uses three cells. Listen opens the current
+written fact and replay control deliberately; with sound off the entry is Words. World
+pictures and real discovery thumbnails replace emoji on these control and panel surfaces.
+
 These are current choices, not permanent markup requirements. In particular, the destination
 bar, journal, fact card, day/night control and Fly Home may be recomposed into a clearer
 responsive control system. Protect the playfield and the child's escape route, not the
@@ -170,9 +175,9 @@ must have readable names, keyboard/focus behavior where relevant, and comfortabl
 areas. A child-facing route cannot depend on reading, but a short label may reinforce a visual
 or narrated action; “show, don't only tell” is guidance, not a ban on words.
 
-The fact card currently keeps title, full-width words, then photograph/audio actions because a
-side-by-side phone layout covered the globe. A redesign may change this if screenshots and
-responsive checks demonstrate equal or better playfield protection and accessibility.
+The reading panel keeps title, full-width words, then photograph/audio and pictured-return
+actions. It opens deliberately and leaves the normal playfield clear. A redesign may change
+this if screenshots and responsive checks demonstrate equal or better accessibility.
 
 The photo viewer dismisses only on a fresh backdrop pointer sequence after its opening guard.
 Do not add a backdrop `click` handler: Android compatibility clicks previously closed it the

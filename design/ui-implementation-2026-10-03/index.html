@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Space Ninja — implemented UI review</title>
+<style>
+body{margin:0;padding:20px;background:#0b1424;color:#f4f3e9;font:16px/1.5 system-ui,sans-serif}h1{font-size:23px;margin:0 0 8px}label{margin-right:16px}select{font:inherit;padding:8px;background:#20324b;color:inherit;border:1px solid #63748a;border-radius:8px}.screens{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px}figure{margin:0}figcaption{margin-bottom:8px}img{display:block;max-width:100%;height:auto;border:1px solid #41506c}p{max-width:75ch}@media(max-width:700px){.screens{grid-template-columns:1fr}}
+</style></head><body>
+<h1>Implemented UI · 3 October 2026</h1><p>Full-resolution captures from the real game. Before is commit 70b34e8, using its own installed baseline checkout. The approved direction is now implemented; this page compares the real screens.</p>
+<label>Device <select id="device"><option value="phone">Phone · 390 × 844</option><option value="tablet">Tablet · 1024 × 768</option><option value="landscape">Short landscape · 844 × 390</option></select></label>
+<label>Screen <select id="screen"><option value="moon">Moon</option><option value="map">Space map</option><option value="earth">Earth</option><option value="day">Day & night</option><option value="sun">Sun</option><option value="photo">Discovery photo</option><option value="listen">Reading / Listen</option><option value="journal">Journal</option></select></label>
+<div class="screens"><figure><figcaption>Before · 70b34e8</figcaption><img id="before" alt="Previous game interface"></figure><figure><figcaption>Implemented</figcaption><img id="after" alt="Implemented game interface"></figure></div>
+<script>const device=document.querySelector('#device'),screen=document.querySelector('#screen');function update(){document.querySelector('#before').src=`before-${device.value}-${screen.value}.png`;document.querySelector('#after').src=`${device.value}-${screen.value}.png`;}device.onchange=screen.onchange=update;update();</script>
+</body></html>

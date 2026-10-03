@@ -3,6 +3,39 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-03 — One aligned action row and deliberate reading panels
+
+Child feedback found both discovery exits and the route back to the space map unclear.
+The subsequent pictured exits and Sun visit were successful, but the owner found the
+button layout untidy and the operating-system emoji visually inconsistent. A clickable
+study kept one bottom row rather than scattering navigation into opposite corners. The
+owner approved its screenshots and authorized implementation and publication.
+
+Space map and Journal anchor opposite ends of equal cells; Listen and supported Day &
+night sit between them. Stop changes within its existing cell. Activities appear from
+settled arrival so the row does not rearrange halfway through exploring. The persistent
+fact card and Earth-only About control are replaced by one deliberate reading/listening
+panel. Muting labels that entry Words; it never removes the written facts. Real world
+pictures and lazy discovery thumbnails replace emoji in these UI surfaces. Photographs
+retain their immediate X and guarded pictured return, including the fresh-pointer
+backdrop invariant. The journal preserves the full collection and its counts.
+
+This reverses the serif world names and compact folded fact card of the September theme.
+Those were design choices; large touch areas, low reading burden, visible gold targets,
+escape routes and narration/lifecycle correctness remain constraints. The camera reserves
+the approved row through its projection rather than by shifting the canvas. The layout
+has a single CSS owner instead of another layer of screen-specific overrides.
+
+The owner also reported a preview stuck on loading. The real startup shell now handles
+script failures independently of the game bundle and offers a retry after failed or
+prolonged loading. The offline shell is restricted to actual game routes so a nested
+preview cannot receive the game's HTML at the wrong base URL. A browser regression
+deliberately blocks the main bundle and verifies retry into the real game.
+
+Screenshots document the implemented phone, tablet and short-landscape screens in
+`design/ui-implementation-2026-10-03/`. Physical-tablet listening/performance and whether
+children understand Listen and the pictured map are still observational questions.
+
 ## 2026-09-26 — Show the source of daylight during the child's day turn
 
 The side-on teaching view showed the terminator, but left the Sun outside the frame. The

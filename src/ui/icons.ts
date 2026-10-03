@@ -7,30 +7,22 @@
  * belong to this game. They also cannot take a colour, which is why every button looked
  * like a label with something pasted onto it.
  *
- * All one family: no fills, 2px round-capped strokes on a 24-unit grid, drawn in
- * currentColor so an icon is simply the colour of the text next to it.
+ * Controls use the approved soft blue/cream filled illustrations. Utility icons
+ * remain round-capped strokes in currentColor. Both are authored SVG, not OS glyphs.
  */
 
 const ICONS = {
-  back: '<path d="m10 5-7 7 7 7"/><path d="M3 12h11a6 6 0 0 1 6 6"/>',
-  spaceMap:
-    '<path d="m11 3-6 6 6 6M5 9h12"/>' +
-    '<ellipse cx="32" cy="18" rx="23" ry="11" stroke="currentColor" stroke-width="1"/>' +
-    '<circle cx="24" cy="20" r="7" fill="#ffb266" stroke="#ffd08a" stroke-width="1"/>' +
-    '<circle cx="44" cy="17" r="6" fill="#4cb8ed" stroke="#b2edff" stroke-width="1"/>' +
-    '<path d="m42 12 3 2-1 3-3 1 1 4 3-1 2-5-2-4Z" fill="#6ab878" stroke="none"/>' +
-    '<circle cx="51" cy="5" r="3.5" fill="#bbb5ca" stroke="#f3eeff" stroke-width="1"/>',
+  close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  turnArrow: '<path d="M3 9c4 7 15 7 19 0m-6-1 7 0-1 6"/>',
+  back: '<path d="m12 7-8 11 8 10M5 18h20c7 0 10 4 10 10"/>',
+  spaceMap: '<path d="m9 8-5 5 5 5M5 13h11" stroke="#e2f2f6"/><circle cx="25" cy="20" r="9" fill="#77b9cf" stroke="#c4e6ec"/><path d="m24 12-4 6 6 2-1 8 6-5-1-6Z" fill="#b4cc9d" stroke="none"/><circle cx="34" cy="6" r="4" fill="#f2ce79" stroke="none"/>',
   lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/>',
   rocket:
     '<path d="M12 2.6c2.7 2.4 4.1 5.5 4.1 8.9v3.2l1.8 1.9v3.2l-2.9-1.3-3 1.3-3-1.3-2.9 1.3v-3.2l1.8-1.9v-3.2c0-3.4 1.4-6.5 4.1-8.9Z"/>' +
     '<circle cx="12" cy="10" r="1.7"/>',
   rock: '<path d="M3.6 13.2 7.9 6.1l6.2-2.1 6.3 4.7-1.6 7.3-7.8 2.6Z"/><path d="m7.9 6.1 4.5 5.6 7.9-2.9"/>',
-  speaker:
-    '<path d="M4 9.4h3.4L11.9 5v14L7.4 14.6H4Z"/>' +
-    '<path d="M15.7 9.3a4 4 0 0 1 0 5.4"/><path d="M18.3 6.8a7.6 7.6 0 0 1 0 10.4"/>',
-  journal:
-    '<path d="M6.6 2.8H18v18.4H6.6A2.6 2.6 0 0 1 4 18.6V5.4a2.6 2.6 0 0 1 2.6-2.6Z"/>' +
-    '<path d="M4 18.6A2.6 2.6 0 0 1 6.6 16H18"/>',
+  speaker: '<path d="M6 14h7l9-7v23l-9-7H6Z" fill="#a8dce5" stroke="#a8dce5"/><path d="M28 12a10 10 0 0 1 0 13M33 8a16 16 0 0 1 0 21" stroke="#a8dce5"/>',
+  journal: '<path d="M8 4h24v28H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Z" fill="#a9ced0" stroke="#d5eeed"/><path d="M11 4v24M4 28h28" stroke="#325165"/><circle cx="23" cy="16" r="5" fill="#354d6a" stroke="none"/><path d="m17 19 12-6" stroke="#eddfaf"/>',
   /** The empty mission slot: something is meant to go here. */
   dot: '<circle cx="12" cy="12" r="2.4"/>',
   /**
@@ -63,7 +55,7 @@ export type IconName = keyof typeof ICONS;
  */
 export function iconMarkup(name: IconName): string {
   return (
-    `<svg class="icon" viewBox="${name === 'spaceMap' ? '0 0 56 32' : '0 0 24 24'}" aria-hidden="true" focusable="false" ` +
+    `<svg class="icon" viewBox="${['spaceMap', 'speaker', 'journal', 'back'].includes(name) ? '0 0 40 36' : '0 0 24 24'}" aria-hidden="true" focusable="false" ` +
     'fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round">' +
     ICONS[name] +

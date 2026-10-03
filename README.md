@@ -29,6 +29,14 @@ Discovery photographs have a large return arrow beside a picture of the world yo
 exploring, plus a large X. The space-map exit uses a Sun/Earth/Moon picture and a return
 arrow in a contrasting button; words reinforce both exits without being their only clue.
 
+Visits use one aligned row: **Space map · Listen · Day & night · Journal**, with equal
+touch areas. Supported activities are offered from arrival, and Stop stays in the same
+cell. The Sun omits Day & night. Listen opens the current fact and replay control in a
+reading panel; with sound off it is labelled Words. Written facts remain available.
+World pictures and real discovery thumbnails carry the visual identity across the map,
+returns and journal. Startup failures offer **Start again**, including a missing script
+download, rather than leaving the loading message indefinitely.
+
 Each world holds **six** real places and shows three of them, picked fresh each visit and
 weighted towards the ones you have not found, so going back to the Moon is not the same Moon.
 Having been there reveals Mars, and visiting Mars reveals Saturn. Find every place on all four

@@ -80,13 +80,17 @@ self.addEventListener('fetch', (event) => {
   } else if (request.method !== 'GET') {
     return;
   } else if (request.mode === 'navigate') {
-    event.respondWith(shell(request));
+    // Only the actual game routes use its shell. A nested design preview must not
+    // receive the game's HTML with module/asset URLs relative to the wrong directory.
+    const path = new URL(request.url).pathname;
+    const scope = new URL(self.registration.scope).pathname;
+    if (path === scope || path === scope + 'index.html') event.respondWith(shell(request));
   } else {
     event.respondWith(resource(request));
   }
 });
 
-/** Any page load inside the scope is the one page. `?grownups` and friends included. */
+/** The game root, including query routes such as `?grownups` and `?freeflight`. */
 async function shell(request) {
   const cached = await caches.match(new URL('index.html', self.registration.scope).href, {
     cacheName: SHELL_CACHE,

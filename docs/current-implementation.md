@@ -1,5 +1,33 @@
 # Current implementation and handover
 
+## Current checkpoint — 3 October 2026
+
+The owner approved the isolated UI study's screenshots and authorized implementation and
+publication to `main`. This supersedes the September layout and serif-title direction below.
+The guided adventure remains the product. The Sun visit was already shipped at `70b34e8`.
+
+The adventure now uses a single bottom row with equal cells, ordered Space map, Listen,
+Day & night, Journal. Supported activities are visible from settled arrival; Sun has three
+cells. World identity and the instruction are at top left; small gold progress pips or the
+day/night key are at top right. Facts open deliberately in a reading/listening panel. Photos
+and the journal use contained panels with pictured returns and immediate X controls. All
+24 real discoveries and visit persistence remain, rather than the study's illustrative book.
+
+`src/ui/adventure.css` owns this layout; the competing geometry was removed from `ui.css`
+and `theme.css`. `pictures.ts` owns world and discovery pictures. The existing camera keeps
+its lifecycle ownership and uses an off-center projection to reserve the row on landscape
+and tablet. Marker projections and picking use that same camera. The adventure's startup
+shell has an independent failure/retry guard, and the offline worker serves the game shell
+only at the root/index routes, not nested design previews.
+
+Full-resolution screenshots and the baseline comparison are in
+`design/ui-implementation-2026-10-03/`. The approved study is in
+`design/ui-prototype-2026-10-03/`. Physical-tablet performance, speaker sound and child
+comprehension still need observation. In particular, observe whether Listen is understood
+as opening a fact, and whether the Day & night invitation is apparent without adult help.
+
+The September sections below record earlier states and their checks, not current UI rules.
+
 ## Status and direction — 24 September 2026 (read this first)
 
 **Product direction, chosen by the owner:** the guided adventure is the game. The goal is the
