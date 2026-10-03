@@ -1,10 +1,10 @@
 DISCOVERY PHOTOS
 ================
 
-A real photograph of each real place a child can find. Entirely optional, one at a
-time: the card checks for the file when a place is found, and a place with no file
-looks exactly as it did before. Nothing here is downloaded until that place is
-actually found, so adding all twelve costs the game nothing at startup.
+Real imagery for all 24 discovery subjects across Earth, Moon, Mars and Saturn.
+Full photographs are optional and lazy: requested on a find or deliberate opening, then
+cached for offline use. A missing file produces an intentional no-photo state.
+Small derivatives are separate and precached, as described below.
 
 THUMBNAILS (thumbs/)
 
@@ -12,7 +12,7 @@ thumbs/<id>.jpg is a 160 px square centre crop of the same photograph the place'
 postcard opens (moon-tycho: public/assets/moon-trial/tycho-mountains.jpg), used for the
 explorer's place badges and journal. Its provenance is that photograph's. Regenerate with
 scripts/make-place-thumbnails.py after replacing or adding a photo. They are a few KB each
-and precached; the full photographs are still fetched only when opened.
+and precached; full photographs are requested on a find or deliberate opening.
 
 
 Put the files directly in this folder using these EXACT names. The name is the
@@ -23,7 +23,7 @@ its id and no code changes.
   SIZE AND FORMAT
 
   1024-1280 px on the long edge, .jpg, quality ~80, ideally under 150 KB each.
-  They are shown as an 84px thumbnail in the fact card and full-screen on a tap, and
+  The reading panel offers a small photo action and the viewer fits the full image, while
   the target device caps its pixel ratio at 1.5 — beyond about 1280 you are paying
   for detail the tablet will not draw. Any aspect ratio is fine: the thumbnail crops
   to a square and the full view fits the whole picture on screen.
@@ -32,14 +32,13 @@ its id and no code changes.
   in the thumbnail.
 
 
-  A NOTE ON THE SUGGESTIONS BELOW
+  HISTORICAL SOURCING SUGGESTIONS
 
-  Each entry names a specific image worth using and the page it lives on. Those
-  came from searching, and the pages could not be opened from the machine this was
-  written on — every NASA and Wikimedia host is blocked by its network. So treat
-  each one as "this is the picture you want, here is where it is", not as a link
-  that has been clicked. Check the credit on the page itself before shipping it:
-  most NASA imagery is public domain, and a minority is not.
+  The suggestions below predate the shipped pack and were written when the original
+  environment could not open the source pages. They are historical candidates, not
+  verification or a current network restriction. The FILES CURRENTLY INSTALLED section records the
+  images actually used and their credit lines. Verify authoritative source pages and
+  permissions when replacing or adding a photograph.
 
 
   EARTH

@@ -154,9 +154,10 @@ ratio cannot display. Measure on the target tablet before raising baseline cost.
 Earth's color and roughness maps are a pair. `resolveEarthMaps()` derives roughness from the
 color map that actually loaded; independent fallback selection misaligns ocean sheen and land.
 
-Everything in `public/` ships. Reference art belongs in `design/`. Discovery photographs are
-lazy: do not preload the full set or make the journal fetch every image. A missing photograph
-must produce an intentional no-photo state, never a broken image.
+Everything in `public/` ships. Reference art belongs in `design/`. Full discovery photographs
+are lazy: do not preload the full set or make the journal fetch every full image. Small
+discovery thumbnails used by controls and journal are precached separately. A missing
+photograph must produce an intentional no-photo state, never a broken image.
 
 Discovery photographs must be real and their provenance recorded in
 `public/assets/discoveries/README.txt`. Never synthesize a documentary image or attach a false
@@ -181,10 +182,11 @@ this if screenshots and responsive checks demonstrate equal or better accessibil
 
 The photo viewer dismisses only on a fresh backdrop pointer sequence after its opening guard.
 Do not add a backdrop `click` handler: Android compatibility clicks previously closed it the
-instant it opened. Every panel (journal, About, photo) shares one rule in `src/ui/panelGuard.ts`:
-no close within half a second of opening, and never from the press that opened it, because a
-child's double tap was opening and closing them in one go. The photo's explicit X remains
-immediate; its pictured return uses the panel guard. Keyboard closes are immediate.
+instant it opened. Guarded pointer closes for the journal, reading panel and photo share
+`src/ui/panelGuard.ts`: no guarded close within half a second of opening, and never from
+the press that opened it, because a child's double tap was opening and closing them in one
+go. Photo and reading-panel X controls remain immediate; pictured returns use the panel
+guard. Keyboard closes are immediate.
 
 ### Audio and persistence
 
@@ -202,8 +204,8 @@ Counts derive from configured discovery IDs rather than a second handwritten tot
 ### Offline and failure behavior
 
 The service worker is generated from `sw/sw.js` by `sw/build.ts`. Its shell cache version
-includes `index.html` contents; media uses a separate stable cache; discovery photographs are
-not precached. Development does not register the worker. An update may reload at the settled
+includes `index.html` contents; media uses a separate stable cache. Small discovery thumbnails
+are precached; full discovery photographs are not. Development does not register the worker. An update may reload at the settled
 title but never interrupt active play.
 
 Frame-loop failures stop the loop, silence continuous audio and show the reusable crash screen.

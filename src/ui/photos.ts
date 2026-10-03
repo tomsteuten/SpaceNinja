@@ -1,21 +1,8 @@
 /**
- * Real photographs of the real places, shown when a child finds one.
- *
- * The discoveries are already genuine — real features at their real coordinates on real
- * NASA maps — and until now the payoff for finding one was a paragraph. This is the part a
- * five-year-old can actually read: *this is what the Sahara looks like from space, and you
- * just found it.*
- *
- * **Nothing is downloaded until a place is found.** That is the whole reason this is
- * affordable. The game starts at exactly the speed it does today, and a child who finds
- * three places on one world fetches three files; the other six are never asked for. Compare
- * that to sharpening the globe maps, where every byte is spent before the title screen and
- * most of the detail never survives a pixel ratio capped at 1.5.
- *
- * Every photo is optional, in the same way every texture is: the file is HEAD-probed first,
- * and if it is not there the card looks exactly as it did before. So the images can be
- * dropped in one at a time, and a place whose photo has not been sourced yet is not a
- * broken image — it is simply a place without a photo.
+ * Optional full photographs for real discovery subjects. Requested on a find or deliberate
+ * opening, then cached for offline reuse. Small journal/control derivatives are separate
+ * precached assets. HEAD probes resolve a missing full photo to an intentional no-photo
+ * state instead of a broken image. Provenance is in public/assets/discoveries/README.txt.
  */
 
 import { worldPicture } from './pictures';

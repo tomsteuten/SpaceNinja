@@ -46,10 +46,7 @@ function cuesByBody(): Record<string, string[]> {
   );
 }
 
-/**
- * Cues that belong to a screen rather than a world. Each is named in
- * docs/current-implementation.md ("The spoken layer") with the moment it plays.
- */
+/** Shared map, hunt, invitation and celebration cues requested by the adventure UI. */
 const SCREEN_CUES = [
   'home-first',
   'home-any',
@@ -83,7 +80,7 @@ describe('narration script', () => {
     expect(Object.values(script.cues).every((line) => line.trim().length > 0)).toBe(true);
   });
 
-  it('welcomes before the intro and saves the target instruction for the hunt', () => {
+  it('keeps arrival welcomes distinct from the hunt instruction', () => {
     for (const bodyId of Object.keys(DESTINATIONS)) {
       expect(script.cues[`arrival-${bodyId}`]).not.toMatch(/\b(?:tap|target)\b/i);
       if (DESTINATIONS[bodyId]?.mission) {
@@ -116,7 +113,7 @@ describe('narration script', () => {
     }
   });
 
-  it('keeps every committed world complete, per world', () => {
+  it('keeps arrival/find recording pairs consistent and rejects orphan recordings', () => {
     const recorded = new Set(
       readdirSync(new URL('./recordings', import.meta.url))
         .filter((name) => name.endsWith('.mp3'))
@@ -124,17 +121,10 @@ describe('narration script', () => {
     );
 
     /*
-     * The rule this used to enforce — all or none per *world* — was the right rule when a
-     * world had exactly three places and showed all three. Worlds now carry more than they
-     * show and a set is chosen per visit, so the unit that matters is the visit, and it is
-     * enforced at runtime instead: `narrateWholeVisit` silences a set that is not fully
-     * recorded, so a spoken find can never sit beside a silent one in the same hunt. That is
-     * strictly stronger than a file check could be, because the file cannot know which three
-     * places a given arrival will pick.
-     *
-     * What is still worth pinning here is the *framing* pair. The arrival welcome and the
-     * find instruction are per-world and always both play, so one recorded without the other
-     * is a half-narrated arrival with no runtime fallback to catch it.
+     * Runtime playback is per available cue; a missing recording does not silence a visit
+     * or start device speech automatically. This asset check keeps the arrival/find framing
+     * pair together for mission worlds (arrival alone for observation visits). It does not
+     * require every discovery or every cue for a world to be recorded.
      */
     for (const bodyId of Object.keys(DESTINATIONS)) {
       const framing = [`arrival-${bodyId}`, ...(DESTINATIONS[bodyId]?.mission ? [`find-${bodyId}`] : [])];

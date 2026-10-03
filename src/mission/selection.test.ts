@@ -49,7 +49,7 @@ const RADII: Record<string, number> = {
   saturn: SATURN_RADIUS,
 };
 
-/** Every destination, so a new world is covered the day it lands. */
+/** Every mission-bearing destination; add each new world's radius to RADII above. */
 const WORLDS: Array<[string, Discovery[], number]> = Object.entries(DESTINATIONS).filter(([, config]) => config.mission).map(
   ([id, config]) => {
     const radius = RADII[id];

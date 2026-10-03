@@ -1,12 +1,12 @@
 /*
  * The service worker: what makes the game work with no signal.
  *
- * This file is a template. `sw/build.ts` fills in the two placeholders below from the
+ * This file is a template. `sw/build.ts` fills in the placeholders below from the
  * built bundle — Vite hashes its output names, so the list cannot be written down here —
  * and the finished `sw.js` lands at the root of `dist/`. Nothing registers it in
- * development; see the registration in `main.ts`.
+ * development; see `src/session/offline.ts` and the route registration in `main.ts`.
  *
- * Three caches, with three different lives:
+ * Two caches separate the versioned shell from stable media:
  *
  * - The *shell* — index.html, the bundle, the manifest, the icons — is precached at
  *   install and served cache-first forever after. Its cache is named after the build, and
@@ -23,10 +23,10 @@
  *   Replace one under the same name and a device that has it cached keeps the old one
  *   until MEDIA_CACHE below is bumped.
  *
- * - The discovery *photographs* are never precached. That is the rule they were built
- *   under: nothing is downloaded until a place is found, and a child who finds three
- *   places fetches three files. A photograph that has been fetched once is kept, so a
- *   place found at home is still there in the car.
+ * - Small discovery thumbnails are included in the media precache for offline controls
+ *   and journal pictures. Full discovery photographs are never precached: requested on a
+ *   find or deliberate opening, they enter the media cache after use and remain available
+ *   offline. The two image sizes have different loading policies.
  *
  * HEAD requests are the game's own probes for optional files. Online they pass straight
  * through; offline, a probe for something the cache holds is answered from it, or the

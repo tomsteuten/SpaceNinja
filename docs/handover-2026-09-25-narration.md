@@ -1,5 +1,11 @@
 # Handover, 25 September 2026: one ElevenLabs voice, and the words the game was missing
 
+Historical handoff for the September narration selection, generation and cue wiring. Preserved as a record, not a prompt
+to execute again. Read [the current checkpoint](current-implementation.md),
+[the world checklist](worlds-roadmap.md) and [AGENTS.md](../AGENTS.md) for current work.
+Any baseline, cue count, branch, test instruction or next gate below belongs to that dated
+task; it does not select today's route or override the October interface.
+
 Paste the block below as the opening prompt of a fresh session started **after** the
 environment has `ELEVENLABS_API_KEY` set and `api.elevenlabs.io` in its allowed domains
 (cloud environment menu in the session title bar, then Edit). A mid-weight model is enough:

@@ -3,10 +3,11 @@
 Put authored MP3 narration here. The filename is the stable cue id used by the game, for
 example `arrival-earth.mp3`, `discovery-earth-sahara.mp3`, or `spin-earth.mp3`.
 
-**Decision, 25 September 2026:** the pack is regenerated in one consistent ElevenLabs voice,
+**Shipped pack, reconciled 4 October 2026:** the main pack uses the ElevenLabs voice
 chosen by the owner by ear, from `../narration-script.json`, which is the one manifest (stable
 id, spoken text; the filename is the id). The committed pack uses the Australian voice **Emma**
-(`eleven_multilingual_v2`), recorded in this batch. The API key is read only from the
+(`eleven_multilingual_v2`). The Sun arrival uses a Kokoro `bf_emma` per-cue exception,
+recorded in `provenance.json`. The API key is read only from the
 `ELEVENLABS_API_KEY` environment variable and is never printed, logged or committed.
 
 Vite fingerprints imported recordings and the existing service-worker build precaches them
@@ -14,6 +15,11 @@ with the application shell, so every installed recording works offline. A missin
 falls back to the device voice when the speaker button is pressed. Only cues with a recording
 start automatically; an incomplete voice pack therefore never makes the poor platform voice
 begin talking by itself.
+
+The script and recordings currently contain 79 authored cues and 76 MP3 files. The three
+unrecorded cues are `home-sun`, `home-nudge-sun` and `home-nudge-short-sun`. This is a
+4 October inventory, not a fixed pack size: derive requirements from the script and
+`narration-script.test.ts` when adding content. Missing clips do not silence other recordings.
 
 ## Regenerating the pack
 

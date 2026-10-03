@@ -46,10 +46,10 @@ export interface CollectMission {
   readonly hitMeshes: THREE.Mesh[];
   start(): void;
   /**
-   * Bring the targets onto the planet and make them tappable. Split out from `start()` so
-   * the surface can be held (and the day/night intro can turn it) before any target is on
-   * screen: the intro plays over a clean world, then the gold targets drop in for the hunt.
-   * A world with no intro simply calls this immediately after `start()`. Idempotent.
+   * Reveal prepared targets and enable their hit meshes. start() builds the visit and holds
+   * the surface; reveal() starts its appearance animation. Adventure calls both at settled
+   * arrival. This setup/reveal boundary is idempotent and separate from setPresentation(),
+   * which hides an already-running hunt during an optional visual lesson.
    */
   reveal(): void;
   /** Hide targets and remove their hit meshes during a visual lesson, preserving progress. */
@@ -668,9 +668,8 @@ export function createCollectMission(options: CollectMissionOptions): CollectMis
     for (const [index, discovery] of discoveries.entries()) {
       const collectible = buildCollectible(index, discovery);
       collectibles.push(collectible);
-      // Hidden and un-tappable until reveal(): the surface is held and turning through its
-      // day for the intro, and a target on screen during it would be an answer given away
-      // before the hunt begins. reveal() shows them and adds them to the raycast list.
+      // Preparation does not expose targets or hit meshes. The arrival coordinator calls
+      // reveal() immediately after start() to make the prepared set visible and tappable.
       collectible.group.visible = false;
       root.add(collectible.group);
     }

@@ -56,8 +56,7 @@ export interface GameUI {
   enterFlight(): void;
   /** With a `worldId`, the card's title is led by a small picture of that world. */
   showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string): void;
-  /** Take the fact card away entirely (not just fold it). Used when the day/night intro's
-   *  card has done its job and the hunt is starting — a lingering card is clutter. */
+  /** Clear idle fact content and follow-ups; an explicitly open reading panel stays open. */
   clearFact(): void;
   /**
    * Puts up the progress counter a beat after the gold places appear. The targets get the
@@ -71,8 +70,8 @@ export interface GameUI {
   beginMission(caption: string, total: number, cueId?: string): void;
   setMissionCaption(text: string, cueId?: string): void;
   /**
-   * Say something with no card: the Earth introduction while it turns, the invitation to
-   * turn it on a later visit. Waits behind whatever is being read, as the hunt line does,
+   * Queue a guide without replacing the current fact, such as a day/night explanation or
+   * invitation. Waits behind whatever is being read, as the hunt line does,
    * and only authored audio starts by itself.
    */
   speakGuide(text: string, cueId: string): void;
@@ -352,13 +351,8 @@ export function createUI(options: UIOptions): GameUI {
   narrateButton.type = 'button';
   narrateButton.setAttribute('aria-label', 'Read this out loud');
   /*
-   * A photograph of the place, when there is one for it.
-   *
-   * A thumbnail beside the words rather than a band above them: the card sits across the
-   * bottom of the screen over the planet a child is looking at, and it has already had to
-   * be taught to fold away for the day turn. A picture the width of the card would put a
-   * third of the screen back. Small here, big on a tap — and it is a button, so it reaches
-   * the same size as every other tap target in the game.
+   * Optional discovery photo action below the full-width words in the deliberate reading
+   * panel. Its thumbnail opens the larger photograph through the shared viewer.
    */
   const factPhoto = el('button', 'fact-photo');
   factPhoto.type = 'button';
@@ -373,12 +367,7 @@ export function createUI(options: UIOptions): GameUI {
   factPhoto.append(factPhotoImage, factPhotoZoom);
   factPhoto.classList.add('is-hidden');
 
-  /*
-   * Automatic narration keeps the card compact, but never makes the written fact
-   * unavailable. A visible label is important here: the existing speaker could unfold
-   * the paragraph, but only after starting audio again, and nothing on it said the words
-   * were behind it to a child with hearing loss or one playing in a noisy room.
-   */
+  // Reading opens through Listen/Words; replay, photo and pictured return follow the text.
   const factActions = el('div', 'fact-actions');
   const factClose = el('button', 'btn panel-close');
   factClose.type = 'button';
@@ -1020,21 +1009,8 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   /**
-   * The card folds itself away once it has been read, leaving only its speaker button.
-   *
-   * It used to stay up for the rest of the visit, and it is wide: at the old arrival
-   * distance the destination was a small ball above it and that cost nothing, but the
-   * flight now arrives close enough for the body to fill the frame, and a card across the
-   * bottom third was sitting on top of the very places the child is being asked to find.
-   * Two of the Moon's three were underneath it.
-   */
-  /**
-   * A fact waiting for the card, shown when the one on screen has had its time.
-   *
-   * Exists for exactly one case: the last place on a body is found, and the completion
-   * line wants the card a second later. Shown immediately it replaced the discovery that
-   * had just been earned — so the one find that actually required the drag was the one
-   * whose story got cut off after a second, which is precisely backwards.
+   * Hold the completion fact behind the last discovery's reading window. Automatic
+   * narration does not open the panel, and queued advancement waits while it is open.
    */
   let pendingFact:
     | { text: string; title?: string; cueId?: string; guide?: PendingGuide | null }
@@ -1055,23 +1031,11 @@ export function createUI(options: UIOptions): GameUI {
 
   }
 
-  /**
-   * One pending fold at a time.
-   *
-   * Deliberately not `later()`: these overlap. Finding a place while the arrival fact is
-   * still up replaces the words in the card, and the arrival's fold was already in flight
-   * — it fired a second later and shut the discovery away before it had been read.
-   */
+  // Replacing a fact cancels its old advance timer so a stale arrival timer cannot advance
+  // past a new discovery. The timer advances queued content; it does not fold an open panel.
   let factAdvanceTimer = 0;
   let factShownAt = 0;
-  /**
-   * How long a fact is guaranteed to stay up, however the reading went.
-   *
-   * Speech that fails reports itself as finished immediately — no voices installed, an
-   * error, a platform that refuses outside a gesture — and the fold is hung off the end of
-   * the reading, so without a floor the card appeared and vanished inside two seconds.
-   * Long enough here for an adult to read the longest fact aloud themselves.
-   */
+  /** Minimum reading window before queued advancement, even if speech ends immediately. */
   const FACT_MINIMUM_MS = 6500;
 
   function scheduleFactAdvance(delay: number) {
@@ -1086,19 +1050,8 @@ export function createUI(options: UIOptions): GameUI {
     currentFact = text;
     currentFactCueId = cueId ?? null;
     pendingGuide = null;
-    /*
-     * A fact shown *now* supersedes one that was merely queued.
-     *
-     * Without this, pressing **Spin** inside the window where the completion line is
-     * waiting behind the last discovery put the day/night lesson up, then swapped the
-     * completion line in over the top of it a couple of seconds later — the words landing
-     * on the one moment in the game whose entire content is watching the light move.
-     *
-     * It could not happen while the day turn was the arrival introduction, because there
-     * was never a queued completion during one; making the turn a thing a child presses
-     * whenever they like is what put the two in the same window. Safe for the completion
-     * path itself, which sets `pendingFact` *after* any showFact call of its own.
-     */
+    // A new explicit fact supersedes queued completion copy. Starting Day & night must not
+    // later have its explanation replaced by the previous discovery's success follow-up.
     pendingFact = null;
     factShownAt = Date.now();
     // Every fact clears the photo; showDiscovery is the only one that puts one back, and
@@ -1112,9 +1065,9 @@ export function createUI(options: UIOptions): GameUI {
     factText.textContent = text;
     factCard.classList.remove('is-hidden');
     // Only authored audio starts itself. A partial voice pack never makes the platform's
-    // fallback begin talking. Show words is available for every cue.
-    // `allowNarrate` is a narrow caller veto for a visual moment that needs silence; arrival
-    // welcomes are authored for their new place in the sequence and speak normally.
+    // fallback begin talking. Listen/Words keeps written text available for every cue.
+    // `allowNarrate` lets the caller keep a visual moment silent; arrival welcomes can speak
+    // while the child explores the already-visible targets.
     const autoNarrate =
       allowNarrate && shouldAutoNarrate(narrator.hasRecording(currentFactCueId), soundOn);
     // Words are always available by choice, even when this particular recording is absent.

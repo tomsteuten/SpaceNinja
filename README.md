@@ -5,8 +5,9 @@ far: the Sun, Earth, the Moon, Mars, and Saturn.
 
 The guided adventure is the default game. Tap a world or its large destination button and
 ride with the spaceship to a close view. Earth and the Moon are available first; visiting
-the Moon reveals Mars, and visiting Mars reveals Saturn. Every world has real places to
-discover, a journal, recorded narration and a clear Fly Home route. Earth's **Day & night**
+the Moon reveals Mars, and visiting Mars reveals Saturn. Earth, Moon, Mars and Saturn have
+real places to discover; the Sun is a look-around visit. Every visit offers narration, a
+journal and a clear Space map return. Earth's **Day & night**
 activity shows a full turn of the globe and its city lights.
 
 ### Guided adventure
@@ -14,8 +15,9 @@ activity shows a full turn of the globe and its city lights.
 Tap a world — the big buttons along the bottom, or the planet itself in space — and you go
 there. One tap, one journey: ride with the spaceship along its safe route and arrive close
 enough to see the surface.
-Three real places are marked on each world — the first footprints on the Moon, the volcano on
-Mars, the Sahara from orbit — and finding one tells you about it and puts it in the discovery
+Three real places are marked on each planet/moon visit — the first footprints on the Moon,
+the volcano on Mars, the Sahara from orbit — and finding one tells you about it and puts it
+in the discovery
 journal. One of the three is always round the back, so getting it means learning to drag. Or
 just look around and fly home.
 
@@ -37,8 +39,8 @@ World pictures and real discovery thumbnails carry the visual identity across th
 returns and journal. Startup failures offer **Start again**, including a missing script
 download, rather than leaving the loading message indefinitely.
 
-Each world holds **six** real places and shows three of them, picked fresh each visit and
-weighted towards the ones you have not found, so going back to the Moon is not the same Moon.
+Earth, Moon, Mars and Saturn each hold **six** real places and show three, picked fresh each
+visit and weighted towards the ones you have not found, so returning offers new discoveries.
 Having been there reveals Mars, and visiting Mars reveals Saturn. Find every place on all four
 worlds and the whole game is won — with a celebration to say so.
 
@@ -77,7 +79,8 @@ assuming it has already earned a place in the main child loop.
 
 A second steering experiment, the Earth-to-Moon outing, is at
 <http://localhost:5173/?outing>: fly a visible ship to the Moon, find Tycho, see its photo and
-fly home. Its contract and ownership are in `docs/current-implementation.md`.
+fly home. Its current status is in [the checkpoint](docs/current-implementation.md), with its original
+contract and ownership in [September history](docs/implementation-history-2026-09.md).
 
 ### On a phone or tablet on the same WiFi
 
@@ -118,8 +121,11 @@ on the network the same way. `npm test` runs the unit tests — they cover the j
 persistence, collectible placement and visibility, touch-camera maths, photo dismissal,
 narration cue coverage and the flight's easing curve — the pieces whose failure is easy
 to miss by eye. Narration generation creates the offline MP3 cue pack from
-`src/audio/narration-script.json` with a local open-weight model; it needs `ffmpeg`, but no
-account or API key.
+`src/audio/narration-script.json` using the owner-selected ElevenLabs voice; it requires
+`ELEVENLABS_API_KEY`. `npm run narration:generate:kokoro` is the local, keyless fallback
+(needs `ffmpeg` and `npm install --no-save kokoro-js`);
+`npm run narration:generate:openai` is an alternative requiring `OPENAI_API_KEY`. See
+[recording instructions](src/audio/recordings/README.md) for per-cue generation and provenance.
 
 ---
 
@@ -153,13 +159,15 @@ The original twelve and the twelve repeat-visit places now all have photographs.
 pages, image identifiers and credit lines are listed in
 [`public/assets/discoveries/README.txt`](public/assets/discoveries/README.txt).
 
-**Narration** in `src/audio/recordings/` — generated locally with
-[Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M), whose model weights are licensed
-[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0). The included voice is disclosed
-as AI-generated on the grown-ups screen.
+**Narration** in `src/audio/recordings/` — generated with the owner-selected ElevenLabs
+Emma voice, with a Kokoro `bf_emma` exception for the Sun arrival. The actual pack and
+per-cue exception are recorded in `provenance.json` and
+[the recording notes](src/audio/recordings/README.md). Generated speech is disclosed on the
+grown-ups screen. The local fallback uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M),
+whose weights are [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
-The Sun, the spaceship and everything else on screen is generated at runtime or built
-from Three.js primitives.
+The Sun's surface map is a generated illustration, credited in `public/assets/README.txt`.
+The spaceship and scene geometry use Three.js primitives and runtime effects.
 
 World-completion stickers also stay in the world: each earned reward becomes a bold,
 runtime-drawn decal on the spaceship, and finding everything adds the Space Ninja crest.
@@ -172,10 +180,10 @@ anything loads it or not.
 
 ### Adding more
 
-The game generates all of its textures at runtime, so it looks finished with nothing
-downloaded. To upgrade to real photography, drop image files into `public/assets/` and
-reload — the loader picks them up automatically and no code changes are needed. Anything
-you add under a CC BY licence needs crediting in the list above.
+The shipped worlds load bundled maps, with generated fallbacks if a map is missing.
+Replace a configured map in `public/assets/` to change that world; adding a new world
+requires [the expansion checklist](docs/worlds-roadmap.md). Record provenance and licence
+credits for each asset in the relevant asset README.
 
 **Photographs of the places a child finds** work the same way, and are the most worthwhile
 thing you can add. A first find opens its real photograph as a large postcard once it has
@@ -183,9 +191,9 @@ loaded; revisits retain a thumbnail that opens full screen on a tap. Files are n
 their discovery in `public/assets/discoveries/`.
 That folder's `README.txt` names the specific NASA image used for every place and why that
 one fits the discovery. They remain optional and can be replaced one at a time: a place with
-no file simply has no photograph. **Nothing is downloaded until a place is
-actually found**, so they cost the game nothing at startup, and a child who finds three
-fetches three.
+no file has an intentional no-photo state. Full photographs are requested on a find or
+when deliberately opened, then cached for later offline use. Small 160px discovery
+derivatives used by the journal and controls are precached; the full set is not preloaded.
 
 Earth is the one that needs care, because its colour and roughness maps are only correct
 as a pair — see `resolveEarthMaps` in `textures.ts`. Supplying `earth.jpg` on its own is
@@ -212,19 +220,27 @@ public/icons/            home-screen icons (icon.svg is the source; PNGs render 
 src/
   main.ts                adventure wiring, frame loop and visit reset
   session/               shared browser lifetime, offline registration and crash screen
-  config.ts              scene scale, speeds, timings, and the destination copy
+  config.ts              destination copy/reveal gates, timings, geometry re-exports
+  worlds/catalogue.ts    geometry, surface/ring specifications, derived framing/badges
+  explorer/              explicit ?explorer comparison route
+  experience/            explicit ?outing Earth-to-Moon experiment
   scene/
     Stage.ts             renderer, camera, bloom, resize, adaptive quality
     quality.ts           device tiering (low / medium / high)
-    Bodies.ts            Sun, Earth + atmosphere, Moon, Mars, Saturn, lights
+    Bodies.ts            Sun/Earth builders, catalogue-driven orbiting worlds, lights
+    TeachingSun.ts       visible daylight source for day/night activity
+    DayTurn.ts           held-surface turn and scripted camera ownership
     Spaceship.ts         the ship, built from primitives
     EngineTrail.ts       the exhaust the ship leaves behind it
     Starfield.ts         gradient sky, star map, layered point stars
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
-  flight/FlightSequence.ts  the scripted flight out to any destination
+  flight/                scripted flight, home return and manual-flight experiment
   mission/CollectMission.ts  the places to find, for any body
-  ui/                    interface layer (ui.ts + ui.css + icons.ts)
+  ui/                    DOM components, panels, coach and grown-ups controls
+    adventure.css        adventure layout ownership
+    pictures.ts          world and discovery picture identity
+    panelGuard.ts        guarded pointer closing and keyboard exceptions
   audio/narration.ts     keyed MP3 narrator + manual SpeechSynthesis fallback
   audio/narration-script.json  short child-directed lines for generated narration
   audio/sfx.ts           two synthesised cues, entirely optional
@@ -240,8 +256,8 @@ screenshot, browser furniture had been eating close to a fifth of the screen, so
 single biggest lever on how big the planet looks, and it is a small file. A service worker
 precaches the app and the globe textures on the first visit, so from the second launch on the
 game opens with no internet at all — which is squarely how a tablet game gets used: in a car,
-on a plane, at a grandparent's with bad wifi. The discovery photographs stay lazy, fetched
-only when a place is found and then kept, so the offline promise costs nothing at startup. The
+on a plane, at a grandparent's with bad wifi. Small discovery thumbnails are precached too;
+full photographs stay lazy and are cached after a find or deliberate opening. The
 worker is built from the bundle rather than hand-written, because Vite hashes its file names;
 `sw/build.ts` is the pure, tested core of that. Nothing runs in development.
 The grown-ups panel shows the deployed Git build id so an intermittent phone report can be
@@ -258,9 +274,9 @@ loop now catches it and shows a friendly "the spaceship stopped" screen with a b
 reloads (the journal survives), plus the actual error in small print for a bug report.
 
 **Distances are compressed, hard.** At true scale the Moon would be thirty Earth-diameters
-away and invisible. `config.ts` holds the numbers; `FRAMING_RADIUS` is derived from the
-Moon's orbit so a portrait phone — whose horizontal field of view is very narrow — never
-loses the destination off the edge of the screen.
+away and invisible. `src/worlds/catalogue.ts` owns the geometry and derives map framing
+from the revealed worlds and their visible silhouettes. `config.ts` re-exports legacy
+geometry names; the Sun has separate framing. Stage reserves the current UI footprint.
 
 **Rendering always goes through EffectComposer**, even when bloom is disabled, so tone
 mapping and colour conversion happen in exactly one place for every material including the
@@ -298,7 +314,8 @@ being allowed to touch anything, on every visit. A tap skipped it, and needing a
 tell. The day turn is a button again.
 
 **Day & night is an activity with a visible name.** The visit controls share one row:
-Journal, Space map, and Day & night. A half-lit globe and turn arrow reinforce the label;
+Space map, Listen (Words with sound off), supported Day & night, Journal. The Sun omits
+Day & night. Stop keeps the activity cell. A half-lit globe and turn arrow reinforce the label;
 during a turn that globe follows the real one and the same button becomes **Stop**.
 The hunt prompt gives way to a small day/night legend while the turn runs.
 Earth can invite the activity after a discovery and a quiet pause, while another visible
@@ -375,33 +392,24 @@ the fact. There is a test for how far round it is: past the limb teaches the ges
 far past it is half a turn of dragging across an unlit hemisphere, which a small child
 abandons.
 
-**The mission knows nothing about the Moon.** `CollectMission` takes a `CelestialBody` and
-derives marker size, hit-target size and particle scale from its radius, so the next
-destination is a definition object rather than new code.
+**The mission uses the destination's geometry.** `CollectMission` takes a `CelestialBody` and
+derives marker size, hit-target size and particle scale from its radius. A new destination
+still needs capability, selection and responsive checks; follow the world checklist.
 
-**Every stateful module owns a `reset()`**, and `main.ts` is the only caller. That is what
-makes **Fly Home** work without reloading the page — the flight, the ship, the trail, the
-world, the camera, the UI and the mission each undo exactly their own state. The bodies keep
-orbiting throughout, so the Moon is deliberately *not* put back where it was. **Fly Home**
-first eases the camera back out to the map over about a second (a reverse of the flight, so it
-reads as a journey rather than a jump); the reset runs the moment that pull-back lands, on the
-exact view it lands on, so nothing snaps.
+**Stateful systems own reset and disposal.** `src/session/lifecycle.ts` coordinates browser
+suspension, crash and final disposal through route callbacks. `main.ts` owns the adventure's
+ordered visit reset. Space map first returns the camera to the map, then resets the visit;
+each subsystem undoes its own state. A cached browser-history exit suspends resources,
+while a real exit disposes them. Settings and adventure progress remain separate.
 
-**You can turn a world through a day and watch morning arrive.** Children playing this
-asked about the sunrise, which is better evidence than any of the reasoning elsewhere in
-this file. The scene had always answered the question correctly and never shown it: the
-city lights are masked by the world-space Sun direction and the sunlight is a world-space
-directional light, so turning the surface makes places cross into darkness with their
-lights coming on, and back out into morning. All of it already worked and none of it ever
-moved. **Spin the Earth** drives the rotation the surface hold is already reproducing — no
-new physics — and swings the camera side-on first, because the flight arrives near the
-sub-solar point where the day/night line hugs the limb and nothing appears to change.
-The explanation card folds before the turn starts, even while its narration is playing:
-this is the one moment where watching the light move is the entire lesson, so the speaker
-button may remain but the full-width words must not cover or compete with the globe.
+**Day & night turns the held surface.** The activity advances the same surface orientation
+used by markers and moves the camera to a teaching view. The visible teaching Sun explains
+the light direction; Earth's night lights follow the world-space illumination. The activity
+starts only from the child's press and can be stopped or left via Space map. Its explanation
+is available through Listen/Words in the deliberate reading panel.
 
 **A touch drag is distance, not frame-rate-dependent velocity.** A full short-edge drag
-turns about 130 degrees and each pointer delta is applied once. Only the measured release
+turns about 180 degrees and each pointer delta is applied once. Only the measured release
 speed becomes a capped, time-based glide. The previous code accumulated drag deltas into a
 value applied again on every animation frame, which made a high-refresh phone spin much
 farther than a 60Hz screen. Tests pin both sampling-rate independence and equal inertia at
@@ -438,31 +446,24 @@ happen before the ship reaches somewhere with sounds to make. If Web Audio is mi
 The two continuous sounds follow a value the picture is already using, frame by frame,
 rather than starting a timed ramp, so they stay with the picture on a slow device.
 
-**Good narration is the primary guide; the device voice is not.** Exact keyed MP3 cues in
-`src/audio/recordings/` start automatically when sound is on. The card stays compact while
-they play, but now keeps a labelled **Show words** button beside the photograph and replay
-control; it reveals the full-width paragraph for a fresh reading window and becomes **Hide
-words**. Each instructional cue also names a visible action — tap the gold target, or swipe
-the planet — so a pre-reader is not being asked to infer a verb from prose. A missing cue
-never auto-starts the browser's poor `SpeechSynthesis` voice; that fallback remains available
-only from the speaker button. This makes a partial voice pack safe to ship and keeps silence
-preferable to bad narration.
+**Authored narration guides the child.** Keyed MP3 cues in `src/audio/recordings/` start
+automatically when available and sound is on. Listen opens the current fact, full-width
+words, optional photograph and replay/return actions. With sound off the entry is Words.
+Queued completion facts wait while the reading panel is open; facts do not fold themselves
+into a compact card. Available recordings work individually; a missing cue never starts
+`SpeechSynthesis` automatically. Device speech remains a manual replay fallback.
 
-`npm run narration:generate` creates the shipped pack with the owner-selected ElevenLabs
-Emma voice (`ELEVENLABS_API_KEY` required). Its hash manifest regenerates only changed cues;
-`--only=<cue>` limits a run. `npm run narration:generate:kokoro` is the local, keyless fallback,
-and `npm run narration:generate:openai` is another keyed alternative. The Sun arrival currently
-uses Kokoro `bf_emma`; that exception is recorded in the narration provenance. Generated
-narration is disclosed in the grown-ups panel. The MP3s are fingerprinted Vite assets and
-precached by the service worker for offline playback.
+The shipped voice, generator alternatives and per-cue exception are documented in
+[recording instructions](src/audio/recordings/README.md). Imported MP3s are fingerprinted
+Vite assets and precached with the application shell.
 
 **Without recorded cues, the voice is chosen on the grown-ups panel.** It appears by itself
 the first time the game is opened on a device and lists every voice that device offers,
 best first. Tap one to audition a real line; the last one tapped is remembered. This is a
 fallback, not the route for making audio primary.
 
-**Sound can be turned off there too**, which covers the read-aloud voice as well and takes
-the speaker button away with it.
+**Sound can be turned off there too.** It silences narration and sound effects, hides audio
+replay controls, and labels the reading entry Words so the written facts remain available.
 
 **To open it again: press and hold the round book button for two seconds.** A hold rather
 than a visible button, because a settings control on screen is a settings control a
@@ -485,8 +486,9 @@ motion per second, not less, which is the opposite of what the preference is ask
 
 ## Not yet
 
-No planets past Saturn, no downloaded models, and no real
-orbital physics. Those are deliberately still out of scope.
+No additional planets beyond the current catalogue, imported ship models or real orbital
+physics are implemented. Future world expansion follows [the roadmap](docs/worlds-roadmap.md);
+it does not require a general engine rewrite.
 
 All four worlds can be spun through a day — the button is a config entry rather than a
 special case. This was once true of Earth alone, on the reasoning that "why does the Sun come
@@ -508,18 +510,21 @@ format, levels, duration and offline bundling are checked, but only a child can 
 whether the delivery actually prompts the intended tap or swipe. `SpeechSynthesis` remains
 the manual fallback for any future cue whose MP3 has not yet been generated.
 
-## September 11 discovery flow update
+## Current guidance and historical records
 
-Each visit now selects three places before departure and uses the same set for arrival
-framing and its three progress slots. Recordings play individually when available. Cards
-start compact with an explicit Show words button and retain their photo after folding;
-the journal can reopen a found place's photo and replay its short narration. A completed
-visit leaves checkmarks and a home/next-world invitation. On phones, spin and Fly Home
-share the bottom row beside the journal, leaving more of the globe clear. These changes
-supersede the earlier all-or-none narration and text-only journal notes.
-
+Read [AGENTS.md](AGENTS.md) for operating rules, [the current checkpoint](docs/current-implementation.md)
+for ownership and route status, and [the world checklist](docs/worlds-roadmap.md) before
+expansion. Dated reviews, [September checkpoints](docs/implementation-history-2026-09.md)
+and [decision history](docs/decision-history.md) preserve earlier evidence. Their old UI
+contracts, cue counts and next steps do not override the approved October interface.
 
 ## Browser regression checks
+
+Use only affected Playwright files/viewports locally for a UI or behavior change, per
+[AGENTS.md](AGENTS.md). Do not run the full suite locally; deployment CI runs it.
+For example: `npx playwright test e2e/earth-day.pw.ts --project=phone`. Rerun a failing
+browser test alone once before diagnosis. Documentation/comment-only changes need no
+browser run.
 
 `npm run test:e2e` builds an isolated `dist-playtest/` and serves it on port 4180.
 Run `npx playwright install chromium` once first (CI uses `--with-deps`). Set `PLAYTEST_PORT`
@@ -537,9 +542,12 @@ the adventure and both experiments. This suite is a layout/interaction gate, not
 The test build alone enables `VITE_PLAYTEST=1`, a read-only scene snapshot for locating
 canvas targets and checking renderer activity. It cannot launch, collect or alter progress.
 Normal `npm run build` omits it. Passing geometry checks and browser automation do not
-establish narration quality or child comprehension; review the saved screenshots too.
+establish narration quality or child comprehension. Visual changes require owner review of
+full-resolution before/after images on phone, tablet and short landscape, one screen at a
+time; the suite's half-resolution captures are weak visual evidence. Device listening and
+child observation remain necessary.
 
-The day/night browser pass also checks its optional arrival, earlier Earth invitation,
+The day/night browser pass checks the supported activity at arrival, optional Earth invitation,
 64px-high contextual controls, keyboard start/stop, preserved surface orientation after
 skipping, canvas skipping, and Fly Home during a turn. It includes 319 × 561 and 640 × 360
 layouts alongside the configured phone, tablet and short-landscape viewports.
@@ -552,11 +560,12 @@ The journal shows each world's collection; after visiting every world, the map s
 unfinished page. Finds say New or Seen before, without penalising revisits.
 
 
-### Architecture review
+### Architecture references
 
-The [September 14 audit](docs/architecture-review.md) records the current extension boundaries,
-validated lifecycle fixes and remaining engineering risks. Both routes now pause on backgrounding,
-retain their scene for a cached browser-history return, and keep crashes stopped until reload.
+The [September 14 audit](docs/architecture-review.md) records the boundaries and risks at
+that baseline. Current ownership is summarized above and in the checkpoint; later changes
+are recorded in decision history. Shared lifecycle handling pauses resources on backgrounding,
+retains scenes for cached browser-history return and keeps crashes stopped until reload.
 Browser screenshots are written to named PNGs under `test-results/` as well as attached to the
 HTML report. The history tests exercise browser lifecycle events deterministically; they do not
 assert that every browser will choose to put the page into its back/forward cache.

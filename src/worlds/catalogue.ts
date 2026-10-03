@@ -1,11 +1,11 @@
 /**
- * The world catalogue: every body a child can fly to, as data, in the order they are earned.
+ * Geometry for Earth and the orbiting catalogue worlds, in reveal order.
  *
- * This is the first slice of the shape described in docs/worlds-roadmap.md. It holds each
- * world's *geometry* (size, orbit, spin, rings) and derives the camera framing from it, so
- * that adding a fifth world is one entry here rather than a new named constant and a new
- * framing tier. The words (facts, places, hunt lines) still live in `DESTINATIONS` in
- * config.ts and the meshes are still built by name in Bodies.ts; those move in later slices.
+ * Owns sizes, orbits, spins, rings, surface specifications and derived map framing.
+ * Bodies.ts builds orbiting worlds through its shared builder; Earth keeps its paired-map
+ * builder. Facts, places and reveal prerequisites remain in DESTINATIONS in config.ts.
+ * The Sun observation destination has separate geometry and presentation. Adding a world
+ * also requires the dependencies listed in docs/worlds-roadmap.md, including BODY_IDS.
  *
  * Distances are compressed hard for composition, not accuracy: a true-scale Moon would be
  * 30 Earth-diameters away and invisible. Earth radius is the unit for everything else.

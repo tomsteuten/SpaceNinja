@@ -1,9 +1,11 @@
-# Explorer rollout and tablet trial
+# Explorer experiment tablet trial
 
-The default route opens on the solar system. A world is chosen by touching it or its button;
-the ship flies there, the camera descends, and the child flies over the world. `?classic`
-retains the earlier adventure (sharing saved progress); `?freeflight` retains the manual-flight
-experiment. All four destinations and all 24 authored places remain reachable.
+Reconciled 4 October 2026: enter this comparison experiment explicitly with `?explorer`.
+The guided adventure is the default at `/`; `?classic` is no longer a distinct route.
+`?freeflight` and `?outing` are separate steering experiments. The explorer covers the four
+catalogue worlds and their 24 authored places; the Sun observation visit belongs to the
+adventure. These questions evaluate the explorer, not approval of the October adventure UI.
+See [the current checkpoint](current-implementation.md) for route and ownership guidance.
 
 ## Observable tablet questions
 
@@ -36,9 +38,9 @@ surface traversal. Close-up detail comes from lazy mission images. Saturn's body
 reconstruction, as credited; its Cassini archive views include composites, infrared and
 false-colour products with descriptive captions.
 
-## Undo
+## Historical rollout reference
 
-The annotated tag `pre-explorer-2026-09-21` and the branch `rollback/explorer-2026-09-21`
-record `main` before the explorer. Each change since is an ordinary commit, so
-`git revert <commit>` followed by a normal push undoes it without rewriting history. The
-classic route is also available immediately without changing Git.
+The tag `pre-explorer-2026-09-21` and branch `rollback/explorer-2026-09-21` record the
+September rollout baseline. They are historical references, not today's branch-selection
+or rollback instructions. Returning to the guided adventure now means opening `/`; no Git
+change or `?classic` route is required. Verify the current revision before any rollback.

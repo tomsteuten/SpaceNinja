@@ -7,17 +7,17 @@
  * had just appeared under the finger, or on the About button itself — put it straight away
  * again. To the child, the button did nothing.
  *
- * Two rules, and a close has to pass both unless it came from the keyboard:
+ * Guarded pointer close paths (panel toggles, pictured returns and backdrops) pass both:
  *
- *  - Nothing closes within `PANEL_OPEN_GUARD_MS` of opening. A deliberate second press to
- *    close is always slower than that; a double tap never is.
- *  - Nothing closes from the pointer sequence that opened it. Every pointerdown anywhere
+ *  - Reject guarded closes within `PANEL_OPEN_GUARD_MS` of opening (500 ms).
+ *  - Reject guarded closes from the pointer sequence that opened it. Every pointerdown anywhere
  *    advances a counter, a panel remembers the count it opened on, and a close is honoured
  *    only once a *new* press has begun. That is what keeps the trailing compatibility click
  *    Android delivers after a tap (see photos.ts) from closing the thing the tap opened.
  *
- * Keyboard activation (a click whose `detail` is 0) skips both: Enter and Escape are never
- * a double tap, and someone who opens and closes quickly from a keyboard meant it.
+ * Keyboard activation (a click whose `detail` is 0) skips both, and Escape closes
+ * immediately. Explicit photo and reading-panel X controls also bypass the guard. The
+ * guard protects accidental toggles without delaying those deliberate escape controls.
  *
  * The decision is pure and tested; the DOM wrapper only counts presses.
  */

@@ -1,4 +1,10 @@
-# Reusable architecture review / continuation prompt
+# Historical architecture review / continuation prompt — September 2026
+
+Historical handoff for the September product/engine review and Earth-to-Moon slice. Preserved as a record, not a prompt
+to execute again. Read [the current checkpoint](current-implementation.md),
+[the world checklist](worlds-roadmap.md) and [AGENTS.md](../AGENTS.md) for current work.
+Any baseline, cue count, branch, test instruction or next gate below belongs to that dated
+task; it does not select today's route or override the October interface.
 
 Use with a repository-capable coding agent. Recommended here: Astra, High reasoning, one bounded review. The same task definition is usable with Claude or Gemini; do not assume a model ranking from this prompt.
 

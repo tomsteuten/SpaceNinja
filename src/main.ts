@@ -283,10 +283,8 @@ async function main() {
   });
 
   /**
-   * Turn the world through a day, always from the child's own press now (the automatic
-   * first-visit intro was removed — it took the camera without being asked). The explanation is
-   * put one speaker-tap away before the camera starts moving, since this lesson is entirely
-   * visual and a full-width card during the swing pulled the child's eyes off the light.
+   * Start Day & night from the child's press. Store its explanation for Listen/Words,
+   * then give the turn exclusive camera ownership until stop, completion or return.
    */
   function startDayTurn() {
     const body = world.bodies[follow];
@@ -386,14 +384,8 @@ async function main() {
       // once. There is nothing between arriving and having something to touch.
       mission.start();
       revealHunt();
-      /*
-       * Day & night no longer takes the camera on its own. On the child's first visit to a
-       * world whose spin can be invited (Earth), it is instead the guided first action: the
-       * button pulses and speaks its invitation from arrival, and the child triggers the turn
-       * themselves. The gold places are already on screen, so nothing is gated behind it.
-       */
-      // Earth is the only world whose day & night is the screen's primary action (it alone has
-      // spin.intro); elsewhere the gold places lead and the turn stays a quiet secondary offer.
+      // Supported Day & night is visible on settled arrival for every mission world.
+      // Earth's first-visit invitation can pulse and speak, but the child starts the turn.
       earthDayNightPrompt = firstVisit && Boolean(config.spin?.intro && config.spin?.invite);
     },
   });
@@ -555,21 +547,6 @@ async function main() {
     }
     | null = null;
 
-  /*
-   * Arriving used to be a sequence: a spoken welcome, then the world turning through one
-   * whole day, then the gold targets. Every world has a `spin`, so it ran on every arrival,
-   * every time — 2.6s of welcome, a 2.2s camera swing and a 9s turn on top of the 7s
-   * flight. Better than 21 seconds could pass between pressing a world and being allowed to
-   * touch anything, and it repeated on the twelfth visit exactly as on the first.
-   *
-   * A tap skipped it. That it needed a skip was the tell: the default was the thing you
-   * skipped, and a five-year-old does not discover an unsignposted one.
-   *
-   * So the day turn is a toy again rather than a toll — offered by its own button. On Earth
-   * it is visible at arrival; elsewhere it enters with the guided hunt. The child chooses it, which is
-   * worth more than being shown it. The welcome fact still speaks; it simply speaks over a
-   * screen that already has something on it to touch.
-   */
   /**
    * A day turn has finished (or been tapped through). Hand the camera back where the child
    * was looking from, rather than leaving them side-on to the Sun with the targets they were
@@ -581,10 +558,8 @@ async function main() {
     // The guided first turn has been done; stop pulsing for it.
     earthDayNightPrompt = false;
     if (follow === 'earth') activeMission?.setPresentation(true);
-    // The child's day turn leads straight into the guided hunt, with the counter and the spoken
-    // "find the gold places" — the same transition the old automatic intro made, now off their
-    // own press. Idempotent: a no-op when the hunt is already running (a later Earth visit, or
-    // any turn pressed mid-hunt).
+    // Ensure hunt guidance has begun after the optional turn. Targets were revealed on
+    // arrival; this only adds guidance and is a no-op if guidance is already running.
     beginGuidedHunt();
     const body = world.bodies[follow];
     body.getWorldPosition(focusPosition);
@@ -608,7 +583,7 @@ async function main() {
     huntGuidance.active = true;
     ui.setHint(null);
     ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`);
-    // The day turn remains discoverable, but now enters after the calm-arrival beat.
+    // Refresh the supported activity label; revealHunt already made it visible on arrival.
     if (follow !== 'earth') ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
   }
 

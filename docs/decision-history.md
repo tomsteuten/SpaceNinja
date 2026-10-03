@@ -3,6 +3,27 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-04 — Reconcile active documentation with the implemented game
+
+The documentation/comment review found completed September plans still presented as next
+steps, contradictory route and narration descriptions, and copyable restyle prompts that
+would reverse the approved October row. Source confirmed catalogue framing, a generic
+orbiting-body builder and derived badges/explorer were already implemented; the Sun was
+already visitable. Copy and reveal gates still live in config, and expansion retains manual
+body-id, test-radius, responsive-layout and explorer/offline dependencies.
+
+The active roadmap now describes those actual interfaces and a one-world checklist. Old
+Moon/Jupiter prompts are retired, including the invalid ring-plane representation of a
+shadow on a body. Parented moons and map composition alternatives remain proposals. The
+current checkpoint is short; September details moved to dated implementation history, and
+baseline-specific handoffs explicitly identify their historical scope. README, narration
+notes and comments now describe per-cue playback, deliberate Listen/Words panels, shared
+lifecycle ownership and precached thumbnails versus lazy full photographs.
+
+This is documentation and comment cleanup, not a new product decision or game behavior
+change. Dated reviews and regression evidence remain. No asset regeneration or visual
+approval is implied; target-device listening and child comprehension remain unverified.
+
 ## 2026-10-03 — One aligned action row and deliberate reading panels
 
 Child feedback found both discovery exits and the route back to the space map unclear.
