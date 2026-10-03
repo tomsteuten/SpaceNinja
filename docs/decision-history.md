@@ -32,6 +32,13 @@ view, leaving Earth too small after rotating back to portrait. Stage now owns bo
 viewport sizing and projection offsets, so reframing sees a consistent lens. The
 existing phone rotation check reproduced the failure locally before this correction.
 
+Two subsequent landscape failures passed in isolated reruns. Their traces exposed
+driver timing assumptions rather than game failures: the pictured return was pressed
+inside its intentional opening guard, and a skipped day turn's held angle was read
+before the following world frame presented it. The driver now waits for those existing
+preconditions while retaining the dismissal and exact full-turn assertions. Game
+behavior and the half-second guard are unchanged.
+
 The owner also reported a preview stuck on loading. The real startup shell now handles
 script failures independently of the game bundle and offers a retry after failed or
 prolonged loading. The offline shell is restricted to actual game routes so a nested

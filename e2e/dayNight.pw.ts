@@ -84,6 +84,10 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await snapshot(page)).dayTurning).toBe(false);
   await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
+  // A skip advances the held angle; the following world frame presents that angle.
+  // Read the restored surface after that frame, rather than in the key-event task.
+  const stoppedFrame = (await snapshot(page)).frame;
+  await expect.poll(async () => (await snapshot(page)).frame).toBeGreaterThan(stoppedFrame);
   const after = await snapshot(page);
   await expect(page.locator('.day-legend')).toBeHidden();
   await expect(page.locator('.mission-hud')).toBeVisible();

@@ -81,6 +81,9 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
   await expect(page.getByRole('button', { name: 'Close the photo' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.locator('.photo-view').getByRole('button', { name: 'Keep exploring', exact: true })).toBeFocused();
+  // Screenshots and keyboard checks can finish inside the intentional opening guard.
+  // This pointer press represents a deliberate return, not an opening double tap.
+  await page.waitForTimeout(650);
   await page.locator('.photo-view').getByRole('button', { name: 'Keep exploring', exact: true }).click();
   await expect(page.locator('.photo-view')).toBeHidden();
   await page.getByRole('button', { name: 'Listen', exact: true }).click();
