@@ -284,3 +284,23 @@ later composition change, to be judged on screenshots.
 The same pass fixed two layout faults (the finale's badge grid collapsing to one column,
 and journal tile names clipping on tablet) and shortened the grown-ups splash, ordering
 it sound, progress, what it teaches, device notes, then the manual-flight experiment.
+
+## 2026-10-04 — Emphasis follows the task, a smaller parked ship, shorter hunt line
+
+Three small observations from driving the real build, taken as one pass.
+
+The gold emphasis no longer sits on Day & night for a whole Earth visit. While the hunt
+runs it stays on Day & night (the invitation); once every place is found, a new
+`.is-complete` state moves the cream onto Space map, the only useful action left, and
+clears it from Day & night. The state is raised in `completeMission` and dropped on the
+next arrival, flight or reset.
+
+The ship no longer looms translucent and huge beside a small body. The parked ship is a
+fixed size in world units, so the close arrival distance at the Moon and Mars made it read
+as a rendering fault. The parking depth now has a floor that caps the ship's on-screen size
+to about nine degrees; pushing it further behind shrinks it without moving its screen
+position. A large body never reaches the floor, so Earth and Saturn park unchanged.
+
+The hunt caption is now "One more! Tap the arrow." on every world, one line on a phone,
+instead of "One more! Tap the arrow, or swipe, to look around <world>." The pulsing arrow
+button and the coach hand carry the gesture; the caption only has to say there is one left.

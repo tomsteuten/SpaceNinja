@@ -14,6 +14,13 @@
 .visit-actions .home-btn { background:#234058; border-color:#8babbc; }
 .is-earth .spin-btn,.spin-btn.is-busy { background:#f3dfae; border-color:#f3dfae; color:#253044; }
 .is-earth .visit-actions .spin-btn:hover,.visit-actions .spin-btn.is-busy:hover { background:#ffedc3; }
+/* Emphasis follows the task: while the hunt runs, Day & night is the invitation (above);
+   once every place is found (.is-complete) the only useful action is the way back, so the
+   gold moves to Space map and leaves Day & night. The space-map glyph carries its own light
+   colours, so its arrow and planet outline are darkened to read on the cream. */
+.is-complete .visit-actions .spin-btn { background:var(--control-panel); border-color:var(--control-edge); color:var(--ink); }
+.is-complete .visit-actions .home-btn { background:#f0e5ca; border-color:#f0e5ca; color:#223249; }
+.is-complete .visit-actions .home-btn .icon [stroke] { stroke:#2d3f57; }
 .spin-picture { width:40px; height:35px; position:relative; display:flex; justify-content:center; }
 .spin-globe { display:block; position:relative; width:24px; height:24px; overflow:hidden; border-radius:50%; background:var(--world,#739bb3); border:1px solid #b9d6e5; }
 .spin-globe__night { position:absolute; top:0; bottom:0; right:0; width:50%; background:#26374e; }

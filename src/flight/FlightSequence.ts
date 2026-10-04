@@ -284,7 +284,6 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
      * Also read by the flight itself, which turns the ship onto this axis as it arrives.
      */
     lateral.crossVectors(endDirection, UP).normalize();
-    const depth = framing * (1 + PARK_BEYOND);
     const { horizontal: halfWidth, vertical: halfHeight } = halfFovs();
     const bodyAngle = Math.asin(Math.min(1, radius / framing));
     // The ship's own half-extent at its parking depth, plus a little air. Measured from the
@@ -298,6 +297,17 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     });
     shipBounds.getSize(shipSize);
     const shipHalfExtent = Math.max(shipSize.x, shipSize.z) / 2;
+    /*
+     * Base parking depth, then a floor on it. The ship is a fixed size in world units, so at
+     * a small body (the Moon, Mars) the close arrival distance made it loom huge on screen,
+     * and translucent for focus, so it read as a rendering fault rather than context. Pushing
+     * it further behind the body shrinks its on-screen size without moving its screen
+     * position, which the across/down angles set from `depth`. A large body never reaches the
+     * floor, so Earth and Saturn park exactly as before.
+     */
+    const MAX_SHIP_HALF_ANGLE = THREE.MathUtils.degToRad(9);
+    const depth = Math.max(framing * (1 + PARK_BEYOND), shipHalfExtent / Math.tan(MAX_SHIP_HALF_ANGLE));
+    const beyond = depth - framing;
     const shipAngle = Math.atan(shipHalfExtent / depth) + THREE.MathUtils.degToRad(1.5);
     const clearance = bodyAngle + shipAngle;
     // As far right as the composition wants, but never so far the nose leaves the screen.
@@ -308,7 +318,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     }
     const arrival = targetPosition
       .clone()
-      .addScaledVector(endDirection, -framing * PARK_BEYOND)
+      .addScaledVector(endDirection, -beyond)
       .addScaledVector(lateral, -depth * Math.tan(across))
       .addScaledVector(UP, -depth * Math.tan(down));
     const from = ship.group.position.clone();

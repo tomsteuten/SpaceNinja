@@ -1090,7 +1090,7 @@ export function createUI(options: UIOptions): GameUI {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-home');
-      root.classList.remove('is-earth', 'is-day-active');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete');
       worldHeading.classList.add('is-hidden');
       listenButton.classList.add('is-hidden');
       destinationBar.classList.add('is-hidden');
@@ -1106,6 +1106,7 @@ export function createUI(options: UIOptions): GameUI {
 
     showArrival(cueId: string, label: string, fact: string, _emoji: string, worldId = 'earth') {
       root.classList.remove('is-home');
+      root.classList.remove('is-complete');
       root.classList.toggle('is-earth', worldId === 'earth');
       worldHeading.classList.remove('is-hidden');
       listenButton.classList.remove('is-hidden');
@@ -1224,6 +1225,9 @@ export function createUI(options: UIOptions): GameUI {
       title: string,
       followUp?: PendingGuide,
     ) {
+      // The hunt is done. The one useful action left is the way back, so move the gold
+      // emphasis off Day & night and onto Space map. Cleared on the next arrival/flight.
+      root.classList.add('is-complete');
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       missionHud.classList.remove('fade-in-centred');
@@ -1366,7 +1370,7 @@ export function createUI(options: UIOptions): GameUI {
     reset() {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
-      root.classList.remove('is-earth', 'is-day-active');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete');
       worldHeading.classList.add('is-hidden');
       listenButton.classList.add('is-hidden');
       setFactOpen(false);
