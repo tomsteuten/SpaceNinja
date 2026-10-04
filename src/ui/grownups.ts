@@ -147,9 +147,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
           'p',
           'grownups__note',
           `${narrator.recordingDisclosure ?? 'This build includes its own narration.'} ` +
-            'It sounds the same on every ' +
-            'device and works offline. Included lines start by themselves; the speaker ' +
-            'button replays the current one.',
+            'It sounds the same on every device and works offline.',
         ),
       );
       return section;
@@ -166,8 +164,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'p',
         'grownups__note',
         'Tap a voice to hear it read a line from the game. The last one you tap is the ' +
-          'one Space Ninja will use. Voices differ hugely between devices, and this is ' +
-          'the only way to tell which of yours is any good.',
+          'one Space Ninja will use. Voices differ a lot between devices.',
       ),
     );
 
@@ -225,8 +222,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'grownups__lead',
         about?.lead ??
           'A quiet solar system for a child of about five to eight. There is nothing to ' +
-            'lose, nothing to get wrong, and no way to get stuck — once a world is reached, ' +
-            'the Space map button returns to the worlds at any time.',
+            'lose and no way to get stuck: the Space map button always leads back to the worlds.',
       ),
     );
 
@@ -240,80 +236,11 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     });
     inner.append(start);
 
-    const what = el('section', 'grownups__section');
-    what.append(el('h3', 'grownups__heading', 'What it teaches'));
-    what.append(
-      el(
-        'p',
-        'grownups__note',
-        about?.teaches ??
-          'The places a child finds are real, at their real latitude and longitude on real ' +
-            'NASA maps — the Sahara, the Amazon, the Apollo 11 landing site, Olympus Mons. ' +
-            'One on each world is deliberately over the horizon, so reaching it means ' +
-            'learning to look around the world. Spin the Earth turns it through exactly one day, ' +
-            'with the city lights coming on as places cross into night.',
-      ),
-    );
-    if (about?.imagery) what.append(el('p', 'grownups__note', about.imagery));
-    inner.append(what);
-
-    const flight = el('section', 'grownups__section grownups__experiment');
-    flight.append(el('h3', 'grownups__heading', 'Fly it yourself'));
-    flight.append(
-      el(
-        'p',
-        'grownups__note',
-        'Try the optional manual-flight experiment. Hold anywhere to steer the ship, release ' +
-          'to slow down, or tap a planet for autopilot. It has its own Back to adventure button. ' +
-          'On a keyboard, Shift+F opens it directly.',
-      ),
-    );
-    const tryFlight = el('button', 'grownups__auto grownups__flight', 'Try manual flight') as HTMLButtonElement;
-    tryFlight.type = 'button';
-    tryFlight.addEventListener('click', () => {
-      narrator.stop();
-      onTryFreeFlight();
-    });
-    flight.append(tryFlight);
-    inner.append(flight);
-
     /*
-     * The thing a parent most wants to know before handing over a tablet, and the one
-     * thing this screen never said. It has always been true — no backend, no accounts, no
-     * analytics — but a property nobody claims is a property nobody can rely on.
+     * Order: the two things a parent handing over a tablet needs now (sound, progress),
+     * then what to expect, then the device notes, and the experiment last. The first
+     * version led with the experiment, which put the sound switch below the fold.
      */
-    const privacy = el('section', 'grownups__section');
-    privacy.append(el('h3', 'grownups__heading', 'Private'));
-    privacy.append(
-      el(
-        'p',
-        'grownups__note',
-        'Nothing leaves this device. There are no accounts, no adverts and no tracking of ' +
-          'any kind; the journal is saved on the tablet itself, and after its first load ' +
-          'the game works with no internet at all.',
-      ),
-    );
-    inner.append(privacy);
-
-    // Operational, like everything else here: the single biggest thing left for how big
-    // the planet looks is not in the game's control, it is in the parent's.
-    const screen = el('section', 'grownups__section');
-    screen.append(el('h3', 'grownups__heading', 'Full screen'));
-    screen.append(
-      el(
-        'p',
-        'grownups__note',
-        runningStandalone()
-          ? 'You are running it from the home screen, so it fills the whole screen and ' +
-            'there is no address bar for a child to tap.'
-          : 'For the biggest planet, add Space Ninja to the home screen and open it from ' +
-            'there: it then fills the whole screen, with no address bar for a child to tap. ' +
-            'In Chrome that is the browser menu, then Add to Home screen; in Safari it is ' +
-            'Share, then Add to Home Screen.',
-      ),
-    );
-    inner.append(screen);
-
     const sound = el('section', 'grownups__section');
     sound.append(el('h3', 'grownups__heading', 'Sound'));
     sound.append(
@@ -321,17 +248,15 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'p',
         'grownups__note',
         narrator.recorded
-          ? 'Quiet by design. Included narration starts automatically and the speaker ' +
-            'button replays it. Turning sound off covers narration too and takes that ' +
-            'button away.'
-          : 'Quiet by design, and the device voice never starts on its own — the speaker ' +
-            'button on a card is the only thing that starts it. Turning sound off covers ' +
-            'the reading too, and takes that button away.',
+          ? 'Quiet by design. The included narration starts by itself and the speaker ' +
+            'button replays it. Sound off silences the narration too.'
+          : 'Quiet by design. The device voice only speaks when the speaker button on a ' +
+            'card is pressed. Sound off silences that too.',
       ),
     );
     const soundToggle = el('button', 'grownups__auto') as HTMLButtonElement;
     soundToggle.type = 'button';
-    soundToggle.textContent = loadSoundOn() ? 'Sound is on — turn it off' : 'Sound is off — turn it on';
+    soundToggle.textContent = loadSoundOn() ? 'Sound is on. Turn it off' : 'Sound is off. Turn it on';
     soundToggle.addEventListener('click', () => {
       const next = !loadSoundOn();
       saveSoundOn(next);
@@ -340,8 +265,6 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     });
     sound.append(soundToggle);
     inner.append(sound);
-
-    inner.append(voiceSection());
 
     /*
      * A precise reset rather than asking a parent or tester to clear all browser storage.
@@ -360,8 +283,8 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'p',
         'grownups__note',
         !hasProgress
-          ? 'This adventure has not saved any visits or discoveries yet.'
-          : `${progressCount} ${progressCount === 1 ? 'place' : 'places'} found · ` +
+          ? 'No visits or discoveries saved yet.'
+          : `${progressCount} ${progressCount === 1 ? 'place' : 'places'} found, ` +
               `${progress.visited.length} ${progress.visited.length === 1 ? 'world' : 'worlds'} visited.`,
       ),
     );
@@ -399,6 +322,56 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     }
     inner.append(progressSection);
 
+    const what = el('section', 'grownups__section');
+    what.append(el('h3', 'grownups__heading', 'What it teaches'));
+    what.append(
+      el(
+        'p',
+        'grownups__note',
+        about?.teaches ??
+          'Every place is real and sits at its true position on real NASA maps: the Sahara, ' +
+            'the Amazon, the Apollo 11 landing site, Olympus Mons. One place on each world ' +
+            'is round the back, so finding it means learning to look around. Day & night turns ' +
+            'Earth through one day, with the city lights coming on at dusk.',
+      ),
+    );
+    if (about?.imagery) what.append(el('p', 'grownups__note', about.imagery));
+    inner.append(what);
+
+    // Operational, like everything else here: the single biggest thing left for how big
+    // the planet looks is not in the game's control, it is in the parent's.
+    const screen = el('section', 'grownups__section');
+    screen.append(el('h3', 'grownups__heading', 'Full screen'));
+    screen.append(
+      el(
+        'p',
+        'grownups__note',
+        runningStandalone()
+          ? 'Opened from the home screen, so it fills the whole screen with no address bar ' +
+            'for a child to tap.'
+          : 'For the biggest planet, add Space Ninja to the home screen and open it from ' +
+            'there. In Chrome: the browser menu, then Add to Home screen. In Safari: Share, ' +
+            'then Add to Home Screen.',
+      ),
+    );
+    inner.append(screen);
+
+    // The thing a parent most wants to know before handing over a tablet. It has always
+    // been true, but a property nobody claims is a property nobody can rely on.
+    const privacy = el('section', 'grownups__section');
+    privacy.append(el('h3', 'grownups__heading', 'Private'));
+    privacy.append(
+      el(
+        'p',
+        'grownups__note',
+        'Nothing leaves this device. No accounts, no adverts, no tracking. The journal is ' +
+          'saved on the tablet, and after the first load the game works without internet.',
+      ),
+    );
+    inner.append(privacy);
+
+    inner.append(voiceSection());
+
     // Whether the device is asking for reduced motion changes what the game does, and
     // there is no way to see that from inside it. Worth a line, since a tablet can have
     // the setting on without anyone remembering they turned it on.
@@ -409,9 +382,8 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'p',
         'grownups__note',
         prefersReducedMotion()
-          ? 'Reduced motion is switched on for this device, so the game leaves out the ' +
-            'exhaust trail, the widening view and the drifting camera. Flights still take ' +
-            'the same time — playing the same movement faster is not less movement.'
+          ? 'Reduced motion is on for this device, so the game leaves out the exhaust ' +
+            'trail, the widening view and the drifting camera. Flights take the same time.'
           : 'Reduced motion is off for this device, so the game plays with its full ' +
             'camera movement. Turning it on in the device settings calms it down.',
       ),
@@ -419,12 +391,32 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     motion.append(el('p', 'grownups__note', `Build ${__BUILD_ID__}.`));
     inner.append(motion);
 
+    const flight = el('section', 'grownups__section grownups__experiment');
+    flight.append(el('h3', 'grownups__heading', 'Fly it yourself'));
+    flight.append(
+      el(
+        'p',
+        'grownups__note',
+        'An optional experiment: hold anywhere to steer the ship, let go to slow down, or ' +
+          'tap a planet for autopilot. It has its own Back to adventure button. On a ' +
+          'keyboard, Shift+F opens it.',
+      ),
+    );
+    const tryFlight = el('button', 'grownups__auto grownups__flight', 'Try manual flight') as HTMLButtonElement;
+    tryFlight.type = 'button';
+    tryFlight.addEventListener('click', () => {
+      narrator.stop();
+      onTryFreeFlight();
+    });
+    flight.append(tryFlight);
+    inner.append(flight);
+
     inner.append(
       el(
         'p',
         'grownups__reopen',
-        'To open this again: press and hold the round book button in the corner for two ' +
-          'seconds. It is a hold rather than a button so that a child does not find it.',
+        'To open this again, press and hold the book button in the corner for two seconds. ' +
+          'It is a hold rather than a button so that a child does not find it.',
       ),
     );
   }

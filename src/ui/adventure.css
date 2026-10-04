@@ -88,10 +88,11 @@
 .collection-progress__track { grid-column:1/-1; display:flex; gap:4px; }
 .collection-progress__track > span { flex:1; height:4px; background:#3b4e67; border-radius:4px; }
 .collection-progress__track > .is-found { background:var(--control-gold); }
-.sticker-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:120px; gap:12px; overflow:auto; min-height:100px; }
+.sticker-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:150px; gap:12px; overflow:auto; min-height:100px; }
 .sticker { border:1px solid #526780; border-radius:12px; overflow:hidden; background:#1d304a; color:var(--ink); padding:0; min-height:100px; font:600 13px/1.2 var(--font); cursor:pointer; }
-.sticker .discovery-picture { display:block; width:100%; height:90px; object-fit:cover; }
-.sticker > span { display:block; padding:9px; }
+.sticker .discovery-picture { display:block; width:100%; height:88px; object-fit:cover; }
+/* Rows leave room for three lines of name (Where the Helicopter Flew); longer clamps. */
+.sticker > span { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; padding:7px 6px; }
 .sticker--empty { display:grid; place-items:center; background:#142034; border:1px dashed #52617a; color:#8193a8; font-size:25px; cursor:default; }
 .journal-panel > .panel-return { margin-top:auto; }
 .find-label .discovery-picture { width:32px; height:32px; object-fit:cover; border-radius:50%; }
@@ -121,9 +122,9 @@
   .fact-card p,.journal-detail,.photo-view__detail { font-size:17px; }
   .photo-view__image { max-height:43dvh; }
   .panel-close,.photo-view__close { width:54px; height:54px; min-height:54px; }
-  .sticker-grid { gap:8px; }
+  .sticker-grid { gap:8px; grid-auto-rows:142px; }
   .sticker .discovery-picture { height:82px; }
-  .sticker > span { font-size:12px; }
+  .sticker > span { font-size:12px; padding:6px 4px; }
   .fact-actions { flex-wrap:wrap; }
   .fact-actions .panel-return { flex:1; min-width:190px; }
 }
@@ -151,10 +152,10 @@
   .dialog-head h2,.fact-title { font-size:22px; }
   .fact-card p,.journal-detail,.photo-view__detail { font-size:16px; }
   .panel-return,.photo-view__continue,.narrate-btn { height:58px; min-height:58px; }
-  .sticker-grid { grid-template-columns:repeat(6,minmax(0,1fr)); grid-auto-rows:88px; }
+  .sticker-grid { grid-template-columns:repeat(6,minmax(0,1fr)); grid-auto-rows:104px; }
   .sticker { min-height:80px; }
   .sticker .discovery-picture { height:55px; }
-  .sticker > span { font-size:11px; padding:5px; }
+  .sticker > span { font-size:11px; padding:4px 3px; }
 }
 @media(max-width:359px) {
   .visit-actions > .btn { gap:3px; padding:4px 2px; }

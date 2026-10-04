@@ -254,8 +254,12 @@ body {
   transform: none;
 }
 .finale__badges {
+  /* Full width on purpose: the panel centres its children, and a shrink-to-fit grid of
+     auto-fit columns collapses to one column, which showed the 24 badges as a tall scroll. */
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  justify-items: center;
   gap: 0.5rem;
   max-height: min(46vh, 360px);
   overflow-y: auto;
@@ -346,6 +350,16 @@ body {
   }
   .finale__inner > :not(.finale__badges) {
     flex: 0 1 auto;
+  }
+  /* A fixed share, not a flexible one: with auto-basis text siblings the grid was the
+     item that shrank, down to two columns. The words wrap instead. */
+  .finale__badges {
+    width: auto;
+    flex: 0 0 50%;
+    min-width: 0;
+  }
+  .finale__inner > :not(.finale__badges) {
+    min-width: 0;
   }
 }
 

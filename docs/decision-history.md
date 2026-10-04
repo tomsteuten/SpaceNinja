@@ -271,3 +271,16 @@ a fourth control in that row. The large photo X remains immediate, while the pic
 and backdrop preserve their opening-press guards. The Sun arrival has an explicit Kokoro
 fallback provenance exception until that one cue can be regenerated in the newer pack voice.
 The owner explicitly requested publishing this iteration to GitHub Pages.
+
+## 2026-10-04 — The map never suggests the Sun
+
+Driving the real build with every planet visited showed the map hint reading "Tap Sun"
+and the ship's nose aimed at the Sun, while no Sun is drawn on the home map: it sits
+behind the camera. A pre-reader was being told to tap something that was not on screen.
+`nextWorld` now suggests only worlds with places to find; the Sun's destination button,
+flight and narration are unchanged. Drawing a small Sun on the map remains a possible
+later composition change, to be judged on screenshots.
+
+The same pass fixed two layout faults (the finale's badge grid collapsing to one column,
+and journal tile names clipping on tablet) and shortened the grown-ups splash, ordering
+it sound, progress, what it teaches, device notes, then the manual-flight experiment.

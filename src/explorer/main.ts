@@ -190,9 +190,9 @@ export async function startExplorer(canvas: HTMLCanvasElement, root: HTMLElement
       lead:
         'A quiet solar system for a child of about five to eight. Tap a world to fly there, ' +
         'then hold and slide to fly over it; let go to stop. There is nothing to lose and no ' +
-        'way to get stuck — the Solar system button is always there.',
+        'way to get stuck: the Solar system button is always there.',
       teaches:
-        'The pictures on each world are real places at their real latitude and longitude — ' +
+        'The pictures on each world are real places at their real latitude and longitude: ' +
         'the Sahara, the Amazon, the Apollo 11 landing site, Olympus Mons. Flying over one ' +
         'finds it and puts its real photograph in the journal. Finding all six on a world ' +
         'puts that world’s badge on the ship. Scale and lighting are illustrative.',
