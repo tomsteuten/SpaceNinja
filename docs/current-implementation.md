@@ -1,6 +1,42 @@
 # Current implementation and handover
 
-## Current checkpoint — reconciled 4 October 2026
+## Current checkpoint — Earth discovery loop, 6 October 2026
+
+The local Earth pass now connects finding to revisiting. First-find photos show Saved to
+your journal and the count for this visit. The third photo offers See discoveries as well
+as Keep exploring. Completing a visit highlights Journal and keeps an All three found
+instruction visible, including after replaying day/night. Space map stays in place.
+
+The journal opens to the current world's page. Its pictured world buttons select authored
+pages, each with six places; unknown places show a neutral target, without revealing their
+names or images. Opening a found place switches to its story with All places, photo/audio,
+and the pictured world return. Short landscape gives the words their own scrolling region
+so the return remains on screen. Full photographs remain lazy and saves are unchanged.
+
+This extends the October 5 work below. The owner authorized publication to main on
+October 6; verify the deployment's actual status in GitHub Actions. It has not been tested
+with children.
+The owner explicitly requested continuing with AI/adult judgement while child testing is
+unavailable. Full-resolution before/after captures are in
+`/workspace/scratch/earth-loop-polish/`; targeted browser checks cover the entire Earth
+loop, muted words, focus return, and phone/tablet/short-landscape control clearance.
+
+## Current checkpoint — Earth interaction pass, 5 October 2026
+
+The current local change suggests Earth first using its existing narration. First Earth
+arrival offers Turn Earth or Find places with an always-visible Space map return. Gold
+targets wait until the child chooses exploration or finishes the activity. Earth's
+day/night mode follows direct horizontal dragging; canvas taps and the accessible Turn
+Earth control assist a quarter turn. It stays open until Done/Space map and restores the
+original hunt orientation on Done. Other worlds retain timed demonstrations.
+
+The dock and destination controls now have rounded, tactile surfaces and consistent
+illustrated controls. Listen replays directly, while Words beside the heading opens the
+transcript. The hunt arrow moves the viewpoint around a world's axis, keeping the Night
+Side in its original sunlight rather than turning it into daylight. Existing saves and
+open exploration are preserved. This pass has not been deployed or child-tested.
+
+### October 4 baseline
 
 The owner approved the isolated UI study's screenshots and authorized implementation and
 publication to `main`. This supersedes the September layout and serif-title direction.

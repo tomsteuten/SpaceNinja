@@ -5,6 +5,8 @@ async function launch(page: Page, world: string) {
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
   await expect.poll(async () => (await snapshot(page)).draws).toBeGreaterThan(0);
+  const findPlaces = page.getByRole('button', { name: 'Find places', exact: true });
+  if (await findPlaces.isVisible()) await findPlaces.click();
   // A first visit to Earth opens with the day turn as its introduction (no gold places
   // yet); any tap on the world ends it straight into the guided hunt. Every other arrival
   // begins with the calm roam-first beat, before the counter appears.
@@ -85,9 +87,10 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await collectVisible(page);
   await keepExploring(page);
   await expect.poll(async () => (await snapshot(page)).hidden?.visible).toBe(false);
-  // The arrow is a button: one press turns the world a quarter turn towards the hidden place,
+  // The arrow is a button: one press moves the viewpoint towards the hidden place,
   // which is always enough to bring it onto the visible face.
   const arrow = page.getByRole('button', { name: 'Turn to the last place' });
+  const beforeArrow = await snapshot(page);
   await expect(arrow).toBeVisible();
   const arrowBox = await arrow.boundingBox();
   expect(arrowBox!.width).toBeGreaterThanOrEqual(54);
@@ -95,6 +98,16 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await arrow.click();
   await expect.poll(async () => (await snapshot(page)).hidden?.visible).toBe(true);
   await expect(arrow).toBeHidden();
+  const afterArrow = await snapshot(page);
+  // Other worlds retain their slow ambient rotation; the arrow must not add a quarter turn.
+  expect(Math.abs(afterArrow.surfaceRotation - beforeArrow.surfaceRotation)).toBeLessThan(0.1);
+  if (afterArrow.world === 'earth') {
+    expect(afterArrow.surfaceRotation).toBeCloseTo(beforeArrow.surfaceRotation, 6);
+    expect(afterArrow.targets[0].sunlight).toBeCloseTo(beforeArrow.targets[0].sunlight, 6);
+  }
+  if (afterArrow.world === 'earth' && afterArrow.ids.includes('earth-nightside')) {
+    expect(afterArrow.targets[0].sunlight).toBeLessThan(0);
+  }
   await attachShot(page, 'after-arrow-press', info);
   // And the drag still works: turn the place back round the far side by pulling *away* from
   // it, then pull from the indicated side. Both are real drags through OrbitInput.

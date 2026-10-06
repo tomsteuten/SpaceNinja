@@ -31,7 +31,7 @@ export interface PhotoViewer {
   readonly isOpen: boolean;
   show(url: string, caption: string, worldId?: string): void;
   /** The first find is a reward, not a thumbnail a pre-reader has to notice. */
-  showDiscovery(url: string, title: string, detail: string, worldId: string): void;
+  showDiscovery(url: string, title: string, detail: string, worldId: string, progress?: { found: number; total: number }): void;
   hide(): void;
   dispose(): void;
 }
@@ -59,6 +59,7 @@ export function canFinishPhotoDismiss(
  */
 export interface PhotoViewerOptions {
   onShow?: () => void;
+  onJournal?: () => void;
   /** Called whenever the viewer hides, by any route: button, backdrop, Escape or code. */
   onHide?: () => void;
   /** The interface's shared press counter, so every panel keeps the same double-tap rule. */
@@ -113,7 +114,16 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
   header.className = 'dialog-head';
   header.append(title, close);
   figure.append(image, caption);
-  panel.append(header, figure, detail, continueButton);
+  const saved = document.createElement('div');
+  saved.className = 'photo-view__saved is-hidden';
+  const actions = document.createElement('div');
+  actions.className = 'photo-view__actions';
+  const journalButton = document.createElement('button');
+  journalButton.type = 'button';
+  journalButton.className = 'photo-view__journal is-hidden';
+  journalButton.append(createIcon('journal'), document.createTextNode('See discoveries'));
+  actions.append(continueButton, journalButton);
+  panel.append(header, saved, figure, detail, actions);
   overlay.append(panel);
 
   const focus = createDialogFocus(overlay, () => continueButton, hide);
@@ -188,6 +198,11 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
     if (!guard.allowsClose(opening, event)) return;
     hide();
   });
+  journalButton.addEventListener('click', (event) => {
+    if (!guard.allowsClose(opening, event)) return;
+    hide();
+    options.onJournal?.();
+  });
   root.append(overlay);
 
   return {
@@ -200,18 +215,30 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
       title.textContent = text;
       detail.textContent = '';
       overlay.classList.remove('is-reward');
+      saved.classList.add('is-hidden');
+      journalButton.classList.add('is-hidden');
       returnWorld.replaceChildren(worldId ? worldPicture(worldId) : createIcon('journal'));
       returnLabel.textContent = worldId ? 'Keep exploring' : 'Back to journal';
       continueButton.classList.remove('is-hidden');
       reveal();
     },
-    showDiscovery(url: string, discoveryTitle: string, discoveryDetail: string, worldId: string) {
+    showDiscovery(url: string, discoveryTitle: string, discoveryDetail: string, worldId: string, progress) {
       image.src = url;
       title.textContent = discoveryTitle;
       image.alt = discoveryTitle;
       detail.textContent = discoveryDetail;
       caption.textContent = '';
       overlay.classList.add('is-reward');
+      saved.replaceChildren(createIcon('journal'), document.createTextNode('Saved to your journal'));
+      saved.classList.remove('is-hidden');
+      if (progress) {
+        const count = document.createElement('span');
+        count.className = 'photo-view__count';
+        count.textContent = `${progress.found} / ${progress.total}`;
+        count.setAttribute('aria-label', `${progress.found} of ${progress.total} places found this visit`);
+        saved.append(count);
+      }
+      journalButton.classList.toggle('is-hidden', !options.onJournal || !progress || progress.found !== progress.total);
       continueButton.classList.remove('is-hidden');
       returnWorld.replaceChildren(worldPicture(worldId));
       returnLabel.textContent = 'Keep exploring';

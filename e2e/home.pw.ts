@@ -4,13 +4,13 @@ import { test, expect, attachShot } from './fixtures';
 // multi-journey suite's rendering budget.
 test.use({ deviceScaleFactor: 1 });
 
-test('home gives the Moon a clear invitation and answers future-world presses', async ({ page }, info) => {
+test('home invites the first Earth experience and answers future-world presses', async ({ page }, info) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await expect(page.locator('#boot')).toBeHidden();
   const destinations = page.locator('.destination-choice');
   await expect(destinations).toHaveCount(5);
-  await expect(page.locator('.destination-choice.is-suggested')).toHaveAttribute('data-destination', 'moon');
+  await expect(page.locator('.destination-choice.is-suggested')).toHaveAttribute('data-destination', 'earth');
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().mapBodyIds))
     .toEqual(['sun', 'earth', 'moon']);
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().bodyScreenRadius))

@@ -81,7 +81,8 @@ while the problems the owner cared about were visual and no test could see them.
 
 - The home map offers stable destination controls as well as tappable moving worlds.
 - A tap launches one journey and must acknowledge misses or locked choices.
-- Arrival exposes discoveries immediately. Finding is ambient and Fly Home remains available.
+- The first Earth arrival offers Turn Earth or Find places; other arrivals expose discoveries
+  immediately. Finding is ambient and Space map remains available.
 - The Sun is also visitable from the start as a view from space, without a surface hunt or
   day/night activity. Its visit uses the same camera and return lifecycle.
 - Each world carries six real places and selects three per visit, favoring unseen places while
@@ -93,11 +94,17 @@ while the problems the owner cared about were visual and no test could see them.
 The visible return control is now **Space map**, with an arrow and a Sun/planet picture;
 “Fly Home” below refers to that same return route. Discovery postcards have a pictured
 world-return control as well as a large X, because child feedback found the worded exit unclear.
+First-find postcards show their saved status and visit count; the third offers See discoveries.
+The journal opens to the visited world's six-place page, with pictured world selectors.
+Found places open a separate story with All places, photo/audio and the world return.
+After all three finds, Journal gains the gold emphasis and Space map keeps its position.
 
-The approved October layout uses one aligned bottom row: Space map, Listen, supported
-Day & night, Journal. Stop keeps its cell; Sun uses three cells. Listen opens the current
-written fact and replay control deliberately; with sound off the entry is Words. World
-pictures and real discovery thumbnails replace emoji on these control and panel surfaces.
+The action row is contextual: first Earth offers Space map, Turn Earth, Find places.
+Earth's hands-on day/night mode offers direct drag/tap and an accessible Turn Earth button;
+Done restores exploration. Normal visits use Space map, Listen, supported Day & night,
+Journal; Sun has three controls. Listen replays narration directly. Words beside the heading
+opens the written fact; with sound off the replay entry also becomes Words.
+The hunt arrow orbits the viewpoint without changing the surface's illumination.
 
 These are current choices, not permanent markup requirements. In particular, the destination
 bar, journal, fact card, day/night control and Fly Home may be recomposed into a clearer

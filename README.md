@@ -30,11 +30,18 @@ and its textured appearance is a generated illustration.
 Discovery photographs have a large return arrow beside a picture of the world you are
 exploring, plus a large X. The space-map exit uses a Sun/Earth/Moon picture and a return
 arrow in a contrasting button; words reinforce both exits without being their only clue.
+First-find photos show **Saved to your journal** and the visit count. The third find also
+offers **See discoveries**. The journal opens to the visited world's six-place page, with
+pictured buttons for switching worlds. Found places open their story, photograph and
+narration; **All places** returns to the page. After all three finds, Journal is highlighted
+while Space map remains available.
 
-Visits use one aligned row: **Space map · Listen · Day & night · Journal**, with equal
-touch areas. Supported activities are offered from arrival, and Stop stays in the same
-cell. The Sun omits Day & night. Listen opens the current fact and replay control in a
-reading panel; with sound off it is labelled Words. Written facts remain available.
+The first Earth visit offers **Space map · Turn Earth · Find places**, so the lesson is a
+clear choice and exploration remains available. Earth's day/night activity is hands-on:
+drag the globe, tap it, or press Turn Earth to move it through fixed sunlight. Done returns
+to discoveries. Later visits use **Space map · Listen · Day & night · Journal**; other
+worlds keep their timed day turns. Listen replays narration directly. The Words button
+beside the world heading opens the written fact; with sound off, Listen also becomes Words.
 World pictures and real discovery thumbnails carry the visual identity across the map,
 returns and journal. Startup failures offer **Start again**, including a missing script
 download, rather than leaving the loading message indefinitely.
@@ -307,22 +314,19 @@ defeated adults as reliably as children. The worlds not yet earned still appear 
 padlocked: the bodies stay reveal-gated so an un-earned planet cannot loom into the shot, but
 hiding them completely also hid the fact that there was anywhere else to go.
 
-**The arrival is not a sequence.** The gold places are on screen the moment the ship lands.
-Landing briefly played a staged introduction — a welcome, then the world turning through a
-whole day, then the targets — which put more than twenty seconds between pressing a world and
-being allowed to touch anything, on every visit. A tap skipped it, and needing a skip was the
-tell. The day turn is a button again.
+**Arrival offers an action immediately.** The first Earth visit invites turning Earth or
+finding places, with a visible way back to the map. Gold places are available immediately
+on other arrivals and Earth revisits. There is no compulsory demonstration or listening gate.
 
 **Day & night is an activity with a visible name.** The visit controls share one row:
 Space map, Listen (Words with sound off), supported Day & night, Journal. The Sun omits
-Day & night. Stop keeps the activity cell. A half-lit globe and turn arrow reinforce the label;
-during a turn that globe follows the real one and the same button becomes **Stop**.
-The hunt prompt gives way to a small day/night legend while the turn runs.
-Earth can invite the activity after a discovery and a quiet pause, while another visible
-target remains. Other worlds invite it after the hunt. Photos, narration, open words and
-the hidden-target drag lesson take priority, and an activity already tried this visit no
-longer pulses. It never starts automatically. This earlier invitation remains an experiment
-until child and tablet observation establish whether it helps.
+Day & night. Earth's activity replaces Journal with a tap/keyboard Turn Earth control;
+dragging directly turns its surface and stops when the finger stops. The lesson remains
+open until **Done** or Space map. Other worlds keep Stop and timed demonstrations.
+The first-Earth invitation uses a bounded visual cue, with a still reduced-motion equivalent.
+Choosing Find places suppresses repeated invitations for that visit. The hunt arrow moves
+the viewpoint around the world, preserving sunlight so the Night Side remains night.
+Child comprehension and enjoyment still need observation on the actual tablet.
 
 **A hand shows the gesture when nothing is happening.** After six seconds with nothing
 touched, a finger appears on a gold place and taps it; once only the hidden one is left, it

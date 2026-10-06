@@ -21,7 +21,7 @@ it('ignores stale and duplicate discovery IDs when counting pages', () => {
 });
 it('keeps an observation visit out of collection pages and preserves the planet invitation', () => {
   expect(worldCollections([]).some(world => world.id === 'sun')).toBe(false);
-  expect(nextWorld({visited:[], discoveries:[], stickers:[]}, ['sun','earth','moon'])).toBe('moon');
+  expect(nextWorld({visited:[], discoveries:[], stickers:[]}, ['sun','earth','moon'])).toBe('earth');
   // The Sun has no places to find and is not on the home map, so it is never the suggestion.
   expect(nextWorld({visited:['earth','moon'], discoveries:[], stickers:[]}, ['sun','earth','moon'])).toBe('earth');
   expect(nextWorld({visited:['earth','moon'], discoveries:[], stickers:[]}, ['sun'])).toBeNull();

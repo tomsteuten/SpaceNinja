@@ -1,46 +1,65 @@
-/* The approved adventure layout. Geometry lives here, not in theme overrides. */
-:root { --control-panel:#142239; --control-edge:#51637b; --control-blue:#a6dce8; --control-gold:#f0cd79; }
+/* Tactile spacecraft controls. Geometry lives here, not in theme overrides. */
+:root { --control-panel:#233852; --control-edge:#6b8ba7; --control-blue:#a6dce8; --control-gold:#f4cf7c; --control-ink:#22354b; --control-radius:22px; }
 .dock,.destination-bar { position:absolute; bottom:var(--pad-bottom); left:50%; transform:translateX(-50%); width:min(460px,calc(100% - var(--pad-left) - var(--pad-right))); }
-.visit-actions,.destination-bar { display:grid; gap:8px; padding:8px; border:1px solid #3c4d66; border-radius:23px; background:#0b1424ed; box-shadow:0 8px 24px #0004; }
+.visit-actions,.destination-bar { display:grid; gap:9px; padding:8px; border:0; border-radius:28px; background:#0b1424a6; box-shadow:0 10px 28px #0003; }
 .visit-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .visit-actions.has-activity { grid-template-columns:repeat(4,minmax(0,1fr)); }
-.visit-actions > .btn,.destination-choice { position:relative; inset:auto; min-width:0; width:100%; height:76px; min-height:76px; padding:7px 3px; border:1px solid var(--control-edge); border-radius:15px; background:var(--control-panel); color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; box-shadow:inset 0 1px #ffffff0a; font:600 15px/1.15 var(--font); }
-.visit-actions > .btn:hover,.destination-choice:hover { background:#263c57; }
-.visit-actions > .btn:active,.destination-choice:active { transform:translateY(2px); filter:brightness(1.18); }
+.visit-actions > .btn,.destination-choice { position:relative; inset:auto; min-width:0; width:100%; height:76px; min-height:76px; padding:6px 3px; border:2px solid #bcd7e555; border-radius:var(--control-radius); background:linear-gradient(#304c69,#223852); color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 2px #ffffff20,0 4px 0 #0b1528,0 6px 12px #0003; font:700 15px/1.15 var(--font); transition:filter .15s,box-shadow .15s; }
+.visit-actions > .btn:hover,.destination-choice:hover { filter:brightness(1.08); }
+.visit-actions > .btn:active,.destination-choice:active { transform:translateY(3px); box-shadow:inset 0 1px #ffffff20,0 1px 0 #0b1528; }
 .visit-actions .control-label,.home-btn > span:last-child { white-space:nowrap; line-height:19px; letter-spacing:-.2px; }
-.visit-actions .icon-slot { display:flex; width:40px; height:35px; align-items:center; justify-content:center; color:var(--control-blue); }
-.visit-actions .icon { width:40px; height:35px; }
+.visit-actions .icon-slot { display:flex; width:44px; height:38px; align-items:center; justify-content:center; color:var(--control-blue); }
+.visit-actions .icon { width:44px; height:38px; }
 .visit-actions .journal-btn .icon { width:32px; }
-.visit-actions .home-btn { background:#234058; border-color:#8babbc; }
-.is-earth .spin-btn,.spin-btn.is-busy { background:#f3dfae; border-color:#f3dfae; color:#253044; }
-.is-earth .visit-actions .spin-btn:hover,.visit-actions .spin-btn.is-busy:hover { background:#ffedc3; }
-/* Emphasis follows the task: while the hunt runs, Day & night is the invitation (above);
-   once every place is found (.is-complete) the only useful action is the way back, so the
-   gold moves to Space map and leaves Day & night. The space-map glyph carries its own light
-   colours, so its arrow and planet outline are darkened to read on the cream. */
-.is-complete .visit-actions .spin-btn { background:var(--control-panel); border-color:var(--control-edge); color:var(--ink); }
-.is-complete .visit-actions .home-btn { background:#f0e5ca; border-color:#f0e5ca; color:#223249; }
-.is-complete .visit-actions .home-btn .icon [stroke] { stroke:#2d3f57; }
-.spin-picture { width:40px; height:35px; position:relative; display:flex; justify-content:center; }
-.spin-globe { display:block; position:relative; width:24px; height:24px; overflow:hidden; border-radius:50%; background:var(--world,#739bb3); border:1px solid #b9d6e5; }
-.spin-globe__night { position:absolute; top:0; bottom:0; right:0; width:50%; background:#26374e; }
+.visit-actions .home-btn { background:linear-gradient(#315d72,#23465b); border-color:#9ed9dc; }
+.visit-actions .listen-btn { background:linear-gradient(#354e71,#293d5c); }
+.visit-actions .journal-btn { background:linear-gradient(#4c4a70,#373655); border-color:#b8b9dd88; }
+.is-earth-welcome .spin-btn,.spin-btn.is-busy,.visit-actions .turn-earth-btn,.is-complete .visit-actions .journal-btn { background:linear-gradient(#ffe6a5,#f4cf7c); border-color:#fff0c3; color:var(--control-ink); box-shadow:inset 0 2px #fff7dd,0 4px 0 #9b713e,0 6px 12px #0003; }
+.is-earth .visit-actions .spin-btn:hover,.visit-actions .spin-btn.is-busy:hover { filter:brightness(1.04); }
+.visit-actions .find-places-btn { border-color:#e5c783; color:#ffe7a2; }
+.visit-actions .find-places-btn .icon { color:#ffe7a2; }
+.is-earth-welcome .visit-actions { grid-template-columns:1fr 1.5fr 1fr; }
+.is-earth-welcome .listen-btn,.is-earth-welcome .journal-btn,.is-hands-on .visit-actions .journal-btn { display:none; }
+.is-earth-welcome .world-words { visibility:hidden; }
+.is-earth-welcome .spin-picture { transform:scale(1.2); }
+.is-hands-on .visit-actions .spin-btn { background:linear-gradient(#315d72,#23465b); border-color:#9ed9dc; color:var(--ink); box-shadow:inset 0 2px #ffffff20,0 4px 0 #0b1528; }
+.is-hands-on .turn-earth-btn .world-orb { width:32px; height:32px; }
+/* Gold marks the first lesson, then the journal after the visit's three finds. */
+.is-complete:not(.is-hands-on) .visit-actions .spin-btn { background:var(--control-panel); border-color:var(--control-edge); color:var(--ink); }
+.is-complete .visit-actions .journal-btn .icon { color:#35516a; }
+.spin-picture { width:46px; height:38px; position:relative; display:flex; justify-content:flex-end; padding-top:2px; }
+.spin-sun { position:absolute; left:1px; top:2px; width:13px; height:13px; background:#ffcc4e; border:2px solid #a87936; border-radius:50%; box-shadow:0 0 0 3px #ffdd7926; }
+.spin-globe { display:block; position:relative; width:27px; height:27px; overflow:hidden; border-radius:50%; background:var(--world,#739bb3); background-size:auto 100%; background-position:center; border:2px solid #d3e8ed; }
+.spin-globe__night { position:absolute; top:0; bottom:0; right:0; width:50%; background:#14243dcc; }
 .spin-globe.is-turning .spin-globe__night { transform:translateX(calc(sin(var(--turn,0) * 6.283rad) * 50%)); }
-.spin-arrow { position:absolute; bottom:-3px; left:6px; width:29px; height:18px; }
-.spin-arrow .icon { width:29px; height:18px; }
+.spin-arrow { position:absolute; bottom:-2px; left:13px; width:31px; height:18px; color:#355f78; }
+.spin-arrow .icon { width:31px; height:18px; }
 .spin-btn.is-busy .spin-globe { width:23px; height:23px; margin-top:5px; border-radius:4px; background:currentColor; border:0; }
-.spin-btn.is-busy .spin-arrow,.spin-btn.is-busy .spin-globe__night { display:none; }
+.spin-btn.is-busy .spin-arrow,.spin-btn.is-busy .spin-globe__night,.spin-btn.is-busy .spin-sun { display:none; }
+.is-hands-on .spin-btn.is-busy .spin-globe { width:25px; height:14px; margin:3px 5px 0 0; background:transparent; border:0; border-left:4px solid currentColor; border-bottom:4px solid currentColor; border-radius:2px; transform:rotate(-45deg); }
+.spin-btn.is-inviting:not(.is-busy) .spin-picture { animation:turn-invitation 2.4s ease-in-out 3; }
+@keyframes turn-invitation { 0%,100% { transform:rotate(0); } 35% { transform:rotate(-12deg); } 65% { transform:rotate(12deg); } }
+.day-gesture { position:absolute; top:48%; left:50%; transform:translate(-50%,-50%); pointer-events:none; color:#fff0c4; filter:drop-shadow(0 2px 3px #15203dcc); }
+.day-gesture .icon { width:70px; height:70px; animation:show-earth-drag 2.6s ease-in-out 3; }
+@keyframes show-earth-drag { 0%,100% { translate:-24px 0; } 50% { translate:24px 0; } }
+@media(prefers-reduced-motion:reduce) { .spin-btn.is-inviting:not(.is-busy) .spin-picture,.day-gesture .icon { animation:none; } .spin-btn.is-inviting:not(.is-busy) { outline:2px solid #fff0c4; outline-offset:2px; } .visit-actions > .btn,.destination-choice { transition:none; } }
 .world-orb { display:inline-block; flex:none; width:38px; height:38px; border-radius:50%; background-position:center; background-size:auto 100%; box-shadow:inset -8px -3px 10px #0008,inset 2px 1px 3px #ffffff38; border:1px solid #ffffff26; }
 .world-orb--sun { border-color:#fff0b8; background:radial-gradient(circle at 35% 30%,#fff3b7,#ffd466 65%,#f4ac3c); box-shadow:0 0 14px #ffc35c38; }
 .world-orb--saturn { position:relative; }
 .world-orb--saturn::after { content:''; position:absolute; left:-20%; top:35%; width:140%; height:30%; border:4px solid #d7c693; border-radius:50%; transform:rotate(-25deg); }
-.world-heading { position:absolute; top:var(--pad-top); left:var(--pad-left); display:flex; align-items:center; gap:12px; max-width:calc(100% - var(--pad-left) - 128px); text-shadow:0 2px 8px #000; pointer-events:none; }
+.world-heading { position:absolute; top:var(--pad-top); left:var(--pad-left); display:flex; align-items:flex-start; gap:12px; max-width:calc(100% - var(--pad-left) - 128px); text-shadow:0 2px 8px #000; pointer-events:none; }
+.world-heading > .world-orb { margin-top:3px; }
 .world-heading strong { display:block; font-size:23px; font-weight:650; letter-spacing:-.4px; }
 .world-heading__caption { display:block; margin-top:3px; font-size:15px; line-height:1.3; color:var(--ink-soft); max-width:300px; }
+.world-words { pointer-events:auto; margin-top:8px; padding:7px 12px; min-height:44px; border:1px solid #7aa5bb77; border-radius:14px; color:#c6e6eb; background:#15263dd9; font:650 13px var(--font); cursor:pointer; }
+.world-words:focus-visible { outline:3px solid var(--control-gold); outline-offset:3px; }
 .mission-hud,.day-legend { position:absolute; top:var(--pad-top); right:var(--pad-right); pointer-events:none; }
 .mission-hud.fade-in-centred { animation:none; }
 .slot-row,.day-legend { display:flex; align-items:center; gap:9px; padding:14px 16px; border:1px solid #41506c; border-radius:28px; background:#101b2ad9; }
 .slot { width:12px; height:12px; border:2px solid var(--control-gold); border-radius:50%; }
 .slot.is-filled { background:var(--control-gold); }
+.slot.is-filled::after { content:'✓'; position:absolute; inset:-5px; color:#233c53; font-size:13px; font-weight:900; text-align:center; }
+.slot { position:relative; }
 .slot-icon,.mission-caption { display:none; }
 .day-legend { gap:14px; padding:10px 15px; font-size:15px; }
 .day-legend span::before { content:''; display:inline-block; width:12px; height:12px; margin-right:5px; border-radius:50%; background:#ffe8a7; }
@@ -53,7 +72,7 @@
 .journal-btn[data-new]::after { content:''; position:absolute; right:4px; top:4px; width:9px; height:9px; border-radius:50%; background:var(--control-gold); }
 .destination-bar { width:min(620px,calc(100% - var(--pad-left) - var(--pad-right))); grid-template-columns:repeat(var(--destination-count,5),minmax(0,1fr)); }
 .destination-choice { height:91px; }
-.destination-choice.is-suggested { background:#eee3c8; color:#263447; border-color:#eee3c8; }
+.destination-choice.is-suggested { background:linear-gradient(#ffe6a5,#f4cf7c); color:var(--control-ink); border-color:#fff0c3; box-shadow:inset 0 2px #fff7dd,0 4px 0 #9b713e,0 6px 12px #0003; }
 .destination-choice.is-locked { opacity:.68; }
 .destination-choice__lock { position:absolute; right:6px; top:6px; }
 .destination-choice__lock .icon { width:13px; height:13px; }
@@ -73,6 +92,19 @@
 .fact-actions { display:flex; align-items:center; gap:10px; }
 .fact-actions .panel-return { width:auto; flex:1; min-width:0; }
 .panel-return,.photo-view__continue { display:flex; align-items:center; justify-content:center; gap:14px; width:100%; height:64px; min-height:64px; padding:8px 12px; border:1px solid #f0e5ca; border-radius:14px; background:#f0e5ca; color:#223249; font-size:17px; font-weight:650; flex-shrink:0; }
+.photo-view__actions { display:flex; gap:10px; flex:none; }
+.photo-view__actions > button { flex:1; min-width:0; font-size:15px; white-space:normal; }
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > button { flex-direction:column; gap:4px; border-radius:18px; line-height:18px; }
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) .photo-view__continue { background:linear-gradient(#315d72,#23465b); border-color:#9ed9dc; color:var(--ink); }
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) .photo-view__return-picture { gap:6px; }
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) .photo-view__return-picture .icon { width:20px; height:20px; }
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) .photo-view__return-world .world-orb { width:24px; height:24px; }
+.photo-view__journal,.journal-back { display:flex; align-items:center; justify-content:center; gap:8px; min-height:56px; padding:8px 12px; border:1px solid #b8b9dd88; border-radius:18px; background:linear-gradient(#4c4a70,#373655); color:var(--ink); font:650 15px var(--font); cursor:pointer; }
+.photo-view__journal .icon { width:30px; height:30px; }
+.photo-view__journal:not(.is-hidden) { background:linear-gradient(#ffe6a5,#f4cf7c); border-color:#fff0c3; color:var(--control-ink); }
+.photo-view__saved { display:flex; align-items:center; gap:8px; color:#c5e7d1; font-size:14px; flex:none; }
+.photo-view__saved .icon { width:22px; height:22px; }
+.photo-view__count { margin-left:auto; border-radius:20px; padding:5px 10px; background:#263d51; color:#ffe5a2; white-space:nowrap; }
 .panel-return .icon,.photo-view__return-picture > .icon-slot .icon { width:27px; height:27px; }
 .panel-return .world-orb,.photo-view__return-world .world-orb { width:32px; height:32px; }
 .photo-view__return-picture { display:flex; align-items:center; gap:14px; }
@@ -89,7 +121,15 @@
 .fact-photo__zoom { position:absolute; right:2px; bottom:2px; padding:2px; border-radius:5px; background:#142238dd; color:#fff; }
 .fact-photo__zoom .icon { width:18px; height:18px; }
 .collection-progress { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 20px; }
-.collection-progress__world { display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px; font-size:14px; }
+.collection-progress__world { display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px; min-height:60px; padding:10px; border:1px solid #526780; border-radius:16px; background:#1d304a; color:var(--ink); font:600 14px var(--font); cursor:pointer; }
+.collection-progress__world[aria-pressed="true"] { background:#31596c; border-color:#a3e0e2; box-shadow:inset 0 0 0 1px #a3e0e2; }
+.collection-progress__world:focus-visible,.sticker:focus-visible,.journal-back:focus-visible,.photo-view__journal:focus-visible { outline:3px solid var(--control-gold); outline-offset:2px; }
+.journal-page-caption { margin:0; color:#c5d2df; font-size:15px; }
+.journal-detail-title { margin:0; font-size:21px; line-height:1.25; }
+.journal-detail-title:empty { display:none; }
+.journal-back { align-self:flex-start; flex:none; }
+.journal-back .icon { width:24px; height:24px; }
+.journal-panel.is-reading .collection-progress,.journal-panel.is-reading .sticker-grid,.journal-panel.is-reading .journal-page-caption { display:none; }
 .collection-progress__label { display:flex; align-items:center; gap:7px; }
 .collection-progress .world-orb { width:20px; height:20px; }
 .collection-progress__track { grid-column:1/-1; display:flex; gap:4px; }
@@ -100,14 +140,15 @@
 .sticker .discovery-picture { display:block; width:100%; height:88px; object-fit:cover; }
 /* Rows leave room for three lines of name (Where the Helicopter Flew); longer clamps. */
 .sticker > span { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; padding:7px 6px; }
-.sticker--empty { display:grid; place-items:center; background:#142034; border:1px dashed #52617a; color:#8193a8; font-size:25px; cursor:default; }
+.sticker--empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:#142034; border:1px dashed #52617a; color:#a8b8c9; font-size:13px; cursor:default; }
+.sticker--empty .icon { width:34px; height:34px; }
 .journal-panel > .panel-return { margin-top:auto; }
 .find-label .discovery-picture { width:32px; height:32px; object-fit:cover; border-radius:50%; }
 .finale__badge .discovery-picture { width:100%; height:100%; object-fit:cover; border-radius:50%; }
 
 @media(max-width:599px) {
   .visit-actions { padding:6px; gap:6px; border-radius:21px; }
-  .visit-actions > .btn { height:72px; min-height:72px; border-radius:14px; font-size:14px; }
+  .visit-actions > .btn { height:72px; min-height:72px; border-radius:19px; font-size:14px; }
   .world-heading { gap:10px; max-width:calc(100% - var(--pad-left) - 104px); }
   .world-heading strong { font-size:21px; }
   .world-heading__caption { font-size:14px; }
@@ -139,7 +180,7 @@
   :root { --pad-top:max(12px,env(safe-area-inset-top)); --pad-bottom:max(12px,env(safe-area-inset-bottom)); }
   .dock { width:min(424px,calc(100% - var(--pad-left) - var(--pad-right))); }
   .visit-actions { padding:6px; border-radius:19px; }
-  .visit-actions > .btn { height:64px; min-height:64px; gap:3px; font-size:14px; }
+  .visit-actions > .btn { height:64px; min-height:64px; gap:3px; font-size:14px; border-radius:18px; }
   .visit-actions .icon-slot,.visit-actions .icon { height:30px; }
   .world-heading strong { font-size:19px; }
   .world-heading__caption { font-size:13px; max-width:240px; }
@@ -150,12 +191,16 @@
   .journal-btn { width:54px; height:54px; min-height:54px; }
   .panel-shade,.photo-view { padding:12px; }
   .fact-card,.journal-panel,.photo-view__panel { width:min(720px,100%); padding:16px; gap:10px; }
-  .photo-view__panel { display:grid; grid-template-columns:260px 1fr; grid-template-rows:auto 1fr auto; column-gap:20px; }
+  .photo-view__panel { display:grid; grid-template-columns:260px 1fr; grid-template-rows:auto auto 1fr auto; column-gap:20px; }
   .photo-view__panel .dialog-head { grid-column:2; grid-row:1; }
-  .photo-view__figure { grid-column:1; grid-row:1/4; align-self:center; }
+  .photo-view__saved { grid-column:2; grid-row:2; }
+  .photo-view__figure { grid-column:1; grid-row:1/5; align-self:center; }
   .photo-view__image { max-height:calc(100dvh - 60px); }
-  .photo-view__detail { grid-column:2; grid-row:2; align-self:center; }
-  .photo-view__continue { grid-column:2; grid-row:3; }
+  .photo-view__detail { grid-column:2; grid-row:3; align-self:center; }
+  .photo-view__actions { grid-column:2; grid-row:4; }
+  .photo-view__actions > button { font-size:13px; gap:6px; padding:6px; }
+  .photo-view__journal .icon { width:24px; }
+  .collection-progress { grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
   .dialog-head h2,.fact-title { font-size:22px; }
   .fact-card p,.journal-detail,.photo-view__detail { font-size:16px; }
   .panel-return,.photo-view__continue,.narrate-btn { height:58px; min-height:58px; }
@@ -163,8 +208,16 @@
   .sticker { min-height:80px; }
   .sticker .discovery-picture { height:55px; }
   .sticker > span { font-size:11px; padding:4px 3px; }
+  .journal-panel.is-reading { display:grid; grid-template-columns:160px minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto; overflow:hidden; }
+  .journal-panel.is-reading .dialog-head { grid-column:1/-1; grid-row:1; }
+  .journal-panel.is-reading .journal-back { grid-column:1; grid-row:2; }
+  .journal-panel.is-reading .journal-detail-title { grid-column:2; grid-row:2; align-self:center; }
+  .journal-panel.is-reading .journal-detail { grid-column:2; grid-row:3; overflow:auto; min-height:0; }
+  .journal-panel.is-reading .fact-actions { grid-column:1; grid-row:3; align-self:start; }
+  .journal-panel.is-reading > .panel-return { grid-column:1/-1; grid-row:4; }
 }
 @media(max-width:359px) {
+  .photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > button { min-height:80px; padding:6px; font-size:14px; }
   .visit-actions > .btn { gap:3px; padding:4px 2px; }
   .visit-actions .control-label,.home-btn > span:last-child { white-space:normal; line-height:14px; }
   .visit-actions .icon-slot,.visit-actions .icon { height:28px; }

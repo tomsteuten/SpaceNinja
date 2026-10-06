@@ -13,7 +13,7 @@ async function assertControlsFit(page: Page) {
   expect(row!.x).toBeGreaterThanOrEqual(0);
   expect(row!.x + row!.width).toBeLessThanOrEqual(viewport.width);
   expect(row!.y + row!.height).toBeLessThanOrEqual(viewport.height);
-  const boxes = await page.locator('.visit-actions > button').evaluateAll(buttons =>
+  const boxes = await page.locator('.visit-actions > button:visible').evaluateAll(buttons =>
     buttons.map(button => {
       const { x, y, width, height } = button.getBoundingClientRect();
       return { x, y, width, height };
@@ -41,6 +41,7 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
+  await page.getByRole('button', { name: 'Find places', exact: true }).click();
   const activity = page.locator('.spin-btn');
   await expect(activity).toHaveText('Day & night');
   await expect(activity).toHaveAccessibleName('Day and night on Earth: watch day and night');
@@ -68,8 +69,8 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await expect(activity).not.toHaveClass(/is-inviting/);
   await page.waitForTimeout(650);
   await page.getByRole('button', { name: 'Keep exploring' }).click();
-  await expect(activity).toHaveClass(/is-inviting/, { timeout: 60000 });
-  await expect(page.locator('.coach')).toBeHidden();
+  // Choosing discoveries suppresses repeated invitations, while leaving the lesson available.
+  await expect(activity).not.toHaveClass(/is-inviting/);
   expect((await snapshot(page)).collected).toBe(1);
   await screenshot(page, info, 'earth-day-night-invitation');
 
@@ -97,13 +98,16 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   expect(Math.sin(after.surfaceRotation)).toBeCloseTo(Math.sin(before.surfaceRotation), 6);
   await expect(activity).not.toHaveClass(/is-inviting/);
 
-  // Replay is allowed. The live button follows the visual turn and the canvas still skips.
+  // Replay is allowed. The child turns Earth; a canvas tap assists instead of exiting.
   await activity.click();
+  await page.getByRole('button', { name: 'Turn Earth a little', exact: true }).click();
   await expect.poll(() => page.locator('.spin-globe').evaluate(el =>
     Number((el as HTMLElement).style.getPropertyValue('--turn')))).toBeGreaterThan(0.08);
   await assertControlsFit(page);
   await screenshot(page, info, 'earth-day-night-running');
   await page.mouse.click(page.viewportSize()!.width / 2, page.viewportSize()!.height * 0.35);
+  expect((await snapshot(page)).dayTurning).toBe(true);
+  await page.getByRole('button', { name: 'Stop day and night', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).dayTurning).toBe(false);
   await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
 

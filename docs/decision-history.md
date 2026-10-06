@@ -3,6 +3,45 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-06 — Connect Earth's discoveries to a readable world journal
+
+The owner authorized the Earth-loop polish and continuing with AI/adult testing because
+child testing is currently unavailable. Review of the implemented loop found no explicit
+saved-place feedback on reward photos, a journal mixing discoveries from every world with
+many question marks, and completion emphasizing departure before revisiting the finds.
+
+Reward photos now identify the journal and visit count; the third find offers a direct
+See discoveries route. Journal gains the completion emphasis while Space map keeps its
+position. The journal's pictured world selectors open a six-place authored page. Unknown
+places retain neutral symbols; found places open a dedicated story, with a clear route
+back to all places, the real photo, and exploration. This replaces the expanded story
+under a long global grid. Short-landscape words scroll within the story instead of
+pushing the return below the viewport.
+
+This is a local implementation with browser/screenshot evidence, not a claim of child
+comprehension or a deployment. The existing saved progress, photo provenance, lazy loading,
+and opening-tap guards remain the basis of the loop.
+
+## 2026-10-05 — A clear first-Earth choice and hands-on day/night
+
+The owner requested implementation of the strongest improvements from the product review.
+The review found competing first-Earth invitations, an unimplemented invitation animation,
+and an educational mismatch: the last-place arrow rotated the Night Side into daylight.
+
+The map now suggests Earth first with its already-recorded cue. Its first arrival offers
+Turn Earth or Find places; the latter immediately starts exploration and suppresses repeated
+lesson invitations. Space map remains available. In the Earth lesson, dragging turns the
+surface under fixed sunlight; tapping the canvas or the accessible Turn Earth control
+requests a gentle quarter turn. The surface stops when the gesture stops. Done restores
+the initial hunt orientation. Other worlds retain their timed day turns.
+
+This revises the equal-cell row for two explicit contexts rather than imposing a linear
+game. The controls use rounded tactile surfaces and larger pictured actions. Listen now
+replays directly; a visible Words entry preserves written facts. The hunt arrow orbits the
+viewpoint rather than changing the world's illumination. No new recordings or save schema
+were required. The changes are local and require real-device child observation; no new
+deployment or owner visual approval is claimed.
+
 ## 2026-10-04 — Reconcile active documentation with the implemented game
 
 The documentation/comment review found completed September plans still presented as next

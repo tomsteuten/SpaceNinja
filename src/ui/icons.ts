@@ -15,7 +15,8 @@ const ICONS = {
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
   turnArrow: '<path d="M3 9c4 7 15 7 19 0m-6-1 7 0-1 6"/>',
   back: '<path d="m12 7-8 11 8 10M5 18h20c7 0 10 4 10 10"/>',
-  spaceMap: '<path d="m9 8-5 5 5 5M5 13h11" stroke="#e2f2f6"/><circle cx="25" cy="20" r="9" fill="#77b9cf" stroke="#c4e6ec"/><path d="m24 12-4 6 6 2-1 8 6-5-1-6Z" fill="#b4cc9d" stroke="none"/><circle cx="34" cy="6" r="4" fill="#f2ce79" stroke="none"/>',
+  spaceMap: '<path d="m9 6-6 6 6 6M4 12h12" stroke="#e2f2f6" stroke-width="3"/><circle cx="23" cy="24" r="10" fill="#69b7d5" stroke="#d0eef1"/><path d="m21 15-5 7 7 2 1 8 6-7-2-7Z" fill="#b8d8a5" stroke="none"/><circle cx="35" cy="9" r="5" fill="#d8d9dd" stroke="#eff1ef"/><circle cx="36" cy="8" r="1.5" fill="#a2aabb" stroke="none"/>',
+  dragHand: '<path d="M4 9H1m0 0 3-3M1 9l3 3M20 9h3m0 0-3-3m3 3-3 3" stroke="#fff0c4"/><path d="M9 20V8a2 2 0 0 1 4 0v6l2-1 4 2v4l-3 4h-5l-5-6a2 2 0 0 1 3-2" fill="#fff0c4" stroke="#263b55"/>',
   lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/>',
   rocket:
     '<path d="M12 2.6c2.7 2.4 4.1 5.5 4.1 8.9v3.2l1.8 1.9v3.2l-2.9-1.3-3 1.3-3-1.3-2.9 1.3v-3.2l1.8-1.9v-3.2c0-3.4 1.4-6.5 4.1-8.9Z"/>' +

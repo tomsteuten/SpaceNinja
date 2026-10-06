@@ -86,7 +86,7 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
   await page.waitForTimeout(650);
   await page.locator('.photo-view').getByRole('button', { name: 'Keep exploring', exact: true }).click();
   await expect(page.locator('.photo-view')).toBeHidden();
-  await page.getByRole('button', { name: 'Listen', exact: true }).click();
+  await page.getByRole('button', { name: 'Read the words', exact: true }).click();
   await page.getByRole('button', { name: 'See a photo of this place', exact: true }).click();
   await expect(page.locator('.photo-view__return-world .world-orb--moon')).toBeVisible();
   await expect(page.locator('.photo-view').getByRole('button', { name: 'Keep exploring', exact: true })).toBeVisible();
@@ -120,7 +120,7 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
     await page.setViewportSize(viewport);
     await expect.poll(async () => (await snapshot(page)).bodyScreenRadius).toBeGreaterThan(90);
   }
-  await page.getByRole('button', { name: 'Listen', exact: true }).click();
+  await page.getByRole('button', { name: 'Read the words', exact: true }).click();
   await expect(page.locator('.fact-card')).toContainText('nearest star');
   await expect(page.locator('.fact-card')).toContainText('no solid ground');
   await page.getByRole('button', { name: 'Close the words', exact: true }).click();
@@ -137,6 +137,7 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
   expect(progress.discoveries).toHaveLength(1);
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).world).toBe('earth');
+  await page.getByRole('button', { name: 'Find places', exact: true }).click();
   await expect(page.locator('.mission-hud')).toBeVisible();
   expect((await snapshot(page)).targets).toHaveLength(3);
   expect(errors).toEqual([]);

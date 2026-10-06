@@ -105,6 +105,8 @@ export interface OrbitInput {
   ): { position: THREE.Vector3; look: THREE.Vector3 };
   /** Re-derive orbit angles from the camera's actual transform. Call after a cutscene. */
   syncFromCamera(): void;
+  /** Move the viewpoint around the focus without rotating the world or its sunlight. */
+  orbitAround(axis: THREE.Vector3, angle: number): void;
   /**
    * Back to the opening angles and distance, with no leftover glide. The caller still
    * owns the target and the framing radius, exactly as it does at startup.
@@ -345,6 +347,13 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       desiredRadius = spherical.radius;
       velocityTheta = 0;
       velocityPhi = 0;
+    },
+
+    orbitAround(axis: THREE.Vector3, angle: number) {
+      if (!api.enabled) return;
+      camera.position.sub(target).applyAxisAngle(axis, angle).add(target);
+      camera.lookAt(target);
+      api.syncFromCamera();
     },
 
     cancelGesture() {

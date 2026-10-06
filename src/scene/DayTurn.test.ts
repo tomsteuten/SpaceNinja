@@ -63,6 +63,54 @@ function runToFinish(dt: number, duration?: number) {
 }
 
 describe('createDayTurn', () => {
+  it('leaves hands-on Earth still until the child turns it, and waits for Done', () => {
+    const { body, turnedBy } = stubBody();
+    const onFinish = vi.fn();
+    const turn = createDayTurn({ camera: stubCamera(), controls: stubControls(), reducedMotion: true, onFinish });
+    turn.start(body, undefined, true);
+    turn.update(30);
+    expect(turnedBy()).toBe(0);
+    turn.turnBy(0.7);
+    expect(turnedBy()).toBeCloseTo(0.7);
+    turn.update(30);
+    expect(turnedBy()).toBeCloseTo(0.7);
+    expect(turn.interactive).toBe(true);
+    expect(onFinish).not.toHaveBeenCalled();
+    // Multiple turns and a reverse drag must restore the initial landmark orientation.
+    turn.turnBy(-Math.PI * 5);
+    turn.skip();
+    expect(turnedBy()).toBeCloseTo(0, 10);
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(turn.active).toBe(false);
+  });
+
+  it('gives tap assistance exactly a quarter turn at different frame rates', () => {
+    for (const dt of [1 / 60, 1 / 15, 0.05]) {
+      const { body, turnedBy } = stubBody();
+      const turn = createDayTurn({ camera: stubCamera(), controls: stubControls(), reducedMotion: true, onFinish: vi.fn() });
+      turn.start(body, undefined, true);
+      turn.nudge();
+      for (let elapsed = 0; elapsed < 2; elapsed += dt) turn.update(dt);
+      expect(turnedBy()).toBeCloseTo(Math.PI / 2, 10);
+      expect(turn.active).toBe(true);
+      turn.reset();
+      expect(turnedBy()).toBeCloseTo(0, 10);
+      expect(turn.interactive).toBe(false);
+    }
+  });
+
+  it('a drag catches an assisted turn without leaving motion after release', () => {
+    const { body, turnedBy } = stubBody();
+    const turn = createDayTurn({ camera: stubCamera(), controls: stubControls(), reducedMotion: true, onFinish: vi.fn() });
+    turn.start(body, undefined, true);
+    turn.nudge();
+    turn.update(0.1);
+    turn.turnBy(-0.2);
+    const caught = turnedBy();
+    turn.update(20);
+    expect(turnedBy()).toBe(caught);
+  });
+
   it('turns exactly once, whatever the frame time', () => {
     // 60fps, a struggling tablet, and the 0.05 ceiling Stage clamps dt to.
     for (const dt of [1 / 60, 1 / 15, 0.05, 0.0123]) {
