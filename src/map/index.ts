@@ -100,7 +100,10 @@ export function createNeighborhoodMap(options: {
     if (held.multi || options.covered()) return;
     const dx=event.clientX-held.x,dy=event.clientY-held.y;
     if (Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) browse(dx<0 ? 1 : -1);
-    else if (held.moved<12) options.tap(event.clientX,event.clientY);
+    else if (held.moved<12) {
+      if (ui.previewContains(event.clientX,event.clientY)) choose(model.neighborhood.places[0]!);
+      else options.tap(event.clientX,event.clientY);
+    }
   }
   function cancel() { clearGesture(); }
   canvas.addEventListener('pointerdown',down,true);

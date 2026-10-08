@@ -29,7 +29,7 @@
 .map-position span { width:5px; height:5px; background:#7591a66b; border-radius:50%; }
 .map-position .is-current { width:17px; border-radius:4px; background:#f1d08a; }
 .map-tray .map-more-moons { min-height:56px; padding:8px 12px; font-size:14px; }
-.map-preview { position:absolute; left:50%; top:45%; transform:translate(-50%,-50%); display:flex; align-items:center; flex-direction:column; gap:22px; background:none; border:none; padding:18px; color:#b9cad7; pointer-events:auto; cursor:pointer; }
+.map-preview { position:absolute; left:50%; top:45%; transform:translate(-50%,-50%); display:flex; align-items:center; flex-direction:column; gap:22px; background:none; border:none; padding:18px; color:#b9cad7; pointer-events:none; }
 .map-preview > .map-fixture-orb,.map-preview > .world-orb { width:clamp(120px,24vw,210px); height:clamp(120px,24vw,210px); outline:1px dashed #abc2d13b; outline-offset:18px; }
 .map-preview-label { display:flex; align-items:center; gap:8px; font:600 16px var(--font); }
 .map-preview-label .icon { width:18px; height:18px; }
