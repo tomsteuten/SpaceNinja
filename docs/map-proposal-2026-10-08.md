@@ -1,9 +1,30 @@
 # Expandable space map: bounded proposal
 
-Status: proposal for review, not an approved layout or implemented navigation system.
+Status: owner authorized implementation; opt-in `?mapstudy` prototype awaits visual review.
 Baseline: GitHub main `849547bbf7749e4ed9b08602be9920c26f5f8fd8` (6 October).
 
 ## Recommendation
+
+### Implemented study
+
+The prototype uses nine neighborhoods, the five existing playable destinations, and
+unavailable fixtures for the remaining planets, Jupiter's four large moons, Titan and a
+small-world group. A three-destination maximum keeps the parent visible while moon pages
+change. Real travel, discovery persistence, unlocks and Space map return use the existing
+adventure. Returning remembers the neighborhood; browsing never writes progress.
+
+Measured heading/tray bounds drive camera framing, including Saturn's rings. Paging
+uses a cut at both motion settings to keep camera ownership simple for the first
+study. Neighbor names on the large arrow buttons replace the proposed planet peeks;
+whether these are sufficient cues remains a review question. Future worlds use striped
+controls and a construction symbol; progression locks use a padlock and prerequisite.
+
+The [comparison page](../design/map-study-2026-10-08/index.html) contains scale-1 phone,
+tablet and short-landscape before/after images with fresh and progressed saves. Baseline
+captures use merged main `430c8df` in an independent temporary checkout. This prototype
+does not constitute visual approval or a decision to replace the deployed map.
+
+The remaining sections preserve the proposal and its acceptance questions.
 
 Prototype a **paged map of planet neighborhoods**. Keep a large planet and its nearby
 moons in the world, with stable pictured travel buttons in one compact edge tray. Paging

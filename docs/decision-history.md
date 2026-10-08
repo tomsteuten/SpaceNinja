@@ -3,6 +3,21 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-08 — Prototype neighborhoods without replacing the map
+
+The owner authorized merging the journal-test fix and implementing the proposed map study.
+The existing framing expands to the furthest revealed orbit, and its phone tray positions
+the fourth and fifth worlds explicitly. Those constraints motivated an opt-in `?mapstudy`
+route: page a bounded set of destinations while preserving the real scene, existing flights
+and save IDs. Unbuilt worlds are unavailable presentation fixtures, never catalogue entries.
+
+The first prototype uses camera cuts and labeled arrows rather than animated paging and
+neighboring planet peeks. This tests capacity and camera handoffs with fewer moving parts;
+it does not establish that children understand the paging cue. Full-resolution comparisons
+are recorded under `design/map-study-2026-10-08/`. The default map remains the approved screen
+while the owner reviews this one. Physical-tablet performance and child comprehension are
+still unverified.
+
 ## 2026-10-06 — Connect Earth's discoveries to a readable world journal
 
 The owner authorized the Earth-loop polish and continuing with AI/adult testing because

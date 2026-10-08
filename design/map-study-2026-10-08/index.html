@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Ninja · map comparison</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#101b2b;color:#e9eee9;font:16px/1.5 system-ui,sans-serif}
+  main{max-width:1600px;margin:auto;padding:24px}h1{font-size:28px;margin:0 0 8px}p{max-width:850px;color:#bccddd}
+  a{color:#ffe4a4}nav{display:flex;gap:16px;flex-wrap:wrap;margin:24px 0}label{display:grid;gap:6px}
+  select{font:inherit;padding:10px;background:#263c54;color:inherit;border:1px solid #7996ac;border-radius:9px;min-height:48px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}figure{margin:0;min-width:0}
+  figcaption{margin:0 0 10px;font-weight:600}img{display:block;max-width:100%;height:auto;border:1px solid #526579;border-radius:10px}
+  details{margin:28px 0}summary{cursor:pointer;padding:12px 0}details img{max-height:768px}
+  @media(max-width:700px){.pair{grid-template-columns:1fr}main{padding:16px}}
+</style>
+<main>
+  <h1>Space Ninja · one map screen</h1>
+  <p>Compare the deployed map with the opt-in neighborhood prototype. These are full-resolution
+    browser captures (device scale 1), using software WebGL. Appearance and tablet comfort await your review.</p>
+  <p><a href="/?mapstudy">Try the prototype</a> · <a href="/">Open the current map</a></p>
+  <nav aria-label="Comparison options">
+    <label>Viewport<select id="device"><option value="phone">Phone · 390 × 844</option><option value="tablet">Tablet · 1024 × 768</option><option value="short-landscape">Short landscape · 844 × 390</option></select></label>
+    <label>Adventure progress<select id="progress"><option value="fresh">Fresh save</option><option value="progressed">Moon and Mars visited</option></select></label>
+  </nav>
+  <div class="pair">
+    <figure><figcaption>Before · deployed main</figcaption><a id="before-link"><img id="before" alt="Current map before the prototype"></a></figure>
+    <figure><figcaption>After · Earth neighborhood</figcaption><a id="after-link"><img id="after" alt="Prototype Earth neighborhood"></a></figure>
+  </div>
+  <details><summary>See the prototype's future-world page</summary><p>Jupiter and its moons are unavailable layout fixtures. They cannot launch a journey or change saves.</p><a id="future-link"><img id="future" alt="Prototype Jupiter page with unavailable moons"></a></details>
+  <details><summary>See unlocked Saturn in the prototype</summary><p>Saturn uses the real world and existing journey; Titan remains an unavailable fixture.</p><a id="saturn-link"><img id="saturn" alt="Prototype Saturn neighborhood after Moon and Mars visits"></a></details>
+  <p>Baseline: main <code>430c8df</code>. Each baseline capture came from a separate checkout with its own dependencies.
+    Worlds keep moving between captures. No documentary imagery was generated.</p>
+</main>
+<script>
+  const device=document.getElementById('device'),progress=document.getElementById('progress');
+  function update(){
+    for(const [id,suffix] of [['before',`before-${progress.value}`],['after',`after-${progress.value}`],['future','after-future'],['saturn','after-saturn']]){
+      const path=`${device.value}-${suffix}.png`;
+      document.getElementById(id).src=path;document.getElementById(`${id}-link`).href=path;
+    }
+  }
+  device.addEventListener('change',update);progress.addEventListener('change',update);update();
+</script>
+</html>

@@ -71,6 +71,14 @@ npm run dev
 
 Then open <http://localhost:5173>.
 
+The **neighborhood map prototype** is available at <http://localhost:5173/?mapstudy>.
+Page with the large arrows or swipe the world area, then tap a pictured destination to use
+the existing adventure. Earth, Moon, Sun, Mars and Saturn retain their existing unlocks;
+other planets and moons are clearly unavailable layout fixtures. The map remembers its
+neighborhood until reload. This is an opt-in screen study awaiting visual approval.
+See the [full-resolution map comparisons](design/map-study-2026-10-08/index.html) and
+[scope and rationale](docs/map-proposal-2026-10-08.md).
+
 For a local browser preview, use <http://localhost:5173/>. The newer close-flight explorer
 remains available for comparison at <http://localhost:5173/?explorer>. Its worlds are all
 open, and holding and sliding steers the ship over real mapped places. It has not replaced
