@@ -57,6 +57,7 @@ import {
 } from './state/progress';
 import { loadSoundOn } from './state/settings';
 import { DISCOVERIES } from './config';
+import type { createNeighborhoodMap } from './map';
 
 const boot = document.getElementById('boot');
 
@@ -71,6 +72,7 @@ async function main() {
   // The guided adventure remains the default. Keep the newer explorer available as an
   // explicit experiment while its tablet playtest and product direction are reviewed.
   const params = new URLSearchParams(window.location.search);
+  let neighborhoodMap: ReturnType<typeof createNeighborhoodMap> | null = null;
   if (params.has('explorer')) {
     const { startExplorer } = await import('./explorer/main');
     const explorer = await startExplorer(canvas, uiRoot);
@@ -428,7 +430,7 @@ async function main() {
     camera,
     controls,
     reducedMotion,
-    restingPose: () =>
+    restingPose: () => neighborhoodMap?.restingPose() ??
       controls.restingPose(
         world.bodies.earth.getWorldPosition(homeFocus),
         framingRadius(),
@@ -725,6 +727,12 @@ async function main() {
     }
     const destination = world.bodies[id];
     if (!destination) return;
+    // Restore the real scene before flight takes the camera. Browsing alone never reveals
+    // or visits a world; eligibility above still comes exclusively from saved visits.
+    if (neighborhoodMap) {
+      neighborhoodMap.hide();
+      applyReveal();
+    }
     // The flight is told which latitude to arrive over; it does not know why. Matching
     // destinations to their copy is this file's job, exactly as it is for the fact and
     // the mission.
@@ -885,7 +893,7 @@ async function main() {
           ? `revealed-${newlyRevealed}`
           : viaFlyHome
             ? 'fly-home'
-            : suggested
+            : suggested && !params.has('mapstudy')
               ? `home-${suggested}`
               : 'home-any';
     ui.speakGuide(cueText(cue), cue);
@@ -923,6 +931,20 @@ async function main() {
   // the splash. Without a splash (a later load, storage remembered), there has been no gesture
   // yet, so it fails silently and the map nudge repeats it once the child touches anything.
   if (!greeting) announceMap(null, false);
+
+  // An explicit study route: the approved default map and all visit UI stay unchanged.
+  if (params.has('mapstudy')) {
+    const { createNeighborhoodMap } = await import('./map');
+    neighborhoodMap = createNeighborhoodMap({
+      root: uiRoot, canvas, camera, world, controls, ship: ship.group,
+      revealed: visibleDestinationIds,
+      prerequisite: id => gateLabel(id as BodyId),
+      covered: () => ui.activityCovered,
+      launch, tap: handleTap,
+      onBrowse: () => { narrator.stop(); mapIdle=0; mapNudgesGiven.clear(); },
+    });
+    neighborhoodMap.show();
+  }
 
   /* --- restart ------------------------------------------------------------- */
 
@@ -979,6 +1001,7 @@ async function main() {
     // Landing back at the map: a world just readied announces itself, a plain Fly Home says so,
     // a progress reset (visited now empty) gets the first-run welcome.
     announceMap(newlyRevealed[0] ?? null, true);
+    neighborhoodMap?.show(newlyRevealed[0]);
   }
 
   /* --- frame loop ---------------------------------------------------------- */
@@ -990,7 +1013,7 @@ async function main() {
   stage.onFrame((dt, elapsed) => {
     // Off-center projection reserves the row without changing camera ownership or
     // translating the canvas. Projection, marker picking and screenshots stay in sync.
-    const desiredOffset = adventureViewOffset(innerWidth, innerHeight,
+    const desiredOffset = neighborhoodMap?.active ? neighborhoodMap.offset : adventureViewOffset(innerWidth, innerHeight,
       flight.phase !== 'idle' && !homeReturn.active, dayTurn.active);
     const nextOffset = THREE.MathUtils.damp(viewOffset, desiredOffset, 8, dt);
     viewOffset = Math.abs(nextOffset - desiredOffset) < 0.05 ? desiredOffset : nextOffset;
@@ -1114,7 +1137,7 @@ async function main() {
        * exactly the map.
        */
       const atMap = activeMission === null && cameraOurs && flight.phase === 'idle';
-      if (atMap && suggested) {
+      if (atMap && suggested && !neighborhoodMap) {
         mapIdle += dt;
         const nudge = dueNudge(
           mapIdle,
@@ -1167,7 +1190,10 @@ async function main() {
     // control for it so the two are not both writing the camera on the same frame.
     homeReturn.update(dt);
 
-    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
+    if (neighborhoodMap?.active) {
+      if (camera.aspect !== lastAspect) { lastAspect=camera.aspect; neighborhoodMap.resize(); }
+      neighborhoodMap.update();
+    } else if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
       // Rotating the device changes how much fits on screen, so recompose the shot.
       // Deliberately overrides any manual zoom: a rotated view that cuts off the
       // destination is worse than losing the zoom level.
@@ -1217,7 +1243,11 @@ async function main() {
       };
       return {
         phase: flight.phase,
+        neighborhood: neighborhoodMap?.neighborhood ?? null,
         mapBodyIds: [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId))],
+        mapBodies: neighborhoodMap?.active ? [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId as BodyId))]
+          .map(id => ({ id, ...screenCircle(world.bodies[id].getWorldPosition(new THREE.Vector3()),
+            world.bodies[id].viewRadius ?? world.bodies[id].radius) })) : [],
         world: follow,
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,
@@ -1258,6 +1288,7 @@ async function main() {
       narrator.stop();
       sfx.reset();
       controls.cancelGesture();
+      neighborhoodMap?.clearGesture();
       dayTurnInput.clear();
     },
     reset: resetAdventure,
@@ -1279,6 +1310,7 @@ async function main() {
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
     document.removeEventListener('keydown', onFreeFlightShortcut);
     controls.dispose();
+    neighborhoodMap?.dispose();
     ui.dispose();
     grownups.dispose();
     narrator.dispose();

@@ -12,6 +12,7 @@
  */
 
 const ICONS = {
+  construction: '<path d="M4 9h16v7H4zM7 9l5 7m2-7 5 7M7 16v5m10-5v5"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
   turnArrow: '<path d="M3 9c4 7 15 7 19 0m-6-1 7 0-1 6"/>',
   back: '<path d="m12 7-8 11 8 10M5 18h20c7 0 10 4 10 10"/>',

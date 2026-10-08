@@ -1,5 +1,26 @@
 # Current implementation and handover
 
+## Neighborhood map study — 8 October 2026
+
+PR #1 was merged at `430c8df`; [deployment 37739425471](https://github.com/tomsteuten/SpaceNinja/actions/runs/37739425471)
+completed successfully. The journal check no longer blocks Pages.
+
+The owner then authorized the recommended map prototype. `?mapstudy` adds paged
+neighborhoods over the real scene and existing journeys, with an isolated presentation
+model in `src/map/`. The default map remains available. Unbuilt destinations are fixtures;
+they cannot launch or enter progress. Paging is a camera cut, supports swipe and native
+buttons, and cancels interrupted gestures. Space map remembers the current neighborhood.
+
+Full-resolution [map comparisons](../design/map-study-2026-10-08/index.html) cover fresh
+and progressed saves on phone, tablet and short landscape. Owner visual approval,
+physical-tablet performance and child comprehension remain pending.
+
+Validation: typecheck, all 350 unit tests and the production build passed. Seven targeted
+map-study browser checks passed (two duplicate progression cases intentionally skipped),
+including muted feedback, real Moon tapping/collection, Mars unlock, Sun travel, Earth and
+Saturn return, measured world clearance, keyboard focus, swipe, resize and history suspension.
+The unchanged default-home file also passed on all three viewports. No full local suite ran.
+
 ## Deployment regression and next proposal — 8 October 2026
 
 GitHub main `849547b` did not deploy: [run 37400865343](https://github.com/tomsteuten/SpaceNinja/actions/runs/37400865343)
@@ -15,11 +36,10 @@ return. No gameplay, layout or focus-trap implementation changed.
 Validation of this fix: typecheck and all 347 unit tests passed; the targeted accessibility
 file passed on phone, tablet and short landscape (three checks). Named journal screenshots
 were inspected as behavior evidence, not visual approval. The full browser suite was not
-rerun locally. A new successful main deployment is still required; these local results
-do not establish that Pages has updated.
+rerun locally. The subsequent successful main deployment is linked in the checkpoint above.
 
-The [bounded map proposal](map-proposal-2026-10-08.md) recommends paged planet neighborhoods
-before adding content. It is a proposal for review, not an implemented or approved screen.
+The [bounded map proposal](map-proposal-2026-10-08.md) led to the opt-in study above;
+the proposal itself did not approve a replacement screen.
 
 ## Current checkpoint — Earth discovery loop, 6 October 2026
 
