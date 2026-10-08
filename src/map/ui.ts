@@ -79,6 +79,13 @@ export function createMapUI(root: HTMLElement, model: ReturnType<typeof createMa
   const observer = new ResizeObserver(measure); observer.observe(dock); observer.observe(heading);
   return {
     render,measure, get inset() { return inset; }, get offset() { return offset; },
+    // The large unavailable-world picture is visually a tap target, while pointer events
+    // pass through it to the canvas so a swipe across the same area can change pages.
+    previewContains(x: number, y: number) {
+      if (preview.hidden) return false;
+      const rect = preview.getBoundingClientRect();
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    },
     setActive(active: boolean) { container.hidden = !active; },
     feedback(text: string) { instruction.textContent = text; },
     dispose() { observer.disconnect(); container.remove(); root.classList.remove('has-neighborhood-map'); },

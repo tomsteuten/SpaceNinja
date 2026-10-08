@@ -52,9 +52,13 @@ test('map paging responds without changing progress and survives interruption', 
     expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
   }
   const { width, height } = page.viewportSize()!;
-  await page.mouse.move(width * .7, height * .5);
+  const preview = (await page.locator('.map-preview').boundingBox())!;
+  const x = preview.x + preview.width / 2, y = preview.y + preview.height / 2;
+  await page.mouse.click(x,y);
+  await expect(page.locator('.map-instruction')).toContainText('Jupiter is coming later');
+  await page.mouse.move(x,y);
   await page.mouse.down();
-  await page.mouse.move(width * .3, height * .5, { steps: 5 });
+  await page.mouse.move(x - 130,y, { steps: 5 });
   await page.mouse.up();
   await expect(map).toHaveAttribute('data-neighborhood', 'saturn');
   // A suspended held gesture cannot become a swipe on history restoration.
