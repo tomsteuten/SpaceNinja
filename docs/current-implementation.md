@@ -1,5 +1,26 @@
 # Current implementation and handover
 
+## Deployment regression and next proposal — 8 October 2026
+
+GitHub main `849547b` did not deploy: [run 37400865343](https://github.com/tomsteuten/SpaceNinja/actions/runs/37400865343)
+passed 347 unit tests and 68 browser checks, skipped four browser checks, and failed the
+journal accessibility check on all three viewports. Deployment was skipped.
+
+The unchanged phone check reproduced the same failure locally. It expected the journal
+to have only two keyboard stops; the October world-page buttons correctly introduced
+additional stops. The regression test now checks every world selector, forward/reverse
+focus wrapping, keyboard page selection after the controls are rebuilt, and Escape/focus
+return. No gameplay, layout or focus-trap implementation changed.
+
+Validation of this fix: typecheck and all 347 unit tests passed; the targeted accessibility
+file passed on phone, tablet and short landscape (three checks). Named journal screenshots
+were inspected as behavior evidence, not visual approval. The full browser suite was not
+rerun locally. A new successful main deployment is still required; these local results
+do not establish that Pages has updated.
+
+The [bounded map proposal](map-proposal-2026-10-08.md) recommends paged planet neighborhoods
+before adding content. It is a proposal for review, not an implemented or approved screen.
+
 ## Current checkpoint — Earth discovery loop, 6 October 2026
 
 The local Earth pass now connects finding to revisiting. First-find photos show Saved to
