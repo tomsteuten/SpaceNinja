@@ -7,6 +7,9 @@ catalogue worlds and their 24 authored places; the Sun observation visit belongs
 adventure. These questions evaluate the explorer, not approval of the October adventure UI.
 See [the current checkpoint](current-implementation.md) for route and ownership guidance.
 
+The [12 October child-friendliness review](../design/explorer-review-2026-10-12/index.html)
+finds the close flight promising but its adult, text-led presentation unsuited to 5–8s.
+
 ## Observable tablet questions
 
 1. Does the solar system read as "out in space" rather than a menu? Does a child touch a world

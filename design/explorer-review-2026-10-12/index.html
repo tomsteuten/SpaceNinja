@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Ninja · explorer review</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#101b2b;color:#e9eee9;font:16px/1.55 system-ui,sans-serif}
+  main{max-width:1200px;margin:auto;padding:24px}h1{font-size:28px;margin:0 0 8px}h2{font-size:22px;margin:40px 0 8px}
+  p,li{max-width:850px;color:#bccddd}strong{color:#e9eee9}a{color:#ffe4a4}code{color:#ffe4a4}
+  ol,ul{padding-left:22px}li{margin:6px 0}
+  .verdict{background:#1b2a3d;border:1px solid #526579;border-radius:12px;padding:16px 20px;margin:20px 0}
+  .verdict p{margin:6px 0}
+  .shot{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:24px;align-items:start;margin:28px 0}
+  .shot.phone{grid-template-columns:minmax(0,1fr) minmax(0,1.7fr)}
+  figure{margin:0;min-width:0}figcaption{margin:0 0 10px;font-weight:600}
+  img{display:block;max-width:100%;height:auto;border:1px solid #526579;border-radius:10px}
+  .phone img{max-width:390px}
+  .notes h3{font-size:17px;margin:0 0 6px}.good{color:#9fe0b8}.bad{color:#ffb39a}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  @media(max-width:760px){.shot,.shot.phone,.pair{grid-template-columns:1fr}main{padding:16px}.phone img{max-width:100%}}
+</style>
+<main>
+  <h1>Explorer review · is it child friendly?</h1>
+  <p>A review of the close-flight explorer at <code>?explorer</code> (from Codex's moon-exploration trial)
+    against the product north star in <code>AGENTS.md</code>: a gentle explorer for children of about 5–8 on an
+    older Android tablet. The owner's observation was that it looks nicer for adults but may not suit children.</p>
+  <p>The captures below are full resolution (device scale 1) from software WebGL, so 3D surfaces look softer than on a
+    real device. Everything here is adult/AI judgement. No child or physical tablet has tested it.</p>
+  <p><a href="/?explorer">Try the explorer</a> · <a href="/">Open the guided adventure</a></p>
+
+  <div class="verdict">
+    <p><strong>Verdict.</strong> The owner's instinct is right. The explorer's <em>play</em> is often good for children:
+      flying low over real places, letting go to stop, and every world open. Its <em>presentation</em> is an adult
+      editorial style that depends on reading, small text and thin, look-alike controls. Keep the close flight,
+      replace the visual design and controls with the adventure's.</p>
+  </div>
+
+  <h2>What works for children</h2>
+  <ul>
+    <li><strong>Being somewhere.</strong> Skimming over the Sahara or the Amazon is more vivid than the adventure's view of the whole globe.</li>
+    <li><strong>Forgiving controls.</strong> Hold to fly, let go to stop, and every world open. Nothing to fail, no quota.</li>
+    <li><strong>A clear playfield.</strong> Controls stay at the edges, which matches the AGENTS.md rule.</li>
+    <li><strong>The find card's “Take a look” button</strong> is large, bright and obvious. It's the most child-friendly control in the route.</li>
+  </ul>
+
+  <h2>Screen by screen</h2>
+
+  <section class="shot">
+    <figure><figcaption>Tablet · solar system</figcaption><a href="tablet-system.png"><img src="tablet-system.png" alt="Explorer solar system with a bottom row of four world buttons"></a></figure>
+    <div class="notes">
+      <h3 class="good">Works</h3>
+      <p>Pictured world buttons with a gold, pulsing suggestion. A clear, inviting scene.</p>
+      <h3 class="bad">Concerns</h3>
+      <p>The progress dots are 6px and grey. The 9–10px caps brand and NASA credit, and the 11px “Guided adventure” link,
+        are on the child's screen. The instruction is a written line. The journal and grown-ups settings buttons
+        are identical thin-line circles side by side.</p>
+    </div>
+  </section>
+
+  <section class="shot">
+    <figure><figcaption>Tablet · exploring Earth</figcaption><a href="tablet-exploring.png"><img src="tablet-exploring.png" alt="Ship flying low over South America with a text coach and a Places, Closer, Higher dock"></a></figure>
+    <div class="notes">
+      <h3 class="good">Works</h3>
+      <p>The world fills the screen. The ship is visible and the playfield is clear.</p>
+      <h3 class="bad">Concerns</h3>
+      <p>How to fly is explained only in words: “Hold to fly. Slide to steer. Tap a picture to go there.” The way out is the word
+        “← Solar system”, the kind of worded exit that child feedback already led the adventure to replace with a pictured
+        Space map button. “+ Closer / − Higher” asks a child to think about camera height. The place marker is a small photo circle,
+        less noticeable than the adventure's gold rings.</p>
+    </div>
+  </section>
+
+  <section class="shot">
+    <figure><figcaption>Tablet · Places list</figcaption><a href="tablet-places.png"><img src="tablet-places.png" alt="Places to find dialog listing six Earth places with descriptions"></a></figure>
+    <div class="notes">
+      <h3 class="bad">Concerns</h3>
+      <p>A text menu with subtitles under a decorative “FOLLOW YOUR CURIOSITY” label. Tapping a row glides there and the place
+        counts as found, so finding becomes choosing from a menu. It's the most readable route in the explorer, so children
+        will probably use it. Serif headings bring back the September serif direction the October adventure replaced.</p>
+    </div>
+  </section>
+
+  <section class="shot">
+    <figure><figcaption>Tablet · a find</figcaption><a href="tablet-found.png"><img src="tablet-found.png" alt="Found card in the lower-left corner reading You found Sahara desert, with a Take a look button"></a></figure>
+    <div class="notes">
+      <h3 class="good">Works</h3>
+      <p>A large, high-contrast “Take a look” button. The journal badge counts up.</p>
+      <h3 class="bad">Concerns</h3>
+      <p>The payoff is quiet: a corner card with a short scale-in and a tiny gold “YOU FOUND”. Narration plays only when a
+        recording exists for that place (<code>src/explorer/main.ts</code>). There's no sticker, glow on the world or completion moment.</p>
+    </div>
+  </section>
+
+  <section class="shot phone">
+    <figure><figcaption>Phone · exploring</figcaption><a href="phone-exploring.png"><img src="phone-exploring.png" alt="Phone exploring view with text coach and dock"></a></figure>
+    <div class="notes">
+      <h3 class="bad">Concerns</h3>
+      <p>The same text-led coach takes the top centre. The dock labels shrink to 13px. All the controls share one dark-glass style,
+        so nothing stands out as the thing to press.</p>
+    </div>
+  </section>
+
+  <section class="shot phone">
+    <figure><figcaption>Phone · photograph</figcaption><a href="phone-photo.png"><img src="phone-photo.png" alt="Photo dialog for Sahara desert with Read to me and Look closer buttons"></a></figure>
+    <div class="notes">
+      <h3 class="good">Works</h3>
+      <p>Real imagery, short words and a big close button.</p>
+      <h3 class="bad">Concerns</h3>
+      <p>“Read to me” must be pressed, so a non-reader sees a paragraph first. The return is only an X. The adventure now also offers
+        a pictured return to the world, after child feedback.</p>
+    </div>
+  </section>
+
+  <details><summary>More phone captures</summary>
+    <div class="pair">
+      <figure><figcaption>Phone · solar system</figcaption><a href="phone-system.png"><img src="phone-system.png" alt="Phone solar system"></a></figure>
+      <figure><figcaption>Phone · Places list</figcaption><a href="phone-places.png"><img src="phone-places.png" alt="Phone places list"></a></figure>
+      <figure><figcaption>Phone · a find</figcaption><a href="phone-found.png"><img src="phone-found.png" alt="Phone found card"></a></figure>
+    </div>
+  </details>
+
+  <h2>For comparison · the guided adventure</h2>
+  <section class="shot">
+    <figure><figcaption>Tablet · Earth in the guided adventure (approved 3 October)</figcaption><a href="../ui-implementation-2026-10-03/tablet-earth.png"><img src="../ui-implementation-2026-10-03/tablet-earth.png" alt="Guided adventure Earth with gold rings and a four-button pictured action row"></a></figure>
+    <div class="notes">
+      <p>Chunky, coloured, labelled buttons with a clear primary choice. Gold place rings, a pictured Space map exit and narrated
+        arrival. Less atmospheric, but a child can read it without help.</p>
+    </div>
+  </section>
+
+  <h2>Recommendation</h2>
+  <ol>
+    <li><strong>Keep the explorer's play:</strong> close flight over real places, letting go to stop, open worlds.</li>
+    <li><strong>Use the adventure's controls:</strong> big pictured buttons, the Space map exit, gold place rings, and a large type
+      size with no decorative caps labels on child screens. Move credits and the route link to the grown-ups panel.</li>
+    <li><strong>Show, don't tell, how to steer:</strong> an animated hand or narrated cue instead of the written coach. Replace Closer/Higher
+      with pinch or automatic height.</li>
+    <li><strong>Make finding the game:</strong> make the Places list pictures only, or move it into the journal, so flying to a place remains
+      the main way to find it. Give each find a bigger payoff.</li>
+    <li><strong>Consider merging rather than keeping two apps:</strong> as the manual-flight section of AGENTS.md allows, steering could become a mode on
+      an arrived world in the adventure instead of a separate route with its own UI.</li>
+  </ol>
+
+  <h2>Open questions for a tablet session with a child</h2>
+  <ul>
+    <li>Does the child hold and slide to steer without an adult showing them?</li>
+    <li>Do they fly to places, or go straight to the Places list?</li>
+    <li>Do they find the way back to the solar system without reading?</li>
+    <li>Does a find feel rewarding enough to try for another?</li>
+  </ul>
+  <p>Captured on 12 October 2026 from main <code>c25b010</code>. Run <code>npm run dev</code> and open <code>?explorer</code> to reproduce.</p>
+</main>
+</html>
