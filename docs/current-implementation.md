@@ -5,9 +5,19 @@
 The neighborhood model is now the tested source of map membership: every scene body must
 sit in exactly one neighborhood. `childNeighborhoods()` removes unbuilt fixtures and empty
 pages, so they can never reach a child. The study's page framing is a pure, tested
-`neighborhoodBounds()` in `src/map/framing.ts`. The default map is unchanged on screen;
-adopting measured framing there moves worlds and awaits owner screenshot review. See the
-[explorer review](../design/explorer-review-2026-10-12/index.html) for the wider next steps.
+`neighborhoodBounds()` in `src/map/framing.ts`. The default map is unchanged on screen.
+
+Applying that framing to the default map was prototyped and **not adopted**: it enlarges
+phone/tablet worlds but shrinks short landscape, leaves Saturn overlapping Earth, drifts with
+the orbits and overrides pinch-zoom. See [the captures](../design/map-framing-2026-10-12/README.md).
+
+Recommended order from here: (1) optionally enlarge only the first-run Earth & Moon shot,
+keeping the fixed camera, after screenshot approval; (2) pilot Jupiter, adding a moon-parent
+relation to the catalogue first, and introduce paging with picture peeks, animated page moves
+and the study framing then, showing children only `childNeighborhoods()`; (3) restyle the
+explorer's close flight with the adventure's controls as a mode on an arrived world, per the
+[explorer review](../design/explorer-review-2026-10-12/index.html); (4) observe a child on
+the tablet as soon as possible.
 
 ## Neighborhood map study — 8 October 2026
 

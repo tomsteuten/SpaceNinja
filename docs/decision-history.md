@@ -3,6 +3,24 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-12 — Keep the default map framing; restyle rather than promote the explorer
+
+The owner observed that the close-flight explorer (`?explorer`) looks nicer for adults but
+may not suit children. The [review](../design/explorer-review-2026-10-12/index.html) agreed:
+its play (low flight over real places, release to stop, open worlds) suits children, but its
+presentation relies on reading, 9–10px decorative caps, thin look-alike icons, a worded exit
+and a Places list that turns finding into choosing. Recommendation: keep the close flight
+and adopt the adventure's controls, preferably as a mode on an arrived world rather than a
+second app. Not yet implemented; no child or physical tablet has tested either judgement.
+
+From the map study, the neighborhood model became the tested source of map membership, and
+`childNeighborhoods()` ensures unbuilt fixtures never reach a child. A prototype applying the
+study's framing to the default map was compared at scale 1
+([captures](../design/map-framing-2026-10-12/README.md)). It enlarged worlds on phone and
+tablet but shrank them in short landscape, left Saturn overlapping Earth, made the camera
+follow orbiting worlds and overrode map pinch-zoom. The default framing therefore stays; the
+study framing should arrive with paging, when a Jupiter neighborhood exists.
+
 ## 2026-10-08 — Prototype neighborhoods without replacing the map
 
 The owner authorized merging the journal-test fix and implementing the proposed map study.
