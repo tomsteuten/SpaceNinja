@@ -15,6 +15,19 @@ export const NEIGHBORHOODS: readonly Neighborhood[] = [
   { id:'neptune', title:'Neptune', scene:[], places:[p('neptune','Neptune','#729dcc')] },
   { id:'dwarfs', title:'Small worlds', scene:[], places:[p('pluto','Pluto','#c7aaa0'),p('ceres','Ceres','#a5a2a1'),p('eris','Eris','#d2d2cc')] },
 ];
+/**
+ * The neighborhoods a child may see: unbuilt places removed, and any neighborhood left with
+ * nothing playable dropped. A future world appears here only once it has a real body, so
+ * "coming later" fixtures stay in the study and never become a child's dead end.
+ */
+export function childNeighborhoods(all: readonly Neighborhood[] = NEIGHBORHOODS): Neighborhood[] {
+  return all.flatMap(n => {
+    const places = n.places.filter(place => place.body);
+    if (!places.length) return [];
+    // A title naming a removed fixture ("Saturn & Titan") would promise something absent.
+    return [places.length === n.places.length ? n : { ...n, title: places[0]!.label, places }];
+  });
+}
 export function availability(place: MapPlace, revealed: readonly string[]): 'ready' | 'locked' | 'unbuilt' {
   return !place.body ? 'unbuilt' : revealed.includes(place.body) ? 'ready' : 'locked';
 }

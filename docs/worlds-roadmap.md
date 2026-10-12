@@ -73,7 +73,9 @@ when expansion is requested; pilot one world before generalizing more systems.
    orbit widens the map and shrinks inner worlds. Phone CSS currently places destination
    choices four and five explicitly; a sixth changes row count and footprint. Review
    controls, camera reservation and target clearance on phone, tablet and short landscape.
-   Preserve the visible escape route and approved contextual row.
+   Preserve the visible escape route and approved contextual row. Place the body in exactly
+   one neighborhood in `src/map/model.ts` (a unit test fails otherwise). `childNeighborhoods()`
+   is what a child may see; `neighborhoodBounds()` in `src/map/framing.ts` frames a page.
 8. **Explorer and offline assets.** Check `src/explorer/worlds.ts`, photograph provenance
    and orbital behavior if the world joins that experiment. `vite.config.ts` still names
    four explorer world pictures explicitly; include a new one deliberately. Small

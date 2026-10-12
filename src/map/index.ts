@@ -3,6 +3,7 @@ import type { World, BodyId } from '../scene/Bodies';
 import type { OrbitInput } from '../controls/OrbitInput';
 import { availability, createMapModel, type MapPlace } from './model';
 import { createMapUI } from './ui';
+import { neighborhoodBounds } from './framing';
 
 /** One home-only camera owner; yields before any journey, lesson or return starts. */
 export function createNeighborhoodMap(options: {
@@ -15,7 +16,7 @@ export function createNeighborhoodMap(options: {
   const model = createMapModel();
   let active = false;
   let gesture: { id: number; x: number; y: number; moved: number; multi: boolean } | null = null;
-  const center = new THREE.Vector3(), point = new THREE.Vector3(), delta = new THREE.Vector3();
+  const center = new THREE.Vector3(), point = new THREE.Vector3();
   const ui = createMapUI(root, model, {
     revealed: options.revealed, prerequisite: options.prerequisite,
     choose, browse,
@@ -47,22 +48,12 @@ export function createNeighborhoodMap(options: {
   }
   function bounds() {
     const ids = model.neighborhood.scene.filter(id => options.revealed().includes(id));
-    if (!ids.length) { center.set(0,0,0); return 2; }
-    const first = world.bodies[ids[0]!];
-    first.getWorldPosition(center);
-    let radius = first.viewRadius ?? first.radius;
-    // Union of enclosing spheres includes Saturn's rings and keeps Earth's Moon nearby.
-    for (const id of ids.slice(1)) {
-      const body = world.bodies[id], other = body.viewRadius ?? body.radius;
-      body.getWorldPosition(point); delta.subVectors(point,center);
-      const distance = delta.length();
-      if (distance + other <= radius) continue;
-      if (distance + radius <= other) { center.copy(point); radius = other; continue; }
-      const next = (radius + distance + other)/2;
-      if (distance > 0) center.addScaledVector(delta,(next-radius)/distance);
-      radius = next;
-    }
-    return radius * 1.1;
+    const framed = neighborhoodBounds(ids.map(id => {
+      const body = world.bodies[id]; body.getWorldPosition(point);
+      return { x: point.x, y: point.y, z: point.z, radius: body.viewRadius ?? body.radius };
+    }));
+    center.set(framed.x, framed.y, framed.z);
+    return framed.radius;
   }
   function restingPose() {
     const radius = bounds();

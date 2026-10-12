@@ -1,5 +1,14 @@
 # Current implementation and handover
 
+## Map foundations — 12 October 2026
+
+The neighborhood model is now the tested source of map membership: every scene body must
+sit in exactly one neighborhood. `childNeighborhoods()` removes unbuilt fixtures and empty
+pages, so they can never reach a child. The study's page framing is a pure, tested
+`neighborhoodBounds()` in `src/map/framing.ts`. The default map is unchanged on screen;
+adopting measured framing there moves worlds and awaits owner screenshot review. See the
+[explorer review](../design/explorer-review-2026-10-12/index.html) for the wider next steps.
+
 ## Neighborhood map study — 8 October 2026
 
 PR #1 was merged at `430c8df`; [deployment 37739425471](https://github.com/tomsteuten/SpaceNinja/actions/runs/37739425471)
