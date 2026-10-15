@@ -99,7 +99,6 @@ export interface GrownupsOptions {
   /** The saved adventure was cleared; put the running scene back at its opening map. */
   onResetProgress(): void;
   /** Leave the normal adventure and open the optional manual-flight experiment. */
-  onTryFreeFlight(): void;
   /**
    * The "Start playing" button was pressed: the panel is now closed and this press is the
    * first reliable gesture, so it is the moment to unlock audio and speak the map's opening
@@ -111,7 +110,7 @@ export interface GrownupsOptions {
 }
 
 export function createGrownups(options: GrownupsOptions): Grownups {
-  const { root, narrator, onSoundChange, onResetProgress, onTryFreeFlight, onStart, about } = options;
+  const { root, narrator, onSoundChange, onResetProgress, onStart, about } = options;
   const panel = el('div', 'grownups');
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-modal', 'true');
@@ -390,26 +389,6 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     );
     motion.append(el('p', 'grownups__note', `Build ${__BUILD_ID__}.`));
     inner.append(motion);
-
-    const flight = el('section', 'grownups__section grownups__experiment');
-    flight.append(el('h3', 'grownups__heading', 'Fly it yourself'));
-    flight.append(
-      el(
-        'p',
-        'grownups__note',
-        'An optional experiment: hold anywhere to steer the ship, let go to slow down, or ' +
-          'tap a planet for autopilot. It has its own Back to adventure button. On a ' +
-          'keyboard, Shift+F opens it.',
-      ),
-    );
-    const tryFlight = el('button', 'grownups__auto grownups__flight', 'Try manual flight') as HTMLButtonElement;
-    tryFlight.type = 'button';
-    tryFlight.addEventListener('click', () => {
-      narrator.stop();
-      onTryFreeFlight();
-    });
-    flight.append(tryFlight);
-    inner.append(flight);
 
     inner.append(
       el(

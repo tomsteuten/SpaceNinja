@@ -3,6 +3,14 @@
 Context for an assistant picking this project up cold. `CLAUDE.md` points here so other
 coding assistants read the same guidance. Read `README.md` for the product overview.
 
+**Read [`DECISIONS.md`](DECISIONS.md) first. Its lines outrank everything else in this file
+except tested correctness invariants.** The current work plan is
+[`docs/handover-2026-10-15-expansion.md`](docs/handover-2026-10-15-expansion.md): one wave per
+session, stopping at the end of each wave for owner review.
+
+Do not create new docs, studies, prototypes or experiment routes. At the end of a wave,
+update the checkpoint at the top of `docs/current-implementation.md` in at most 15 lines.
+
 This file deliberately contains only current operating guidance. Historical decisions and
 the September 2026 rule audit live in `docs/decision-history.md`.
 
@@ -20,9 +28,10 @@ Judge changes in this order:
 4. Does it remain forgiving, accessible, private and usable offline?
 5. Is the implementation correct, maintainable and fast enough on the target device?
 
-Fresh observation outranks an old design decision. A previous failure explains risk; it does
-not permanently forbid every alternative. When playtest feedback conflicts with a current UI
-choice, change the choice while preserving any independently tested correctness property.
+Fresh *child* observation, reported by the owner, outranks an old design decision. A previous
+failure explains risk; it does not permanently forbid every alternative. When child playtest
+feedback conflicts with a current UI choice, change the choice while preserving any
+independently tested correctness property. AI or adult judgement alone does not.
 
 ## Rules have different strength
 
@@ -33,8 +42,6 @@ Do not treat every note as an invariant.
 - **Correctness invariants** prevent reproducible bugs and should normally be backed by tests.
 - **Design choices** are the current solution, not law. Replace them when a clearer design
   preserves the product constraints.
-- **Experiments** are hypotheses. Keep them measurable and easy to enter and leave; promote,
-  revise or remove them after real-device observation.
 
 Document an important reversal in `docs/decision-history.md`, including what evidence changed
 the decision. Do not append a new prohibition to this file for every bug fix.
@@ -70,9 +77,10 @@ while the problems the owner cared about were visual and no test could see them.
   Actions run; if it fails, download its `browser-checks` artifact, fix and push again.
 - **Visual quality is the owner's call, not yours.** Tests prove behavior and target
   clearance, not appearance, and the suite's half-resolution software-rendered screenshots
-  are weak evidence. For any visual change, send the owner full-resolution
-  (`deviceScaleFactor: 1`) before/after images on phone, tablet and short landscape, one
-  screen at a time, and wait for approval. Never report a screen as looking good yourself.
+  are weak evidence. Collect full-resolution (`deviceScaleFactor: 1`) captures on phone,
+  tablet and short landscape for every screen the wave changed, in one folder
+  `design/wave-N/`, and send them once at the end of the wave. Never self-approve
+  appearance: never report a screen as looking good yourself.
 - **"Before" screenshots:** use a temporary `git worktree` of the previous commit and run
   `npm ci` inside it. Never junction or symlink `node_modules` into it: `git worktree remove`
   follows the link and deletes the real `node_modules`.
@@ -85,8 +93,9 @@ while the problems the owner cared about were visual and no test could see them.
   immediately. Finding is ambient and Space map remains available.
 - The Sun is also visitable from the start as a view from space, without a surface hunt or
   day/night activity. Its visit uses the same camera and return lifecycle.
-- Each world carries six real places and selects three per visit, favoring unseen places while
-  requiring every authored place to remain reachable over repeated visits.
+- Earth, Moon, Mars and Saturn carry six real places and select three per visit, favoring unseen
+  places while requiring every authored place to remain reachable over repeated visits. New
+  worlds carry exactly three, one authored set (`mission.singleSet`).
 - A short visual coach may demonstrate tapping or looking around after inactivity.
 - Day/night is a contextual activity. It must be discoverable and understandable, especially
   on Earth, but it must not trap the child in a long uninterruptible introduction.
@@ -95,7 +104,7 @@ The visible return control is now **Space map**, with an arrow and a Sun/planet 
 “Fly Home” below refers to that same return route. Discovery postcards have a pictured
 world-return control as well as a large X, because child feedback found the worded exit unclear.
 First-find postcards show their saved status and visit count; the third offers See discoveries.
-The journal opens to the visited world's six-place page, with pictured world selectors.
+The journal opens to the visited world's places page, with pictured world selectors.
 Found places open a separate story with All places, photo/audio and the world return.
 After all three finds, Journal gains the gold emphasis and Space map keeps its position.
 
@@ -119,7 +128,7 @@ Every stateful subsystem owns a reset/dispose operation that undoes its own stat
 be one lifecycle coordinator so Fly Home, progress reset, crash handling and page teardown do
 not partially reset the scene. That coordinator may move out of `main.ts`; central ownership,
 not the filename, is the invariant. `src/session/lifecycle.ts` coordinates browser suspension,
-crash and disposal for both routes. A persisted `pagehide` suspends resources for history
+crash and disposal for the adventure. A persisted `pagehide` suspends resources for history
 restoration; a real exit disposes them. Adventure reset remains a route-owned callback.
 
 Camera ownership is exclusive during scripted flight, home return and a day turn. Orbit or
@@ -218,25 +227,6 @@ title but never interrupt active play.
 Frame-loop failures stop the loop, silence continuous audio and show the reusable crash screen.
 A frozen last frame is not an acceptable error state.
 
-## Manual flight experiment
-
-Manual flight is a supported experiment, not forbidden gameplay. The current `?freeflight`
-route reuses the real scene with one-finger steering, assistive braking/collision handling and
-optional autopilot. It should be reachable from the grown-ups panel and by a documented
-keyboard shortcut, and it must offer a clear route back to the normal adventure.
-
-Do not assume the experiment must remain separate forever or that technical success earns it a
-place in the main loop. Evaluate it on the target tablet against observable questions:
-
-- Does holding relative to screen center feel like steering rather than dragging scenery?
-- Does the ship visibly lead the camera through a turn?
-- Can a child reach a world without adult correction?
-- Is autopilot understood as help rather than a different game mode?
-- Can the child stop, recover from a mistake and return to the adventure?
-
-Promoting manual flight should be a product decision based on this evidence. Iterating on and
-shipping the clearly labelled experiment does not require prior proof.
-
 ## Verification notes
 
 Playwright drives an isolated `VITE_PLAYTEST=1` build. The exposed scene snapshot is read-only
@@ -263,13 +253,13 @@ sw/                         generated offline worker and tests
 public/                     shipped manifest, icons and real media
 src/main.ts                 adventure wiring, visit reset and frame orchestration
 src/session/                shared browser lifecycle, failure screen and offline registration
-src/explorer/               optional ?explorer route for the newer exploration experiment
+src/map/                    paged neighbourhood map model and page framing (default map from Wave 1)
 src/config.ts               destination data and scene constants (geometry re-exported from the catalogue)
 src/worlds/                 the world catalogue: per-world geometry, surface and rings; framing, scene bodies,
-                            stickers, ship badges and the explorer list derive from it (docs/worlds-roadmap.md)
+                            stickers and ship badges derive from it (docs/worlds-roadmap.md)
 src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input
-src/flight/                 cinematic, home return and manual-flight experiment
+src/flight/                 cinematic and home return
 src/mission/                discovery selection and collection
 src/ui/                     DOM interface, grown-ups panel, photos and coach
 src/audio/                  narration and sound

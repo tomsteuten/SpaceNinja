@@ -15,7 +15,6 @@ import {
 import { BODY_IDS } from '../scene/Bodies';
 import { SHIP_DECAL_IDS } from '../scene/shipDecals';
 import { FINALE_STICKER, STICKERS } from '../state/progress';
-import { WORLDS as EXPLORER_WORLDS } from '../explorer/worlds';
 import {
   FRAMING_MARGIN,
   WORLDS,
@@ -67,17 +66,12 @@ describe('world catalogue', () => {
     expect(framingRadiusFor([])).toBe(FRAMING_MARGIN);
   });
 
-  it('drives the stickers, the ship badges and the explorer list', () => {
+  it('drives the stickers and the ship badges', () => {
     for (const world of WORLDS) {
       const stickerId = stickerIdFor(world.id);
       expect(STICKERS[stickerId]?.label).toBe(`${shortLabel(world)} Explorer`);
       expect(SHIP_DECAL_IDS).toContain(stickerId);
     }
     expect(SHIP_DECAL_IDS[SHIP_DECAL_IDS.length - 1]).toBe(FINALE_STICKER);
-    expect(EXPLORER_WORLDS.map((world) => world.id)).toEqual([...WORLD_IDS]);
-    // A ringed world has no surface to fly over, so the explorer holds it as orbital views.
-    for (const world of EXPLORER_WORLDS) {
-      expect(world.orbital).toBe(Boolean(worldGeometry(world.id).rings));
-    }
   });
 });

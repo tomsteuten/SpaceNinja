@@ -57,7 +57,7 @@ file passed on phone, tablet and short landscape (three checks). Named journal s
 were inspected as behavior evidence, not visual approval. The full browser suite was not
 rerun locally. The subsequent successful main deployment is linked in the checkpoint above.
 
-The [bounded map proposal](map-proposal-2026-10-08.md) led to the opt-in study above;
+The [bounded map proposal](archive/map-proposal-2026-10-08.md) led to the opt-in study above;
 the proposal itself did not approve a replacement screen.
 
 ## Current checkpoint — Earth discovery loop, 6 October 2026
@@ -125,10 +125,8 @@ as opening a fact, and whether the Day & night invitation is apparent without ad
 
 ## Routes and ownership
 
-The default `/` route is the guided adventure. `?explorer`, `?freeflight` and `?outing`
-explicitly select comparison/steering experiments. `?classic` is no longer a distinct route.
-Manual flight is also available from the grown-ups panel and Shift+F, with Back to adventure.
-The outing is the limited Earth-to-Moon/Tycho experiment, not an expansion baseline.
+The guided adventure at `/` is the only route. The experiments were removed on 15 October
+2026 (recoverable from tag `pre-freeze`).
 
 `src/main.ts` owns adventure wiring, visit reset and frame orchestration;
 `src/session/lifecycle.ts` coordinates browser suspension, crash and final disposal with

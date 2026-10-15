@@ -71,31 +71,9 @@ npm run dev
 
 Then open <http://localhost:5173>.
 
-The **neighborhood map prototype** is available at <http://localhost:5173/?mapstudy>.
-Page with the large arrows or swipe the world area, then tap a pictured destination to use
-the existing adventure. Earth, Moon, Sun, Mars and Saturn retain their existing unlocks;
-other planets and moons are clearly unavailable layout fixtures. The map remembers its
-neighborhood until reload. This is an opt-in screen study awaiting visual approval.
-See the [full-resolution map comparisons](design/map-study-2026-10-08/index.html) and
-[scope and rationale](docs/map-proposal-2026-10-08.md).
-
-For a local browser preview, use <http://localhost:5173/>. The newer close-flight explorer
-remains available for comparison at <http://localhost:5173/?explorer>. Its worlds are all
-open, and holding and sliding steers the ship over real mapped places. It has not replaced
-the guided game while tablet playtesting and the screen-by-screen review continue.
-
-The optional manual-flight experiment is available from **Fly it yourself** in the grown-ups
-panel, with **Shift+F** on a keyboard, or directly at
-<http://localhost:5173/?freeflight>. The deployed route is
-<https://tomsteuten.github.io/SpaceNinja/?freeflight>. It reuses the real solar system with
-one-finger steering, assisted braking, collision protection and optional autopilot. **Back to
-adventure** returns to the normal game. The experiment is deliberately easy to test without
-assuming it has already earned a place in the main child loop.
-
-A second steering experiment, the Earth-to-Moon outing, is at
-<http://localhost:5173/?outing>: fly a visible ship to the Moon, find Tycho, see its photo and
-fly home. Its current status is in [the checkpoint](docs/current-implementation.md), with its original
-contract and ownership in [September history](docs/implementation-history-2026-09.md).
+The guided adventure at `/` is the only route. The `?explorer`, `?freeflight`, `?outing` and
+`?mapstudy` experiments were removed on 15 October 2026 and are recoverable from tag
+`pre-freeze`; see [DECISIONS.md](DECISIONS.md).
 
 ### On a phone or tablet on the same WiFi
 
@@ -237,8 +215,7 @@ src/
   session/               shared browser lifetime, offline registration and crash screen
   config.ts              destination copy/reveal gates, timings, geometry re-exports
   worlds/catalogue.ts    geometry, surface/ring specifications, derived framing/badges
-  explorer/              explicit ?explorer comparison route
-  experience/            explicit ?outing Earth-to-Moon experiment
+  map/                   paged neighbourhood map model and framing (default map from Wave 1)
   scene/
     Stage.ts             renderer, camera, bloom, resize, adaptive quality
     quality.ts           device tiering (low / medium / high)
@@ -250,7 +227,7 @@ src/
     Starfield.ts         gradient sky, star map, layered point stars
     textures.ts          load-a-file-or-generate-one, and the generators
   controls/OrbitInput.ts drag to rotate, pinch/wheel to zoom
-  flight/                scripted flight, home return and manual-flight experiment
+  flight/                scripted flight and home return
   mission/CollectMission.ts  the places to find, for any body
   ui/                    DOM components, panels, coach and grown-ups controls
     adventure.css        adventure layout ownership
@@ -547,9 +524,7 @@ three-slot hunts, target clearance above the dock, hidden-target dragging, journ
 and narration controls, repeat visits, outer-world arrivals, and Earth resizing. Screenshots
 are attached to `playwright-report/`; failures retain traces in `test-results/`. Larger
 viewports use half-resolution rasterisation while preserving CSS dimensions, keeping
-software rendering affordable. The `?outing` files cover steering, stop, help, Tycho, return,
-modal and Escape boundaries and reduced motion. Offline and history-suspension checks run on
-the adventure and both experiments. This suite is a layout/interaction gate, not a GPU benchmark.
+software rendering affordable. Offline and history-suspension checks run on the adventure. This suite is a layout/interaction gate, not a GPU benchmark.
 
 The test build alone enables `VITE_PLAYTEST=1`, a read-only scene snapshot for locating
 canvas targets and checking renderer activity. It cannot launch, collect or alter progress.
@@ -574,7 +549,7 @@ unfinished page. Finds say New or Seen before, without penalising revisits.
 
 ### Architecture references
 
-The [September 14 audit](docs/architecture-review.md) records the boundaries and risks at
+The [September 14 audit](docs/archive/architecture-review.md) records the boundaries and risks at
 that baseline. Current ownership is summarized above and in the checkpoint; later changes
 are recorded in decision history. Shared lifecycle handling pauses resources on backgrounding,
 retains scenes for cached browser-history return and keeps crashes stopped until reload.

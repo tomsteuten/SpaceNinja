@@ -19,7 +19,7 @@ study. Neighbor names on the large arrow buttons replace the proposed planet pee
 whether these are sufficient cues remains a review question. Future worlds use striped
 controls and a construction symbol; progression locks use a padlock and prerequisite.
 
-The [comparison page](../design/map-study-2026-10-08/index.html) contains scale-1 phone,
+The [comparison page](../../design/map-study-2026-10-08/index.html) contains scale-1 phone,
 tablet and short-landscape before/after images with fresh and progressed saves. Baseline
 captures use merged main `430c8df` in an independent temporary checkout. This prototype
 does not constitute visual approval or a decision to replace the deployed map.

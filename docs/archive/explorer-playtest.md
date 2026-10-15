@@ -5,9 +5,9 @@ The guided adventure is the default at `/`; `?classic` is no longer a distinct r
 `?freeflight` and `?outing` are separate steering experiments. The explorer covers the four
 catalogue worlds and their 24 authored places; the Sun observation visit belongs to the
 adventure. These questions evaluate the explorer, not approval of the October adventure UI.
-See [the current checkpoint](current-implementation.md) for route and ownership guidance.
+See [the current checkpoint](../current-implementation.md) for route and ownership guidance.
 
-The [12 October child-friendliness review](../design/explorer-review-2026-10-12/index.html)
+The [12 October child-friendliness review](../../design/explorer-review-2026-10-12/index.html)
 finds the close flight promising but its adult, text-led presentation unsuited to 5–8s.
 
 ## Observable tablet questions
