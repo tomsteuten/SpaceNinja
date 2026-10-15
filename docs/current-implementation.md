@@ -1,5 +1,18 @@
 # Current implementation and handover
 
+## Wave 0 checkpoint: 15 October 2026
+
+Work follows [the expansion handover](handover-2026-10-15-expansion.md) under
+[DECISIONS.md](../DECISIONS.md). Wave 0 is done: experiments removed (tag `pre-freeze` marks
+`91f27fa`), old handovers and reviews in `docs/archive/`, `mission.singleSet` lets a new world
+carry exactly three places, and [content/worlds.md](../content/worlds.md) holds all twelve
+worlds' places, coordinates, facts and sources. Every drafted set passes `isPlayableSet`.
+Open from Wave 0: Uranus lacks a third place, three photos and three coordinates await
+confirmation, and the network blocks NASA/JPL/USGS and Hugging Face (Kokoro's model),
+so assets and narration cannot be downloaded or generated from this environment yet.
+Next: Wave 1 (first-session rail, paged map as default). Typecheck and all 309 unit tests
+pass; lifecycle, offline and accessibility browser files pass on phone.
+
 ## Map foundations — 12 October 2026
 
 The neighborhood model is now the tested source of map membership: every scene body must
