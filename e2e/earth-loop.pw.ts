@@ -13,6 +13,19 @@ async function fits(page: Page, selector: string) {
   expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
 }
 
+async function photoContentDoesNotOverlap(page: Page) {
+  await page.locator('.photo-view__image').evaluate(async image => { await (image as HTMLImageElement).decode(); });
+  const image = (await page.locator('.photo-view__image').boundingBox())!;
+  const detail = (await page.locator('.photo-view__detail').boundingBox())!;
+  const actions = (await page.locator('.photo-view__actions').boundingBox())!;
+  expect(image.height).toBeGreaterThan(32);
+  expect(image.y + image.height <= detail.y - 4 || image.x + image.width <= detail.x - 4,
+    'Photograph and discovery words occupy separate space').toBe(true);
+  expect(detail.y + detail.height).toBeLessThanOrEqual(actions.y - 4);
+  await fits(page, '.photo-view__close');
+  await fits(page, '.photo-view__continue');
+}
+
 test('Earth discoveries lead into a world page, story, photo, and back to exploration', async ({ page }, info) => {
   await page.addInitScript(() => localStorage.setItem('spaceninja.sound.v1', 'off'));
   await page.goto('/');
@@ -31,11 +44,20 @@ test('Earth discoveries lead into a world page, story, photo, and back to explor
       expect(after.surfaceRotation).toBeCloseTo(before.surfaceRotation, 6);
       expect(after.targets[0].sunlight).toBeCloseTo(before.targets[0].sunlight, 6);
       target = after.targets.find((t: any) => t.visible);
+      await expect(page.locator('.hunt-arrow')).toBeHidden();
+      await expect(page.locator('.world-heading__caption')).toHaveText('One more! Tap the gold place.');
     }
     await page.mouse.click(target.x, target.y);
     await expect(page.locator('.photo-view.is-reward')).toBeVisible();
     await expect(page.locator('.photo-view__saved')).toContainText('Saved to your journal');
     await expect(page.locator('.photo-view__count')).toHaveText(`${i + 1} / 3`);
+    await photoContentDoesNotOverlap(page);
+    if (info.project.name === 'phone') {
+      const viewport = page.viewportSize()!;
+      await page.setViewportSize({ width: 1095, height: 539 });
+      await photoContentDoesNotOverlap(page);
+      await page.setViewportSize(viewport);
+    }
     await fits(page, '.photo-view__continue');
     await fits(page, '.photo-view__close');
     if (i < 2) {
@@ -52,6 +74,7 @@ test('Earth discoveries lead into a world page, story, photo, and back to explor
         await page.setViewportSize({ width: 319, height: 561 });
         await fits(page, '.photo-view__continue');
         await fits(page, '.photo-view__journal');
+        await photoContentDoesNotOverlap(page);
         expect(await page.locator('.photo-view__actions button:visible').evaluateAll(buttons =>
           buttons.some(button => button.scrollWidth > button.clientWidth + 1 || button.scrollHeight > button.clientHeight + 1)),
         'Both choices remain readable on a narrow phone').toBe(false);
@@ -64,6 +87,7 @@ test('Earth discoveries lead into a world page, story, photo, and back to explor
   }
   await expect(page.locator('.journal-panel')).toBeVisible();
   await expect(page.locator('.journal-page-caption')).toHaveText('Earth · 3 of 6 places found');
+  await expect(page.locator('.journal-visit-hint')).toContainText('Visit Earth again');
   await expect(page.locator('.sticker-grid > *')).toHaveCount(6);
   await expect(page.locator('.sticker-grid button')).toHaveCount(3);
   await expect(page.locator('.sticker--empty')).toHaveCount(3);
@@ -94,11 +118,12 @@ test('Earth discoveries lead into a world page, story, photo, and back to explor
   await page.keyboard.press('Escape');
   await expect(page.locator('.journal-panel')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Open your discovery journal', exact: true })).toBeFocused();
-  await expect(page.locator('.world-heading__caption')).toContainText('See your journal');
+  await expect(page.locator('.world-heading__caption')).toContainText('Space map');
+  await expect(page.locator('.ui')).toHaveClass(/has-seen-journal/);
   await page.getByRole('button', { name: /^Day and night on Earth/ }).click();
   await page.getByRole('button', { name: 'Stop day and night', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
-  await expect(page.locator('.world-heading__caption')).toContainText('See your journal');
+  await expect(page.locator('.world-heading__caption')).toContainText('Space map');
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('idle');
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem('spaceninja.progress.v1')!))).discoveries).toHaveLength(3);

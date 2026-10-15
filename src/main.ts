@@ -524,7 +524,6 @@ async function main() {
           // the hint below actually points at a next world to go to.
           namesNextWorld ? { text: cueText('success-next'), cueId: 'success-next' } : undefined,
         );
-        ui.setHint('All three found! See your journal.');
         /*
          * And when this was the last place on the last world, the finale — once.
          *
@@ -1058,6 +1057,9 @@ async function main() {
     const hint = cameraOurs && huntGuidanceActive ? (activeMission?.remainingHint() ?? null) : null;
     const hiddenSide = hint && !hint.visible ? hint.side : null;
     ui.setHuntArrow(hiddenSide);
+    if (hint) {
+      ui.setHint(hint.visible ? 'One more! Tap the gold place.' : 'One more! Tap the arrow.');
+    }
 
     /*
      * And the hand, on the same terms as the arrow: only while the camera is the child's to
