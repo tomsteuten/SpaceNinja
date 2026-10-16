@@ -14,6 +14,11 @@ export function fail(message: string, error: unknown, crash = false) {
   boot.classList.toggle('has-crash', crash);
   boot.classList.remove('is-hidden');
   if (!crash) return;
+  // A native modal lives above every z-index. Close it, and prevent controls or queued
+  // panel-focus callbacks underneath the failure screen from taking input again.
+  for (const dialog of document.querySelectorAll<HTMLDialogElement>('dialog[open]')) dialog.close();
+  for (const surface of document.querySelectorAll<HTMLElement>('#ui, #scene')) surface.inert = true;
   const detail = boot.querySelector('.boot-detail');
   if (detail) detail.textContent = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  boot.querySelector<HTMLButtonElement>('.boot-restart')?.focus();
 }

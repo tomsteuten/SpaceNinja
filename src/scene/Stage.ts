@@ -25,9 +25,8 @@ export interface Stage {
   setVerticalViewOffset(offset: number): void;
   onFrame(callback: FrameCallback): void;
   /**
-   * Something inside a frame threw. The loop has already stopped by the time this is
-   * called: a callback that throws once throws every frame, and the picture underneath is
-   * the last good one, which looks fine and is not.
+   * A frame failed or the graphics context was lost. The loop is stopped permanently;
+   * the session coordinator suspends input/audio and offers a fresh page through retry.
    */
   onCrash(handler: (error: unknown) => void): void;
   start(): void;
@@ -90,13 +89,16 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
 
   /* --- sizing ------------------------------------------------------------- */
 
-  let resizePending = false;
+  let resizeHandle = 0;
+  let crashed = false;
+  let disposed = false;
   let viewportWidth = 1;
   let viewportHeight = 1;
   let verticalViewOffset: number | null = null;
 
   function applySize() {
-    resizePending = false;
+    resizeHandle = 0;
+    if (crashed || disposed) return;
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
     const aspect = width / height;
@@ -123,9 +125,8 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
   }
 
   function requestResize() {
-    if (resizePending) return;
-    resizePending = true;
-    requestAnimationFrame(applySize);
+    if (resizeHandle || crashed || disposed) return;
+    resizeHandle = requestAnimationFrame(applySize);
   }
 
   applySize();
@@ -176,30 +177,39 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
 
   const callbacks: FrameCallback[] = [];
   let crashHandler: ((error: unknown) => void) | null = null;
+  let crashError: unknown;
   // Timer rather than the deprecated Clock; connect() makes it use the Page Visibility API
   // so returning to a backgrounded tab does not produce one enormous delta.
   const timer = new THREE.Timer();
   timer.connect(document);
   let frameHandle = 0;
   let running = false;
-  let contextLost = false;
+
+  function crash(error: unknown) {
+    if (crashed || disposed) return;
+    crashed = true;
+    crashError = error;
+    running = false;
+    cancelAnimationFrame(frameHandle);
+    cancelAnimationFrame(resizeHandle);
+    resizeHandle = 0;
+    crashHandler?.(error);
+  }
 
   function onContextLost(event: Event) {
     event.preventDefault();
-    contextLost = true;
-  }
-
-  function onContextRestored() {
-    contextLost = false;
-    applySize();
+    // Loss need not throw inside render(). Waiting silently for restoration left the
+    // child with a blank world and could leave continuous audio playing indefinitely.
+    // Reuse the route's crash lifecycle; even if the driver restores itself, recovery
+    // deliberately starts with a fresh renderer via the existing Start again button.
+    crash(new Error('3D graphics were interrupted. Press Start again to continue.'));
   }
 
   canvas.addEventListener('webglcontextlost', onContextLost);
-  canvas.addEventListener('webglcontextrestored', onContextRestored);
 
   function tick() {
+    if (!running || crashed || disposed) return;
     frameHandle = requestAnimationFrame(tick);
-    if (contextLost) return;
 
     /*
      * Caught here and nowhere else, because this is the one place a crash is *visible* as
@@ -217,9 +227,7 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
       composer.render(dt);
       sampleFrame(dt, elapsed);
     } catch (error) {
-      running = false;
-      cancelAnimationFrame(frameHandle);
-      crashHandler?.(error);
+      crash(error);
     }
   }
 
@@ -245,10 +253,12 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
 
     onCrash(handler: (error: unknown) => void) {
       crashHandler = handler;
+      // Texture loading can yield before the route installs its lifecycle callback.
+      if (crashed && !disposed) handler(crashError);
     },
 
     start() {
-      if (running) return;
+      if (running || crashed || disposed) return;
       running = true;
       frameHandle = requestAnimationFrame(tick);
     },
@@ -259,12 +269,14 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
     },
 
     dispose() {
+      if (disposed) return;
+      disposed = true;
       this.stop();
+      cancelAnimationFrame(resizeHandle);
       window.removeEventListener('resize', requestResize);
       window.removeEventListener('orientationchange', requestResize);
       window.visualViewport?.removeEventListener('resize', requestResize);
       canvas.removeEventListener('webglcontextlost', onContextLost);
-      canvas.removeEventListener('webglcontextrestored', onContextRestored);
       callbacks.length = 0;
       timer.disconnect();
       removeBloom();
