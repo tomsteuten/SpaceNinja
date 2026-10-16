@@ -10,8 +10,30 @@ worlds' places, coordinates, facts and sources. Every drafted set passes `isPlay
 Open from Wave 0: Uranus lacks a third place, three photos and three coordinates await
 confirmation, and the network blocks NASA/JPL/USGS and Hugging Face (Kokoro's model),
 so assets and narration cannot be downloaded or generated from this environment yet.
-Next: Wave 1 (first-session rail, paged map as default). Typecheck and all 309 unit tests
+Next: Wave 1 (first-session rail, paged map as default). Typecheck and all 314 unit tests (after merging main `6a8b891`)
 pass; lifecycle, offline and accessibility browser files pass on phone.
+
+## Playability repairs — 15 October 2026
+
+These repairs build on GitHub main `91f27fa`.
+
+The independent browser review's photo overlap, repeated map-return launch and stale
+guidance were reproduced against a separate baseline worktree. Local repairs constrain
+photo sizing, preserve close-button hover contrast, protect repeated taps over the old
+Space map control, and update last-place/visit-completion guidance. After the journal has
+been opened on a completed visit, the existing Space map control gains the emphasis.
+
+Validation: typecheck, all 362 unit tests and the production build passed. The affected
+Earth-loop and map-return browser checks passed on phone, tablet and short landscape.
+One unit-file timeout and one tablet browser failure under concurrent load passed unchanged
+on isolated reruns. Layout checks include the review's 1095×539 viewport and narrow phones.
+These are regression checks, not simulated child research. No full local browser suite ran.
+
+The owner granted advance visual approval, waived screenshot delivery and authorized
+publishing to main on 15 October.
+Physical-tablet input/performance, audio and child comprehension remain unverified. The
+one-off black screen, day/night completion feedback and larger navigation redesign were
+not changed.
 
 ## Map foundations — 12 October 2026
 

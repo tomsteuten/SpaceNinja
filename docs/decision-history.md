@@ -3,6 +3,32 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-14 — Repeated return taps and a visit's next step
+
+An independent Claude browser review reported return taps launching Earth again, photo
+words overlapping images at 1095×539, a vanished-arrow instruction, and a completed visit
+that kept pointing back to the journal. Baseline captures from `91f27fa` reproduced these
+behaviors; the narrower standard landscape layout did not reproduce the photo overlap.
+
+The fix protects the old Space map button footprint (plus 12px tolerance)
+for 1.2 seconds after the map appears. It catches both rapid and roughly one-second repeat
+taps, including their trailing pointer/click events, while another location or keyboard
+activation remains available immediately. This bounded interval is a design choice to
+evaluate on the tablet, not a claim about children's tap timing.
+
+Photo flex sizing now constrains the image itself when its figure shrinks, reserving space
+for words and exits. Close controls retain contrasting backgrounds on hover. The last-place
+instruction follows current visibility. Completion names this trip; after opening the
+journal, emphasis moves to the existing Space map control. The journal explains that
+further visits offer more places. Three-per-visit selection and all persisted facts stay
+unchanged. This replaces the unconditional post-completion journal invitation, which the
+review found led back to an already-seen screen.
+
+Full-resolution local captures and automated geometry checks informed these repairs.
+The owner granted advance visual approval, waived screenshot delivery and authorized
+publication on 15 October.
+No physical-tablet, listening or child test has been performed in this pass.
+
 ## 2026-10-12 — Keep the default map framing; restyle rather than promote the explorer
 
 The owner observed that the close-flight explorer (`?explorer`) looks nicer for adults but

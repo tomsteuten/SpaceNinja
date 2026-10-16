@@ -21,6 +21,7 @@ import {
 import { createPhotoViewer, findPhoto } from './photos';
 import { createDialogFocus } from './dialog';
 import { createPanelGuard, type PanelOpening } from './panelGuard';
+import { createMapReturnGuard } from './mapReturnGuard';
 
 export interface DestinationChoice {
   id: string;
@@ -235,6 +236,7 @@ export function createUI(options: UIOptions): GameUI {
     onFinale,
   } = options;
   const timers: number[] = [];
+  const mapReturnGuard = createMapReturnGuard(window);
 
   function later(callback: () => void, delay: number) {
     timers.push(window.setTimeout(callback, delay));
@@ -308,6 +310,7 @@ export function createUI(options: UIOptions): GameUI {
       destinationBar.append(button);
     }
     destinationBar.classList.toggle('is-hidden', choices.length === 0);
+    if (choices.length > 0) mapReturnGuard.mapShown();
   }
 
   /* --- mission HUD --------------------------------------------------------- */
@@ -642,6 +645,7 @@ export function createUI(options: UIOptions): GameUI {
   collectionProgress.setAttribute('role', 'group');
   collectionProgress.setAttribute('aria-label', 'Places found on each world');
   const journalPageCaption = el('p', 'journal-page-caption');
+  const journalVisitHint = el('p', 'journal-visit-hint');
   const journalDetailTitle = el('h3', 'journal-detail-title');
   const journalBack = el('button', 'journal-back is-hidden');
   journalBack.type = 'button';
@@ -704,7 +708,7 @@ export function createUI(options: UIOptions): GameUI {
   const journalHeader = el('div', 'dialog-head');
   journalHeader.append(journalTitle, journalClose);
   closeJournal.type = 'button';
-  journalPanel.append(journalHeader, collectionProgress, journalPageCaption, stickerGrid,
+  journalPanel.append(journalHeader, collectionProgress, journalPageCaption, journalVisitHint, stickerGrid,
     journalBack, journalDetailTitle, journalDetail, journalActions, closeJournal);
   const journalFocus = createDialogFocus(journalPanel, () => closeJournal, () => setJournalOpen(false));
 
@@ -747,6 +751,8 @@ export function createUI(options: UIOptions): GameUI {
     const count = places.filter(d => found.includes(d.id)).length;
     const worldLabel = journalWorldId.charAt(0).toUpperCase() + journalWorldId.slice(1);
     journalPageCaption.textContent = `${worldLabel} · ${count} of ${places.length} places found`;
+    journalVisitHint.textContent = count < places.length
+      ? `Each trip has three places. Visit ${worldLabel} again to find more.` : '';
     for (const discovery of places) {
       if (!found.includes(discovery.id)) {
         const empty = el('div', 'sticker sticker--empty');
@@ -809,10 +815,19 @@ export function createUI(options: UIOptions): GameUI {
 
   let journalOpen = false;
   let journalOpening: PanelOpening | null = null;
+  function completeVisitHint() {
+    return root.classList.contains('has-seen-journal')
+      ? 'Choose your next trip on the Space map.'
+      : 'Three found this trip! See your journal.';
+  }
   function setJournalOpen(open: boolean) {
     journalOpen = open;
     clearJournalDetail();
     if (open) {
+      if (root.classList.contains('is-complete')) {
+        root.classList.add('has-seen-journal');
+        if (!spinBusy) headingCaption.textContent = completeVisitHint();
+      }
       if (DESTINATIONS[visitWorldId]?.mission && !root.classList.contains('is-home')) journalWorldId = visitWorldId;
       renderJournal();
       // The panel pops up in the button's own corner, so on a double tap the second touch
@@ -835,7 +850,8 @@ export function createUI(options: UIOptions): GameUI {
     }
   }
 
-  homeButton.addEventListener('click', () => {
+  homeButton.addEventListener('click', (event) => {
+    mapReturnGuard.arm(homeButton.getBoundingClientRect(), event);
     onExploreAgain();
   });
 
@@ -1071,7 +1087,7 @@ export function createUI(options: UIOptions): GameUI {
 
   function setHint(text: string | null, icon?: IconName) {
     if (!worldHeading.classList.contains('is-hidden')) {
-      if (text) headingCaption.textContent = text;
+      if (text && headingCaption.textContent !== text) headingCaption.textContent = text;
       hint.style.opacity = '0';
       return;
     }
@@ -1163,7 +1179,7 @@ export function createUI(options: UIOptions): GameUI {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-home');
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'is-earth-welcome', 'is-hands-on');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on');
       findPlacesButton.classList.add('is-hidden');
       turnButton.classList.add('is-hidden');
       turnCoach.classList.add('is-hidden');
@@ -1182,7 +1198,7 @@ export function createUI(options: UIOptions): GameUI {
 
     showArrival(cueId: string, label: string, fact: string, _emoji: string, worldId = 'earth') {
       root.classList.remove('is-home');
-      root.classList.remove('is-complete');
+      root.classList.remove('is-complete', 'has-seen-journal');
       root.classList.toggle('is-earth', worldId === 'earth');
       worldHeading.classList.remove('is-hidden');
       listenButton.classList.remove('is-hidden');
@@ -1305,7 +1321,7 @@ export function createUI(options: UIOptions): GameUI {
       // The visit's finds are ready to revisit together. Keep exits in place and give the
       // journal the gold emphasis, cleared on the next arrival/flight.
       root.classList.add('is-complete');
-      headingCaption.textContent = 'All three found! See your journal.';
+      headingCaption.textContent = completeVisitHint();
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
       missionHud.classList.remove('fade-in-centred');
@@ -1361,7 +1377,7 @@ export function createUI(options: UIOptions): GameUI {
       root.classList.toggle('is-earth-welcome', on);
       findPlacesButton.classList.toggle('is-hidden', !on);
       headingCaption.textContent = on ? 'Make night. Bring back morning.'
-        : root.classList.contains('is-complete') ? 'All three found! See your journal.' : 'Tap a gold place';
+        : root.classList.contains('is-complete') ? completeVisitHint() : 'Tap a gold place';
       spinLabel.textContent = on ? 'Turn Earth' : 'Day & night';
     },
 
@@ -1388,7 +1404,8 @@ export function createUI(options: UIOptions): GameUI {
       if (busy && !spinBusy) preDayCaption = headingCaption.textContent ?? '';
       spinBusy = busy;
       spinGlobe.style.backgroundImage = busy ? '' : worldPicture(visitWorldId).style.backgroundImage;
-      headingCaption.textContent = busy ? 'Sunlight makes day.' : preDayCaption;
+      headingCaption.textContent = busy ? 'Sunlight makes day.'
+        : root.classList.contains('is-complete') ? completeVisitHint() : preDayCaption;
       dayLegend.classList.toggle('is-hidden', !busy);
       // Preserve the hunt's display state even if its delayed reveal happens mid-turn.
       missionHud.style.visibility = busy ? 'hidden' : '';
@@ -1472,7 +1489,7 @@ export function createUI(options: UIOptions): GameUI {
     reset() {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'is-earth-welcome', 'is-hands-on');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on');
       findPlacesButton.classList.add('is-hidden');
       turnButton.classList.add('is-hidden');
       turnCoach.classList.add('is-hidden');
@@ -1534,6 +1551,7 @@ export function createUI(options: UIOptions): GameUI {
       // Its own window listener, so it has to be told rather than just detached.
       photoViewer.dispose();
       panelGuard.dispose();
+      mapReturnGuard.dispose();
       journalFocus.dispose();
       factFocus.dispose();
       root.replaceChildren();
