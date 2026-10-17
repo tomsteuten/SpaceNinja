@@ -1,5 +1,19 @@
 # Current implementation and handover
 
+## Graphics recovery integration — 17 October 2026
+
+Integrated with main `1a0a2b1`: WebGL loss now uses the existing crash lifecycle,
+silencing audio, clearing gestures and offering a focused Start again control.
+Restart reloads a fresh renderer and preserves saved progress/settings. Driver
+restoration cannot resume a crashed stage. Pending resizes are cancelled on failure
+and disposal, and losses during loading are retained for lifecycle registration.
+Retired experiment tests are removed; current checks cover flight, photos and the
+new day/night house, including its camera/marker cleanup. The owner authorized merge.
+Captures: `design/graphics-recovery-2026-10-17/`. Original black-screen cause and
+physical-tablet behavior remain unconfirmed; no new route or product layout is added.
+Validation on current main: typecheck, 329 unit tests, production build and all 12
+targeted graphics-recovery/history checks passed across the three viewports.
+
 ## Wave 1, step 1: day/night house and the first-session rail — 17 October 2026
 
 DECISIONS.md line 4 changed by owner decision (16 October): the rail's "you did it" is a
