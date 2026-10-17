@@ -144,6 +144,11 @@ test('Earth itself opens the lesson, canvas taps assist, and cancelled or vertic
   await page.mouse.click(globe.x, globe.y);
   await expect.poll(async () => (await snapshot()).handsOnDay).toBe(true);
   await expect.poll(async () => (await snapshot()).teachingSun.visible).toBe(true);
+  // The turn moves the camera when it starts, but the snapshot projects through the camera
+  // as last rendered. On a loaded runner the polls above can pass before that frame, which
+  // put this tap off the canvas entirely. Read the globe's position from a rendered frame.
+  const started = (await snapshot()).frame;
+  await page.waitForFunction(n => (window as any).spaceNinjaSnapshot().frame > n + 2, started);
   const before = await snapshot();
   await page.mouse.click(before.bodyScreen.x, before.bodyScreen.y);
   await expect.poll(async () => Math.abs((await snapshot()).surfaceRotation - before.surfaceRotation)).toBeGreaterThan(1.5);
