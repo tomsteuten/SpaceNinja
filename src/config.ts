@@ -88,7 +88,7 @@ export const CAMERA_FAR = 800;
  * the Moon; visiting the Moon widens it to Mars; visiting Mars widens it to Saturn's outer
  * ring. They are instances of one rule (`framingRadiusFor`) rather than three hand-tuned
  * numbers, and main.ts asks the rule directly for whatever set of worlds is revealed. The
- * names remain for the explorer and the tests.
+ * names remain for the tests.
  *
  * The opening tier has to cover the Moon at the far side of its orbit, or a portrait phone
  * — whose horizontal field of view is tiny — loses the destination off the edge of the
@@ -295,6 +295,12 @@ export interface DestinationConfig {
     stickerId: string;
     /** How many there are to find is simply how many there are. */
     discoveries: Discovery[];
+    /**
+     * This world carries exactly one visit's worth of places (DECISIONS.md, line 6), shown
+     * in authored order every visit, so that order must itself be playable: the last entry
+     * is the hidden one. Without it a world carries more places than a visit shows.
+     */
+    singleSet?: true;
   };
 }
 

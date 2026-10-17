@@ -2,8 +2,9 @@
 
 Current expansion checklist, reconciled with source on 4 October 2026. Read
 [AGENTS.md](../AGENTS.md) and the [current checkpoint](current-implementation.md) first.
-Adding a world is future work; this document does not authorize implementation or UI redesign.
-The guided adventure at `/` is the product; experiments remain explicit routes.
+[`DECISIONS.md`](../DECISIONS.md) outranks this checklist, and
+[`content/worlds.md`](../content/worlds.md) holds each new world's places, facts and sources.
+The guided adventure at `/` is the only route.
 
 ## What is implemented
 
@@ -19,13 +20,13 @@ The guided adventure at `/` is the product; experiments remain explicit routes.
   paired color/roughness maps, night lights and atmosphere; Sun has a teaching-star builder.
   `BODY_IDS` remains a separate literal list for exhaustive types.
 - Framing derives from the revealed set and visible silhouette, including rings. Catalogue
-  order does not invent reveal prerequisites. Stickers, ship badges/mounts and the explorer
-  list derive from the catalogue, with a generic badge fallback for new worlds.
+  order does not invent reveal prerequisites. Stickers and ship badges/mounts derive from
+  the catalogue, with a generic badge fallback for new worlds.
 - Narration plays available recordings individually. The default generator is ElevenLabs;
   Kokoro is a local fallback. An incomplete pack does not silence other recordings and
   device speech is manual. See [recording instructions](../src/audio/recordings/README.md).
 
-The geometry/framing, shared orbiting-body builder and derived badges/explorer work are
+The geometry/framing, shared orbiting-body builder and derived badges work are
 complete. Do not repeat the catalogue refactor or the September arrival restyles as expansion
 prerequisites. The approved October row is Space map, Listen/Words, supported Day & night,
 Journal; Stop keeps its cell and Sun has three cells.
@@ -35,13 +36,13 @@ Journal; Stop keeps its cell and Sun has three cells.
 Jupiter was proposed as the first additional planet. Confirm the intended world and content
 when expansion is requested; pilot one world before generalizing more systems.
 
-1. **Capabilities and subjects.** Choose six real, attributable subjects and decide what
-   each marker represents. Surface coordinates, cloud features, orbital views and transient
+1. **Capabilities and subjects.** Take the three real, attributable subjects from
+   `content/worlds.md` (one authored set, `mission.singleSet`) and decide what each marker
+   represents. Surface coordinates, cloud features, orbital views and transient
    events differ. A `Discovery.ring` marker is outside the sphere in its equatorial plane;
    it cannot represent Io's shadow on Jupiter. Do not invent solid landing ground for a
-   giant. Model a required difference with a small explicit capability. The explorer
-   currently uses `Boolean(world.rings)` to choose orbital visits; review that for a giant
-   without rings rather than assuming rings express every orbital visit.
+   giant. Model a required difference with a small explicit capability; rings do not
+   express every orbital visit, so a giant without rings needs its own.
 2. **Geometry and identity.** Add a `WorldGeometry` entry with the existing interface and
    actual `SurfaceFallback` union (`cratered`, `banded`, `rocky`). Add the stable id to
    `BODY_IDS` in `src/scene/Bodies.ts`. Check catalogue/body/config consistency tests.
@@ -76,28 +77,17 @@ when expansion is requested; pilot one world before generalizing more systems.
    Preserve the visible escape route and approved contextual row. Place the body in exactly
    one neighborhood in `src/map/model.ts` (a unit test fails otherwise). `childNeighborhoods()`
    is what a child may see; `neighborhoodBounds()` in `src/map/framing.ts` frames a page.
-8. **Explorer and offline assets.** Check `src/explorer/worlds.ts`, photograph provenance
-   and orbital behavior if the world joins that experiment. `vite.config.ts` still names
-   four explorer world pictures explicitly; include a new one deliberately. Small
-   discovery thumbnails are precached; full photographs stay lazy and are cached after use.
-   Check new maps/imported recordings reach the intended offline caches.
+8. **Offline assets.** Small discovery thumbnails are precached; full photographs stay lazy
+   and are cached after use. Check new maps/imported recordings reach the intended caches.
 9. **Verification and owner review.** Run `npm run typecheck` and `npm test`. Run only
    affected Playwright files/viewports, such as relevant `e2e/visit.pw.ts` and
-   `e2e/layout.pw.ts` projects; follow AGENTS.md for isolated reruns. For a visual change,
-   send full-resolution (`deviceScaleFactor: 1`) before/after images on phone, tablet and
-   short landscape, one screen at a time, and wait for owner approval. Use a temporary
-   previous-commit worktree with its own `npm ci` for before images; never link
-   `node_modules`. Tablet performance, listening and child comprehension need observation.
+   `e2e/layout.pw.ts` projects; follow AGENTS.md for isolated reruns. Add the wave's
+   full-resolution captures to `design/wave-N/` for the single end-of-wave review. Tablet performance, listening and child comprehension need observation.
    CI runs the full suite on deployment.
 
-## Proposals, not implemented APIs or approved layouts
+## Order of work
 
-Parented moons such as Titan or Europa need orbital inheritance, reveal and framing design;
-`WorldGeometry` has no parent relation. Compressed shell spacing or neighborhood maps may
-help as destinations accumulate, but neither is an implemented expansion contract. Evaluate
-composition as each world lands instead of constructing a general engine first. The Sun
-observation visit is complete, not the last future item.
-
-Later candidates recorded in September were Mercury, Venus, Uranus, Neptune, Pluto, Ceres,
-Titan and Europa. Their order, subjects and layout remain proposals, not ready-to-run prompts.
-Completed work and the reason for retiring old prompts are in [decision history](decision-history.md).
+The worlds, their pages and their order are locked in [`DECISIONS.md`](../DECISIONS.md) and
+scheduled in [the expansion handover](handover-2026-10-15-expansion.md): Jupiter first as the
+pilot (with the moon-parent relation), then Mercury, Venus, Uranus and Neptune, then the
+moons and small worlds.

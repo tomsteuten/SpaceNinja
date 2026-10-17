@@ -1,5 +1,32 @@
 # Current implementation and handover
 
+## Wave 1, step 1: day/night house and the first-session rail — 17 October 2026
+
+DECISIONS.md line 4 changed by owner decision (16 October): the rail's "you did it" is a
+marked spot going into night and back. Earth's hands-on day/night now shows a small house
+on the surface (`scene/DayMarker.ts`), placed in daylight beside the visible sunset line
+(`scene/dayWatch.ts`). The first night and first return to morning are acknowledged in the
+heading (and spoken once recordings exist: three new cues, unrecorded). On the first Earth
+visit the return suggests the Moon and lights Space map; later it suggests turning more or
+Done. Space map and Done never move or hide; nothing is counted or saved. Find places stays.
+Typecheck, 324 unit tests and `e2e/day-spot.pw.ts` (phone, tablet, short landscape) pass,
+as do the day/night files. Captures: `design/wave-1/day-spot-*`, for owner review.
+The map-return guard that turned `main`'s deploy `6a8b891` red now measures from the last
+press (decision history, 17 October). Unit tests pass; browser results are in PR #4.
+
+## Wave 0 checkpoint: 15 October 2026
+
+Work follows [the expansion handover](handover-2026-10-15-expansion.md) under
+[DECISIONS.md](../DECISIONS.md). Wave 0 is done: experiments removed (tag `pre-freeze` marks
+`91f27fa`), old handovers and reviews in `docs/archive/`, `mission.singleSet` lets a new world
+carry exactly three places, and [content/worlds.md](../content/worlds.md) holds all twelve
+worlds' places, coordinates, facts and sources. Every drafted set passes `isPlayableSet`.
+Open from Wave 0: Uranus lacks a third place, three photos and three coordinates await
+confirmation, and the network blocks NASA/JPL/USGS and Hugging Face (Kokoro's model),
+so assets and narration cannot be downloaded or generated from this environment yet.
+Next: Wave 1 (first-session rail, paged map as default). Typecheck and all 314 unit tests (after merging main `6a8b891`)
+pass; lifecycle, offline and accessibility browser files pass on phone.
+
 ## Playability repairs — 15 October 2026
 
 These repairs build on GitHub main `91f27fa`.
@@ -79,7 +106,7 @@ file passed on phone, tablet and short landscape (three checks). Named journal s
 were inspected as behavior evidence, not visual approval. The full browser suite was not
 rerun locally. The subsequent successful main deployment is linked in the checkpoint above.
 
-The [bounded map proposal](map-proposal-2026-10-08.md) led to the opt-in study above;
+The [bounded map proposal](archive/map-proposal-2026-10-08.md) led to the opt-in study above;
 the proposal itself did not approve a replacement screen.
 
 ## Current checkpoint — Earth discovery loop, 6 October 2026
@@ -147,10 +174,8 @@ as opening a fact, and whether the Day & night invitation is apparent without ad
 
 ## Routes and ownership
 
-The default `/` route is the guided adventure. `?explorer`, `?freeflight` and `?outing`
-explicitly select comparison/steering experiments. `?classic` is no longer a distinct route.
-Manual flight is also available from the grown-ups panel and Shift+F, with Back to adventure.
-The outing is the limited Earth-to-Moon/Tycho experiment, not an expansion baseline.
+The guided adventure at `/` is the only route. The experiments were removed on 15 October
+2026 (recoverable from tag `pre-freeze`).
 
 `src/main.ts` owns adventure wiring, visit reset and frame orchestration;
 `src/session/lifecycle.ts` coordinates browser suspension, crash and final disposal with

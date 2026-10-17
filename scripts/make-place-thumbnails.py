@@ -2,7 +2,7 @@
 
 Each thumbnail is a centre crop of the same photograph the place's postcard opens, so its
 provenance is that photograph's (see public/assets/discoveries/README.txt and
-public/assets/moon-trial/README.txt). Nothing is drawn or invented. Requires Pillow.
+design/moon-trial/README.txt). Nothing is drawn or invented. Requires Pillow.
 Re-run after replacing or adding a place photograph.
 """
 from pathlib import Path
@@ -13,7 +13,7 @@ PHOTOS = ROOT / 'public/assets/discoveries'
 OUT = PHOTOS / 'thumbs'
 SIZE = 160
 # Places whose postcard opens a photograph kept outside the discoveries folder.
-OVERRIDES = {'moon-tycho': ROOT / 'public/assets/moon-trial/tycho-mountains.jpg'}
+OVERRIDES = {'moon-tycho': ROOT / 'design/moon-trial/tycho-mountains.jpg'}
 
 OUT.mkdir(exist_ok=True)
 for photo in sorted(PHOTOS.glob('*.jpg')):
