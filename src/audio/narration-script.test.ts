@@ -56,6 +56,10 @@ const SCREEN_CUES = [
   'hunt-nudge',
   'hunt-nudge-short',
   'spin-nudge',
+  // Earth's hands-on day/night spot: into night, then back to morning (main.ts).
+  'day-night-night',
+  'day-night-moon',
+  'day-night-done',
   'success-next',
   'finale',
 ];

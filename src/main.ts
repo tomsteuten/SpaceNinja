@@ -29,6 +29,8 @@ import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
 import { createDayTurnInput } from './scene/dayTurnInput';
+import { createDayMarker } from './scene/DayMarker';
+import { createDayWatch, referenceDirection, type DayEvent } from './scene/dayWatch';
 import { TEACHING_SUN_RADIUS } from './scene/dayTurnFraming';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
@@ -77,6 +79,17 @@ async function main() {
 
   const world = await createWorld(stage.quality);
   scene.add(world.group);
+
+  /*
+   * Earth's hands-on day/night has one small house to watch (scene/dayWatch.ts): into night,
+   * back into morning, each change said once when it can be seen. On the first Earth visit
+   * the round trip is the rail's "you did it" and suggests the Moon (DECISIONS.md, line 4);
+   * later it suggests turning more or Done. Nothing is counted or saved.
+   */
+  const dayMarker = createDayMarker();
+  const dayWatch = createDayWatch();
+  let dayRail = false;
+  let nightSpoken = false;
 
   const ship = createSpaceship();
   const syncShipStickers = () => ship.setStickers(loadProgress().stickers);
@@ -203,6 +216,7 @@ async function main() {
       cameraReturn = null;
       huntViewTurn = null;
       dayTurn.reset();
+      endDaySpot();
       sfx.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
@@ -285,8 +299,59 @@ async function main() {
     }
     spinTried = true;
     ui.setSpinBusy(true);
+    if (follow === 'earth') startDaySpot(body);
     dayTurn.start(body, undefined, follow === 'earth');
     ui.setDayHandsOn(follow === 'earth');
+  }
+
+  /**
+   * Put the house just inside daylight on the side the turn's camera will face. The axis and
+   * the camera side match DayTurn and dayTurnPose, so it starts in view after the swing.
+   */
+  function startDaySpot(body: CelestialBody) {
+    body.getWorldPosition(focusPosition);
+    const axis = new THREE.Vector3(0, 1, 0);
+    if (body.surface.parent) axis.applyQuaternion(body.surface.parent.getWorldQuaternion(new THREE.Quaternion()));
+    const view = camera.position.clone().sub(focusPosition);
+    dayMarker.attach(body.surface, body.radius, referenceDirection(SUN_DIRECTION, axis, view));
+    dayWatch.reset();
+    nightSpoken = false;
+    ui.setMapInvite(false);
+  }
+
+  function endDaySpot() {
+    dayMarker.detach();
+    ui.setMapInvite(false);
+  }
+
+  /** Words for what the child has just seen; spoken only the first time in a turn. */
+  function acknowledgeDaySpot(event: DayEvent) {
+    dayMarker.setLit(event !== 'night', !reducedMotion);
+    if (event === 'night') {
+      ui.setDayCaption('Night time! The lights come on.');
+      if (!nightSpoken) ui.speakGuide(cueText('day-night-night'), 'day-night-night');
+      nightSpoken = true;
+      return;
+    }
+    const next = dayRail ? 'day-night-moon' : 'day-night-done';
+    ui.setDayCaption(dayRail ? 'Morning again! Next, fly to the Moon.' : 'Morning again! Turn more, or tap Done.');
+    if (event === 'roundTrip') {
+      ui.speakGuide(cueText(next), next);
+      if (dayRail) ui.setMapInvite(true);
+    }
+  }
+
+  const daySpotOutward = new THREE.Vector3();
+  const daySpotCamera = new THREE.Vector3();
+  function observeDaySpot(dt: number) {
+    if (!dayMarker.attached) return;
+    dayMarker.update(dt);
+    if (!dayTurn.interactive) return;
+    dayMarker.outward(daySpotOutward);
+    world.bodies[follow].getWorldPosition(daySpotCamera);
+    daySpotCamera.subVectors(camera.position, daySpotCamera).normalize();
+    const event = dayWatch.observe(daySpotOutward.dot(SUN_DIRECTION), daySpotOutward.dot(daySpotCamera));
+    if (event) acknowledgeDaySpot(event);
   }
 
   /*
@@ -366,6 +431,7 @@ async function main() {
       // Supported Day & night is visible on settled arrival for every mission world.
       // Earth's first-visit invitation can pulse and speak, but the child starts the turn.
       earthDayNightPrompt = destination.id === 'earth' && firstVisit;
+      dayRail = earthDayNightPrompt;
       if (destination.id === 'earth') {
         ui.setEarthWelcome(earthDayNightPrompt);
         mission.setPresentation(!earthDayNightPrompt);
@@ -534,6 +600,7 @@ async function main() {
    */
   function onDayTurnFinish() {
     dayTurnInput.clear();
+    endDaySpot();
     ui.setSpinBusy(false);
     ui.setDayHandsOn(false);
     ui.setSpinProgress(null);
@@ -901,6 +968,8 @@ async function main() {
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
+    endDaySpot();
+    dayRail = false;
     flight.reset();
     // Idle whether it drove us here or Explore Again cut straight in; it holds no scene state.
     homeReturn.reset();
@@ -954,6 +1023,7 @@ async function main() {
     trail.update(dt);
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
+    observeDaySpot(dt);
 
     if (huntViewTurn) {
       huntViewTurn.t = reducedMotion ? 1 : Math.min(1, huntViewTurn.t + (dt * 1000) / HUNT_VIEW_TURN_MS);
@@ -1191,6 +1261,14 @@ async function main() {
             ...screenCircle(cue.position, cue.scale.x * TEACHING_SUN_RADIUS) };
         })(),
         surfaceRotation: world.bodies[follow].surface.rotation.y,
+        daySpot: dayMarker.attached ? (() => {
+          const position = dayMarker.position(new THREE.Vector3());
+          const outward = dayMarker.outward(new THREE.Vector3());
+          return { ...screenCircle(position, 0), lit: dayWatch.lit, roundTrip: dayWatch.roundTrip,
+            facing: outward.dot(camera.position.clone().sub(center).normalize()),
+            sunlight: outward.dot(SUN_DIRECTION) };
+        })() : null,
+        mapInvite: uiRoot.classList.contains('is-map-next'),
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
         ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,
@@ -1221,6 +1299,7 @@ async function main() {
     dispose,
     fail: (error) => {
       dayTurn.reset();
+      dayMarker.detach();
       fail('Space Ninja stopped', error, true);
     },
   });
@@ -1229,6 +1308,7 @@ async function main() {
 
   function dispose() {
     dayTurn.reset();
+    dayMarker.dispose();
     window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();

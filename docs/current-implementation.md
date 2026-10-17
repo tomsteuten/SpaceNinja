@@ -1,5 +1,18 @@
 # Current implementation and handover
 
+## Wave 1, step 1: day/night house and the first-session rail — 17 October 2026
+
+DECISIONS.md line 4 changed by owner decision (16 October): the rail's "you did it" is a
+marked spot going into night and back. Earth's hands-on day/night now shows a small house
+on the surface (`scene/DayMarker.ts`), placed in daylight beside the visible sunset line
+(`scene/dayWatch.ts`). The first night and first return to morning are acknowledged in the
+heading (and spoken once recordings exist: three new cues, unrecorded). On the first Earth
+visit the return suggests the Moon and lights Space map; later it suggests turning more or
+Done. Space map and Done never move or hide; nothing is counted or saved. Find places stays.
+Typecheck, 324 unit tests and `e2e/day-spot.pw.ts` (phone, tablet, short landscape) pass,
+as do the day/night files. Captures: `design/wave-1/day-spot-*`, for owner review.
+Known: `main` deploy `6a8b891` is red (map-return guard swallows taps; see PR #4).
+
 ## Wave 0 checkpoint: 15 October 2026
 
 Work follows [the expansion handover](handover-2026-10-15-expansion.md) under
