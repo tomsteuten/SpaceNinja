@@ -81,7 +81,7 @@ when expansion is requested; pilot one world before generalizing more systems.
    and are cached after use. Check new maps/imported recordings reach the intended caches.
 9. **Verification and owner review.** Run `npm run typecheck` and `npm test`. Run only
    affected Playwright files/viewports, such as relevant `e2e/visit.pw.ts` and
-   `e2e/layout.pw.ts` projects; follow AGENTS.md for isolated reruns. Add the wave's
+   `e2e/day-spot.pw.ts` projects; follow AGENTS.md for isolated reruns. Add the wave's
    full-resolution captures to `design/wave-N/` for the single end-of-wave review. Tablet performance, listening and child comprehension need observation.
    CI runs the full suite on deployment.
 
