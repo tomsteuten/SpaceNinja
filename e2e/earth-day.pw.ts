@@ -1,4 +1,4 @@
-import { test, expect, settlePanel } from './fixtures';
+import { test, expect, settlePanel, settleMapReturn } from './fixtures';
 
 test('Earth day and night is child-triggered, repeatable, and leaves discoveries intact', async ({ page }) => {
   await page.goto('/');
@@ -101,6 +101,7 @@ test('Earth day and night is child-triggered, repeatable, and leaves discoveries
   // Leave via Space map and return: still offered (not automatic), the discovery persists.
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fly to Earth', exact: true })).toBeVisible();
+  await settleMapReturn(page);
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot()).phase).toBe('arrived');
   await expect(day).toBeVisible();

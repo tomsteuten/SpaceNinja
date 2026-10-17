@@ -11,7 +11,8 @@ visit the return suggests the Moon and lights Space map; later it suggests turni
 Done. Space map and Done never move or hide; nothing is counted or saved. Find places stays.
 Typecheck, 324 unit tests and `e2e/day-spot.pw.ts` (phone, tablet, short landscape) pass,
 as do the day/night files. Captures: `design/wave-1/day-spot-*`, for owner review.
-Known: `main` deploy `6a8b891` is red (map-return guard swallows taps; see PR #4).
+The map-return guard that turned `main`'s deploy `6a8b891` red now measures from the last
+press (decision history, 17 October). Unit tests pass; browser results are in PR #4.
 
 ## Wave 0 checkpoint: 15 October 2026
 

@@ -16,41 +16,62 @@ function setup() {
 }
 
 describe('map return input', () => {
-  it('blocks the duplicate press, release and compatibility click across an instant return', () => {
-    const s = setup(); s.guard.mapShown();
+  it('blocks the duplicate press, release and compatibility click of a quick double tap', () => {
+    const s = setup();
+    s.at(150);
     expect(s.dispatch('pointerdown')).toBe(true);
     expect(s.dispatch('pointerup')).toBe(true);
     expect(s.dispatch('click')).toBe(true);
+    expect(s.guard.active).toBe(true);
+  });
+
+  it('catches a roughly one-second repeat, and each rejected press extends the window', () => {
+    const s = setup();
     s.at(1000);
+    expect(s.dispatch('pointerdown')).toBe(true);
     expect(s.dispatch('click')).toBe(true);
+    s.at(1000 + MAP_RETURN_REPEAT_MS - 1);
+    expect(s.dispatch('pointerdown')).toBe(true);
+  });
+
+  it('lets a deliberate tap through once the child has paused, however long the return took', () => {
+    const s = setup();
     s.at(MAP_RETURN_REPEAT_MS);
+    expect(s.guard.active).toBe(false);
     expect(s.dispatch('pointerdown')).toBe(false);
     expect(s.dispatch('click')).toBe(false);
+    // A slow animated return: the map arrives late, and the first tap on it is a choice.
+    const slow = setup();
+    slow.at(3000);
+    expect(slow.dispatch('pointerdown')).toBe(false);
+    expect(slow.dispatch('click')).toBe(false);
   });
-  it('starts its interval at arrival, even after a slow animated return', () => {
-    const s = setup(); s.at(9000); s.guard.mapShown();
-    s.at(10000); expect(s.dispatch('click')).toBe(true);
-    s.at(10200); expect(s.dispatch('click')).toBe(false);
-  });
+
   it('allows an immediately chosen different location and keyboard activation', () => {
-    const s = setup(); s.guard.mapShown();
+    const s = setup();
     expect(s.dispatch('pointerdown', { clientX: 200 })).toBe(false);
     expect(s.dispatch('click')).toBe(false);
-    const keyboard = setup(); keyboard.guard.mapShown();
+    // Choosing elsewhere ends the protection: the next tap over the footprint is deliberate.
+    expect(s.guard.active).toBe(false);
+    expect(s.dispatch('pointerdown')).toBe(false);
+    const keyboard = setup();
     expect(keyboard.dispatch('click', { detail: 0 })).toBe(false);
     expect(keyboard.dispatch('click')).toBe(false);
   });
+
   it('does not arm a keyboard return and releases listeners on dispose', () => {
     const s = setup();
     s.guard.arm({ left: 20, right: 100, top: 370, bottom: 440 }, { detail: 0 });
+    expect(s.guard.active).toBe(false);
     expect(s.dispatch('click')).toBe(false);
     const disposed = setup(); disposed.guard.dispose();
     expect(disposed.dispatch('pointerdown')).toBe(false);
   });
-  it('blocks the release of an already rejected press even after the interval ends', () => {
-    const s = setup(); s.guard.mapShown(); s.at(1000);
+
+  it('blocks the release of an already rejected press even after the window ends', () => {
+    const s = setup(); s.at(1000);
     expect(s.dispatch('pointerdown')).toBe(true);
-    s.at(2000); expect(s.dispatch('pointerup')).toBe(true);
+    s.at(5000); expect(s.dispatch('pointerup')).toBe(true);
     expect(s.dispatch('click')).toBe(true);
   });
 });

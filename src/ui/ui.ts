@@ -45,6 +45,8 @@ export interface DestinationChoice {
 export interface GameUI {
   /** A reward, journal, celebration or transcript currently has the child's attention. */
   readonly activityCovered: boolean;
+  /** A repeat tap over the old Space map footprint would still be ignored (mapReturnGuard.ts). */
+  readonly mapReturnGuarded: boolean;
   /** A short line at the top, optionally led by one of the interface's own icons. */
   setHint(text: string | null, icon?: IconName): void;
   /** Large, stable alternatives to tapping small moving worlds in the canvas. */
@@ -317,7 +319,6 @@ export function createUI(options: UIOptions): GameUI {
       destinationBar.append(button);
     }
     destinationBar.classList.toggle('is-hidden', choices.length === 0);
-    if (choices.length > 0) mapReturnGuard.mapShown();
   }
 
   /* --- mission HUD --------------------------------------------------------- */
@@ -1174,6 +1175,10 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   return {
+    get mapReturnGuarded() {
+      return mapReturnGuard.active;
+    },
+
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
         factOpen;

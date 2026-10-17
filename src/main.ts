@@ -1269,6 +1269,7 @@ async function main() {
             sunlight: outward.dot(SUN_DIRECTION) };
         })() : null,
         mapInvite: uiRoot.classList.contains('is-map-next'),
+        mapReturnGuarded: ui.mapReturnGuarded,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
         ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,

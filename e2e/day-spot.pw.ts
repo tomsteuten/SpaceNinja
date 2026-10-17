@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, settleMapReturn } from './fixtures';
 
 /*
  * Earth's hands-on day/night: one little house to watch into night and back into morning.
@@ -77,10 +77,8 @@ test('the day/night house goes into night and back, then suggests the Moon witho
   await map.click();
   const fly = page.getByRole('button', { name: 'Fly to Earth', exact: true });
   await expect(fly).toBeVisible();
-  // Keyboard activation, because a tap there lands on the old Space map footprint, which the
-  // map-return guard deliberately ignores for a moment (mapReturnGuard.ts).
-  await fly.focus();
-  await page.keyboard.press('Enter');
+  await settleMapReturn(page);
+  await fly.click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
   await page.getByRole('button', { name: 'Day and night on Earth' }).click();
   await expect(done).toBeVisible();

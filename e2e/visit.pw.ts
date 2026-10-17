@@ -1,7 +1,8 @@
 import type { Page } from '@playwright/test';
-import { test, expect, attachShot, settlePanel } from './fixtures';
+import { test, expect, attachShot, settlePanel, settleMapReturn } from './fixtures';
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 async function launch(page: Page, world: string) {
+  await settleMapReturn(page);
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
   await expect.poll(async () => (await snapshot(page)).draws).toBeGreaterThan(0);
