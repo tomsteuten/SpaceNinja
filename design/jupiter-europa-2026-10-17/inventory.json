@@ -1,0 +1,404 @@
+{
+  "verified_on": "2026-10-17",
+  "assets": [
+    {
+      "id": "jupiter-map",
+      "files": [
+        {
+          "file": "originals/jupiter-map-main.jpg",
+          "bytes": 441285,
+          "width": 3601,
+          "height": 1801,
+          "sha256": "6b835ddd8036ea9efd25def04f75aa60b69b096025a37eeae5e9b6978e0a2281"
+        },
+        {
+          "file": "prepared/maps/jupiter-map.jpg",
+          "bytes": 297137,
+          "width": 2048,
+          "height": 1024,
+          "sha256": "41c5a416819214b720a8e6621e73bd4c070bc0b93f9195b8d8c78648023ac941"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-map.jpg",
+          "bytes": 9414,
+          "width": 320,
+          "height": 160,
+          "sha256": "f7d63beeb8332b133a7df6ce2fe40185e26d3e1c5013c34b55b45cf25a0ffa26"
+        }
+      ]
+    },
+    {
+      "id": "europa-map",
+      "files": [
+        {
+          "file": "originals/europa-map.jpg",
+          "bytes": 135970,
+          "width": 1440,
+          "height": 720,
+          "sha256": "03164d293c46b3eff16678c20dfb73337db8a404e2d83f057bc320b95484b54f"
+        },
+        {
+          "file": "prepared/maps/europa-map.jpg",
+          "bytes": 161634,
+          "width": 1440,
+          "height": 720,
+          "sha256": "c30f816a2a93c7146f9b91be908207ff37eea4528f283b7b4c3c14da3b19939c"
+        },
+        {
+          "file": "prepared/thumbs/europa-map.jpg",
+          "bytes": 12300,
+          "width": 320,
+          "height": 160,
+          "sha256": "cbb2c2c5adeaf341d817d03f2cb7b6c96bc5a65bdb7ab48a92c796534d66b4f6"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-red-spot",
+      "files": [
+        {
+          "file": "originals/jupiter-red-spot.jpg",
+          "bytes": 56121,
+          "width": 895,
+          "height": 848,
+          "sha256": "bb84d17b43aabbf550169f7c9610258830515b6b52156b23dee55c3782a9e962"
+        },
+        {
+          "file": "prepared/photos/jupiter-red-spot.jpg",
+          "bytes": 63722,
+          "width": 895,
+          "height": 848,
+          "sha256": "f5bbef09af798185da1569d9dc0372ac56852c7eede5a6769b6dcd0d5ce82f7f"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-red-spot.jpg",
+          "bytes": 8288,
+          "width": 232,
+          "height": 220,
+          "sha256": "a5a5a7e20fa24aff0cd21e2f0a52a8db8e4bf3ab81dd6de2166ad3f9f45287bb"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-cloud-bands",
+      "files": [
+        {
+          "file": "originals/jupiter-cloud-bands.jpg",
+          "bytes": 179416,
+          "width": 1920,
+          "height": 2400,
+          "sha256": "bcd8549b7bbcc0041309d0a35673a2329ee78dcecc4f06bfc86488434132f3cd"
+        },
+        {
+          "file": "prepared/photos/jupiter-cloud-bands.jpg",
+          "bytes": 68871,
+          "width": 819,
+          "height": 1024,
+          "sha256": "9491035a3fb9520df0e294e199e535633a8454c16c0f62b695e1a738f40fa09d"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-cloud-bands.jpg",
+          "bytes": 4565,
+          "width": 176,
+          "height": 220,
+          "sha256": "0823c129ad2def11c898c4c665c3333464828cb25d4c0f50d0a77b7d115c3dc4"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-polar-storms",
+      "files": [
+        {
+          "file": "originals/jupiter-polar-storms.jpg",
+          "bytes": 705589,
+          "width": 2362,
+          "height": 2362,
+          "sha256": "5db3f029c8f4250ede7ccda8a4b16bec0daa310e81ffaa8f7f29b0d69f0aa10f"
+        },
+        {
+          "file": "prepared/photos/jupiter-polar-storms.jpg",
+          "bytes": 291230,
+          "width": 1024,
+          "height": 1024,
+          "sha256": "5031ba9cb3c5e68392548f539094b32b88794690e69743e662f217ebe516e45b"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-polar-storms.jpg",
+          "bytes": 16516,
+          "width": 220,
+          "height": 220,
+          "sha256": "6a9c990a8d6cf65910750ceb804ed36c4bb9adceadc021f782ab0d912da6fb1a"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-aurora",
+      "files": [
+        {
+          "file": "originals/jupiter-aurora.jpg",
+          "bytes": 166920,
+          "width": 1000,
+          "height": 1000,
+          "sha256": "476cf4dd24fed8adac1bab132c2c8bc0e425d5a13cb80b1e9a8f8bb6e004d905"
+        },
+        {
+          "file": "prepared/photos/jupiter-aurora.jpg",
+          "bytes": 108369,
+          "width": 1000,
+          "height": 1000,
+          "sha256": "6278f51da03e6bd4d5913d2b6d3e668549c585db23658bda587c5f39ad79fc95"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-aurora.jpg",
+          "bytes": 7697,
+          "width": 220,
+          "height": 220,
+          "sha256": "8b8e88d4ccab662d21cc4f364466f95fa035390fbc985bee383fce21ccef5546"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-io-shadow",
+      "files": [
+        {
+          "file": "originals/jupiter-io-shadow.jpg",
+          "bytes": 85383,
+          "width": 1600,
+          "height": 1600,
+          "sha256": "7aaa9a413c5d3dbb8ee4618870b1a89e9234b834d19b245b3748fa8c1db60f57"
+        },
+        {
+          "file": "prepared/photos/jupiter-io-shadow.jpg",
+          "bytes": 57293,
+          "width": 1024,
+          "height": 1024,
+          "sha256": "91632c816b146941276ddb0e88316955741a30d8a3deb371fd590766eda66d9b"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-io-shadow.jpg",
+          "bytes": 4692,
+          "width": 220,
+          "height": 220,
+          "sha256": "890dfd014a7ea45ad6e13d2280cbfef8213906a4a7f963335b2b2e43b2e1ad4c"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-rotation",
+      "files": [
+        {
+          "file": "originals/jupiter-rotation.jpg",
+          "bytes": 100557,
+          "width": 1377,
+          "height": 1377,
+          "sha256": "0210c035a5820c70f2edc967555d75edc7ade15f2988bbd3b6bfcb632fda3925"
+        },
+        {
+          "file": "prepared/photos/jupiter-rotation.jpg",
+          "bytes": 92144,
+          "width": 1024,
+          "height": 1024,
+          "sha256": "929b36af93d48a6eb746a20b3e8bb5d189dfdf3c79afb2a251e5be3681f80e7e"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-rotation.jpg",
+          "bytes": 7261,
+          "width": 220,
+          "height": 220,
+          "sha256": "5196c01f970f693a6ec4b88d347f9fb805779bb47902eca99b5c9b8f14f24b06"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-io-shadow-backup",
+      "files": [
+        {
+          "file": "originals/jupiter-io-shadow-backup.jpg",
+          "bytes": 285668,
+          "width": 3000,
+          "height": 1930,
+          "sha256": "4d0df8352a3fcfd88d4f63b56192ea33fcd50a92e5a03cda12a629319c952343"
+        },
+        {
+          "file": "prepared/photos/jupiter-io-shadow-backup.jpg",
+          "bytes": 66817,
+          "width": 1024,
+          "height": 659,
+          "sha256": "dfdc20ecc2ae7c13961097a34d1a162e9e29fd719dd0c78ccbe87ae4f044de48"
+        },
+        {
+          "file": "prepared/thumbs/jupiter-io-shadow-backup.jpg",
+          "bytes": 9407,
+          "width": 320,
+          "height": 206,
+          "sha256": "8a9e6946e191ce6f031a8c37e91c50c13f0aca3188c4cff56a29ebd37f47ebea"
+        }
+      ]
+    },
+    {
+      "id": "europa-pwyll",
+      "files": [
+        {
+          "file": "originals/europa-pwyll.jpg",
+          "bytes": 119380,
+          "width": 920,
+          "height": 720,
+          "sha256": "d64e33d857df26da9292bc229d384b4c9c55fb54d883e2de046e7ffc73ebb2a4"
+        },
+        {
+          "file": "prepared/photos/europa-pwyll.jpg",
+          "bytes": 139425,
+          "width": 920,
+          "height": 720,
+          "sha256": "aade8c0e6443de083a1852fb5b6cef4dec016f3d8b2f6ee4f02e50af40944570"
+        },
+        {
+          "file": "prepared/thumbs/europa-pwyll.jpg",
+          "bytes": 23375,
+          "width": 281,
+          "height": 220,
+          "sha256": "157882e05348fb7a3be640f27626451469f0889a0b5215b6a8da92bc103d7c8a"
+        }
+      ]
+    },
+    {
+      "id": "europa-conamara",
+      "files": [
+        {
+          "file": "originals/europa-conamara.jpg",
+          "bytes": 1036118,
+          "width": 3500,
+          "height": 2220,
+          "sha256": "5efee866b72e7a115e8c33f4c142a208d0119a54dda14daf6a274f2aefad9eb7"
+        },
+        {
+          "file": "prepared/photos/europa-conamara.jpg",
+          "bytes": 241687,
+          "width": 1024,
+          "height": 650,
+          "sha256": "b1d78628a5e498ff374f2a690ad8247b29d989d247e44a2ec68f21c6cf592841"
+        },
+        {
+          "file": "prepared/thumbs/europa-conamara.jpg",
+          "bytes": 30346,
+          "width": 320,
+          "height": 203,
+          "sha256": "aebfa231c80196065c09482007965538df53ab4506d38288334b438f81789811"
+        }
+      ]
+    },
+    {
+      "id": "europa-ridges",
+      "files": [
+        {
+          "file": "originals/europa-ridges.jpg",
+          "bytes": 167723,
+          "width": 1410,
+          "height": 912,
+          "sha256": "5df3294e593d1a2fdacb1a20f5386e8b9dd6ff768efe1d1a8ca455f828fd8d0d"
+        },
+        {
+          "file": "prepared/photos/europa-ridges.jpg",
+          "bytes": 152462,
+          "width": 1024,
+          "height": 662,
+          "sha256": "cb4cd05c131fe466a1dd46e1ee2acc88329db99cc3361068dce952ce1f5fa86b"
+        },
+        {
+          "file": "prepared/thumbs/europa-ridges.jpg",
+          "bytes": 23307,
+          "width": 320,
+          "height": 207,
+          "sha256": "a7a8dc3db819a5ba38d19b7fcd49bbb2e4d63031a248baf749c092ea0de6bd83"
+        }
+      ]
+    },
+    {
+      "id": "europa-tyre",
+      "files": [
+        {
+          "file": "originals/europa-tyre.jpg",
+          "bytes": 116192,
+          "width": 719,
+          "height": 732,
+          "sha256": "d4cf57c39280be05e83977ec3e8c9d97b52e6d4d76ff3885503db83d6e647834"
+        },
+        {
+          "file": "prepared/photos/europa-tyre.jpg",
+          "bytes": 137371,
+          "width": 719,
+          "height": 732,
+          "sha256": "e4b6d3188bd50230bbe18d54e6456be450e61b8ec52eccc05c63b6be6e40acb6"
+        },
+        {
+          "file": "prepared/thumbs/europa-tyre.jpg",
+          "bytes": 18068,
+          "width": 216,
+          "height": 220,
+          "sha256": "f928735346409997e6c7f01a3b58fa170b50c0b0dd47249b67a469b597e0b5f5"
+        }
+      ]
+    },
+    {
+      "id": "europa-agenor",
+      "files": [
+        {
+          "file": "originals/europa-agenor.jpg",
+          "bytes": 34639,
+          "width": 400,
+          "height": 400,
+          "sha256": "14c85758a1d2cf41a6b497152880d6018cee126988071ae95c26c0fb85807463"
+        },
+        {
+          "file": "prepared/photos/europa-agenor.jpg",
+          "bytes": 41139,
+          "width": 400,
+          "height": 400,
+          "sha256": "e203512e0a0c1a6a1509ed98b4fce400e4c86220c62eb8d37c8c13e81f200a8b"
+        },
+        {
+          "file": "prepared/thumbs/europa-agenor.jpg",
+          "bytes": 13826,
+          "width": 220,
+          "height": 220,
+          "sha256": "d2fec6b150c25a1eb224f1727d81e15299d6a653691238e95375bf2b3c7d3594"
+        }
+      ]
+    },
+    {
+      "id": "europa-freckles",
+      "files": [
+        {
+          "file": "originals/europa-freckles.jpg",
+          "bytes": 131960,
+          "width": 849,
+          "height": 660,
+          "sha256": "255c7bef3ac0ed182e7a46db0fbf95d834df33ac71681c445f4d2c4380414be7"
+        },
+        {
+          "file": "prepared/photos/europa-freckles.jpg",
+          "bytes": 155529,
+          "width": 849,
+          "height": 660,
+          "sha256": "3f32a1e4d51b16e1b3e474a8f214f48e3b3a8fa2a376cbb913e89da2e1bb4939"
+        },
+        {
+          "file": "prepared/thumbs/europa-freckles.jpg",
+          "bytes": 21873,
+          "width": 283,
+          "height": 220,
+          "sha256": "28d6bc9ab9c664d8bd2cf4ed4f186773815d9c72700cf8e9f693551aead58da0"
+        }
+      ]
+    }
+  ],
+  "supporting_references": [
+    {
+      "file": "originals/jupiter-map.jpg",
+      "bytes": 123775,
+      "width": 1280,
+      "height": 768,
+      "sha256": "12f1709c8015e5d03ee819c77e5d50f2272c1d275b441e0253a7ea52a51857cb"
+    }
+  ]
+}

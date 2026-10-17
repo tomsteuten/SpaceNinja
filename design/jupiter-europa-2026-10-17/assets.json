@@ -1,0 +1,194 @@
+{
+  "pack": "Jupiter and Europa reference candidates",
+  "verified_on": "2026-10-17",
+  "baseline": "6a8b891244f80662932f2d8f0ab45a4f1196f53f",
+  "status": "Supplemental unshipped reference pack. Current content/worlds.md and DECISIONS.md are authoritative: new worlds use exactly three places. Asset IDs and six-image sheets do not define runtime content; missing authored source products still need downloading.",
+  "supporting_references": [{
+    "file": "originals/jupiter-map.jpg",
+    "source_page": "https://science.nasa.gov/photojournal/cassinis-best-maps-of-jupiter-cylindrical-map/",
+    "download_url": "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/photojournal/pia/pia07/pia07782/figures/PIA07782_fig1.jpg",
+    "credit": "NASA/JPL/Space Science Institute",
+    "purpose": "Annotated axis reference only, not the globe texture. Preserve for matching longitude direction and full extent."
+  }],
+  "policies": {
+    "nasa-jpl": {
+      "terms": "NASA/JPL educational and informational image-use permission; preserve the full per-image credit, respect separately identified rights, and imply no endorsement. This is not a blanket CC licence or a claim that all partner contributions are public domain.",
+      "urls": ["https://www.nasa.gov/nasa-brand-center/images-and-media/", "https://www.jpl.nasa.gov/jpl-image-use-policy/"]
+    },
+    "esa-hubble": {
+      "terms": "CC BY 4.0 under ESA/Hubble policy; retain the complete credit beside the image and link the source and licence. Derivatives here are resizing/recompression only.",
+      "urls": ["https://esahubble.org/copyright/", "https://creativecommons.org/licenses/by/4.0/"]
+    },
+    "tanya-cc-by": {
+      "terms": "The publisher explicitly credits Tanya Oleksuik and states CC BY, without a version or licence link. Preserve the exact credit and source statement. Do not relabel this NASA-only or silently assign a CC version; confirm the licence version/link before production promotion.",
+      "urls": ["https://science.nasa.gov/photojournal/the-shadow-of-io/"]
+    }
+  },
+  "assets": [
+    {
+      "id": "jupiter-map", "body": "jupiter", "role": "texture", "title": "Jupiter cloud map", "archive_id": "PIA07782",
+      "source_page": "https://science.nasa.gov/photojournal/cassinis-best-maps-of-jupiter-cylindrical-map/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia07/pia07782/PIA07782.jpg",
+      "original_file": "originals/jupiter-map-main.jpg", "credit": "NASA/JPL/Space Science Institute", "policy": "nasa-jpl",
+      "mission_instrument": "Cassini / ISS Narrow Angle Camera", "observation_date": "2000-12-11/2000-12-12", "release_date": "2006-03-27",
+      "processing": "Two-filter near-infrared/blue colour mosaic approximating visible colour; full-extent cylindrical map, no labels or grid in this file.",
+      "caption_draft": "Cloud stripes and storms wrap around Jupiter. This map records the clouds seen in December 2000.",
+      "use_notes": "Preferred cloud-skin candidate. Planetocentric latitude. Companion axis reference is retained separately. Confirm the longitude system, seam and runtime UV orientation before placing markers. Atmospheric features drift; this is not fixed solid terrain.",
+      "placement": {"kind": "global_map", "marker_ready": false}
+    },
+    {
+      "id": "europa-map", "body": "europa", "role": "texture", "title": "Europa Voyager mosaic", "archive_id": "JPL jup2vss2",
+      "source_page": "https://maps.jpl.nasa.gov/tmaps/jupiter.html",
+      "download_url": "https://maps.jpl.nasa.gov/tmaps/pix/jup2vss2.jpg",
+      "original_file": "originals/europa-map.jpg", "credit": "Caltech/JPL/USGS", "policy": "nasa-jpl",
+      "mission_instrument": "Voyager imagery / USGS mosaic; individual camera and dates not specified by landing page", "observation_date": null, "release_date": null,
+      "processing": "Publisher's cleaned-up grayscale Voyager mosaic; uneven spatial resolution and baked illumination.",
+      "caption_draft": "Spacecraft pictures show lines and markings across Europa's icy surface. This map shows brightness, not height.",
+      "use_notes": "Provisional globe candidate at native 1440 x 720; do not upscale or invent colour. Landing page does not specify longitude origin/direction or control network. Verify at least Pwyll and Tyre against an authoritative coordinate reference before integration. Do not derive elevation from brightness.",
+      "placement": {"kind": "global_map", "marker_ready": false}
+    },
+    {
+      "id": "jupiter-red-spot", "body": "jupiter", "role": "discovery", "title": "The Great Red Spot", "archive_id": "PIA00014",
+      "source_page": "https://science.nasa.gov/photojournal/jupiter-great-red-spot/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia00/pia00014/PIA00014.jpg",
+      "original_file": "originals/jupiter-red-spot.jpg", "credit": "NASA/JPL", "policy": "nasa-jpl",
+      "mission_instrument": "Voyager 1 / Narrow Angle Camera", "observation_date": "1979-02-25", "release_date": "1996-02-01",
+      "processing": "Archive colour image; exact colour calibration not specified by this caption.",
+      "caption_draft": "The big oval is a swirling storm. It is called the Great Red Spot.",
+      "use_notes": "Recognisable primary subject. Match any marker to the dated texture's storm, not a modern longitude. Avoid repeating obsolete size/age superlatives from historical captions.",
+      "placement": {"kind": "moving_atmospheric_feature", "marker_ready": false}
+    },
+    {
+      "id": "jupiter-cloud-bands", "body": "jupiter", "role": "discovery", "title": "Stripes of clouds", "archive_id": "PIA04866",
+      "source_page": "https://science.nasa.gov/photojournal/cassini-jupiter-portrait/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia04/pia04866/PIA04866.jpg",
+      "original_file": "originals/jupiter-cloud-bands.jpg", "credit": "NASA/JPL/Space Science Institute", "policy": "nasa-jpl",
+      "mission_instrument": "Cassini / ISS Narrow Angle Camera", "observation_date": "2000-12-29", "release_date": "2003-11-13",
+      "processing": "27-frame red/green/blue mosaic approximating human-visible colour.",
+      "caption_draft": "Jupiter wears light and dark stripes. They are clouds, with winds blowing through them.",
+      "use_notes": "Good whole-world introduction and band subject. Not a landable surface or a single point feature. Archive release dates differ across republished pages; this record uses the Photojournal entry.",
+      "placement": {"kind": "atmospheric_region", "marker_ready": false}
+    },
+    {
+      "id": "jupiter-polar-storms", "body": "jupiter", "role": "discovery", "title": "Storms around the pole", "archive_id": "PIA22335",
+      "source_page": "https://science.nasa.gov/photojournal/cyclones-encircle-jupiters-north-pole/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia22/pia22335/PIA22335.jpg",
+      "original_file": "originals/jupiter-polar-storms.jpg", "credit": "NASA/JPL-Caltech/SwRI/ASI/INAF/JIRAM", "policy": "nasa-jpl",
+      "mission_instrument": "Juno / JIRAM", "observation_date": null, "release_date": "2018-03-07",
+      "processing": "Infrared thermal composite; false colours represent radiant heat, not visible red/yellow clouds.",
+      "caption_draft": "A heat-seeing camera reveals storms around Jupiter's north pole. These colours help us see heat.",
+      "use_notes": "Nine cyclones are shown in this historical product. Do not promise a current storm count or treat the heat image as the visible globe texture. Individual acquisition dates are not supplied by the caption.",
+      "placement": {"kind": "polar_atmospheric_region", "marker_ready": false}
+    },
+    {
+      "id": "jupiter-aurora", "body": "jupiter", "role": "discovery", "title": "Glowing polar lights", "archive_id": "heic1613a",
+      "source_page": "https://esahubble.org/images/heic1613a/",
+      "download_url": "https://cdn.esahubble.org/archives/images/large/heic1613a.jpg",
+      "original_file": "originals/jupiter-aurora.jpg", "credit": "NASA, ESA", "policy": "esa-hubble",
+      "mission_instrument": "Hubble / WFC3 optical and STIS ultraviolet", "observation_date": "2014 optical + 2016 ultraviolet", "release_date": "2016-06-30",
+      "processing": "Composite combining optical and ultraviolet observations from different years; auroral colour is a visualisation of invisible ultraviolet light.",
+      "caption_draft": "Jupiter has glowing polar lights. This picture adds ultraviolet light that our eyes cannot see.",
+      "use_notes": "Show as an archive phenomenon, never as a simultaneous naked-eye photograph or ordinary blue paint on the planet. Preserve full NASA, ESA credit and CC BY 4.0/source links.",
+      "placement": {"kind": "archive_phenomenon", "marker_ready": false}
+    },
+    {
+      "id": "jupiter-io-shadow", "body": "jupiter", "role": "discovery", "title": "A moon's shadow", "archive_id": "PIA23602",
+      "source_page": "https://science.nasa.gov/photojournal/the-shadow-of-io/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia23/pia23602/PIA23602.jpg",
+      "original_file": "originals/jupiter-io-shadow.jpg", "credit": "Image data: NASA/JPL-Caltech/SwRI/MSSS, Image processing by Tanya Oleksuik, © CC BY", "policy": "tanya-cc-by",
+      "mission_instrument": "Juno / JunoCam", "observation_date": "2019-09-12 (as dated by publisher)", "release_date": "2019-12-12",
+      "processing": "Enhanced-colour spacecraft image processed by Tanya Oleksuik.",
+      "caption_draft": "The dark circle is a shadow. Jupiter's moon Io blocked the sunlight there.",
+      "use_notes": "Strong visual subject, conditional production licence metadata. The shadow is a transient event, not a crater or a ring marker. Retain the publisher's stated observation date and time zone; no UTC conversion has been inferred here.",
+      "placement": {"kind": "transient_shadow_event", "marker_ready": false}
+    },
+    {
+      "id": "jupiter-rotation", "body": "jupiter", "role": "discovery", "title": "Jupiter turns", "archive_id": "PIA02825",
+      "source_page": "https://science.nasa.gov/photojournal/nine-frames-as-jupiter-turns/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia02/pia02825/PIA02825.jpg",
+      "original_file": "originals/jupiter-rotation.jpg", "credit": "NASA/JPL/University of Arizona", "policy": "nasa-jpl",
+      "mission_instrument": "Cassini / ISS Narrow Angle Camera", "observation_date": "2000-10-22/2000-10-23", "release_date": "2000-11-06",
+      "processing": "Nine true-colour frames taken at different times, arranged as a sequence; not nine planets.",
+      "caption_draft": "These pictures show the same Jupiter turning. Watch the red storm move around the planet.",
+      "use_notes": "Prefer for an optional rotation explanation. A nine-panel image is weak as a tiny badge; do not force it into a six-point surface hunt or present it as one instant.",
+      "placement": {"kind": "time_sequence", "marker_ready": false}
+    },
+    {
+      "id": "jupiter-io-shadow-backup", "body": "jupiter", "role": "alternate", "title": "Io and its moving shadow", "archive_id": "PIA01540",
+      "source_page": "https://science.nasa.gov/photojournal/pj-hubble-clicks-images-of-io-sweeping-across-jupiter/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia01/pia01540/PIA01540.jpg",
+      "original_file": "originals/jupiter-io-shadow-backup.jpg", "credit": "NASA/JPL/STScI", "policy": "nasa-jpl",
+      "mission_instrument": "Hubble / WFPC2", "observation_date": "1997-07-22 transit + 1997-07-05 plume inset", "release_date": "1999-05-21",
+      "processing": "Multi-panel false-colour UV/violet composite and separate plume inset, sharpened by the original publisher.",
+      "caption_draft": "Io moves past Jupiter in these pictures. Its shadow travels across the clouds.",
+      "use_notes": "Backup for jupiter-io-shadow if the preferred citizen-processed image's precise CC licence cannot be established. Published NASA/JPL/STScI attribution; no separate third-party copyright notice in the caption. More visually complicated and includes an Io plume inset; do not describe this as one exposure or true colour.",
+      "placement": {"kind": "transient_shadow_sequence", "marker_ready": false}
+    },
+    {
+      "id": "europa-pwyll", "body": "europa", "role": "discovery", "title": "Pwyll crater", "archive_id": "PIA00586",
+      "source_page": "https://science.nasa.gov/photojournal/pj-pwyll-crater-on-europa-2/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia00/pia00586/PIA00586.jpg",
+      "original_file": "originals/europa-pwyll.jpg", "credit": "NASA/JPL/ASU", "policy": "nasa-jpl",
+      "mission_instrument": "Galileo / SSI", "observation_date": "1997-02-20", "release_date": "1998-03-26",
+      "processing": "Two-image monochrome mosaic.",
+      "caption_draft": "An impact made this crater in Europa's ice. Material from below was thrown around it.",
+      "use_notes": "Useful named landmark and texture-alignment reference. Caption coordinates are legacy published values, not a newly verified modern control point.",
+      "placement": {"kind": "named_feature", "latitude_north": -26, "longitude_west": 271, "longitude_east_derived": 89, "coordinate_basis": "feature position from archive caption; latitude convention unspecified", "marker_ready": false}
+    },
+    {
+      "id": "europa-conamara", "body": "europa", "role": "discovery", "title": "Jumbled ice at Conamara", "archive_id": "PIA01403",
+      "source_page": "https://science.nasa.gov/photojournal/pj-a-closer-look-at-chaos-on-europa/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia01/pia01403/PIA01403.jpg",
+      "original_file": "originals/europa-conamara.jpg", "credit": "NASA/JPL", "policy": "nasa-jpl",
+      "mission_instrument": "Galileo / SSI", "observation_date": "1997-02 context + 1997-12-16 insets", "release_date": "1998-05-21",
+      "processing": "Monochrome mosaic mixing context imagery and higher-resolution insets from different encounters.",
+      "caption_draft": "These pieces of ice moved and turned. They look like a jumbled puzzle.",
+      "use_notes": "Do not describe this as a single exposure or proof of an exposed ocean. The physical material below the blocks is interpreted, not directly photographed as open water.",
+      "placement": {"kind": "regional_image", "latitude_north": 9, "longitude_west": 274, "longitude_east_derived": 86, "coordinate_basis": "image centre, not the named feature's IAU centre; latitude convention unspecified", "marker_ready": false}
+    },
+    {
+      "id": "europa-ridges", "body": "europa", "role": "discovery", "title": "Crossing icy ridges", "archive_id": "PIA00544",
+      "source_page": "https://science.nasa.gov/photojournal/pj-ridges-on-europa-2/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia00/pia00544/PIA00544.jpg",
+      "original_file": "originals/europa-ridges.jpg", "credit": "NASA/JPL/University of Arizona", "policy": "nasa-jpl",
+      "mission_instrument": "Galileo / SSI", "observation_date": "Galileo orbit 4; date not specified in caption", "release_date": "1998-03-06",
+      "processing": "Monochrome high-resolution surface image.",
+      "caption_draft": "Long ridges cross Europa's icy surface. Some lines cut across older lines.",
+      "use_notes": "Region, not a named permanent point. Do not repeat the historical 'highest resolution ever' claim as current fact.",
+      "placement": {"kind": "regional_image", "latitude_north": 5.83, "longitude_west": 325, "longitude_east_derived": 35, "coordinate_basis": "image centre from caption; latitude convention unspecified", "marker_ready": false}
+    },
+    {
+      "id": "europa-tyre", "body": "europa", "role": "discovery", "title": "Tyre's impact rings", "archive_id": "PIA00702",
+      "source_page": "https://science.nasa.gov/photojournal/pj-ancient-impact-basin-on-europa/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia00/pia00702/PIA00702.jpg",
+      "original_file": "originals/europa-tyre.jpg", "credit": "NASA/JPL/University of Arizona", "policy": "nasa-jpl",
+      "mission_instrument": "Galileo / SSI", "observation_date": "1997-04-04", "release_date": "1998-03-26",
+      "processing": "Three-image false-colour composite highlighting shape and composition differences.",
+      "caption_draft": "An impact left rings in Europa's ice. The colours are changed to help show different materials.",
+      "use_notes": "Named landmark. Do not mistake these surface rings for orbiting planetary rings. Preserve false-colour explanation.",
+      "placement": {"kind": "named_feature", "latitude_north": 34, "longitude_west": 146.5, "longitude_east_derived": 213.5, "coordinate_basis": "feature position from archive caption; latitude convention unspecified", "marker_ready": false}
+    },
+    {
+      "id": "europa-agenor", "body": "europa", "role": "discovery", "title": "The bright Agenor band", "archive_id": "PIA00877",
+      "source_page": "https://science.nasa.gov/photojournal/pj-agenor-linea-on-europa/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia00/pia00877/PIA00877.jpg",
+      "original_file": "originals/europa-agenor.jpg", "credit": "NASA/JPL", "policy": "nasa-jpl",
+      "mission_instrument": "Galileo / SSI", "observation_date": "1997-02-20", "release_date": "1998-03-26",
+      "processing": "Monochrome regional surface image.",
+      "caption_draft": "A bright band stretches across the ice. Its name is Agenor Linea.",
+      "use_notes": "Broad band shown in a low-resolution regional context. Coordinates describe the image centre; resolve a representative point on the actual band before authoring a marker.",
+      "placement": {"kind": "regional_image", "latitude_north": -40, "longitude_west": 210, "longitude_east_derived": 150, "coordinate_basis": "image centre, not Agenor's feature centre; latitude convention unspecified", "marker_ready": false}
+    },
+    {
+      "id": "europa-freckles", "body": "europa", "role": "discovery", "title": "Europa's icy freckles", "archive_id": "PIA03878",
+      "source_page": "https://science.nasa.gov/photojournal/ruddy-freckles-on-europa-2/",
+      "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia03/pia03878/PIA03878.jpg",
+      "original_file": "originals/europa-freckles.jpg", "credit": "NASA/JPL/University of Arizona/University of Colorado", "policy": "nasa-jpl",
+      "mission_instrument": "Galileo / SSI", "observation_date": "1998-05-31 detail + 1996-06-28 colour", "release_date": "2002-10-30",
+      "processing": "Composite combining higher-resolution detail with lower-resolution colour from a different encounter; not a single exposure. Colour calibration not specified by this caption.",
+      "caption_draft": "Dark spots and shallow pits dot the ice. Scientists call the dark spots freckles.",
+      "use_notes": "A distinct surface subject, replacing the overlapping Thera/Thrace context candidate. Caption places this in the northern hemisphere but gives no centre coordinates; research the original observation footprint before marker placement. Ice upwelling is an interpretation, not a directly photographed exposed ocean or evidence of life.",
+      "placement": {"kind": "regional_image", "marker_ready": false, "coordinate_basis": "northern hemisphere only; no centre coordinates in caption"}
+    }
+  ]
+}
