@@ -107,7 +107,7 @@ def review(inventory):
             </style>''',
             '<header><div class="kind">SPACE NINJA / REFERENCE RESEARCH / 17 OCTOBER 2026</div>',
             '<h1>Jupiter &amp; Europa</h1><p>Two globe-map candidates, twelve documentary image candidates and one backup.</p>',
-            '<p class="note">Unshipped research. These subjects and captions are proposals. Jupiter shows moving clouds and archive phenomena; Europa shows solid ice. No assets are installed in the game.</p>',
+            '<p class="note">Supplemental unshipped references. The current content/worlds.md defines exactly three places per new world; these six-image selections do not replace it. Jupiter shows moving clouds and archive phenomena; Europa shows solid ice. No assets are installed in the game.</p>',
             '<p>All images below load locally. Open a picture for the untouched source file. '
             '<a href="README.md">Read the handover</a> · <a href="assets.json">Source manifest</a> · '
             '<a href="inventory.json">Dimensions and checksums</a></p></header><main>']

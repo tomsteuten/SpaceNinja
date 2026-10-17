@@ -2,7 +2,7 @@
   "pack": "Jupiter and Europa reference candidates",
   "verified_on": "2026-10-17",
   "baseline": "6a8b891244f80662932f2d8f0ab45a4f1196f53f",
-  "status": "Unshipped research; proposed subjects, not approved discoveries or runtime IDs",
+  "status": "Supplemental unshipped reference pack. Current content/worlds.md and DECISIONS.md are authoritative: new worlds use exactly three places. Asset IDs and six-image sheets do not define runtime content; missing authored source products still need downloading.",
   "supporting_references": [{
     "file": "originals/jupiter-map.jpg",
     "source_page": "https://science.nasa.gov/photojournal/cassinis-best-maps-of-jupiter-cylindrical-map/",

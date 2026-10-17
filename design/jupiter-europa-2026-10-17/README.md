@@ -1,9 +1,14 @@
 # Jupiter and Europa image reference pack
 
-Gathered 17 October 2026 against GitHub main `6a8b891`. Research only: no gameplay,
+Gathered 17 October 2026 against GitHub main `6a8b891`, reconciled with main `1a0a2b1`.
+**[content/worlds.md](../../content/worlds.md) is authoritative: new worlds have
+exactly three places.** The six-image sheets below are supplemental reference
+selections, not six-place world plans. Use the locked content IDs, coordinates and
+chosen source products when implementing; pack IDs identify assets only.
+
+Research only: no gameplay,
 `public/`, runtime catalogue, discovery IDs, saves or narration changed. Nothing is
-merged. The separate graphics-recovery PR also remains unmerged while Claude works
-on main.
+installed in the game. The owner authorized merging this reference pack on 17 October.
 
 Open [the offline review page](index.html), or browse the static contact sheets:
 
@@ -51,7 +56,7 @@ controlled mosaic if the legacy map fails those checks; do not move real feature
 coordinates to make a mismatched texture appear correct. Both maps remain marked
 `marker_ready: false` in the manifest.
 
-## Proposed Jupiter subjects
+## Jupiter reference subjects
 
 | Candidate | Archive | How to use it honestly |
 | --- | --- | --- |
@@ -74,7 +79,7 @@ Jupiter visit needs an explicit atmospheric/orbital/archive capability. A ring
 marker cannot represent Io's shadow. Photo research does not solve navigation,
 selection, framing or child comprehension.
 
-## Proposed Europa subjects
+## Europa reference subjects
 
 | Candidate | Archive | Coordinate evidence and limitations |
 | --- | --- | --- |
@@ -89,6 +94,13 @@ East longitudes above are arithmetic conversions, **not a new cartographic
 validation**. The captions do not specify the latitude convention. Do not copy
 image-centre values into game markers as if they were named-feature centres.
 No picture here directly shows an exposed subsurface ocean or establishes life.
+
+The locked implementation set differs from this earlier reference selection:
+Jupiter uses belts (PIA04866, present here), Oval BA (PIA22942) and the Great Red Spot
+(PIA21775). Europa uses Tyre (PIA01633), Thera (PIA00875) and Conamara (PIA01407),
+plus a controlled USGS global mosaic. Those exact missing products still need
+downloading before their world is built. The legacy Europa map and other photographs
+here are references/alternates, not silent replacements for the authored sources.
 
 ## Reuse and credit
 
@@ -138,7 +150,7 @@ No game-screen redesign, full local browser suite, physical-tablet performance
 test or child playtest belongs to this asset-only preparation. Future integration
 still follows the [world expansion checklist](../../docs/worlds-roadmap.md).
 
-## Selection notes
+## Historical selection notes
 
 - The published Jupiter map's annotated figure was unsuitable as a texture. The
   actual unlabelled archive raster was obtained instead; the figure remains an
