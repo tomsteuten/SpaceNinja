@@ -50,3 +50,13 @@ export async function expectRendering(page: Page) {
 export async function settlePanel(page: Page) {
   await page.waitForTimeout(650);
 }
+
+/**
+ * After a Space map return, a tap over the old Space map button is ignored until the child
+ * pauses (src/ui/mapReturnGuard.ts), because a double tap was launching the destination
+ * underneath. A driver that returns and taps the next world in the same breath is that double
+ * tap, so wait it out, as a child choosing deliberately would.
+ */
+export async function settleMapReturn(page: Page) {
+  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().mapReturnGuarded)).toBe(false);
+}

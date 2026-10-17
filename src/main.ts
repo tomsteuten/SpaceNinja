@@ -29,11 +29,12 @@ import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
 import { createDayTurnInput } from './scene/dayTurnInput';
+import { createDayMarker } from './scene/DayMarker';
+import { createDayWatch, referenceDirection, type DayEvent } from './scene/dayWatch';
 import { TEACHING_SUN_RADIUS } from './scene/dayTurnFraming';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
-import { freeFlightHref, isFreeFlightShortcut } from './flight/freeFlightRoute';
 import {
   createCollectMission,
   facingLatitude,
@@ -57,7 +58,6 @@ import {
 } from './state/progress';
 import { loadSoundOn } from './state/settings';
 import { DISCOVERIES } from './config';
-import type { createNeighborhoodMap } from './map';
 
 const boot = document.getElementById('boot');
 
@@ -69,50 +69,6 @@ async function main() {
   }
   const canvas: HTMLCanvasElement = canvasElement;
 
-  // The guided adventure remains the default. Keep the newer explorer available as an
-  // explicit experiment while its tablet playtest and product direction are reviewed.
-  const params = new URLSearchParams(window.location.search);
-  let neighborhoodMap: ReturnType<typeof createNeighborhoodMap> | null = null;
-  if (params.has('explorer')) {
-    const { startExplorer } = await import('./explorer/main');
-    const explorer = await startExplorer(canvas, uiRoot);
-    if (explorer && import.meta.env.VITE_PLAYTEST !== '1') registerOffline(explorer.canReload);
-    return;
-  }
-
-  // The assisted free-flight prototype, reached at `?freeflight`. Deliberately a separate
-  // path with nothing below it running: it is a sandbox for a control scheme the shipped
-  // loop does not use, and a dynamic import keeps its code out of the normal bundle entirely
-  // (Vite splits it into its own chunk, fetched only when the flag is present). See
-  // flight/freeFlightMode.ts for why it exists and what it is trying to prove.
-  if (/[?&]freeflight\b/.test(window.location.search)) {
-    const { startFreeFlight } = await import('./flight/freeFlightMode');
-    await startFreeFlight(canvas, uiRoot);
-    return;
-  }
-
-  // The guided adventure is the game. The Earth-to-Moon outing stays reachable at
-  // `?outing` as a steering experiment, without running two owners at once.
-  if (/[?&]outing\b/.test(window.location.search)) {
-    const { startOuting } = await import('./experience/outing');
-    await startOuting(canvas, uiRoot);
-    return;
-  }
-
-  function enterFreeFlight() {
-    window.location.assign(freeFlightHref(window.location.href));
-  }
-
-  function onFreeFlightShortcut(event: KeyboardEvent) {
-    if (!isFreeFlightShortcut(event)) return;
-    const target = event.target;
-    if (target instanceof HTMLElement &&
-        (target.isContentEditable || target.closest('input, textarea, select, button'))) return;
-    event.preventDefault();
-    enterFreeFlight();
-  }
-  document.addEventListener('keydown', onFreeFlightShortcut);
-
   const reducedMotion = prefersReducedMotion();
   const stage = createStage(canvas, detectQuality());
   const { scene, camera } = stage;
@@ -123,6 +79,17 @@ async function main() {
 
   const world = await createWorld(stage.quality);
   scene.add(world.group);
+
+  /*
+   * Earth's hands-on day/night has one small house to watch (scene/dayWatch.ts): into night,
+   * back into morning, each change said once when it can be seen. On the first Earth visit
+   * the round trip is the rail's "you did it" and suggests the Moon (DECISIONS.md, line 4);
+   * later it suggests turning more or Done. Nothing is counted or saved.
+   */
+  const dayMarker = createDayMarker();
+  const dayWatch = createDayWatch();
+  let dayRail = false;
+  let nightSpoken = false;
 
   const ship = createSpaceship();
   const syncShipStickers = () => ship.setStickers(loadProgress().stickers);
@@ -227,7 +194,6 @@ async function main() {
       ui.setSoundOn(on);
     },
     onResetProgress: () => restart(),
-    onTryFreeFlight: enterFreeFlight,
     onStart: () => {
       // The first real gesture: unlock audio, then speak the deferred opening line once, over
       // the now-visible map. A later close of the grown-ups panel mid-game must not re-announce.
@@ -250,6 +216,7 @@ async function main() {
       cameraReturn = null;
       huntViewTurn = null;
       dayTurn.reset();
+      endDaySpot();
       sfx.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
@@ -332,8 +299,59 @@ async function main() {
     }
     spinTried = true;
     ui.setSpinBusy(true);
+    if (follow === 'earth') startDaySpot(body);
     dayTurn.start(body, undefined, follow === 'earth');
     ui.setDayHandsOn(follow === 'earth');
+  }
+
+  /**
+   * Put the house just inside daylight on the side the turn's camera will face. The axis and
+   * the camera side match DayTurn and dayTurnPose, so it starts in view after the swing.
+   */
+  function startDaySpot(body: CelestialBody) {
+    body.getWorldPosition(focusPosition);
+    const axis = new THREE.Vector3(0, 1, 0);
+    if (body.surface.parent) axis.applyQuaternion(body.surface.parent.getWorldQuaternion(new THREE.Quaternion()));
+    const view = camera.position.clone().sub(focusPosition);
+    dayMarker.attach(body.surface, body.radius, referenceDirection(SUN_DIRECTION, axis, view));
+    dayWatch.reset();
+    nightSpoken = false;
+    ui.setMapInvite(false);
+  }
+
+  function endDaySpot() {
+    dayMarker.detach();
+    ui.setMapInvite(false);
+  }
+
+  /** Words for what the child has just seen; spoken only the first time in a turn. */
+  function acknowledgeDaySpot(event: DayEvent) {
+    dayMarker.setLit(event !== 'night', !reducedMotion);
+    if (event === 'night') {
+      ui.setDayCaption('Night time! The lights come on.');
+      if (!nightSpoken) ui.speakGuide(cueText('day-night-night'), 'day-night-night');
+      nightSpoken = true;
+      return;
+    }
+    const next = dayRail ? 'day-night-moon' : 'day-night-done';
+    ui.setDayCaption(dayRail ? 'Morning again! Next, fly to the Moon.' : 'Morning again! Turn more, or tap Done.');
+    if (event === 'roundTrip') {
+      ui.speakGuide(cueText(next), next);
+      if (dayRail) ui.setMapInvite(true);
+    }
+  }
+
+  const daySpotOutward = new THREE.Vector3();
+  const daySpotCamera = new THREE.Vector3();
+  function observeDaySpot(dt: number) {
+    if (!dayMarker.attached) return;
+    dayMarker.update(dt);
+    if (!dayTurn.interactive) return;
+    dayMarker.outward(daySpotOutward);
+    world.bodies[follow].getWorldPosition(daySpotCamera);
+    daySpotCamera.subVectors(camera.position, daySpotCamera).normalize();
+    const event = dayWatch.observe(daySpotOutward.dot(SUN_DIRECTION), daySpotOutward.dot(daySpotCamera));
+    if (event) acknowledgeDaySpot(event);
   }
 
   /*
@@ -413,6 +431,7 @@ async function main() {
       // Supported Day & night is visible on settled arrival for every mission world.
       // Earth's first-visit invitation can pulse and speak, but the child starts the turn.
       earthDayNightPrompt = destination.id === 'earth' && firstVisit;
+      dayRail = earthDayNightPrompt;
       if (destination.id === 'earth') {
         ui.setEarthWelcome(earthDayNightPrompt);
         mission.setPresentation(!earthDayNightPrompt);
@@ -430,7 +449,7 @@ async function main() {
     camera,
     controls,
     reducedMotion,
-    restingPose: () => neighborhoodMap?.restingPose() ??
+    restingPose: () =>
       controls.restingPose(
         world.bodies.earth.getWorldPosition(homeFocus),
         framingRadius(),
@@ -581,6 +600,7 @@ async function main() {
    */
   function onDayTurnFinish() {
     dayTurnInput.clear();
+    endDaySpot();
     ui.setSpinBusy(false);
     ui.setDayHandsOn(false);
     ui.setSpinProgress(null);
@@ -726,12 +746,6 @@ async function main() {
     }
     const destination = world.bodies[id];
     if (!destination) return;
-    // Restore the real scene before flight takes the camera. Browsing alone never reveals
-    // or visits a world; eligibility above still comes exclusively from saved visits.
-    if (neighborhoodMap) {
-      neighborhoodMap.hide();
-      applyReveal();
-    }
     // The flight is told which latitude to arrive over; it does not know why. Matching
     // destinations to their copy is this file's job, exactly as it is for the fact and
     // the mission.
@@ -892,7 +906,7 @@ async function main() {
           ? `revealed-${newlyRevealed}`
           : viaFlyHome
             ? 'fly-home'
-            : suggested && !params.has('mapstudy')
+            : suggested
               ? `home-${suggested}`
               : 'home-any';
     ui.speakGuide(cueText(cue), cue);
@@ -931,20 +945,6 @@ async function main() {
   // yet, so it fails silently and the map nudge repeats it once the child touches anything.
   if (!greeting) announceMap(null, false);
 
-  // An explicit study route: the approved default map and all visit UI stay unchanged.
-  if (params.has('mapstudy')) {
-    const { createNeighborhoodMap } = await import('./map');
-    neighborhoodMap = createNeighborhoodMap({
-      root: uiRoot, canvas, camera, world, controls, ship: ship.group,
-      revealed: visibleDestinationIds,
-      prerequisite: id => gateLabel(id as BodyId),
-      covered: () => ui.activityCovered,
-      launch, tap: handleTap,
-      onBrowse: () => { narrator.stop(); mapIdle=0; mapNudgesGiven.clear(); },
-    });
-    neighborhoodMap.show();
-  }
-
   /* --- restart ------------------------------------------------------------- */
 
   /**
@@ -968,6 +968,8 @@ async function main() {
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
+    endDaySpot();
+    dayRail = false;
     flight.reset();
     // Idle whether it drove us here or Explore Again cut straight in; it holds no scene state.
     homeReturn.reset();
@@ -1000,7 +1002,6 @@ async function main() {
     // Landing back at the map: a world just readied announces itself, a plain Fly Home says so,
     // a progress reset (visited now empty) gets the first-run welcome.
     announceMap(newlyRevealed[0] ?? null, true);
-    neighborhoodMap?.show(newlyRevealed[0]);
   }
 
   /* --- frame loop ---------------------------------------------------------- */
@@ -1012,7 +1013,7 @@ async function main() {
   stage.onFrame((dt, elapsed) => {
     // Off-center projection reserves the row without changing camera ownership or
     // translating the canvas. Projection, marker picking and screenshots stay in sync.
-    const desiredOffset = neighborhoodMap?.active ? neighborhoodMap.offset : adventureViewOffset(innerWidth, innerHeight,
+    const desiredOffset = adventureViewOffset(innerWidth, innerHeight,
       flight.phase !== 'idle' && !homeReturn.active, dayTurn.active);
     const nextOffset = THREE.MathUtils.damp(viewOffset, desiredOffset, 8, dt);
     viewOffset = Math.abs(nextOffset - desiredOffset) < 0.05 ? desiredOffset : nextOffset;
@@ -1022,6 +1023,7 @@ async function main() {
     trail.update(dt);
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
+    observeDaySpot(dt);
 
     if (huntViewTurn) {
       huntViewTurn.t = reducedMotion ? 1 : Math.min(1, huntViewTurn.t + (dt * 1000) / HUNT_VIEW_TURN_MS);
@@ -1139,7 +1141,7 @@ async function main() {
        * exactly the map.
        */
       const atMap = activeMission === null && cameraOurs && flight.phase === 'idle';
-      if (atMap && suggested && !neighborhoodMap) {
+      if (atMap && suggested) {
         mapIdle += dt;
         const nudge = dueNudge(
           mapIdle,
@@ -1192,10 +1194,7 @@ async function main() {
     // control for it so the two are not both writing the camera on the same frame.
     homeReturn.update(dt);
 
-    if (neighborhoodMap?.active) {
-      if (camera.aspect !== lastAspect) { lastAspect=camera.aspect; neighborhoodMap.resize(); }
-      neighborhoodMap.update();
-    } else if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
+    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
       // Rotating the device changes how much fits on screen, so recompose the shot.
       // Deliberately overrides any manual zoom: a rotated view that cuts off the
       // destination is worse than losing the zoom level.
@@ -1245,11 +1244,7 @@ async function main() {
       };
       return {
         phase: flight.phase,
-        neighborhood: neighborhoodMap?.neighborhood ?? null,
         mapBodyIds: [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId))],
-        mapBodies: neighborhoodMap?.active ? [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId as BodyId))]
-          .map(id => ({ id, ...screenCircle(world.bodies[id].getWorldPosition(new THREE.Vector3()),
-            world.bodies[id].viewRadius ?? world.bodies[id].radius) })) : [],
         world: follow,
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,
@@ -1266,6 +1261,15 @@ async function main() {
             ...screenCircle(cue.position, cue.scale.x * TEACHING_SUN_RADIUS) };
         })(),
         surfaceRotation: world.bodies[follow].surface.rotation.y,
+        daySpot: dayMarker.attached ? (() => {
+          const position = dayMarker.position(new THREE.Vector3());
+          const outward = dayMarker.outward(new THREE.Vector3());
+          return { ...screenCircle(position, 0), lit: dayWatch.lit, roundTrip: dayWatch.roundTrip,
+            facing: outward.dot(camera.position.clone().sub(center).normalize()),
+            sunlight: outward.dot(SUN_DIRECTION) };
+        })() : null,
+        mapInvite: uiRoot.classList.contains('is-map-next'),
+        mapReturnGuarded: ui.mapReturnGuarded,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
         ).project(camera).x - center.clone().project(camera).x) * innerWidth / 2,
@@ -1290,13 +1294,13 @@ async function main() {
       narrator.stop();
       sfx.reset();
       controls.cancelGesture();
-      neighborhoodMap?.clearGesture();
       dayTurnInput.clear();
     },
     reset: resetAdventure,
     dispose,
     fail: (error) => {
       dayTurn.reset();
+      dayMarker.detach();
       fail('Space Ninja stopped', error, true);
     },
   });
@@ -1305,14 +1309,13 @@ async function main() {
 
   function dispose() {
     dayTurn.reset();
+    dayMarker.dispose();
     window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();
     dayTurnInput.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
-    document.removeEventListener('keydown', onFreeFlightShortcut);
     controls.dispose();
-    neighborhoodMap?.dispose();
     ui.dispose();
     grownups.dispose();
     narrator.dispose();

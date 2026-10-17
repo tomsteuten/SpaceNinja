@@ -1,4 +1,4 @@
-/** Browser lifetime shared by adventure and free flight; gameplay reset stays route-owned. */
+/** Browser lifetime for the adventure route; gameplay reset stays route-owned. */
 export function createSessionLifecycle(options: {
   stage: { start(): void; stop(): void; onCrash(handler: (error: unknown) => void): void };
   document: EventTarget & { readonly hidden: boolean };

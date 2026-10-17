@@ -3,6 +3,18 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-17 — The map-return guard measures from the last press
+
+The 14 October guard started its 1.2 seconds when the map appeared and blocked the old
+footprint unconditionally until then. Deploy run 38669484382 failed eight browser checks on
+tablet and short landscape: after an animated return, the first deliberate tap on whichever
+destination sat under the old button was ignored, including a different world (the Sun on
+short landscape). The window now runs from the press that returned, extended by each press
+it rejects. During an animated return the destination buttons are not on screen, so a repeat
+there cannot launch anything; for an instant return press and map coincide, so the double-tap
+protection is unchanged. Tests that return and tap at once wait the guard out
+(`settleMapReturn`), as `settlePanel` does for panels. Still a design choice for the tablet.
+
 ## 2026-10-14 — Repeated return taps and a visit's next step
 
 An independent Claude browser review reported return taps launching Earth again, photo
