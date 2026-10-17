@@ -45,6 +45,8 @@ export interface DestinationChoice {
 export interface GameUI {
   /** A reward, journal, celebration or transcript currently has the child's attention. */
   readonly activityCovered: boolean;
+  /** A repeat tap over the old Space map footprint would still be ignored (mapReturnGuard.ts). */
+  readonly mapReturnGuarded: boolean;
   /** A short line at the top, optionally led by one of the interface's own icons. */
   setHint(text: string | null, icon?: IconName): void;
   /** Large, stable alternatives to tapping small moving worlds in the canvas. */
@@ -142,6 +144,13 @@ export interface GameUI {
   setSpinAttention(on: boolean): void;
   setEarthWelcome(on: boolean): void;
   setDayHandsOn(on: boolean): void;
+  /**
+   * Say, in the heading, what just happened to the day/night spot or what to do next. Only
+   * while the hands-on turn is open; Done and Space map stay exactly where they are.
+   */
+  setDayCaption(text: string): void;
+  /** The Space map control's gentle "this way next" emphasis, without moving or hiding it. */
+  setMapInvite(on: boolean): void;
   dismissTurnCoach(): void;
   /**
    * Drive the button's own globe from the real turn, 0 → 1, or `null` for a resting half-lit globe.
@@ -310,7 +319,6 @@ export function createUI(options: UIOptions): GameUI {
       destinationBar.append(button);
     }
     destinationBar.classList.toggle('is-hidden', choices.length === 0);
-    if (choices.length > 0) mapReturnGuard.mapShown();
   }
 
   /* --- mission HUD --------------------------------------------------------- */
@@ -1167,6 +1175,10 @@ export function createUI(options: UIOptions): GameUI {
   }
 
   return {
+    get mapReturnGuarded() {
+      return mapReturnGuard.active;
+    },
+
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
         factOpen;
@@ -1179,7 +1191,7 @@ export function createUI(options: UIOptions): GameUI {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-home');
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next');
       findPlacesButton.classList.add('is-hidden');
       turnButton.classList.add('is-hidden');
       turnCoach.classList.add('is-hidden');
@@ -1386,9 +1398,17 @@ export function createUI(options: UIOptions): GameUI {
       turnButton.classList.toggle('is-hidden', !on);
       turnCoach.classList.toggle('is-hidden', !on);
       if (on) {
-        headingCaption.textContent = 'Drag Earth, or tap to turn.';
+        headingCaption.textContent = 'Turn Earth. Take the little house into night.';
         spinLabel.textContent = 'Done';
       }
+    },
+
+    setDayCaption(text: string) {
+      if (root.classList.contains('is-hands-on')) headingCaption.textContent = text;
+    },
+
+    setMapInvite(on: boolean) {
+      root.classList.toggle('is-map-next', on);
     },
 
     dismissTurnCoach() {
@@ -1489,7 +1509,7 @@ export function createUI(options: UIOptions): GameUI {
     reset() {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next');
       findPlacesButton.classList.add('is-hidden');
       turnButton.classList.add('is-hidden');
       turnCoach.classList.add('is-hidden');

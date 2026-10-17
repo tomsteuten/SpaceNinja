@@ -9,8 +9,8 @@ Small derivatives are separate and precached, as described below.
 THUMBNAILS (thumbs/)
 
 thumbs/<id>.jpg is a 160 px square centre crop of the same photograph the place's
-postcard opens (moon-tycho: public/assets/moon-trial/tycho-mountains.jpg), used for the
-explorer's place badges and journal. Its provenance is that photograph's. Regenerate with
+postcard opens (moon-tycho: design/moon-trial/tycho-mountains.jpg), used for the
+place badges and journal. Its provenance is that photograph's. Regenerate with
 scripts/make-place-thumbnails.py after replacing or adding a photo. They are a few KB each
 and precached; full photographs are requested on a find or deliberate opening.
 
@@ -132,10 +132,10 @@ FILES CURRENTLY INSTALLED
 All twenty-four are in place. They are real mission images; the credit lines below record
 the agency, instrument and archive item rather than treating an image as anonymous scenery.
 
-The explorer additionally uses ../moon-trial/tycho-mountains.jpg, NASA LROC NAC
-M162350671 (the real oblique central-peak photograph, 10 June 2011), cropped and
-scaled from https://svs.gsfc.nasa.gov/4220/ . Credit: NASA/GSFC/ASU/SVS.
-Its exact file URL and original SHA-256 are in ../moon-trial/sources.json.
+The moon-tycho thumbnail is cropped from design/moon-trial/tycho-mountains.jpg (not
+shipped), NASA LROC NAC M162350671 (the real oblique central-peak photograph, 10 June
+2011), cropped and scaled from https://svs.gsfc.nasa.gov/4220/ . Credit: NASA/GSFC/ASU/SVS.
+Its exact file URL and original SHA-256 are in design/moon-trial/sources.json.
 
   earth-sahara.jpg      Blue Marble: Next Generation, Africa, March 2005.
                         Credit: NASA Earth Observatory.

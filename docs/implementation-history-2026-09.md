@@ -88,7 +88,7 @@ phone, tablet and short landscape are in `design/flight-review-2026-09-24/`, tak
 **Child playtest, 24 September (one child, one session):** liked the game; fast double-taps
 opened and closed panels; turning the world to the hidden last place was frustrating; day and
 night on Earth was never found because nothing invites it. The fixes and the spoken layer they
-need are specified in `docs/handover-2026-09-24.md`, the prompt for the next session.
+need are specified in `docs/archive/handover-2026-09-24.md`, the prompt for the next session.
 
 **Playtest fix 1, 25 September (double taps), on `claude/space-ninja-interaction-fixes-shhx7p`:**
 every panel now shares one rule in `src/ui/panelGuard.ts`: no close within half a second of
@@ -158,7 +158,7 @@ shortens. The shipped generator is `scripts/generate-narration-elevenlabs.mjs`
 (`npm run narration:generate`, a plain `fetch`, SHA-256 text-hash cache at
 `src/audio/recordings/manifest.json`, `--force`/`--only=<cue>`), documented with the Kokoro and
 OpenAI fallbacks in `src/audio/recordings/README.md`; the pipeline handover is
-`docs/handover-2026-09-25-narration.md`. **How the voice sounds on the target tablet is
+`docs/archive/handover-2026-09-25-narration.md`. **How the voice sounds on the target tablet is
 unverified until the owner listens.** The words come from the manifest once, via `cueText(id)`
 in `src/audio/script.ts`; the nudge schedule is the pure `dueNudge` in `src/ui/nudge.ts` (unit
 tested). Where each cue now plays:
@@ -275,7 +275,7 @@ worlds. The adventure is the default route again. The outing remains at `?outing
 experiment and `?freeflight` is unchanged. `vitest.config.ts` includes only canonical `src` and
 `sw` tests, avoiding nested worktrees. Playwright runs every browser file.
 
-The four interaction-boundary defects in `review-sol-outing-2026-09-23.md` are fixed. A photo
+The four interaction-boundary defects in `docs/archive/review-sol-outing-2026-09-23.md` are fixed. A photo
 is modal and holds a stopped ship. One Escape closes only an open photo. Reduced-motion help
 cuts to the Moon hover. A service-worker update reloads only an untouched opening view.
 

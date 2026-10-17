@@ -10,7 +10,7 @@ import tempfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'public/assets/moon-trial'
+OUT = ROOT / 'design/moon-trial'
 CACHE = Path(tempfile.gettempdir()) / 'spaceninja-moon-sources'
 OUT.mkdir(parents=True, exist_ok=True)
 CACHE.mkdir(exist_ok=True)

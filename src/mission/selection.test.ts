@@ -50,11 +50,11 @@ const RADII: Record<string, number> = {
 };
 
 /** Every mission-bearing destination; add each new world's radius to RADII above. */
-const WORLDS: Array<[string, Discovery[], number]> = Object.entries(DESTINATIONS).filter(([, config]) => config.mission).map(
+const WORLDS: Array<[string, Discovery[], number, boolean]> = Object.entries(DESTINATIONS).filter(([, config]) => config.mission).map(
   ([id, config]) => {
     const radius = RADII[id];
     if (radius === undefined) throw new Error(`No radius for ${id}; add it here.`);
-    return [id, config.mission!.discoveries, radius];
+    return [id, config.mission!.discoveries, radius, Boolean(config.mission!.singleSet)];
   },
 );
 
@@ -86,9 +86,18 @@ function assertPlays(set: readonly Discovery[], radius: number) {
   }
 }
 
-describe.each(WORLDS)('%s', (_id, pool, radius) => {
-  it('carries more places than it shows, or there is nothing to vary', () => {
-    expect(pool.length).toBeGreaterThan(PLACES_PER_VISIT);
+describe.each(WORLDS)('%s', (_id, pool, radius, singleSet) => {
+  it('carries more places than it shows, or exactly one set when it opts in', () => {
+    if (singleSet) expect(pool).toHaveLength(PLACES_PER_VISIT);
+    else expect(pool.length).toBeGreaterThan(PLACES_PER_VISIT);
+  });
+
+  it('plays its authored order as it stands when it carries one set', () => {
+    // A pool of exactly one set is handed back untouched, so nothing reorders it into a
+    // playable arrival: the authored order, hidden place last, has to be one already.
+    if (!singleSet) return;
+    expect(isPlayableSet(pool, radius)).toBe(true);
+    expect(chooseDiscoveries(pool, [], radius).map((d) => d.id)).toEqual(pool.map((d) => d.id));
   });
 
   it('can reach every place it carries', () => {

@@ -9,7 +9,7 @@ const source = buildServiceWorker({
 });
 
 describe('offline navigation boundary', () => {
-  for (const path of ['/SpaceNinja/', '/SpaceNinja/index.html', '/SpaceNinja/?freeflight', '/SpaceNinja/?explorer']) {
+  for (const path of ['/SpaceNinja/', '/SpaceNinja/index.html', '/SpaceNinja/?grownups', '/SpaceNinja/?voices']) {
     it(`serves the installed game for ${path}`, async () => {
       expect(await navigate(path)).toBe('installed game');
     });

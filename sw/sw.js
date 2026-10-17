@@ -90,7 +90,7 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-/** The game root, including query routes such as `?grownups` and `?freeflight`. */
+/** The game root, including query routes such as `?grownups` and `?voices`. */
 async function shell(request) {
   const cached = await caches.match(new URL('index.html', self.registration.scope).href, {
     cacheName: SHELL_CACHE,
