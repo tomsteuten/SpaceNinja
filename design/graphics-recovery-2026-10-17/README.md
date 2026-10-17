@@ -9,8 +9,10 @@ viewports. These are software-WebGL captures, not physical tablet observations.
 The existing crash screen is now shown for context loss. Its artwork, layout and
 wording are unchanged; its diagnostic identifies the graphics interruption.
 Start again reloads the page, retaining saved progress and device preferences.
-Owner visual approval is pending. The earlier unexplained black-screen report
-has not been established to share this cause.
+The owner authorized merging on 17 October after these captures were delivered.
+The earlier unexplained black-screen report has not been established to share this
+cause. Integration with main `1a0a2b1` removes the retired experiment-route checks
+and verifies graphics loss during the new day/night house activity instead.
 
 ## Phone — 390 × 844
 

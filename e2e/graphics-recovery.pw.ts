@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 
 test.use({
   deviceScaleFactor: 1,
-  ignoredConsoleErrors: [/^(Space Ninja|Free flight) stopped Error: 3D graphics were interrupted\./],
+  ignoredConsoleErrors: [/^Space Ninja stopped Error: 3D graphics were interrupted\./],
 });
 
 async function loseGraphics(page: Page) {
@@ -67,19 +67,26 @@ test('graphics loss during flight offers restart, stays stopped after restoratio
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(saved);
 });
 
-for (const route of ['/?freeflight', '/?outing', '/?explorer']) {
-  test(`shared renderer offers recovery on ${route}`, async ({ page }, info) => {
-    test.skip(info.project.name !== 'phone', 'Shared failure wiring needs one representative viewport.');
-    await page.goto(route);
-    await expect(page.locator('#boot')).toBeHidden();
-    await expectRendering(page);
-    await loseGraphics(page);
-    await expect(page.locator('#boot')).toHaveClass(/has-crash/);
-    await page.getByRole('button', { name: 'Start again', exact: true }).click();
-    await expect(page.locator('#boot')).toBeHidden();
-    await expectRendering(page);
-  });
-}
+test('graphics loss releases the current day/night house and camera before restart', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start playing', exact: true }).click();
+  await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().phase)).toBe('arrived');
+  await page.getByRole('button', { name: /^Day and night on Earth/ }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().daySpot !== null)).toBe(true);
+  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().handsOnDay)).toBe(true);
+  await loseGraphics(page);
+  await expect(page.locator('#boot')).toHaveClass(/has-crash/);
+  const stopped = await page.evaluate(() => (window as any).spaceNinjaSnapshot());
+  expect(stopped.handsOnDay).toBe(false);
+  expect(stopped.daySpot).toBeNull();
+  expect(stopped.teachingSun.visible).toBe(false);
+  expect(stopped.speaking).toBe(false);
+  await page.getByRole('button', { name: 'Start again', exact: true }).click();
+  await expect(page.locator('#boot')).toBeHidden();
+  await expectRendering(page);
+});
 
 test('graphics loss over a discovery photo exposes recovery and keeps the collected place', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
