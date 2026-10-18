@@ -30,3 +30,8 @@ a locked line. Record a change here with the date and the evidence.
   visible. Owner decision after a browser review found the day/night activity gave no
   feedback on what changed or what to do next. No child evidence yet; playtest question 1
   tests it.
+- 2026-10-18, line 1 (branch only): the owner reports that a child playtest of the guided
+  adventure felt confusing and not much fun. What the child actually did is not yet written
+  down; add it here. Line 1 stays as it is on `main`. This authorizes one isolated branch,
+  `prototype/toybox-pilot`, where hold-to-fly free flight (restored from `73b294d~1`; the
+  `pre-freeze` tag was never created) is the default at `/`, to compare in a child's hands.

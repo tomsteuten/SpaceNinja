@@ -58,6 +58,7 @@ import {
 } from './state/progress';
 import { loadSoundOn } from './state/settings';
 import { DISCOVERIES } from './config';
+import { isAdventureRoute } from './flight/freeFlightRoute';
 
 const boot = document.getElementById('boot');
 
@@ -68,6 +69,15 @@ async function main() {
     throw new Error('Expected #scene canvas and #ui container in the document.');
   }
   const canvas: HTMLCanvasElement = canvasElement;
+
+  // prototype/toybox-pilot (DECISIONS.md, 2026-10-18): hold-to-fly free flight is the default
+  // here so it can be compared in a child's hands. `?adventure` keeps the guided game. The
+  // dynamic import keeps the two out of each other's bundles; nothing below runs in free flight.
+  if (!isAdventureRoute(window.location.search)) {
+    const { startFreeFlight } = await import('./flight/freeFlightMode');
+    await startFreeFlight(canvas, uiRoot);
+    return;
+  }
 
   const reducedMotion = prefersReducedMotion();
   const stage = createStage(canvas, detectQuality());
