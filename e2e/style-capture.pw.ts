@@ -1,4 +1,4 @@
-// Full-resolution captures of the Moon visit, postcard and jump toy for visual review.
+// Full-resolution captures of the home map, the Moon visit, postcard and jump toy for visual review.
 // Skipped unless STYLE_OUT is set: STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
@@ -20,6 +20,9 @@ for (const [name, viewport] of [
       await page.addInitScript(() => { Math.random = () => 0.1; });
       await page.goto('/?fast');
       await page.getByRole('button', { name: 'Start playing', exact: true }).click();
+      await expect(page.locator('.destination-bar')).toBeVisible();
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: join(OUT, `${name}-0-home.png`) });
       await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
       await expect.poll(async () => (await snapshot(page)).phase, { timeout: 200000 }).toBe('arrived');
       await expect(page.locator('.jump-btn')).toBeVisible();

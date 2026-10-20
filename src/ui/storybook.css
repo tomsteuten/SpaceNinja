@@ -72,6 +72,28 @@
 .spin-sun { border-color:var(--ink-line); }
 .spin-arrow { color:var(--ink-line); }
 
+/* --- Home map destination bar: paper cards, one per world ------------------------ */
+
+.destination-bar { background:transparent; box-shadow:none; padding:0 4px 4px 0; gap:10px; }
+.destination-choice {
+  background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:16px;
+  box-shadow:var(--lift); font:400 21px/1 var(--hand); letter-spacing:0;
+}
+.destination-choice:hover { filter:brightness(1.05); }
+.destination-choice:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.destination-choice .world-orb { border:2px solid var(--ink-line); }
+.destination-choice .world-orb--saturn::after { border-color:var(--ink-line); border-width:3px; }
+/* The suggested world glows like a gold place and gets the same paper ring as the visit row's next step. */
+.destination-choice.is-suggested {
+  background:#ffe08a; color:var(--ink-line); border:var(--line); box-shadow:var(--lift);
+  outline:4px solid var(--paper); outline-offset:3px;
+}
+/* Not yet: a flat, dashed card that still answers a press. */
+.destination-choice.is-locked { opacity:1; background:var(--paper-deep); border-style:dashed; box-shadow:none; color:#6b5d4f; }
+.destination-choice.is-locked .world-orb { filter:grayscale(.6); }
+.destination-choice__lock .icon { color:var(--ink-line); }
+.destination-choice:focus-visible { outline:4px solid var(--crayon-sky); outline-offset:3px; }
+
 /* --- World heading: a paper label on the sky --------------------------------- */
 
 .world-heading {
