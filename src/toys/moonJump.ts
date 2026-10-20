@@ -88,7 +88,7 @@ export function createMoonJump(host: HTMLElement, onClose: () => void = () => {}
   jumpButton.append(createIcon('jump'), el('span', '', 'Jump!'));
 
   root.append(canvas, labels, back, caption, jumpButton);
-  host.append(root);
+  // Only in the page while open: the scene's canvas stays the page's one canvas otherwise.
 
   const ctx = canvas.getContext('2d')!;
   let open = false;
@@ -425,6 +425,7 @@ export function createMoonJump(host: HTMLElement, onClose: () => void = () => {}
       open = true;
       freshSides();
       caption.classList.add('is-hidden');
+      host.append(root);
       root.classList.remove('is-hidden');
       resize();
       last = 0;
@@ -436,6 +437,7 @@ export function createMoonJump(host: HTMLElement, onClose: () => void = () => {}
       open = false;
       cancelAnimationFrame(frame);
       root.classList.add('is-hidden');
+      root.remove();
       onClose();
     },
   };

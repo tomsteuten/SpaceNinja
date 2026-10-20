@@ -56,7 +56,9 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
       const { x, y, width, height } = button.getBoundingClientRect();
       return { x, y, width, height };
     }));
-  expect(row).toHaveLength(4);
+  // Space map, Listen, Day & night, Jump (the Moon's toy), Find places.
+  expect(row).toHaveLength(5);
+  for (const box of row) expect(box.width).toBeGreaterThanOrEqual(54);
   for (const box of row) {
     expect(box.y).toBeCloseTo(row[0]!.y, 1);
     expect(box.width).toBeCloseTo(row[0]!.width, 1);
