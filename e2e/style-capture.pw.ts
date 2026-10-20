@@ -18,7 +18,7 @@ for (const [name, viewport] of [
     test(`capture ${name}`, async ({ page }) => {
       mkdirSync(OUT, { recursive: true });
       await page.addInitScript(() => { Math.random = () => 0.1; });
-      await page.goto('/');
+      await page.goto('/?fast');
       await page.getByRole('button', { name: 'Start playing', exact: true }).click();
       await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
       await expect.poll(async () => (await snapshot(page)).phase, { timeout: 200000 }).toBe('arrived');

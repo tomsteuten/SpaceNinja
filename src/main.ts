@@ -395,6 +395,11 @@ async function main() {
     controls,
     home: world.bodies.earth,
     reducedMotion,
+    // Playtest builds only: `?fast` shortens the flight so browser checks and style captures
+    // that are not about the flight skip the slow software-rendered travel. A normal build
+    // compiles this away, so the flag does nothing for a child.
+    duration: import.meta.env.VITE_PLAYTEST === '1' && /[?&]fast\b/.test(window.location.search)
+      ? 0.3 : undefined,
     // The engine, from the same two numbers the exhaust and the widening view are drawn
     // from. The context was created by the press that started this flight.
     onThrottle: (throttle, cruise) => sfx.thruster(throttle, cruise),

@@ -23,7 +23,7 @@ async function destinationClearOf(page: Page, home: Box, worlds: string[]): Prom
 
 test('repeated Space map taps cannot launch the destination underneath the old button', async ({ page }) => {
   const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot()).phase).toBe('arrived');

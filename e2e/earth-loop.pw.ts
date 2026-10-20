@@ -28,7 +28,7 @@ async function photoContentDoesNotOverlap(page: Page) {
 
 test('Earth discoveries lead into a world page, story, photo, and back to exploration', async ({ page }, info) => {
   await page.addInitScript(() => localStorage.setItem('spaceninja.sound.v1', 'off'));
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');

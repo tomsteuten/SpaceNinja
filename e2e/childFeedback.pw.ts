@@ -40,7 +40,7 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
     Object.defineProperty(navigator, 'deviceMemory', { get: () => 2 });
     Math.random = () => 0.1;
   });
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Fly to Sun', exact: true })).toBeVisible();
   for (let index = 0; index < 5; index++) {

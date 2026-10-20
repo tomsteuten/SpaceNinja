@@ -83,6 +83,9 @@ npm run narration:generate:openai   # optional keyed alternative (needs OPENAI_A
   `STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone`.
   It captures tablet, phone and short landscape at full resolution. The browser pane's own
   screenshots crop on the owner's high-DPI screen.
+- **Fast flights:** in the playtest build, `/?fast` shortens flights to 0.3 s (a normal build
+  ignores it). Captures and checks that aren't about the flight itself use it; flight,
+  lifecycle, offline and graphics-recovery checks keep the full-length flight.
 - **"Before" screenshots:** use a temporary `git worktree` of the previous commit and run
   `npm ci` inside it. Never junction or symlink `node_modules` into it: `git worktree remove`
   follows the link and deletes the real `node_modules`.

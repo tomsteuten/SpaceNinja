@@ -53,6 +53,8 @@ export interface FlightOptions {
   /** Where the ship departs from. The arc is bowed away from this, so it never cuts through it. */
   home: CelestialBody;
   reducedMotion: boolean;
+  /** Seconds. Only the playtest build's `?fast` switch overrides FLIGHT_DURATION. */
+  duration?: number;
   /**
    * Reported every frame of the flight, and once more as (0, 0) on arrival.
    *
@@ -108,7 +110,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
   const { camera, scene, ship, trail, world, controls, home, reducedMotion, onArrive } = options;
   const { onThrottle } = options;
   // Deliberately not shortened under reduced motion — see FLIGHT_DURATION in config.ts.
-  const duration = FLIGHT_DURATION;
+  const duration = options.duration ?? FLIGHT_DURATION;
 
   let phase: FlightPhase = 'idle';
   let target: CelestialBody | null = null;

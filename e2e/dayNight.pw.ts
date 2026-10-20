@@ -37,7 +37,7 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
     localStorage.setItem('spaceninja.sound.v1', 'off');
     Math.random = () => 0.1;
   });
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');

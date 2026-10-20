@@ -43,7 +43,7 @@ test('the day/night house goes into night and back, then suggests the Moon witho
     const cue = request.url().match(/day-night-(start|night|moon|done)/)?.[1];
     if (cue) cues.add(cue);
   });
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
@@ -116,7 +116,7 @@ test('muted play keeps house feedback and both immediate exits, without starting
   await page.addInitScript(() => localStorage.setItem('spaceninja.sound.v1', 'off'));
   const activityAudio: string[] = [];
   page.on('request', request => { if (/day-night-.*\.mp3/.test(request.url())) activityAudio.push(request.url()); });
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');

@@ -1,7 +1,7 @@
 import { test, expect, settlePanel, settleMapReturn } from './fixtures';
 
 test('Earth day and night is child-triggered, repeatable, and leaves discoveries intact', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
@@ -111,7 +111,7 @@ test('Earth day and night is child-triggered, repeatable, and leaves discoveries
 });
 
 test('the teaching Sun survives resize and leaves with Space map', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
@@ -135,7 +135,7 @@ test('the teaching Sun survives resize and leaves with Space map', async ({ page
 });
 
 test('Earth itself opens the lesson, canvas taps assist, and cancelled or vertical drags do not keep turning', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
@@ -181,7 +181,7 @@ test('Earth itself opens the lesson, canvas taps assist, and cancelled or vertic
 
 test('the short landscape hunt counter leaves both gold places clear', async ({ page }, info) => {
   test.skip(info.project.name !== 'short-landscape');
-  await page.goto('/');
+  await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
