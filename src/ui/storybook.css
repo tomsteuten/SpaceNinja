@@ -109,6 +109,13 @@
   background:var(--crayon-tomato); color:var(--ink-line); border:var(--line); border-radius:16px;
   box-shadow:var(--lift); font:400 22px/1 var(--hand);
 }
+/* Third find: two choices share the row, so each stacks its picture over a smaller label. */
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > .photo-view__continue,
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > .photo-view__journal { font-size:19px; line-height:1.05; }
+@media(max-width:359px) {
+  .photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > .photo-view__continue,
+  .photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > .photo-view__journal { font-size:16px; }
+}
 .photo-view__continue:active,.photo-view__journal:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
 .photo-view__return-world .world-orb { border:2px solid var(--ink-line); box-shadow:none; }
 
