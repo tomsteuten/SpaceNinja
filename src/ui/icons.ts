@@ -47,6 +47,10 @@ const ICONS = {
     '<circle cx="12" cy="12" r="2.3"/>' +
     '<g transform="rotate(-20 12 12)"><ellipse cx="12" cy="12" rx="9" ry="4.2"/><circle cx="21" cy="12" r="1.5"/></g>',
   /** Turning a world through a day. A sun, because what moves is the light on the ground. */
+  /** Moon jump: a child in mid-air, arms up, above the ground line. */
+  jump:
+    '<circle cx="12" cy="4.5" r="2.3"/><path d="M12 7.5v6M12 9.5 8 6.5M12 9.5l4-3M12 13.5l-3 3.5M12 13.5l3 3.5"/>' +
+    '<path d="M5 22h14" stroke-dasharray="2 3"/>',
 } as const;
 
 export type IconName = keyof typeof ICONS;

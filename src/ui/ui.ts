@@ -22,6 +22,7 @@ import { createPhotoViewer, findPhoto } from './photos';
 import { createDialogFocus } from './dialog';
 import { createPanelGuard, type PanelOpening } from './panelGuard';
 import { createMapReturnGuard } from './mapReturnGuard';
+import { createMoonJump } from '../toys/moonJump';
 
 export interface DestinationChoice {
   id: string;
@@ -616,7 +617,19 @@ export function createUI(options: UIOptions): GameUI {
   root.append(turnCoach);
   visitActions.setAttribute('role', 'group');
   visitActions.setAttribute('aria-label', 'Explore this world');
-  visitActions.append(homeButton, listenButton, spinButton, findPlacesButton, turnButton);
+  // Prototype toy: on the Moon, jump side by side with yourself on Earth.
+  const moonJump = createMoonJump(root, () => jumpButton.focus());
+  const jumpButton = el('button', 'btn jump-btn is-hidden');
+  jumpButton.type = 'button';
+  jumpButton.append(createIcon('jump'), el('span', 'control-label', 'Jump'));
+  jumpButton.setAttribute('aria-label', 'Jump on the Moon');
+  jumpButton.addEventListener('click', () => {
+    setFactOpen(false);
+    pendingGuide = null;
+    narrator.stop();
+    moonJump.open();
+  });
+  visitActions.append(homeButton, listenButton, spinButton, jumpButton, findPlacesButton, turnButton);
   dock.append(visitActions);
   root.append(dock);
 
@@ -1187,7 +1200,7 @@ export function createUI(options: UIOptions): GameUI {
 
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        factOpen;
+        factOpen || moonJump.isOpen;
     },
     setHint,
     showDestinations,
@@ -1208,6 +1221,9 @@ export function createUI(options: UIOptions): GameUI {
       // rings and instruction otherwise hover over the receding solar-system map.
       missionHud.classList.add('is-hidden');
       spinButton.classList.add('is-hidden');
+      moonJump.close();
+      jumpButton.classList.add('is-hidden');
+      visitActions.classList.remove('has-toy');
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
       setHomeAvailable(false);
@@ -1232,6 +1248,8 @@ export function createUI(options: UIOptions): GameUI {
       showFact(fact, label, cueId);
       const spin = DESTINATIONS[worldId]?.spin;
       this.showSpin(spin ? (worldId === 'earth' ? 'Day and night on Earth' : spin.label) : null, spin?.tint);
+      jumpButton.classList.toggle('is-hidden', worldId !== 'moon');
+      visitActions.classList.toggle('has-toy', worldId === 'moon');
     },
 
     beginMission(caption: string, total: number, cueId?: string) {
@@ -1561,6 +1579,9 @@ export function createUI(options: UIOptions): GameUI {
       finale = null;
       setHomeAvailable(false);
       spinButton.classList.add('is-hidden');
+      moonJump.close();
+      jumpButton.classList.add('is-hidden');
+      visitActions.classList.remove('has-toy');
       spinBusy = false;
       spinLabel.textContent = 'Day & night';
       spinButton.disabled = false;
