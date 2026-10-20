@@ -123,6 +123,16 @@ async function main() {
   }
   const canvas: HTMLCanvasElement = canvasElement;
 
+  // The calm explorer is now the default child-facing route. Keep the shipped adventure
+  // available at `?classic` while the new loop is observed in the wild.
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('classic') && !params.has('freeflight') && !params.has('grownups')) {
+    const { startMoonTrial } = await import('./moon/main');
+    const explorer=await startMoonTrial(canvas, uiRoot, params.has('moontrial') ? 'moon' : 'earth');
+    if (explorer && !params.has('moontrial') && import.meta.env.VITE_PLAYTEST !== '1') registerOffline(explorer.canReload);
+    return;
+  }
+
   // The assisted free-flight prototype, reached at `?freeflight`. Deliberately a separate
   // path with nothing below it running: it is a sandbox for a control scheme the shipped
   // loop does not use, and a dynamic import keeps its code out of the normal bundle entirely

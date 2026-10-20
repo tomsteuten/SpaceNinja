@@ -43,7 +43,7 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     Object.defineProperty(navigator, 'deviceMemory', {get:()=>2});
     Math.random = () => 0.1;
   });
-  await page.goto('/');
+  await page.goto('/?classic');
   await page.getByRole('button',{name:'Start playing',exact:true}).click();
   await expect(page.locator('#boot')).toBeHidden();
   await launch(page,'Moon');
@@ -86,8 +86,20 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
     await expect.poll(() => page.locator('.photo-view__image').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
     await info.attach('journal-photo',{body:await page.screenshot(),contentType:'image/png'});
     await page.getByRole('button',{name:'Close the photo'}).click();
-    await page.getByRole('button',{name:'Read this discovery out loud'}).click();
-    await expect(page.getByRole('button',{name:'Stop reading discovery'})).toBeVisible();
+    const readButton=page.getByRole('button',{name:'Read this discovery out loud'});
+    // Capture the actual UI transition before clicking. On a busy software-WebGL host a
+    // short clip can finish before the next browser round trip observes its stop label.
+    await readButton.evaluate(button=>{
+      (window as any).journalSpeechObserved=false;
+      const observer=new MutationObserver(()=>{
+        if(button.getAttribute('aria-label')==='Stop reading discovery'){
+          (window as any).journalSpeechObserved=true;observer.disconnect();
+        }
+      });
+      observer.observe(button,{attributes:true,attributeFilter:['aria-label']});
+    });
+    await readButton.click();
+    await expect.poll(()=>page.evaluate(()=>(window as any).journalSpeechObserved)).toBe(true);
     photoFound=true; break;
   }
   expect(photoFound,'The deterministic smoke visit must exercise a real photo').toBe(true);

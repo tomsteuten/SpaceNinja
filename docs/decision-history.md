@@ -64,3 +64,50 @@ abstract yellow ring and narration, especially on phones; expecting a pre-reader
 operate a small magnifier was too much. Repeated finds remain compact so familiar places do not
 turn replay into a chain of interruptions. The postcard retains a plainly labelled exit and
 does not bypass lazy loading, missing-photo handling, or the Android dismissal guard.
+
+## 2026-09-20 — Explorer-first trial
+
+Feedback from the deployed page consistently described the destination markers, crowded
+controls and unlabeled day/night action as noisy and difficult for young children to decode.
+The product hypothesis changed from “complete a collection loop” to “choose a world and wander
+over real imagery”. The new route is a calm globe explorer with direct touch steering, a small
+contextual dock, real NASA/USGS/JPL imagery and optional place postcards. It is the default
+route for this trial; the previous adventure remains available at `?classic` so playtests can
+compare both loops without deleting the existing implementation.
+
+This is an experiment, not evidence that a free-flight loop is already validated on tablets.
+Physical Android touch feel, sustained frame rate and whether children understand the world
+chooser still need observation before the classic route can be retired.
+
+The implementation keeps all six authored places on each world. Surface markers and
+progress gates are absent from the explorer. Each world uses the same touch model, with
+Saturn explicitly framed as an orbital subject rather than a solid surface. Illustrative
+lighting follows the view to keep places readable; historical Saturn storms open as archive
+images rather than being claimed as permanent surface features. The Moon's incomplete NAC
+regional tile was removed after screenshots exposed visible gaps and mismatched seams.
+Detailed close views use the credited image viewer instead of invented terrain.
+
+The classic implementation and progress remain intact at `?classic`. A pre-explorer Git
+tag provides a complete source rollback; reverting the explorer commit restores the default
+route and prior assets without rewriting shared Git history.
+
+## 2026-09-21 — Space between the worlds
+
+The explorer was a useful improvement, but fresh feedback described a polished sequence of
+planet clicks with little sense of exploring the space between them. The plain craft also
+gave children little visual character to identify with. This changes the next experiment:
+guidance and discovery UI alone are not enough; the journey needs room for player agency.
+
+The explorer now offers **Fly into space** from the chooser and **Space** from a world.
+Four worlds share a compressed playground with sparse, harmless rocks for depth and parallax.
+Hold to move and turn; release to brake. Picture buttons provide assisted travel, touching
+space takes back control, and reaching a world offers an optional Explore action. Worlds
+remains an immediate escape route. Assisted travel cuts when reduced motion is requested.
+An orange-and-cream survey rocket with swept fins, a bright canopy and twin engine flames
+is shared between space and surface exploration. Engine length follows actual speed.
+
+This is a local implementation, not a deployment or proof of child comprehension. The space
+layout is illustrative, not a scale model, and the rocks are scenery rather than hazards.
+The older direct world visits and classic route remain available. Next device observations
+should establish whether children perceive steering and stopping, enjoy wandering without
+an objective, understand destination help, and choose to investigate a world unaided.

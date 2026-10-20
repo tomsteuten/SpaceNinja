@@ -1,0 +1,14 @@
+{
+  "color.tif": {
+    "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_8k.tif",
+    "sha256": "4af8b0cd4d50c30851359d98e7e72040240dd8d03256b58b345b5b76e9edb4ef"
+  },
+  "height.tif": {
+    "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_16_uint.tif",
+    "sha256": "45a2b32d56e81ed30db07fead8abc842b249b6511219d9ca2c53f81bc2dc5d62"
+  },
+  "tycho.tif": {
+    "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004220/tycho_central_peak_wide_16x9.tif",
+    "sha256": "9ee835839463fcac09c52a89e9f81d8bcc88a811a1e7aa01f543e9d23e35c802"
+  }
+}
