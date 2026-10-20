@@ -58,8 +58,14 @@ test('the day/night house goes into night and back, then suggests the Moon witho
   await expect(page.locator('.day-legend .day-key')).toHaveClass(/is-current/);
 
   const mapBefore = await map.boundingBox();
-  const spot = (await snapshot(page)).daySpot;
   const { width, height } = page.viewportSize()!;
+  // The day-turn camera settles over a few frames; wait for the house to come into view
+  // rather than sampling the first frame (short landscape on CI read it mid-move).
+  await expect.poll(async () => {
+    const s = (await snapshot(page)).daySpot;
+    return Boolean(s && s.x > 0 && s.x < width && s.y > 0 && s.y < height);
+  }).toBe(true);
+  const spot = (await snapshot(page)).daySpot;
   expect(spot.x).toBeGreaterThan(0);
   expect(spot.x).toBeLessThan(width);
   expect(spot.y).toBeGreaterThan(0);
