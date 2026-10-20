@@ -12,7 +12,7 @@ const snapshot = (page: Page) => page.evaluate(() => (window as unknown as { moo
 test.use({ reducedMotion: 'no-preference' });
 
 test('choosing another world flies there and lands on it', async ({ page }, info) => {
-  await page.goto('/');
+  await page.goto('/?legacy-explorer');
   await expect(page.locator('#boot')).toBeHidden();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('welcome');
   // The default opens on Earth; pick a different world so a real hop is required.
@@ -33,7 +33,7 @@ test('choosing another world flies there and lands on it', async ({ page }, info
 });
 
 test('the opening fly-in gives a canvas tap an immediate response', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?legacy-explorer');
   await expect(page.locator('#boot')).toBeHidden();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('travel');
   await page.locator('canvas').click({ position: { x: 10, y: 10 } });
@@ -54,7 +54,7 @@ test.describe('reduced motion', () => {
       marsReleased();
     });
 
-    await page.goto('/');
+    await page.goto('/?legacy-explorer');
     await expect(page.locator('#boot')).toBeHidden();
     await page.locator('[data-world="mars"]').click();
     await expect(page.locator('.moon-start')).toBeDisabled();

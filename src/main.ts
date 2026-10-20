@@ -50,6 +50,7 @@ import {
 import { loadSoundOn } from './state/settings';
 import { DISCOVERIES } from './config';
 import { createExperienceCoordinator } from './experience/ExperienceCoordinator';
+import { createExplorerVisit, type ExplorerVisit } from './experience/ExplorerVisit';
 
 const boot = document.getElementById('boot');
 
@@ -122,6 +123,19 @@ async function main() {
     throw new Error('Expected #scene canvas and #ui container in the document.');
   }
   const canvas: HTMLCanvasElement = canvasElement;
+  const params = new URLSearchParams(window.location.search);
+
+  // Keep the previous explorer available for direct comparison while the shared-system
+  // experience settles. It owns its own Stage and returns before the unified Stage exists.
+  if (params.has('legacy-explorer') || params.has('moontrial')) {
+    const { startMoonTrial } = await import('./moon/main');
+    const explorer = await startMoonTrial(canvas, uiRoot, params.has('moontrial') ? 'moon' : 'earth');
+    if (explorer && params.has('legacy-explorer') && import.meta.env.VITE_PLAYTEST !== '1') {
+      registerOffline(explorer.canReload);
+    }
+    return;
+  }
+  const classicMode = params.has('classic');
 
   // The unified experience is the default. `?classic` remains a compatibility route while
   // the new hub is observed; neither query starts a second renderer.
@@ -152,6 +166,7 @@ async function main() {
 
   const reducedMotion = prefersReducedMotion();
   const experience = createExperienceCoordinator();
+  let explorerVisit: ExplorerVisit | null = null;
   const stage = createStage(canvas, detectQuality());
   const { scene, camera } = stage;
 
@@ -181,6 +196,9 @@ async function main() {
    * which order the two gates were passed in.
    */
   function framingRadius(): number {
+    // The unified route promises a solar-system home, not a progression crop. Frame the
+    // outer destination from the first launch; classic retains its earned reveal tiers.
+    if (!classicMode) return FRAMING_RADIUS_WIDER;
     const { visited } = loadProgress();
     if (visited.includes(WIDER_FRAMING_VISIT)) return FRAMING_RADIUS_WIDER;
     if (visited.includes(WIDE_FRAMING_VISIT)) return FRAMING_RADIUS_WIDE;
@@ -278,23 +296,7 @@ async function main() {
     root: uiRoot,
     narrator,
     onChooseDestination: (id) => launch(id as BodyId),
-    onExploreAgain: () => {
-      // A Fly Home during a day turn: stop the turn first so it is not still writing the
-      // camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
-      cameraReturn = null;
-      dayTurn.reset();
-      // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
-      // reduced motion start() declines and this cuts straight home, exactly as it always did.
-      if (!experience.move('RETURNING')) return;
-      if (homeReturn.start()) {
-        // Bring the wider solar-system context back as the camera leaves the destination.
-        // Keeping the visit focus until restart() made every other world pop in only after
-        // the pull-back had already landed.
-        world.setFocus(null);
-        ship.setContextDimmed(false);
-        ui.enterFlight();
-      } else restart();
-    },
+    onExploreAgain: () => beginReturn(),
     onGrownups: () => grownups.show(),
     // The whole game finished. Played when the overlay lands, not when the last world
     // completes, or it would run under the world's own chime.
@@ -360,14 +362,34 @@ async function main() {
       // still the collection's, and is still awarded by finishing it.
       markVisited(destination.id);
 
-      // The destination and its real-coordinate targets are the subject now. Other earned
-      // worlds and the parked ship remain visible enough to preserve context, but cannot
-      // become opaque foreground objects when a child drags around to the hidden place.
+      // The destination is the subject now. In the unified route the system presentation
+      // yields to explorer controls; classic keeps its target hunt for comparison.
       world.setFocus(destination.id);
       ship.setContextDimmed(true);
 
       const config = DESTINATIONS[destination.id];
       if (!config) return;
+      if (!classicMode) {
+        // Keep the selected real body but remove the other moving worlds from close view.
+        // The Sun and star field remain, preserving the sense that this is still the same
+        // place reached by the flight rather than a second application behind a cut.
+        world.setRevealed([destination.id]);
+        uiRoot!.hidden = true;
+        explorerVisit?.dispose();
+        explorerVisit = createExplorerVisit({
+          scene,
+          camera,
+          canvas,
+          body: destination,
+          worldId: destination.id,
+          reducedMotion,
+          ship: ship.group,
+          onHome: beginReturn,
+        });
+        document.title = `Space Ninja — ${destination.label.replace(/^The /, '')} Explorer`;
+        experience.move('EXPLORING');
+        return;
+      }
       // The welcome: the world's name and what it is, read over a screen that already has
       // the gold targets on it. It no longer gates anything.
       ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji);
@@ -403,6 +425,23 @@ async function main() {
     currentFocus: () => world.bodies[follow].getWorldPosition(homeFocus),
     onArrive: () => restart(),
   });
+
+  function beginReturn() {
+    // The day turn is classic-only, but one return path owns every camera handoff.
+    cameraReturn = null;
+    dayTurn.reset();
+    if (!experience.move('RETURNING')) return;
+    explorerVisit?.dispose();
+    explorerVisit = null;
+    uiRoot!.hidden = false;
+    document.title = 'Space Ninja — Explore the Solar System';
+    canvas.setAttribute('aria-label', 'A view of space with the Earth, the Moon, Mars and Saturn');
+    world.setRevealed(visibleDestinationIds());
+    world.setFocus(null);
+    ship.setContextDimmed(false);
+    if (homeReturn.start()) ui.enterFlight();
+    else restart();
+  }
 
   /* --- missions ------------------------------------------------------------ */
 
@@ -580,6 +619,7 @@ async function main() {
   canvas.addEventListener('pointerup', onDayTurnSkipTap);
 
   function handleTap(clientX: number, clientY: number) {
+    if (explorerVisit?.active) return;
     if (flight.phase === 'flying') return;
     // A tap during a day turn is "I have seen enough": end the turn as a completion, so the
     // markers land back on their real coordinates, rather than raycasting at a swinging
@@ -637,7 +677,9 @@ async function main() {
     // The flight is told which latitude to arrive over; it does not know why. Matching
     // destinations to their copy is this file's job, exactly as it is for the fact and
     // the mission.
-    const discoveries = buildMission(id)?.definition.discoveries;
+    const discoveries = classicMode
+      ? buildMission(id)?.definition.discoveries
+      : DESTINATIONS[id]?.mission.discoveries;
     const aim = discoveries ? facingLatitude(discoveries) : undefined;
     if (!flight.start(destination, aim)) {
       experience.move('SYSTEM');
@@ -777,6 +819,11 @@ async function main() {
    */
   function restart() {
     experience.move('SYSTEM');
+    explorerVisit?.dispose();
+    explorerVisit = null;
+    uiRoot!.hidden = false;
+    document.title = 'Space Ninja — Explore the Solar System';
+    canvas.setAttribute('aria-label', 'A view of space with the Earth, the Moon, Mars and Saturn');
     cameraReturn = null;
     coach.clear();
     idleFor = 0;
@@ -822,6 +869,7 @@ async function main() {
   stage.onFrame((dt, elapsed) => {
     sky.update(dt);
     world.update(dt, elapsed, camera);
+    explorerVisit?.update(dt);
     trail.update(dt);
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
@@ -907,7 +955,7 @@ async function main() {
     // control for it so the two are not both writing the camera on the same frame.
     homeReturn.update(dt);
 
-    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn) {
+    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !explorerVisit?.active) {
       // Rotating the device changes how much fits on screen, so recompose the shot.
       // Deliberately overrides any manual zoom: a rotated view that cuts off the
       // destination is worse than losing the zoom level.
@@ -937,7 +985,7 @@ async function main() {
       // Now and not at load, so installing the worker never competes with the textures
       // for the connection while the first frame is still being got ready. The guard lets
       // a fresh build refresh the page only at the title, never over a flight or day turn.
-      registerOffline(() => flight.phase === 'idle' && !dayTurn.active);
+      registerOffline(() => experience.state === 'SYSTEM' && flight.phase === 'idle' && !dayTurn.active);
     }
   });
 
@@ -958,7 +1006,9 @@ async function main() {
       const view = camera.position.clone().sub(center).normalize();
       return {
         phase: flight.phase,
+        experienceState: experience.state,
         world: follow,
+        explorer: explorerVisit?.snapshot() ?? null,
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,
         speaking: narrator.speaking,
@@ -986,6 +1036,7 @@ async function main() {
   function onVisibilityChange() {
     if (document.hidden) {
       experience.suspend();
+      explorerVisit?.suspend();
       stage.stop();
       narrator.stop();
       // Continuous sound is driven a frame at a time, and stopping the loop stops the
@@ -1008,6 +1059,7 @@ async function main() {
     document.removeEventListener('visibilitychange', onVisibilityChange);
     document.removeEventListener('keydown', onFreeFlightShortcut);
     controls.dispose();
+    explorerVisit?.dispose();
     ui.dispose();
     grownups.dispose();
     narrator.dispose();

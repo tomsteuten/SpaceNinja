@@ -41,7 +41,7 @@ test('welcome screen: no overlapping controls across device viewports', async ({
 
   for (const v of VIEWPORTS) {
     await page.setViewportSize({ width: v.w, height: v.h });
-    await page.goto('/');
+    await page.goto('/?legacy-explorer');
     await expect(page.locator('#boot')).toBeHidden();
     await expect(page.locator('.moon-start')).toBeVisible();
 

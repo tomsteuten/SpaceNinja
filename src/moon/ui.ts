@@ -16,9 +16,15 @@ export const icons = {
 const svg=(name:keyof typeof icons)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
 const worldName=(world:ExplorerWorld)=>world.id==='moon'?'the Moon':world.label;
 
-export function createMoonUI(root:HTMLElement, initialWorld:ExplorerWorld, actions:{start():void;home():void;choose(id:WorldId):void;zoom(closer:boolean):void;go(place:Place):void;mode(mode:ControlMode):void;pause():void;resume():void}) {
+export interface MoonUIOptions {
+  /** Close-up visit embedded in the shared solar-system experience. */
+  embedded?: boolean;
+}
+
+export function createMoonUI(root:HTMLElement, initialWorld:ExplorerWorld, actions:{start():void;home():void;choose(id:WorldId):void;zoom(closer:boolean):void;go(place:Place):void;mode(mode:ControlMode):void;pause():void;resume():void}, options:MoonUIOptions={}) {
   let world = initialWorld;
-  root.className='moon-ui'; root.removeAttribute('aria-live');
+  const embedded=options.embedded===true;
+  root.className=`moon-ui${embedded?' moon-ui--embedded':''}`; root.removeAttribute('aria-live');
   root.innerHTML=`
     <header class="moon-brand"><span class="brand-orbit" aria-hidden="true"></span><span>SPACE NINJA <span class="brand-divider">/</span> <strong>EXPLORER</strong></span></header>
     <button class="moon-settings icon-button" aria-label="Grown-up settings">${svg('settings')}</button>
@@ -32,7 +38,7 @@ export function createMoonUI(root:HTMLElement, initialWorld:ExplorerWorld, actio
     </section>
     <a class="moon-original" href="?classic">${svg('arrow')} Original adventure</a>
     <p class="moon-credit">NASA imagery · Maps: Solar System Scope</p>
-    <nav class="moon-top" aria-label="Exploration navigation" hidden><button class="moon-home quiet">${svg('arrow')} Worlds</button><span class="moon-location">${worldName(world).toUpperCase()}</span></nav>
+    <nav class="moon-top" aria-label="Exploration navigation" hidden><button class="moon-home quiet">${svg('arrow')} ${embedded?'Solar System':'Worlds'}</button><span class="moon-location">${worldName(world).toUpperCase()}</span></nav>
     <div class="moon-coach" hidden>${svg('hand')}<span>Hold to fly. Slide to steer.</span><small>Let go to stop.</small></div>
     <div class="moon-steering" aria-hidden="true" hidden><span></span></div>
     <div class="moon-landmark" hidden><span class="eyebrow">WORTH A LOOK</span><strong></strong><button class="quiet photo-button">${svg('photo')} Take a look</button></div>
@@ -129,10 +135,10 @@ export function createMoonUI(root:HTMLElement, initialWorld:ExplorerWorld, actio
       root.dataset.phase=phase;
       // The chooser and its credits stay up while flying between worlds, so the world visibly
       // swooshes past behind the menu rather than the menu vanishing for the trip.
-      const home=phase==='welcome'||phase==='travel';
-      welcome.hidden=!home; top.hidden=home; dock.hidden=phase!=='explore';
-      find('.moon-brand').hidden=!home; find('.moon-original').hidden=!home;
-      find('.moon-credit').hidden=!home;
+      const home=!embedded&&(phase==='welcome'||phase==='travel');
+      welcome.hidden=embedded||!home; top.hidden=embedded?phase==='travel':home; dock.hidden=phase!=='explore';
+      find('.moon-brand').hidden=embedded||!home; find('.moon-original').hidden=embedded||!home;
+      find('.moon-credit').hidden=embedded||!home;
       if(phase!=='explore') {coach.hidden=true;landmark.hidden=true;}
     },
     coach(show:boolean, mode:ControlMode) {

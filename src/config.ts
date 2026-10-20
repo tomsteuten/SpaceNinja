@@ -50,8 +50,12 @@ export const SATURN_RADIUS = 1.5;
  */
 export const SATURN_ORBIT_RADIUS = 6.6;
 export const SATURN_ORBIT_TILT = 0.15;
-/** Chosen to keep Saturn clear of Mars (3.4) and the Moon on screen at the opening. */
-export const SATURN_START_ANGLE = 5.5;
+/**
+ * Opens on the opposite side of the system from Mars. The unified home view shows every
+ * destination at once, so Saturn must not begin directly in front of Earth as it did when
+ * the outer world was hidden until late in the classic progression.
+ */
+export const SATURN_START_ANGLE = 1.35;
 /** A calm turn, like the others — not the real 10-hour day, which would read as spinning. */
 export const SATURN_SPIN = 0.03;
 /** Slower than Mars: an outer body that raced round would read as wrong. */
