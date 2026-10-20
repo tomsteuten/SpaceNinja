@@ -1,0 +1,145 @@
+/*
+ * Storybook crayons: paper, ink outlines, flat offset shadows, and one fixed crayon colour
+ * per control so a child who cannot read yet can still say "the yellow one".
+ * Loaded after adventure.css and overrides it. First pass: visit controls, world heading,
+ * discovery postcard and the Moon jump toy. Other panels follow.
+ */
+@import '@fontsource/patrick-hand/latin-400.css';
+@import '@fontsource/andika/latin-400.css';
+@import '@fontsource/andika/latin-700.css';
+
+:root {
+  --paper: #f8f0dd;
+  --paper-deep: #efe4cc;
+  --ink-line: #2b2118;
+  --crayon-sky: #5bb8e8;
+  --crayon-grape: #b195ec;
+  --crayon-grass: #74c27a;
+  --crayon-sun: #f2b632;
+  --crayon-tomato: #f07a62;
+  --crayon-teal: #57c1b4;
+  --hand: 'Patrick Hand', 'Comic Sans MS', cursive;
+  --read: Andika, var(--font);
+  --line: 3px solid var(--ink-line);
+  --lift: 4px 4px 0 var(--ink-line);
+}
+
+/* --- Visit controls ------------------------------------------------------- */
+
+.visit-actions { background:transparent; box-shadow:none; padding:0 4px 4px 0; gap:10px; }
+/* Five controls on the Moon need a little more width than the old four. */
+.dock:has(.visit-actions.has-toy) { width:min(540px,calc(100% - var(--pad-left) - var(--pad-right))); }
+.visit-actions > .btn,
+.visit-actions > .btn.jump-btn {
+  background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:16px;
+  box-shadow:var(--lift); font:400 19px/1 var(--hand); letter-spacing:0;
+}
+.visit-actions > .btn:hover { filter:brightness(1.05); }
+.visit-actions > .btn:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.visit-actions .control-label { letter-spacing:0; line-height:20px; }
+.visit-actions .icon-slot,.visit-actions .icon,.visit-actions > .btn.jump-btn .icon { color:var(--ink-line); }
+
+/* One colour per control, the same everywhere it appears. */
+.visit-actions .home-btn { background:var(--crayon-sky); }
+.visit-actions .listen-btn { background:var(--crayon-grape); }
+.visit-actions .spin-btn { background:var(--crayon-grass); }
+.visit-actions > .btn.jump-btn { background:var(--crayon-sun); }
+.visit-actions .find-places-btn { background:var(--crayon-sun); color:var(--ink-line); }
+.visit-actions .find-places-btn .icon { color:var(--ink-line); }
+.visit-actions .turn-earth-btn { background:var(--crayon-teal); }
+.visit-actions .journal-btn,.ui > .journal-btn { background:var(--crayon-tomato); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); }
+
+/* The "next thing" emphasis keeps each control's colour and adds a thick ring instead of gold. */
+.is-earth-welcome .spin-btn,.spin-btn.is-busy,
+.is-complete:not(.has-seen-journal) .visit-actions .journal-btn,
+.is-complete.has-seen-journal .visit-actions .home-btn,
+.is-map-next .visit-actions .home-btn,
+.is-hands-on .visit-actions .spin-btn,
+.is-map-next .visit-actions .turn-earth-btn,
+.is-complete:not(.is-hands-on) .visit-actions .spin-btn {
+  border:var(--line); color:var(--ink-line); box-shadow:var(--lift);
+}
+.is-earth-welcome .spin-btn,.spin-btn.is-busy { background:var(--crayon-grass); }
+.is-hands-on .visit-actions .spin-btn,.is-complete:not(.is-hands-on) .visit-actions .spin-btn { background:var(--crayon-grass); }
+.is-map-next .visit-actions .turn-earth-btn { background:var(--crayon-teal); }
+.is-complete:not(.has-seen-journal) .visit-actions .journal-btn,.is-complete.has-seen-journal .visit-actions .home-btn,.is-map-next .visit-actions .home-btn {
+  outline:4px solid var(--paper); outline-offset:3px;
+}
+.is-complete:not(.has-seen-journal) .visit-actions .journal-btn { background:var(--crayon-tomato); }
+.is-complete.has-seen-journal .visit-actions .home-btn,.is-map-next .visit-actions .home-btn { background:var(--crayon-sky); }
+.is-complete:not(.has-seen-journal) .visit-actions .journal-btn .icon,.is-complete.has-seen-journal .visit-actions .home-btn .icon-slot,.is-map-next .visit-actions .home-btn .icon-slot { color:var(--ink-line); }
+.spin-globe { border-color:var(--ink-line); }
+.spin-sun { border-color:var(--ink-line); }
+.spin-arrow { color:var(--ink-line); }
+
+/* --- World heading: a paper label on the sky --------------------------------- */
+
+.world-heading {
+  padding:8px 16px 8px 8px; background:var(--paper); color:var(--ink-line); border:var(--line);
+  border-radius:16px; box-shadow:var(--lift); text-shadow:none; transform:rotate(-1deg); transform-origin:left top;
+}
+.world-heading > .world-orb { margin-top:0; border:2px solid var(--ink-line); box-shadow:none; }
+.world-heading strong { font:400 30px/1 var(--hand); letter-spacing:0; }
+.world-heading__caption { color:var(--ink-line); font:400 15px/1.3 var(--read); }
+.world-words { margin-top:6px; min-height:44px; padding:6px 12px; border:2px solid var(--ink-line); border-radius:12px; background:#fff; color:var(--ink-line); font:700 14px var(--read); }
+
+/* --- Discovery postcard ------------------------------------------------------- */
+
+.photo-view { background:#0a0d18e6; }
+.photo-view__panel {
+  background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:6px;
+  box-shadow:6px 6px 0 var(--ink-line); transform:rotate(-1.2deg); font-family:var(--read);
+}
+.photo-view__panel .dialog-head h2,.photo-view__title { font:400 34px/1 var(--hand); letter-spacing:0; color:var(--ink-line); }
+.photo-view__close { background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:50%; }
+.photo-view__close:hover { background:#fff; color:var(--ink-line); }
+/* The photograph is a snapshot pushed into the page: white border, wider at the bottom, tilted the other way. */
+.photo-view__figure { align-self:center; max-width:100%; padding:10px 10px 28px; background:#fff; border:2px solid var(--ink-line); transform:rotate(2deg); }
+.photo-view__image { border-radius:0; background:#fff; }
+.photo-view__caption { font:400 18px var(--hand); color:var(--ink-line); text-align:center; margin-top:6px; }
+.photo-view__detail { font-size:18px; line-height:1.45; }
+.photo-view__saved { color:#2f6b3a; font-weight:700; }
+.photo-view__count { background:#fff; color:var(--ink-line); border:2px solid var(--ink-line); }
+.photo-view__actions > .photo-view__continue,
+.photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > .photo-view__continue {
+  background:var(--crayon-sky); color:var(--ink-line); border:var(--line); border-radius:16px;
+  box-shadow:var(--lift); font:400 24px/1 var(--hand);
+}
+.photo-view__actions > .photo-view__journal,.photo-view__actions > .photo-view__journal:not(.is-hidden) {
+  background:var(--crayon-tomato); color:var(--ink-line); border:var(--line); border-radius:16px;
+  box-shadow:var(--lift); font:400 22px/1 var(--hand);
+}
+.photo-view__continue:active,.photo-view__journal:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.photo-view__return-world .world-orb { border:2px solid var(--ink-line); box-shadow:none; }
+
+/* --- Moon jump toy ------------------------------------------------------------ */
+
+.ui .moon-jump__label { background:var(--paper); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); font:400 22px var(--hand); }
+.ui .moon-jump__label .world-orb { border:2px solid var(--ink-line); box-shadow:none; }
+.ui .moon-jump__back { background:var(--crayon-sky); color:var(--ink-line); border:var(--line); border-radius:16px; box-shadow:var(--lift); }
+.ui .moon-jump__back .world-orb { border:2px solid var(--ink-line); box-shadow:none; }
+.ui .moon-jump__jump {
+  background:var(--crayon-sun); color:var(--ink-line); border:var(--line); border-radius:18px;
+  box-shadow:5px 5px 0 var(--ink-line); font:400 32px var(--hand);
+}
+.ui .moon-jump__jump:active { transform:translateX(-50%) translate(3px,3px); box-shadow:2px 2px 0 var(--ink-line); }
+.ui .moon-jump__caption { background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:12px; box-shadow:var(--lift); font:400 21px/1.25 var(--hand); transform:translateX(-50%) rotate(-1deg); }
+
+@media(max-width:599px) {
+  .visit-actions { gap:7px; }
+  .visit-actions > .btn,.visit-actions > .btn.jump-btn { font-size:15px; border-width:2.5px; box-shadow:3px 3px 0 var(--ink-line); padding:4px 2px; }
+  /* Two short lines beat one clipped one on a narrow phone. */
+  .visit-actions .control-label { white-space:normal; line-height:14px; text-align:center; }
+  .visit-actions .icon-slot,.visit-actions .icon { height:30px; }
+  .world-heading strong { font-size:26px; }
+  .photo-view__panel .dialog-head h2,.photo-view__title { font-size:28px; }
+}
+@media(min-width:600px) and (max-height:480px) {
+  .visit-actions > .btn,.visit-actions > .btn.jump-btn { font-size:17px; }
+  .world-heading strong { font-size:24px; }
+  .photo-view__panel { transform:none; }
+  .photo-view__figure { transform:rotate(1.5deg); padding:8px 8px 20px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .visit-actions > .btn:active { transform:none; }
+}
