@@ -57,6 +57,7 @@ const SCREEN_CUES = [
   'hunt-nudge-short',
   'spin-nudge',
   // Earth's hands-on day/night spot: into night, then back to morning (main.ts).
+  'day-night-start',
   'day-night-night',
   'day-night-moon',
   'day-night-done',
@@ -69,6 +70,12 @@ function expectedCueIds(): string[] {
 }
 
 describe('narration script', () => {
+  it('ships the essential Earth activity feedback for offline, non-reading play', () => {
+    const recorded = readdirSync(new URL('./recordings', import.meta.url));
+    for (const cue of ['start', 'night', 'moon', 'done']) {
+      expect(recorded).toContain(`day-night-${cue}.mp3`);
+    }
+  });
   it('has one authored cue for every place the UI requests', () => {
     expect(Object.keys(script.cues).sort()).toEqual(expectedCueIds().sort());
   });

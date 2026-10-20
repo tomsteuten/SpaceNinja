@@ -22,6 +22,7 @@ import { createPhotoViewer, findPhoto } from './photos';
 import { createDialogFocus } from './dialog';
 import { createPanelGuard, type PanelOpening } from './panelGuard';
 import { createMapReturnGuard } from './mapReturnGuard';
+import { createMoonJump } from '../toys/moonJump';
 
 export interface DestinationChoice {
   id: string;
@@ -75,9 +76,9 @@ export interface GameUI {
   /**
    * Queue a guide without replacing the current fact, such as a day/night explanation or
    * invitation. Waits behind whatever is being read, as the hunt line does,
-   * and only authored audio starts by itself.
+    * and only authored audio starts by itself. Immediate state feedback may interrupt.
    */
-  speakGuide(text: string, cueId: string): void;
+  speakGuide(text: string, cueId: string, interrupt?: boolean): void;
   /**
    * A place has been found: name it, and put it in the journal.
    *
@@ -149,6 +150,8 @@ export interface GameUI {
    * while the hands-on turn is open; Done and Space map stay exactly where they are.
    */
   setDayCaption(text: string): void;
+  /** House state, also visible without sound or reading the instruction. */
+  setDayState(state: 'day' | 'night' | 'morning'): void;
   /** The Space map control's gentle "this way next" emphasis, without moving or hiding it. */
   setMapInvite(on: boolean): void;
   dismissTurnCoach(): void;
@@ -332,7 +335,9 @@ export function createUI(options: UIOptions): GameUI {
   missionHud.append(slotRow, missionCaption);
   root.append(missionHud);
   const dayLegend = el('div', 'day-legend is-hidden');
-  dayLegend.append(el('span', 'day-key', 'Day'), el('span', 'night-key', 'Night'));
+  const dayKey = el('span', 'day-key', 'Day');
+  const nightKey = el('span', 'night-key', 'Night');
+  dayLegend.append(dayKey, nightKey);
   root.append(dayLegend);
 
   let slots: HTMLElement[] = [];
@@ -612,7 +617,19 @@ export function createUI(options: UIOptions): GameUI {
   root.append(turnCoach);
   visitActions.setAttribute('role', 'group');
   visitActions.setAttribute('aria-label', 'Explore this world');
-  visitActions.append(homeButton, listenButton, spinButton, findPlacesButton, turnButton);
+  // Prototype toy: on the Moon, jump side by side with yourself on Earth.
+  const moonJump = createMoonJump(root, () => jumpButton.focus());
+  const jumpButton = el('button', 'btn jump-btn is-hidden');
+  jumpButton.type = 'button';
+  jumpButton.append(createIcon('jump'), el('span', 'control-label', 'Jump'));
+  jumpButton.setAttribute('aria-label', 'Jump on the Moon');
+  jumpButton.addEventListener('click', () => {
+    setFactOpen(false);
+    pendingGuide = null;
+    narrator.stop();
+    moonJump.open();
+  });
+  visitActions.append(homeButton, listenButton, spinButton, jumpButton, findPlacesButton, turnButton);
   dock.append(visitActions);
   root.append(dock);
 
@@ -918,6 +935,7 @@ export function createUI(options: UIOptions): GameUI {
   let currentFact = '';
   let currentFactCueId: string | null = null;
   let pendingGuide: PendingGuide | null = null;
+  let guideGeneration = 0;
 
   /**
    * Say a guide line with no card: wait behind whatever is being read, and only ever start a
@@ -956,9 +974,10 @@ export function createUI(options: UIOptions): GameUI {
       if (action.kind === 'speak-guide') {
         pendingGuide = null;
         const { guide } = action;
+        const generation = guideGeneration;
         // A breath after the discovery rather than two recordings joined into one sentence.
         later(() => {
-          if (soundOn) narrator.speak(guide.text, guide.cueId, false);
+          if (soundOn && generation === guideGeneration) narrator.speak(guide.text, guide.cueId, false);
         }, 350);
       } else {
         // Fold away shortly after the reading finishes rather than on a fixed timer, so the
@@ -1181,7 +1200,7 @@ export function createUI(options: UIOptions): GameUI {
 
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        factOpen;
+        factOpen || moonJump.isOpen;
     },
     setHint,
     showDestinations,
@@ -1202,6 +1221,9 @@ export function createUI(options: UIOptions): GameUI {
       // rings and instruction otherwise hover over the receding solar-system map.
       missionHud.classList.add('is-hidden');
       spinButton.classList.add('is-hidden');
+      moonJump.close();
+      jumpButton.classList.add('is-hidden');
+      visitActions.classList.remove('has-toy');
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
       setHomeAvailable(false);
@@ -1226,6 +1248,8 @@ export function createUI(options: UIOptions): GameUI {
       showFact(fact, label, cueId);
       const spin = DESTINATIONS[worldId]?.spin;
       this.showSpin(spin ? (worldId === 'earth' ? 'Day and night on Earth' : spin.label) : null, spin?.tint);
+      jumpButton.classList.toggle('is-hidden', worldId !== 'moon');
+      visitActions.classList.toggle('has-toy', worldId === 'moon');
     },
 
     beginMission(caption: string, total: number, cueId?: string) {
@@ -1263,7 +1287,13 @@ export function createUI(options: UIOptions): GameUI {
       if (cueId) this.speakGuide(text, cueId);
     },
 
-    speakGuide(text: string, cueId: string) {
+    speakGuide(text: string, cueId: string, interrupt = false) {
+      if (interrupt) {
+        // The house has changed now; stale queued descriptions must not follow it.
+        guideGeneration++;
+        pendingGuide = null;
+        narrator.stop();
+      }
       playGuide(text, cueId);
     },
 
@@ -1394,17 +1424,37 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     setDayHandsOn(on: boolean) {
+      if (!on && root.classList.contains('is-hands-on')) {
+        guideGeneration++;
+        pendingGuide = null;
+        narrator.stop();
+      }
       root.classList.toggle('is-hands-on', on);
       turnButton.classList.toggle('is-hidden', !on);
       turnCoach.classList.toggle('is-hidden', !on);
       if (on) {
-        headingCaption.textContent = 'Turn Earth. Take the little house into night.';
+        headingCaption.textContent = 'Turn Earth. Watch your house.';
         spinLabel.textContent = 'Done';
       }
+      if (on) this.setDayState('day');
+      else {
+        dayKey.textContent = 'Day';
+        dayLegend.removeAttribute('aria-label');
+        dayLegend.removeAttribute('role');
+      }
+      dayLegend.classList.toggle('is-house-state', on);
     },
 
     setDayCaption(text: string) {
       if (root.classList.contains('is-hands-on')) headingCaption.textContent = text;
+    },
+
+    setDayState(state: 'day' | 'night' | 'morning') {
+      dayKey.classList.toggle('is-current', state !== 'night');
+      nightKey.classList.toggle('is-current', state === 'night');
+      dayKey.textContent = state === 'morning' ? 'Morning!' : 'Day';
+      dayLegend.setAttribute('role', 'img');
+      dayLegend.setAttribute('aria-label', `Your house: ${state}`);
     },
 
     setMapInvite(on: boolean) {
@@ -1529,6 +1579,9 @@ export function createUI(options: UIOptions): GameUI {
       finale = null;
       setHomeAvailable(false);
       spinButton.classList.add('is-hidden');
+      moonJump.close();
+      jumpButton.classList.add('is-hidden');
+      visitActions.classList.remove('has-toy');
       spinBusy = false;
       spinLabel.textContent = 'Day & night';
       spinButton.disabled = false;

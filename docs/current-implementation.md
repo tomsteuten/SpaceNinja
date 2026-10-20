@@ -1,5 +1,20 @@
 # Current implementation and handover
 
+## Earth feedback and rule cleanup — 20 October 2026
+
+Built on main `36a99d7`, on `codex/earth-day-feedback`. The house is larger, with clearer
+lit windows, a smaller offset gesture coach and a day/night/morning state indicator.
+Four bundled local Kokoro cues now acknowledge the activity; current feedback interrupts
+stale guidance. Muted play retains the visual feedback, and both exits remain immediate.
+Owner-authorized decision revisions are explicit; the handover no longer prescribes a
+hidden Space map or full turn. A single-set fixture checks the three-place world contract.
+Validation: typecheck, 340 unit tests, production build and 16 distinct focused browser
+checks passed across phone, tablet and short landscape (two inapplicable cases skipped).
+A repeated phone caption-overlap failure was fixed and both affected phone checks passed.
+Full-resolution comparisons and audio: `design/wave-1/earth-feedback-2026-10-19/index.html`.
+Owner visual review, target-tablet listening and child observation remain pending.
+Changes are local; this is the Earth feedback refinement, not completion of all Wave 1 work.
+
 ## Graphics recovery integration — 17 October 2026
 
 Integrated with main `1a0a2b1`: WebGL loss now uses the existing crash lifecycle,

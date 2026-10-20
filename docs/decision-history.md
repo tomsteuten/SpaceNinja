@@ -3,6 +3,23 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-19 — Finish Earth's feedback and distinguish design tests from invariants
+
+The owner authorized the repository review's Earth improvements and clear-cut supporting
+fixes. The review found the house small beside its gesture coach and the new activity cues
+unrecorded. The house is enlarged, its lit windows and night outline strengthened, the coach
+reduced and moved clear, and a current-state highlight distinguishes day, night and morning.
+Four bundled local Kokoro cues complete the activity's essential spoken feedback; a new
+state interrupts stale activity narration. Done and Space map remain immediate exits.
+
+The expansion tests allowed a three-place authored set but still demanded four possible
+arrivals and random variation. A single-set fixture now exercises the same reachability,
+placement and selection checks while variety assertions apply only to multi-visit pools.
+The original handover's hidden-map/full-turn instruction is replaced with the current
+night-and-morning invitation. DECISIONS.md now permits explicit owner-authorized revisions
+using browser/device evidence or owner judgement, with child evidence still strongest.
+These changes do not claim child comprehension or target-tablet audio approval.
+
 ## 2026-10-17 — The map-return guard measures from the last press
 
 The 14 October guard started its 1.2 seconds when the map appeared and blocked the old

@@ -4,12 +4,52 @@
   "voice": "Emma",
   "voiceId": "56bWURjYFHyYyVf490Dp",
   "model": "eleven_multilingual_v2",
-  "disclosure": "The included narration uses ElevenLabs AI voice Emma, except the Sun arrival, generated locally with Kokoro bf_emma.",
+  "disclosure": "The included narration uses ElevenLabs AI voice Emma, with local Kokoro bf_emma cues for the Sun arrival and Earth's day/night activity.",
   "exceptions": {
     "arrival-sun": {
       "provider": "Kokoro",
       "voice": "bf_emma",
       "model": "onnx-community/Kokoro-82M-v1.0-ONNX"
+    },
+    "day-night-start": {
+      "kind": "ai",
+      "provider": "Kokoro",
+      "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+      "voice": "bf_emma",
+      "speed": 0.95,
+      "modelLicense": "Apache-2.0",
+      "modelSource": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "disclosure": "The included narration uses Kokoro's British English bf_emma AI voice."
+    },
+    "day-night-night": {
+      "kind": "ai",
+      "provider": "Kokoro",
+      "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+      "voice": "bf_emma",
+      "speed": 0.95,
+      "modelLicense": "Apache-2.0",
+      "modelSource": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "disclosure": "The included narration uses Kokoro's British English bf_emma AI voice."
+    },
+    "day-night-moon": {
+      "kind": "ai",
+      "provider": "Kokoro",
+      "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+      "voice": "bf_emma",
+      "speed": 0.95,
+      "modelLicense": "Apache-2.0",
+      "modelSource": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "disclosure": "The included narration uses Kokoro's British English bf_emma AI voice."
+    },
+    "day-night-done": {
+      "kind": "ai",
+      "provider": "Kokoro",
+      "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+      "voice": "bf_emma",
+      "speed": 0.95,
+      "modelLicense": "Apache-2.0",
+      "modelSource": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "disclosure": "The included narration uses Kokoro's British English bf_emma AI voice."
     }
   }
 }

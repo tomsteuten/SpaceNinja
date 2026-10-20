@@ -28,10 +28,11 @@ Judge changes in this order:
 4. Does it remain forgiving, accessible, private and usable offline?
 5. Is the implementation correct, maintainable and fast enough on the target device?
 
-Fresh *child* observation, reported by the owner, outranks an old design decision. A previous
-failure explains risk; it does not permanently forbid every alternative. When child playtest
-feedback conflicts with a current UI choice, change the choice while preserving any
-independently tested correctness property. AI or adult judgement alone does not.
+Fresh child observation, reported by the owner, carries the most weight. The owner may also
+authorize revisions based on reproducible usability problems, device measurements or owner
+judgement; see DECISIONS.md. A previous failure explains risk without permanently forbidding
+alternatives. Preserve independently tested correctness properties when changing a UI choice,
+and report child comprehension as unverified until observed.
 
 ## Rules have different strength
 
@@ -40,6 +41,8 @@ Do not treat every note as an invariant.
 - **Product constraints** protect the audience: generous touch targets, immediate feedback,
   low reading burden, no dead ends, privacy and accessibility.
 - **Correctness invariants** prevent reproducible bugs and should normally be backed by tests.
+  A test of a current layout, count or sequence does not make that design choice permanent;
+  revise such tests with an authorized change while retaining safety and reachability checks.
 - **Design choices** are the current solution, not law. Replace them when a clearer design
   preserves the product constraints.
 

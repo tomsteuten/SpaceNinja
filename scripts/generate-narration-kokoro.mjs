@@ -8,7 +8,7 @@
 
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -22,6 +22,11 @@ const scriptPath = join(root, 'src/audio/narration-script.json');
 const outputDirectory = join(root, 'src/audio/recordings');
 const definition = JSON.parse(await readFile(scriptPath, 'utf8'));
 const force = process.argv.includes('--force');
+const only = process.argv.filter(argument => argument.startsWith('--only='))
+  .flatMap(argument => argument.slice('--only='.length).split(','));
+for (const cue of only) {
+  if (!Object.hasOwn(definition.cues, cue)) throw new Error(`Unknown narration cue: ${cue}`);
+}
 const requestedVoice = process.argv.find((argument) => argument.startsWith('--voice='));
 const requestedSpeed = process.argv.find((argument) => argument.startsWith('--speed='));
 const voice = requestedVoice?.slice('--voice='.length) || definition.kokoro.voice;
@@ -38,7 +43,7 @@ if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) {
 
 await mkdir(outputDirectory, { recursive: true });
 const pending = Object.entries(definition.cues).filter(
-  ([cueId]) => force || !existsSync(join(outputDirectory, `${cueId}.mp3`)),
+  ([cueId]) => (!only.length || only.includes(cueId)) && (force || !existsSync(join(outputDirectory, `${cueId}.mp3`))),
 );
 
 if (pending.length === 0) {
@@ -60,8 +65,9 @@ try {
   for (const [cueId, input] of pending) {
     const wav = join(temporaryDirectory, `${cueId}.wav`);
     const output = join(outputDirectory, `${cueId}.mp3`);
+    const temporaryOutput = join(temporaryDirectory, `${cueId}.mp3`);
     const audio = await tts.generate(input, { voice, speed });
-    audio.save(wav);
+    await audio.save(wav);
     await run('ffmpeg', [
       '-nostdin',
       '-y',
@@ -79,8 +85,9 @@ try {
       '64k',
       '-metadata',
       `title=${cueId}`,
-      output,
+      temporaryOutput,
     ]);
+    await rename(temporaryOutput, output);
     process.stdout.write(`wrote ${cueId}.mp3\n`);
   }
 } catch (error) {
@@ -92,23 +99,25 @@ try {
   await rm(temporaryDirectory, { recursive: true, force: true });
 }
 
-await writeFile(
-  join(outputDirectory, 'provenance.json'),
-  JSON.stringify(
-    {
-      kind: 'ai',
-      provider: 'Kokoro',
-      model: definition.kokoro.model,
-      voice,
-      speed,
-      modelLicense: 'Apache-2.0',
-      modelSource: 'https://huggingface.co/hexgrad/Kokoro-82M',
-      disclosure: `The included narration uses Kokoro's ${voiceLocale} ${voice} AI voice.`,
-    },
-    null,
-    2,
-  ) + '\n',
-);
+const provenancePath = join(outputDirectory, 'provenance.json');
+const previous = existsSync(provenancePath) ? JSON.parse(await readFile(provenancePath, 'utf8')) : null;
+const generated = {
+  kind: 'ai',
+  provider: 'Kokoro',
+  model: definition.kokoro.model,
+  voice,
+  speed,
+  modelLicense: 'Apache-2.0',
+  modelSource: 'https://huggingface.co/hexgrad/Kokoro-82M',
+  disclosure: `The included narration uses Kokoro's ${voiceLocale} ${voice} AI voice.`,
+};
+// A few local cues must not relabel the owner's existing ElevenLabs recordings.
+const provenance = previous && previous.provider !== 'Kokoro'
+  ? { ...previous, exceptions: { ...previous.exceptions,
+      ...Object.fromEntries(pending.map(([id]) => [id, generated])) },
+      disclosure: `The included narration uses ${previous.provider} AI voice ${previous.voice}, with selected cues generated locally using Kokoro ${voice}.` }
+  : generated;
+await writeFile(provenancePath, JSON.stringify(provenance, null, 2) + '\n');
 
 process.stdout.write(
   `Generated ${pending.length} Kokoro narration cues with ${voice}. ` +
