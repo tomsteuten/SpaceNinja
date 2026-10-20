@@ -19,6 +19,8 @@
     "preview:playtest": "vite preview --outDir dist-playtest --host 127.0.0.1 --port 4180 --strictPort"
   },
   "dependencies": {
+    "@fontsource/andika": "^5.3.0",
+    "@fontsource/patrick-hand": "^5.3.0",
     "three": "^0.185.1"
   },
   "devDependencies": {
