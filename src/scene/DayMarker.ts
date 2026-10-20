@@ -13,7 +13,7 @@ import * as THREE from 'three';
 /** Height above the surface, in body radii, so the badge never sinks into the globe. */
 const LIFT = 1.08;
 /** Drawn size, in body radii. Readable on a phone without covering a continent. */
-const SIZE = 0.3;
+const SIZE = 0.6;
 const POP_SECONDS = 0.45;
 
 export interface DayMarker {
@@ -27,6 +27,8 @@ export interface DayMarker {
   outward(target: THREE.Vector3): THREE.Vector3;
   /** World position, for the browser-test snapshot. */
   position(target: THREE.Vector3): THREE.Vector3;
+  /** Current world-space width, including the brief acknowledgement. */
+  readonly width: number;
   detach(): void;
   dispose(): void;
 }
@@ -44,6 +46,9 @@ function drawHouse(lit: boolean): THREE.Texture | null {
   g.beginPath();
   g.arc(64, 70, 52, 0, Math.PI * 2);
   g.fill();
+  g.strokeStyle = lit ? '#243f60' : '#c7dcf5';
+  g.lineWidth = 4;
+  g.stroke();
   // House.
   g.fillStyle = lit ? '#4f8fc0' : '#2f4f7a';
   g.strokeStyle = '#13243f';
@@ -52,9 +57,10 @@ function drawHouse(lit: boolean): THREE.Texture | null {
   g.closePath();
   g.fill();
   g.stroke();
-  // Window: dark by day, lit at night, which is the city-lights story in one square.
+  // Windows: dark by day, lit at night, bringing the city-lights story into one house.
   g.fillStyle = lit ? '#1d3354' : '#ffd66b';
-  g.fillRect(55, 70, 18, 16);
+  g.fillRect(44, 70, 16, 20);
+  g.fillRect(68, 70, 16, 20);
   // Badge.
   if (lit) {
     g.fillStyle = '#ffc93c';
@@ -105,6 +111,7 @@ export function createDayMarker(): DayMarker {
 
   return {
     get attached() { return sprite.parent !== null; },
+    get width() { return sprite.scale.x; },
 
     attach(surface, radius, worldDirection) {
       textures();

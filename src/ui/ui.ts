@@ -75,9 +75,9 @@ export interface GameUI {
   /**
    * Queue a guide without replacing the current fact, such as a day/night explanation or
    * invitation. Waits behind whatever is being read, as the hunt line does,
-   * and only authored audio starts by itself.
+    * and only authored audio starts by itself. Immediate state feedback may interrupt.
    */
-  speakGuide(text: string, cueId: string): void;
+  speakGuide(text: string, cueId: string, interrupt?: boolean): void;
   /**
    * A place has been found: name it, and put it in the journal.
    *
@@ -149,6 +149,8 @@ export interface GameUI {
    * while the hands-on turn is open; Done and Space map stay exactly where they are.
    */
   setDayCaption(text: string): void;
+  /** House state, also visible without sound or reading the instruction. */
+  setDayState(state: 'day' | 'night' | 'morning'): void;
   /** The Space map control's gentle "this way next" emphasis, without moving or hiding it. */
   setMapInvite(on: boolean): void;
   dismissTurnCoach(): void;
@@ -332,7 +334,9 @@ export function createUI(options: UIOptions): GameUI {
   missionHud.append(slotRow, missionCaption);
   root.append(missionHud);
   const dayLegend = el('div', 'day-legend is-hidden');
-  dayLegend.append(el('span', 'day-key', 'Day'), el('span', 'night-key', 'Night'));
+  const dayKey = el('span', 'day-key', 'Day');
+  const nightKey = el('span', 'night-key', 'Night');
+  dayLegend.append(dayKey, nightKey);
   root.append(dayLegend);
 
   let slots: HTMLElement[] = [];
@@ -918,6 +922,7 @@ export function createUI(options: UIOptions): GameUI {
   let currentFact = '';
   let currentFactCueId: string | null = null;
   let pendingGuide: PendingGuide | null = null;
+  let guideGeneration = 0;
 
   /**
    * Say a guide line with no card: wait behind whatever is being read, and only ever start a
@@ -956,9 +961,10 @@ export function createUI(options: UIOptions): GameUI {
       if (action.kind === 'speak-guide') {
         pendingGuide = null;
         const { guide } = action;
+        const generation = guideGeneration;
         // A breath after the discovery rather than two recordings joined into one sentence.
         later(() => {
-          if (soundOn) narrator.speak(guide.text, guide.cueId, false);
+          if (soundOn && generation === guideGeneration) narrator.speak(guide.text, guide.cueId, false);
         }, 350);
       } else {
         // Fold away shortly after the reading finishes rather than on a fixed timer, so the
@@ -1263,7 +1269,13 @@ export function createUI(options: UIOptions): GameUI {
       if (cueId) this.speakGuide(text, cueId);
     },
 
-    speakGuide(text: string, cueId: string) {
+    speakGuide(text: string, cueId: string, interrupt = false) {
+      if (interrupt) {
+        // The house has changed now; stale queued descriptions must not follow it.
+        guideGeneration++;
+        pendingGuide = null;
+        narrator.stop();
+      }
       playGuide(text, cueId);
     },
 
@@ -1394,17 +1406,37 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     setDayHandsOn(on: boolean) {
+      if (!on && root.classList.contains('is-hands-on')) {
+        guideGeneration++;
+        pendingGuide = null;
+        narrator.stop();
+      }
       root.classList.toggle('is-hands-on', on);
       turnButton.classList.toggle('is-hidden', !on);
       turnCoach.classList.toggle('is-hidden', !on);
       if (on) {
-        headingCaption.textContent = 'Turn Earth. Take the little house into night.';
+        headingCaption.textContent = 'Turn Earth. Watch your house.';
         spinLabel.textContent = 'Done';
       }
+      if (on) this.setDayState('day');
+      else {
+        dayKey.textContent = 'Day';
+        dayLegend.removeAttribute('aria-label');
+        dayLegend.removeAttribute('role');
+      }
+      dayLegend.classList.toggle('is-house-state', on);
     },
 
     setDayCaption(text: string) {
       if (root.classList.contains('is-hands-on')) headingCaption.textContent = text;
+    },
+
+    setDayState(state: 'day' | 'night' | 'morning') {
+      dayKey.classList.toggle('is-current', state !== 'night');
+      nightKey.classList.toggle('is-current', state === 'night');
+      dayKey.textContent = state === 'morning' ? 'Morning!' : 'Day';
+      dayLegend.setAttribute('role', 'img');
+      dayLegend.setAttribute('aria-label', `Your house: ${state}`);
     },
 
     setMapInvite(on: boolean) {

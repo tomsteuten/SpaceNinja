@@ -1,9 +1,9 @@
 # Handover: lock the decisions, then expand the solar system (15 October 2026)
 
 This handover replaces open-ended planning. The owner (Tom) has **approved every decision
-below**. Do not re-open them, do not write new proposals, studies or design reviews, and
-do not ask for approval of anything in this file. Ask only when something here is impossible
-or contradicts a correctness invariant backed by a test.
+below**. Follow the current DECISIONS.md and any later owner-authorized revisions.
+Do not restart open-ended planning or ask again for decisions already authorized.
+Report implementation blockers and preserve tested correctness properties.
 
 Read `AGENTS.md` and `docs/current-implementation.md` first for commands and verification,
 then work through the waves below **in order, one wave per session**. Stop at the end of each
@@ -21,46 +21,11 @@ ship in waves.
 
 ## Wave 0: Housekeeping (small, do first)
 
-### 0.1 Create `DECISIONS.md` at the repo root, verbatim
+### 0.1–0.2 Decision and operating guidance — completed
 
-```markdown
-# Locked decisions
-
-Each line is LOCKED. A locked line changes only when the owner reports child evidence
-against it (what the child did, not an opinion). AI or adult judgement alone never reopens
-a locked line. Record a change here with the date and the evidence.
-
-1. LOCKED: The guided adventure at `/` is the only product route. `?explorer`, `?freeflight`,
-   `?outing` and `?mapstudy` are frozen and removed (recoverable from tag `pre-freeze`).
-2. LOCKED: The Space map uses paged neighbourhoods. Earth & Moon is the start page.
-   Page order: Inner planets (Mercury, Venus, Mars) · Earth & Moon (with the Sun) ·
-   Jupiter & moons · Saturn & Titan · Ice giants (Uranus, Neptune) · Small worlds (Pluto, Ceres).
-3. LOCKED: Moons belong to their parent planet's page and orbit their parent in the scene.
-4. LOCKED: The first session is a short rail: land on Earth → the child turns day/night
-   themselves → the Space map opens. After that, the game is open. Grown-ups and Stop are
-   always available.
-5. LOCKED: Gas and ice giants show orbital/cloud features only. No landing, no invented ground.
-6. LOCKED: New worlds carry 3 discovery places (one visit set). Existing worlds keep 6.
-7. LOCKED: During building, narration uses Kokoro (local, free). One paid ElevenLabs pass
-   covers all new cues at the end, as a separate owner-approved step.
-8. LOCKED: Visual approval happens once per wave, from one screenshot set, not per change.
-9. LOCKED: World content (places, coordinates, facts, photo sources) is written in
-   `content/worlds.md` before code. Building a world means filling the template from it.
-```
-
-### 0.2 Update `AGENTS.md`
-
-- Point to `DECISIONS.md` near the top: "Read `DECISIONS.md` first. Its lines outrank
-  everything else in this file except tested correctness invariants."
-- Soften "Fresh observation outranks an old design decision" to apply only to **child**
-  observation reported by the owner.
-- Replace the per-change visual approval rule with: "Collect full-resolution
-  (`deviceScaleFactor: 1`) captures on phone, tablet and short landscape for every screen the
-  wave changed, in one folder `design/wave-N/`, and send them once at the end of the wave."
-  Keep "never self-approve appearance."
-- Add: "Do not create new docs, studies, prototypes or experiment routes. At the end of a
-  wave, update the checkpoint at the top of `docs/current-implementation.md` in at most
-  15 lines."
+DECISIONS.md and AGENTS.md are the authoritative current guidance. Their revision policy
+was clarified by the owner-authorized review on 19 October. The old duplicated decision
+block is removed here so it cannot restore a superseded rail or approval requirement.
 
 ### 0.3 Freeze the experiments
 
@@ -106,12 +71,12 @@ Settle the loop before any new world, so later fixes are not multiplied.
 
 ### 1.1 First-session rail (Decision 4)
 
-On a fresh save: arrive at Earth, and the day/night turn is the first activity. The child
-drags it themselves; existing tap/Turn Earth assists stay. Completing one turn plays a clear
-"you did it" beat and **then** reveals and highlights the Space map control, suggesting the
-Moon. Until then, the Space map control is not shown. Grown-ups and Stop stay visible.
-Later sessions keep today's open behaviour. Existing saves that already have Earth progress
-skip the rail. Cover it with an e2e check on phone and tablet.
+On a fresh save, Earth offers the hands-on activity or Find places. The child moves a
+marked house into night and back into morning using drag or the existing tap/Turn Earth
+assist. A brief acknowledgement then suggests the Moon. No full turn is required and no
+lesson completion is saved. Space map and Done remain available in stable positions;
+leaving early never requires finishing the lesson. Later visits remain open-ended.
+Cover the feedback, early exit and camera hand-back on phone, tablet and short landscape.
 
 ### 1.2 Make paging the default map (Decision 2)
 
@@ -172,7 +137,8 @@ Hand the tablet over with no instructions. Watch, don't help, and note answers t
 2. After the map opened, did they find and fly to another page on their own?
 3. Did they stop to look at a discovery photo or listen, or tap straight past it?
 
-Report what the child did. That is the only input that can change a locked decision.
+Report what the child did. Use the revision policy in DECISIONS.md; distinguish child
+evidence from owner judgement and browser verification.
 
 ## Rules of thumb for every session
 

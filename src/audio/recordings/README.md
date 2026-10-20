@@ -7,7 +7,10 @@ example `arrival-earth.mp3`, `discovery-earth-sahara.mp3`, or `spin-earth.mp3`.
 chosen by the owner by ear, from `../narration-script.json`, which is the one manifest (stable
 id, spoken text; the filename is the id). The committed pack uses the Australian voice **Emma**
 (`eleven_multilingual_v2`). The Sun arrival uses a Kokoro `bf_emma` per-cue exception,
-recorded in `provenance.json`. The API key is read only from the
+recorded in `provenance.json`. On 19 October, the four `day-night-*` activity cues were
+also generated locally with Kokoro `bf_emma` at speed 0.95. They cover entering the activity,
+night, first-visit morning and later-visit morning; all four are bundled for offline use.
+Physical-tablet listening remains pending. The API key is read only from the
 `ELEVENLABS_API_KEY` environment variable and is never printed, logged or committed.
 
 Vite fingerprints imported recordings and the existing service-worker build precaches them
@@ -50,7 +53,10 @@ the grown-ups panel; the sentence names the actual voice.
 
 `npm run narration:generate:kokoro` creates the pack locally with the Apache-2.0 Kokoro-82M
 model. It needs `ffmpeg` but no account or API key, and accepts `--voice=<name>` and
-`--speed=<number>`. Kokoro-82M has no Australian voice; its English options are American
+`--speed=<number>`. Use `--only=cue-a,cue-b` (or repeated `--only` flags) to generate a subset;
+`--force` replaces only that subset when supplied. Subset generation preserves the existing
+pack's provenance and records Kokoro exceptions for the generated cues. MP3s are written
+through temporary files. Kokoro-82M has no Australian voice; its English options are American
 (`af_`/`am_`) and British (`bf_`/`bm_`), so its earlier pack used British `bf_emma` as the
 closest fallback. Its toolchain is **not** a committed dependency — that would put
 `onnxruntime`, `sharp` and `@huggingface/transformers` (~98 packages, hundreds of MB of native

@@ -57,6 +57,8 @@ const WORLDS: Array<[string, Discovery[], number, boolean]> = Object.entries(DES
     return [id, config.mission!.discoveries, radius, Boolean(config.mission!.singleSet)];
   },
 );
+// Exercise the expansion contract now, before a new world is added to the catalogue.
+WORLDS.push(['single-set fixture', authoredSet(DESTINATIONS.earth!.mission!.discoveries), EARTH_RADIUS, true]);
 
 /** The rules, checked directly rather than through the function under test. */
 function assertPlays(set: readonly Discovery[], radius: number) {
@@ -120,7 +122,12 @@ describe.each(WORLDS)('%s', (_id, pool, radius, singleSet) => {
     }
   });
 
-  it('offers several genuinely different arrivals', () => {
+  it('offers arrival variety for multi-visit pools and one playable authored set for single-set worlds', () => {
+    // One authored set deliberately repeats. Variety belongs to multi-visit pools.
+    if (singleSet) {
+      expect(isPlayableSet(pool, radius)).toBe(true);
+      return;
+    }
     // Two would technically vary and would still feel like the same world twice.
     expect(playableSets(pool, radius).length).toBeGreaterThanOrEqual(4);
   });
@@ -170,7 +177,7 @@ describe.each(WORLDS)('%s', (_id, pool, radius, singleSet) => {
     }
   });
 
-  it('varies across rolls rather than always returning one set', () => {
+  it('varies multi-visit pools across rolls and preserves a single authored set', () => {
     const seen = new Set<string>();
     for (let roll = 0; roll < 24; roll++) {
       seen.add(
@@ -179,7 +186,8 @@ describe.each(WORLDS)('%s', (_id, pool, radius, singleSet) => {
           .join(),
       );
     }
-    expect(seen.size).toBeGreaterThan(1);
+    if (singleSet) expect(seen.size).toBe(1);
+    else expect(seen.size).toBeGreaterThan(1);
   });
 });
 

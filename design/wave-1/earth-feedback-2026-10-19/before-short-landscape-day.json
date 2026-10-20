@@ -1,0 +1,49 @@
+{
+  "phase": "arrived",
+  "mapBodyIds": [
+    "sun",
+    "earth",
+    "moon"
+  ],
+  "world": "earth",
+  "draws": 1,
+  "frame": 472,
+  "speaking": false,
+  "guidedHunt": false,
+  "cameraReturning": false,
+  "dayTurning": true,
+  "handsOnDay": true,
+  "earthWelcome": false,
+  "bodyScreen": {
+    "x": 489.61196280560637,
+    "y": 172.46941491956014,
+    "radius": 105.34142606063192
+  },
+  "teachingSun": {
+    "visible": true,
+    "x": 207.21354873310327,
+    "y": 172.4694149195601,
+    "radius": 35.27324500812715
+  },
+  "surfaceRotation": -0.7671509607022429,
+  "daySpot": {
+    "x": 456.8198247344753,
+    "y": 214.90518809287005,
+    "radius": 0,
+    "lit": true,
+    "roundTrip": false,
+    "facing": 0.9365882802925595,
+    "sunlight": 0.5012915998822358
+  },
+  "mapInvite": false,
+  "mapReturnGuarded": false,
+  "bodyScreenRadius": 105.34142606063192,
+  "collected": 0,
+  "ids": [
+    "earth-sahara",
+    "earth-amazon",
+    "earth-nightside"
+  ],
+  "targets": [],
+  "hidden": null
+}

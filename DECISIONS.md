@@ -1,8 +1,10 @@
 # Locked decisions
 
-Each line is LOCKED. A locked line changes only when the owner reports child evidence
-against it (what the child did, not an opinion). AI or adult judgement alone never reopens
-a locked line. Record a change here with the date and the evidence.
+These decisions are locked against unrequested redesign. The owner may authorize a revision
+based on child observation, reproducible usability problems, device measurements or owner
+judgement. Child observation carries the most weight; AI suggestions are proposals until
+authorized. Preserve correctness properties when revising a design choice. Record the date,
+reason and any evidence still missing here.
 
 1. LOCKED: The guided adventure at `/` is the only product route. `?explorer`, `?freeflight`,
    `?outing` and `?mapstudy` are frozen and removed (recoverable from tag `pre-freeze`).
@@ -24,6 +26,11 @@ a locked line. Record a change here with the date and the evidence.
    `content/worlds.md` before code. Building a world means filling the template from it.
 
 ## Changes
+
+- 2026-10-19: owner authorized the review's Earth interaction improvements and clear-cut
+  supporting fixes. Clarified the revision policy above and reconciled the old Wave 1 rail
+  instructions with line 4. Browser evidence supports implementation, not child comprehension;
+  physical-tablet listening and observation remain pending.
 
 - 2026-10-16, line 4: the rail's trigger changed from "completes one turn, then Space map is
   revealed" to "a marked spot goes into night and back into morning", with Space map always

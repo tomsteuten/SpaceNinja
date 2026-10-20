@@ -302,6 +302,9 @@ async function main() {
     if (follow === 'earth') startDaySpot(body);
     dayTurn.start(body, undefined, follow === 'earth');
     ui.setDayHandsOn(follow === 'earth');
+    if (follow === 'earth') {
+      ui.speakGuide(cueText('day-night-start'), 'day-night-start', true);
+    }
   }
 
   /**
@@ -327,16 +330,19 @@ async function main() {
   /** Words for what the child has just seen; spoken only the first time in a turn. */
   function acknowledgeDaySpot(event: DayEvent) {
     dayMarker.setLit(event !== 'night', !reducedMotion);
+    ui.setDayState(event === 'night' ? 'night' : 'morning');
     if (event === 'night') {
-      ui.setDayCaption('Night time! The lights come on.');
-      if (!nightSpoken) ui.speakGuide(cueText('day-night-night'), 'day-night-night');
+      ui.setDayCaption('Night time! Bring back morning.');
+      if (!nightSpoken) {
+        ui.speakGuide(cueText('day-night-night'), 'day-night-night', true);
+      }
       nightSpoken = true;
       return;
     }
     const next = dayRail ? 'day-night-moon' : 'day-night-done';
     ui.setDayCaption(dayRail ? 'Morning again! Next, fly to the Moon.' : 'Morning again! Turn more, or tap Done.');
     if (event === 'roundTrip') {
-      ui.speakGuide(cueText(next), next);
+      ui.speakGuide(cueText(next), next, true);
       if (dayRail) ui.setMapInvite(true);
     }
   }
@@ -1264,7 +1270,7 @@ async function main() {
         daySpot: dayMarker.attached ? (() => {
           const position = dayMarker.position(new THREE.Vector3());
           const outward = dayMarker.outward(new THREE.Vector3());
-          return { ...screenCircle(position, 0), lit: dayWatch.lit, roundTrip: dayWatch.roundTrip,
+          return { ...screenCircle(position, dayMarker.width / 2), lit: dayWatch.lit, roundTrip: dayWatch.roundTrip,
             facing: outward.dot(camera.position.clone().sub(center).normalize()),
             sunlight: outward.dot(SUN_DIRECTION) };
         })() : null,
