@@ -3,6 +3,21 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-20 — Toys first, instead of adding worlds in waves
+
+The owner changed direction: stop adding worlds sideways and give each destination one
+hands-on toy that teaches one big idea with real numbers. The Moon jump was the first, and
+the Storybook crayons restyle was chosen as the visual style. Five worlds plus a growing
+wave plan had produced breadth without a reason to come back; the toy is meant to be that
+reason. `docs/toys.md` replaces the 15 October expansion handover. DECISIONS.md is now a
+short list of current decisions (toys first, crayons style, real imagery, no invented ground
+on giants, Kokoro while building). The old locks on map pages, the first-session rail, three
+places per new world, writing `content/worlds.md` before code and once-per-wave visual
+approval are no longer locked: the code keeps working as built, and visual changes are now
+reviewed per screen. AGENTS.md drops the wave plan and the ban on new docs and prototypes,
+and records the owner's standing permissions so every assistant follows them. No child
+evidence yet; the next child playtest decides whether toys keep children coming back.
+
 ## 2026-10-19 — Finish Earth's feedback and distinguish design tests from invariants
 
 The owner authorized the repository review's Earth improvements and clear-cut supporting

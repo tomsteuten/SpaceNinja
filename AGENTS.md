@@ -1,18 +1,9 @@
 # Working on Space Ninja
 
-Context for an assistant picking this project up cold. `CLAUDE.md` points here so other
-coding assistants read the same guidance. Read `README.md` for the product overview.
-
-**Read [`DECISIONS.md`](DECISIONS.md) first. Its lines outrank everything else in this file
-except tested correctness invariants.** The current work plan is
-[`docs/handover-2026-10-15-expansion.md`](docs/handover-2026-10-15-expansion.md): one wave per
-session, stopping at the end of each wave for owner review.
-
-Do not create new docs, studies, prototypes or experiment routes. At the end of a wave,
-update the checkpoint at the top of `docs/current-implementation.md` in at most 15 lines.
-
-This file deliberately contains only current operating guidance. Historical decisions and
-the September 2026 rule audit live in `docs/decision-history.md`.
+Context for an assistant picking this project up cold. `CLAUDE.md` points here so Claude,
+Codex and Gemini read the same guidance. `README.md` has the product overview,
+[`DECISIONS.md`](DECISIONS.md) the current product decisions, and
+[`docs/toys.md`](docs/toys.md) the plan of work. History lives in `docs/decision-history.md`.
 
 ## Product north star
 
@@ -28,26 +19,39 @@ Judge changes in this order:
 4. Does it remain forgiving, accessible, private and usable offline?
 5. Is the implementation correct, maintainable and fast enough on the target device?
 
-Fresh child observation, reported by the owner, carries the most weight. The owner may also
-authorize revisions based on reproducible usability problems, device measurements or owner
-judgement; see DECISIONS.md. A previous failure explains risk without permanently forbidding
-alternatives. Preserve independently tested correctness properties when changing a UI choice,
-and report child comprehension as unverified until observed.
+Fresh child observation, reported by the owner, carries the most weight. Report child
+comprehension, tablet performance and listening as unverified until observed.
 
-## Rules have different strength
+Correctness invariants (below) are backed by tests and hold through any redesign. Everything
+else (layouts, button order, copy) is the current design, not law: replace it when a clearer
+design keeps the child safe, unblocked and able to get back to the Space map.
 
-Do not treat every note as an invariant.
+## Working agreement
 
-- **Product constraints** protect the audience: generous touch targets, immediate feedback,
-  low reading burden, no dead ends, privacy and accessibility.
-- **Correctness invariants** prevent reproducible bugs and should normally be backed by tests.
-  A test of a current layout, count or sequence does not make that design choice permanent;
-  revise such tests with an authorized change while retaining safety and reachability checks.
-- **Design choices** are the current solution, not law. Replace them when a clearer design
-  preserves the product constraints.
+These hold for every assistant, not only the one the owner last briefed.
 
-Document an important reversal in `docs/decision-history.md`, including what evidence changed
-the decision. Do not append a new prohibition to this file for every bug fix.
+- Commit and push freely to your own branches.
+- Push or merge to `main` once `npm run typecheck` and `npm test` pass. The deploy workflow
+  runs the full browser suite and blocks publishing on any failure; check the run afterwards
+  and fix it if it failed. Runs queue: each waits for the previous one to finish.
+- Visual changes: show the owner before/after screenshots, one screen at a time, before
+  merging, unless the owner has already approved that look. Never self-approve appearance.
+- Ask first before spending money, creating accounts, deleting the owner's data or changing
+  the product direction.
+- Prefer small focused commits. Write a doc only when it saves the next person real time;
+  shorter is better. When you finish a piece of work, add a checkpoint of at most ten lines
+  at the top of `docs/current-implementation.md`.
+- Art: prefer free CC0 assets (Kenney, Quaternius) and NASA 3D models. Paid tools and
+  commissioned art are out of scope for now. The mascot is undecided.
+
+## Owner's machine
+
+Windows, PowerShell 5.1 (no `&&`: one command per line); a Git Bash tool may also be available.
+No `gh` CLI: a fine-grained token for this repo is in the `GH_TOKEN` user environment variable.
+Use it with `curl` or `Invoke-RestMethod` against `api.github.com/repos/tomsteuten/SpaceNinja`
+for runs, logs, artifacts and PRs, and never print it. Don't run `python -` (the Windows stub
+waits on stdin). No GPU: WebGL renders in software, so flights take 1–2 minutes and the full
+browser suite about 50.
 
 ## Commands
 
@@ -65,73 +69,76 @@ npm run narration:generate:openai   # optional keyed alternative (needs OPENAI_A
 
 ### Testing: what to run, and when
 
-Browser runs use software WebGL with one worker and take 10–50 minutes on the owner's laptop.
-Most of that time was once spent duplicating the deploy check or chasing test-timing problems,
-while the problems the owner cared about were visual and no test could see them. So:
-
-- **Every commit:** `npm run typecheck && npm test`. Seconds.
-- **UI, gameplay, camera or layout change:** run only the Playwright file(s) covering the screen
-  you touched, and only the affected viewports, for example
-  `npx playwright test e2e/earth-day.pw.ts --project=phone`. Do not run the full suite locally.
-- **A failing browser test:** rerun it alone once before diagnosing. Machine load and sleep
-  cause false timeouts; do not fix what a clean rerun passes.
-- **Before pushing to `main`:** nothing extra. The deploy workflow runs the full unit and
-  browser suites and blocks the deploy if anything fails, so the live site is safe. Check the
-  Actions run; if it fails, download its `browser-checks` artifact, fix and push again.
-- **Visual quality is the owner's call, not yours.** Tests prove behavior and target
-  clearance, not appearance, and the suite's half-resolution software-rendered screenshots
-  are weak evidence. Collect full-resolution (`deviceScaleFactor: 1`) captures on phone,
-  tablet and short landscape for every screen the wave changed, in one folder
-  `design/wave-N/`, and send them once at the end of the wave. Never self-approve
-  appearance: never report a screen as looking good yourself.
+- **Every commit:** `npm run typecheck` and `npm test`. Seconds.
+- **UI, gameplay, camera or layout change:** run only the Playwright file(s) for the screen you
+  touched, and only the affected viewports, e.g.
+  `npx playwright test e2e/earth-day.pw.ts --project=phone`. Let CI run the rest.
+- **A failing browser test:** rerun it alone once before diagnosing; machine load causes false
+  timeouts. The Moon rotation tolerance check in `e2e/visit.pw.ts` is known to fail on slow
+  machines.
+- **After pushing to `main`:** check the Actions run; if it fails, read the job log or download
+  its `browser-checks` artifact, fix and push again.
+- **Screenshots for review:** the suite's own screenshots are half-resolution and weak evidence.
+  Use `e2e/style-capture.pw.ts`, skipped unless `STYLE_OUT` is set; in Git Bash:
+  `STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone`.
+  It captures tablet, phone and short landscape at full resolution. The browser pane's own
+  screenshots crop on the owner's high-DPI screen.
 - **"Before" screenshots:** use a temporary `git worktree` of the previous commit and run
   `npm ci` inside it. Never junction or symlink `node_modules` into it: `git worktree remove`
   follows the link and deletes the real `node_modules`.
 
+## Toys
+
+Each destination gets one hands-on toy that teaches one big idea with real numbers
+([`docs/toys.md`](docs/toys.md) has the ideas and the order). The Moon jump is the pattern:
+
+- One toy per world, self-contained in `src/toys/` (logic, overlay and its own CSS).
+- Physics and numbers are pure functions with unit tests (`jumpPhysics.ts` and its test).
+- Opened from a Jump-style button in the world's visit row, with its own crayon colour.
+- The overlay is detached from the DOM while closed, not merely hidden: tests use
+  `locator('canvas')` and expect exactly one canvas.
+- Leave the 3D scene alone; a toy is an overlay with a pictured way back.
+- One short caption at most, plus one narrated line (Kokoro while building).
+- A new visit button changes counts that tests rely on (`e2e/childFeedback.pw.ts` expects five
+  controls on the Moon). Narrow phones must still fit the row with wrapping labels and touch
+  targets of at least 54 px.
+
+## Visual style
+
+"Storybook crayons": paper, ink outlines, flat offset shadows, a slightly tilted photo snapshot
+on postcards. It lives in `src/ui/storybook.css`, loaded after `adventure.css`, with Patrick
+Hand and Andika bundled offline via `@fontsource` (Latin subsets). Each control keeps one
+crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
+
+| Control | Crayon |
+| --- | --- |
+| Space map | sky |
+| Listen | grape |
+| Day & night | grass |
+| Jump, Find places | sun |
+| Turn Earth | teal |
+| Journal | tomato |
+
+New controls take a colour from the variables at the top of `storybook.css`; add them here.
+
 ## Current child loop
 
-- The home map offers stable destination controls as well as tappable moving worlds.
-- A tap launches one journey and must acknowledge misses or locked choices.
-- The first Earth arrival offers Turn Earth or Find places; other arrivals expose discoveries
-  immediately. Finding is ambient and Space map remains available.
-- The Sun is also visitable from the start as a view from space, without a surface hunt or
-  day/night activity. Its visit uses the same camera and return lifecycle.
-- Earth, Moon, Mars and Saturn carry six real places and select three per visit, favoring unseen
-  places while requiring every authored place to remain reachable over repeated visits. New
-  worlds carry exactly three, one authored set (`mission.singleSet`).
-- A short visual coach may demonstrate tapping or looking around after inactivity.
-- Day/night is a contextual activity. It must be discoverable and understandable, especially
-  on Earth, but it must not trap the child in a long uninterruptible introduction.
-
-The visible return control is now **Space map**, with an arrow and a Sun/planet picture;
-“Fly Home” below refers to that same return route. Discovery postcards have a pictured
-world-return control as well as a large X, because child feedback found the worded exit unclear.
-First-find postcards show their saved status and visit count; the third offers See discoveries.
-The journal opens to the visited world's places page, with pictured world selectors.
-Found places open a separate story with All places, photo/audio and the world return.
-After all three finds, Journal gains the gold emphasis and Space map keeps its position.
-
-The action row is contextual: first Earth offers Space map, Turn Earth, Find places.
-Earth's hands-on day/night mode offers direct drag/tap and an accessible Turn Earth button;
-Done restores exploration. Normal visits use Space map, Listen, supported Day & night,
-Journal; Sun has three controls. Listen replays narration directly. Words beside the heading
-opens the written fact; with sound off the replay entry also becomes Words.
-The hunt arrow orbits the viewpoint without changing the surface's illumination.
-
-These are current choices, not permanent markup requirements. In particular, the destination
-bar, journal, fact card, day/night control and Fly Home may be recomposed into a clearer
-responsive control system. Protect the playfield and the child's escape route, not the
-historical position of each button.
+The home map (paged neighbourhoods) offers destination buttons and tappable moving worlds. A tap
+launches one flight; misses and locked choices are acknowledged. Arrivals show discovery places
+to find; the first Earth arrival offers Turn Earth or Find places. A visit has a contextual
+action row (Space map, Listen, Day & night where supported, a toy where built, Journal), and
+Space map is always the escape route. Discovery postcards have a pictured world-return as well
+as a large X. These are current choices: protect the playfield and the escape route, not the
+position of each button.
 
 ## Correctness invariants
 
 ### Scene lifecycle
 
-Every stateful subsystem owns a reset/dispose operation that undoes its own state. There must
-be one lifecycle coordinator so Fly Home, progress reset, crash handling and page teardown do
-not partially reset the scene. That coordinator may move out of `main.ts`; central ownership,
-not the filename, is the invariant. `src/session/lifecycle.ts` coordinates browser suspension,
-crash and disposal for the adventure. A persisted `pagehide` suspends resources for history
+Every stateful subsystem owns a reset/dispose operation that undoes its own state. One
+lifecycle coordinator handles Fly Home, progress reset, crash handling and page teardown, so
+none of them partially resets the scene. `src/session/lifecycle.ts` coordinates browser
+suspension, crash and disposal. A persisted `pagehide` suspends resources for history
 restoration; a real exit disposes them. Adventure reset remains a route-owned callback.
 
 Camera ownership is exclusive during scripted flight, home return and a day turn. Orbit or
@@ -148,70 +155,59 @@ correct. `holdSurface()` keeps a visited surface and its markers under the child
 The Moon is tidally locked through scene-graph inheritance: a constant local rotation keeps
 one face toward Earth. Do not add an independent Moon spin without rechecking that property.
 
-Arrival composition and discovery selection share the same placement maths. Automated checks
-must ensure selected targets are visible/reachable, ring targets are viewed at a readable
-inclination, and far-side targets cannot be collected through the body. Whether every visit
-must include a hidden target is a design hypothesis, not a correctness requirement.
+Arrival composition and discovery selection share the same placement maths. Selected targets
+must be visible and reachable, ring targets viewed at a readable inclination, and far-side
+targets not collectable through the body. Every authored place stays reachable over repeated
+visits.
 
-Framing must account for the *current* UI footprint and a body's visible silhouette. Saturn's
+Framing accounts for the *current* UI footprint and a body's visible silhouette. Saturn's
 `viewRadius` includes its rings. Outer-world reveal and framing gates must agree so a newly
-visible body is also navigable. The exact tiers, gates and map composition may be redesigned.
+visible body is also navigable. Unusual bodies expose explicit capabilities (rings, custom
+framing, non-spherical marker placement) rather than one-off branches.
 
-Destinations share common data, but unusual bodies may expose explicit capabilities such as
-rings, custom framing or non-spherical marker placement. Avoid one-off branches when a small
-capability models the difference clearly; do not force a false uniformity.
-
-The spaceship's authored forward direction is +Z. Any replacement model must match it or adapt
+The spaceship's authored forward direction is +Z. A replacement model must match it or adapt
 at the model boundary.
 
 ### Rendering and assets
 
 Rendering goes through `EffectComposer` so tone mapping and color conversion are consistent.
-Coarse-pointer devices begin at the medium quality tier; do not spend detail the capped pixel
-ratio cannot display. Measure on the target tablet before raising baseline cost.
+Coarse-pointer devices begin at the medium quality tier. Measure on the target tablet before
+raising baseline cost.
 
-Earth's color and roughness maps are a pair. `resolveEarthMaps()` derives roughness from the
-color map that actually loaded; independent fallback selection misaligns ocean sheen and land.
+Earth's color and roughness maps are a pair: `resolveEarthMaps()` derives roughness from the
+color map that actually loaded.
 
-Everything in `public/` ships. Reference art belongs in `design/`. Full discovery photographs
-are lazy: do not preload the full set or make the journal fetch every full image. Small
-discovery thumbnails used by controls and journal are precached separately. A missing
-photograph must produce an intentional no-photo state, never a broken image.
+Everything in `public/` ships; reference art belongs in `design/`. Full discovery photographs
+are lazy: do not preload them or make the journal fetch every full image. Small thumbnails are
+precached separately. A missing photograph produces an intentional no-photo state, never a
+broken image.
 
-Discovery photographs must be real and their provenance recorded in
+Planet imagery and discovery photographs are real, with provenance recorded in
 `public/assets/discoveries/README.txt`. Never synthesize a documentary image or attach a false
-NASA credit. An assistant may source a real image when its tools can reach and verify an
-authoritative photographic archive; inability in one shell or past environment is not a
-permanent process rule.
+NASA credit.
 
 ### Input, UI and accessibility
 
-Touch drag must apply each pointer delta once and inertia must be time-based. Hit targets may
-be much larger than their drawn controls, but far-side occlusion still applies.
+Touch drag applies each pointer delta once and inertia is time-based. Hit targets may be much
+larger than their drawn controls, but far-side occlusion still applies.
 
 Keep the center and lower-middle playfield substantially clear during normal interaction.
-Prefer one primary contextual control cluster and at most one small secondary control. Controls
-must have readable names, keyboard/focus behavior where relevant, and comfortably large touch
-areas. A child-facing route cannot depend on reading, but a short label may reinforce a visual
-or narrated action; “show, don't only tell” is guidance, not a ban on words.
-
-The reading panel keeps title, full-width words, then photograph/audio and pictured-return
-actions. It opens deliberately and leaves the normal playfield clear. A redesign may change
-this if screenshots and responsive checks demonstrate equal or better accessibility.
+Controls have readable names, keyboard/focus behavior where relevant, and large touch areas.
+A child-facing route cannot depend on reading; a short label may reinforce a picture or a
+narrated action.
 
 The photo viewer dismisses only on a fresh backdrop pointer sequence after its opening guard.
-Do not add a backdrop `click` handler: Android compatibility clicks previously closed it the
-instant it opened. Guarded pointer closes for the journal, reading panel and photo share
-`src/ui/panelGuard.ts`: no guarded close within half a second of opening, and never from
-the press that opened it, because a child's double tap was opening and closing them in one
-go. Photo and reading-panel X controls remain immediate; pictured returns use the panel
-guard. Keyboard closes are immediate.
+Do not add a backdrop `click` handler: Android compatibility clicks closed it the instant it
+opened. Guarded pointer closes for the journal, reading panel and photo share
+`src/ui/panelGuard.ts`: no guarded close within half a second of opening, and never from the
+press that opened it. Photo and reading-panel X controls remain immediate; pictured returns
+use the panel guard. Keyboard closes are immediate.
 
 ### Audio and persistence
 
-Only bundled authored narration starts automatically. Device SpeechSynthesis is manual
-fallback. Available recordings work per discovery; a missing clip must not silence a different
-recording. Written words remain available in every audio mode.
+Only bundled authored narration starts automatically. Device SpeechSynthesis is a manual
+fallback. A missing clip must not silence a different recording. Written words remain
+available in every audio mode.
 
 Continuous sounds follow the visual value every frame and stop on reset, crash and background.
 Do not schedule a wall-clock envelope that can finish before a slowed render sequence.
@@ -223,9 +219,8 @@ Counts derive from configured discovery IDs rather than a second handwritten tot
 ### Offline and failure behavior
 
 The service worker is generated from `sw/sw.js` by `sw/build.ts`. Its shell cache version
-includes `index.html` contents; media uses a separate stable cache. Small discovery thumbnails
-are precached; full discovery photographs are not. Development does not register the worker. An update may reload at the settled
-title but never interrupt active play.
+includes `index.html` contents; media uses a separate stable cache. Development does not
+register the worker. An update may reload at the settled title but never interrupt active play.
 
 Frame-loop failures stop the loop, silence continuous audio and show the reusable crash screen.
 A frozen last frame is not an acceptable error state.
@@ -233,20 +228,13 @@ A frozen last frame is not an acceptable error state.
 ## Verification notes
 
 Playwright drives an isolated `VITE_PLAYTEST=1` build. The exposed scene snapshot is read-only
-and must never appear in a normal build. Exercise boot, real pointer input, scene transitions,
-arrival, return, resize and representative phone/tablet/short-landscape viewports. Use
-`e2e/fixtures.ts` for common device setup, browser-error checks and named screenshot files.
-The suite's most valuable checks are layout clearance (controls never covering gold places)
-and lifecycle/offline edge cases; they have caught real regressions. See "Testing: what to
-run, and when" above for how much of it to run.
+and must never appear in a normal build. Use `e2e/fixtures.ts` for device setup, browser-error
+checks and named screenshots. The most valuable checks are layout clearance (controls never
+covering gold places) and lifecycle/offline edge cases.
 
-Software WebGL can stretch nominal durations because `Stage.tick` clamps large frame deltas.
-Wait for state rather than assuming a seven-second flight takes seven wall-clock seconds. Treat
-`pageerror` and console errors as failures.
-
-Automated audio graph checks can prove lifecycle and envelope behavior, not whether narration
-or sound is pleasant on a tablet speaker. Real-device listening and child observation remain
-necessary and should be reported as unverified until performed.
+Software WebGL stretches nominal durations because `Stage.tick` clamps large frame deltas: wait
+for state, not wall-clock time. Treat `pageerror` and console errors as failures. Audio checks
+prove lifecycle, not whether narration sounds good on a tablet.
 
 ## Architecture map
 
@@ -256,21 +244,20 @@ sw/                         generated offline worker and tests
 public/                     shipped manifest, icons and real media
 src/main.ts                 adventure wiring, visit reset and frame orchestration
 src/session/                shared browser lifecycle, failure screen and offline registration
-src/map/                    paged neighbourhood map model and page framing (default map from Wave 1)
-src/config.ts               destination data and scene constants (geometry re-exported from the catalogue)
-src/worlds/                 the world catalogue: per-world geometry, surface and rings; framing, scene bodies,
-                            stickers and ship badges derive from it (docs/worlds-roadmap.md)
+src/map/                    paged neighbourhood map model and page framing
+src/config.ts               destination data and scene constants
+src/worlds/                 the world catalogue (docs/worlds-roadmap.md)
 src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input
 src/flight/                 cinematic and home return
 src/mission/                discovery selection and collection
-src/ui/                     DOM interface, grown-ups panel, photos and coach
+src/toys/                   one hands-on toy per world (Moon jump so far)
+src/ui/                     DOM interface, styles (storybook.css last), grown-ups panel, photos
 src/audio/                  narration and sound
 src/state/                  progress, replay and settings
-design/                     unshipped reference material
+design/                     unshipped reference material and review captures
 e2e/                        browser playthroughs and screenshot checks
 ```
 
-When a module becomes a change bottleneck, split it along ownership boundaries. “No framework”
-does not mean “no components” or “one giant file”; use small DOM components or a state machine
-when they make transitions and responsive layouts clearer.
+When a module becomes a change bottleneck, split it along ownership boundaries. Small DOM
+components or a state machine are fine when they make transitions clearer.

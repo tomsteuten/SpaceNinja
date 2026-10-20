@@ -1,5 +1,7 @@
 # Handover: lock the decisions, then expand the solar system (15 October 2026)
 
+> **Superseded on 20 October 2026 by [`docs/toys.md`](toys.md).** Kept for history; the waves below are no longer the plan.
+
 This handover replaces open-ended planning. The owner (Tom) has **approved every decision
 below**. Follow the current DECISIONS.md and any later owner-authorized revisions.
 Do not restart open-ended planning or ask again for decisions already authorized.

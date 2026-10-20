@@ -81,13 +81,14 @@ when expansion is requested; pilot one world before generalizing more systems.
    and are cached after use. Check new maps/imported recordings reach the intended caches.
 9. **Verification and owner review.** Run `npm run typecheck` and `npm test`. Run only
    affected Playwright files/viewports, such as relevant `e2e/visit.pw.ts` and
-   `e2e/day-spot.pw.ts` projects; follow AGENTS.md for isolated reruns. Add the wave's
-   full-resolution captures to `design/wave-N/` for the single end-of-wave review. Tablet performance, listening and child comprehension need observation.
+   `e2e/day-spot.pw.ts` projects; follow AGENTS.md for isolated reruns. Show the owner
+   full-resolution before/after captures per screen. Tablet performance, listening and child
+   comprehension need observation.
    CI runs the full suite on deployment.
 
 ## Order of work
 
-The worlds, their pages and their order are locked in [`DECISIONS.md`](../DECISIONS.md) and
-scheduled in [the expansion handover](handover-2026-10-15-expansion.md): Jupiter first as the
-pilot (with the moon-parent relation), then Mercury, Venus, Uranus and Neptune, then the
-moons and small worlds.
+New worlds wait for the toys plan ([`docs/toys.md`](toys.md)): a world is added together with
+its toy, and only after a child has played the toys for the current five. The page and order
+ideas in `content/worlds.md` and the old [expansion handover](handover-2026-10-15-expansion.md)
+remain a reference, not a schedule.
