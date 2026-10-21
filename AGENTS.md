@@ -31,9 +31,13 @@ design keeps the child safe, unblocked and able to get back to the Space map.
 These hold for every assistant, not only the one the owner last briefed.
 
 - Commit and push freely to your own branches.
-- Push or merge to `main` once `npm run typecheck` and `npm test` pass. The deploy workflow
-  runs the full browser suite and blocks publishing on any failure; check the run afterwards
-  and fix it if it failed. Runs queue: each waits for the previous one to finish.
+- Work on a branch, never directly on `main`. Every pushed branch runs the full unit and
+  browser checks on GitHub (`deploy.yml`, about 15–20 minutes). Merge to `main` only when
+  your branch's latest run has passed, then check the deploy run on `main` too. A small
+  docs-only change may go straight to `main`. Only one session merges to `main` at a time.
+- Use the GitHub token from the user environment: in PowerShell,
+  `[Environment]::GetEnvironmentVariable('GH_TOKEN','User')`. The copy Git Bash inherits
+  may be stale.
 - Visual changes: a new look needs the owner's approval from before/after screenshots first.
   Once a look is approved, roll it out without stopping per screen: restyle, run the affected
   checks, merge, then send one before/after review of every screen touched. Never
@@ -78,8 +82,8 @@ npm run narration:generate:openai   # optional keyed alternative (needs OPENAI_A
 - **A failing browser test:** rerun it alone once before diagnosing; machine load causes false
   timeouts. The Moon rotation tolerance check in `e2e/visit.pw.ts` is known to fail on slow
   machines.
-- **After pushing to `main`:** check the Actions run; if it fails, read the job log or download
-  its `browser-checks` artifact, fix and push again.
+- **After pushing a branch:** wait for its Actions run before merging; if it fails, read the
+  job log or download its `browser-checks` artifact, fix and push again.
 - **Screenshots for review:** the suite's own screenshots are half-resolution and weak evidence.
   Use `e2e/style-capture.pw.ts`, skipped unless `STYLE_OUT` is set; in Git Bash:
   `STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone`.

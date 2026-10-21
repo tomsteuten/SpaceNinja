@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
+# Every pushed branch runs the full checks, so a branch can be shown green before it is
+# merged; only main publishes. Merge to main only after the branch's run has passed.
 on:
   push:
-    branches: [main]
+    branches: ['**']
   workflow_dispatch:
 
 permissions:
@@ -10,10 +12,11 @@ permissions:
   pages: write
   id-token: write
 
-# Let a running deploy finish rather than cancelling it; queued pushes just wait.
+# On main, let a running deploy finish rather than cancelling it; queued pushes just wait.
+# A branch has its own queue, and a newer push to it replaces the older check.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.ref == 'refs/heads/main' && 'pages' || format('check-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
@@ -31,6 +34,7 @@ jobs:
       # only reads the existing config. Do not add enablement:true - the workflow token
       # is not permitted to create the site and the step hard-fails.
       - uses: actions/configure-pages@v5
+        if: github.ref == 'refs/heads/main'
 
       - run: npm ci
 
@@ -54,11 +58,13 @@ jobs:
       - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
         with:
           path: dist
 
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
