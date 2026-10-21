@@ -57,10 +57,15 @@ quickly learn to plan several moves ahead, which is what real rover drivers do. 
 to collect a sample tube.
 NASA publishes free 3D models of Perseverance. Effort: M.
 
-### Saturn: bath time — *Saturn is so light for its size it would float*
-A giant bath. The child drags planets in: Earth, Mars and the Moon go plop and sink; Saturn
-bobs on top. Its average density is about 0.69 g/cm³ against water's 1.0. The narration
-admits there is no bath big enough, which children love.
+### Saturn: bath time — *Saturn is so light for its size it would float* (built)
+`src/toys/saturnBath.ts`, opened by Saturn's Bath button (bubble crayon). A giant claw-foot
+bath in space, four worlds on a shelf. The child drags them in, or presses Plop! (it shows
+the next world): Earth, Mars and the Moon splash and sink; Saturn bobs and settles about
+seven tenths under, because a floating ball displaces its own weight (`bathPhysics.ts`, real
+mean densities: Saturn 0.69 g/cm³, water 1.0, Earth 5.51, Mars 3.93, Moon 3.34). Sizes are
+not to scale. Places first, then the bath is the next step (`toy-saturn`, "Now you can put
+Saturn in the bath!"). Saturn's arrival fact already admits no bath is big enough. Next: a
+plop sound, and a narrated line when Saturn floats.
 **Second Saturn toy: ring maker.** Throw ice chunks at Saturn; they spread into a thin flat
 ring. Effort: S (the bath) / M (the rings).
 

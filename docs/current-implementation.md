@@ -1,5 +1,14 @@
 # Current implementation and handover
 
+## Saturn bath toy — 21 October 2026
+
+Saturn's toy is built: `src/toys/saturnBath.ts` (overlay) and `bathPhysics.ts` (real mean
+densities, waterline depth of a floating sphere, fixed-substep bob that a slow frame cannot
+break; unit-tested). A Bath button (new `--crayon-bubble`) joins Saturn's visit row; after
+three finds it is the next step (Kokoro cue `toy-saturn`). Checked by
+`e2e/saturn-bath.pw.ts`; `e2e/style-capture.pw.ts` captures it. Look approved from
+`design/saturn-bath/`. Pending: child observation, tablet performance, a plop sound.
+
 ## Crayons rollout, fast flights, Moon order — 21 October 2026
 
 Process docs rewritten for toys-first (AGENTS.md, DECISIONS.md). Playtest builds accept

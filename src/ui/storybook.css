@@ -28,23 +28,25 @@
 /* --- Visit controls ------------------------------------------------------- */
 
 .visit-actions { background:transparent; box-shadow:none; padding:0 4px 4px 0; gap:10px; }
-/* Five controls on the Moon need a little more width than the old four. */
+/* Five controls on the Moon and Saturn need a little more width than the old four. */
 .dock:has(.visit-actions.has-toy) { width:min(540px,calc(100% - var(--pad-left) - var(--pad-right))); }
 .visit-actions > .btn,
-.visit-actions > .btn.jump-btn {
+.visit-actions > .btn.jump-btn,
+.visit-actions > .btn.bath-btn {
   background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:16px;
   box-shadow:var(--lift); font:400 19px/1 var(--hand); letter-spacing:0;
 }
 .visit-actions > .btn:hover { filter:brightness(1.05); }
 .visit-actions > .btn:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
 .visit-actions .control-label { letter-spacing:0; line-height:20px; }
-.visit-actions .icon-slot,.visit-actions .icon,.visit-actions > .btn.jump-btn .icon { color:var(--ink-line); }
+.visit-actions .icon-slot,.visit-actions .icon,.visit-actions > .btn.jump-btn .icon,.visit-actions > .btn.bath-btn .icon { color:var(--ink-line); }
 
 /* One colour per control, the same everywhere it appears. */
 .visit-actions .home-btn { background:var(--crayon-sky); }
 .visit-actions .listen-btn { background:var(--crayon-grape); }
 .visit-actions .spin-btn { background:var(--crayon-grass); }
 .visit-actions > .btn.jump-btn { background:var(--crayon-sun); }
+.visit-actions > .btn.bath-btn { background:var(--crayon-bubble); }
 .visit-actions .find-places-btn { background:var(--crayon-sun); color:var(--ink-line); }
 .visit-actions .find-places-btn .icon { color:var(--ink-line); }
 .visit-actions .journal-btn,.ui > .journal-btn { background:var(--crayon-tomato); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); }
@@ -155,7 +157,7 @@
 
 @media(max-width:599px) {
   .visit-actions { gap:7px; }
-  .visit-actions > .btn,.visit-actions > .btn.jump-btn { font-size:15px; border-width:2.5px; box-shadow:3px 3px 0 var(--ink-line); padding:4px 2px; }
+  .visit-actions > .btn,.visit-actions > .btn.jump-btn,.visit-actions > .btn.bath-btn { font-size:15px; border-width:2.5px; box-shadow:3px 3px 0 var(--ink-line); padding:4px 2px; }
   /* Two short lines beat one clipped one on a narrow phone. */
   .visit-actions .control-label { white-space:normal; line-height:14px; text-align:center; }
   .visit-actions .icon-slot,.visit-actions .icon { height:30px; }
@@ -163,7 +165,7 @@
   .photo-view__panel .dialog-head h2,.photo-view__title { font-size:28px; }
 }
 @media(min-width:600px) and (max-height:480px) {
-  .visit-actions > .btn,.visit-actions > .btn.jump-btn { font-size:17px; }
+  .visit-actions > .btn,.visit-actions > .btn.jump-btn,.visit-actions > .btn.bath-btn { font-size:17px; }
   .world-heading strong { font-size:24px; }
   .photo-view__panel { transform:none; }
   .photo-view__figure { transform:rotate(1.5deg); padding:8px 8px 20px; }
@@ -267,7 +269,7 @@
 .panel-return:hover,.narrate-btn:hover,.journal-back:hover,.finale__close:hover { filter:brightness(1.05); }
 
 /* After the finds on a world with a toy, the toy is the next step, not the journal. */
-.is-toy-next .visit-actions > .btn.jump-btn { outline:4px solid var(--paper); outline-offset:3px; }
+.is-toy-next .visit-actions > .btn.jump-btn,.is-toy-next .visit-actions > .btn.bath-btn { outline:4px solid var(--paper); outline-offset:3px; }
 .is-complete.is-toy-next .visit-actions .journal-btn { outline:none; }
 
 /* Short landscape lays the finale out in a row; hand lettering is wider, so scale it down. */

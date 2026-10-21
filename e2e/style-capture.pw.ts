@@ -1,5 +1,5 @@
 // Full-resolution captures of every child-facing screen for visual review: home map, Moon
-// visit, postcard, jump toy, Earth hunt, Words card, day/night, journal, hunt arrow, finale
+// visit, postcard, jump toy, Earth hunt, Words card, day/night, journal, Saturn bath, hunt arrow, finale
 // and grown-ups panel.
 // Skipped unless STYLE_OUT is set: STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone
 import { expect, test, type Page } from '@playwright/test';
@@ -91,6 +91,23 @@ for (const [name, viewport] of [
       await expect(page.locator('.journal-panel')).toBeVisible();
       await page.waitForTimeout(1000);
       await shot(page, '7-journal');
+    });
+
+    test(`saturn bath ${name}`, async ({ page }) => {
+      await start(page, '/?fast', { visited: ['earth', 'moon', 'mars'], discoveries: [], stickers: [] });
+      await fly(page, 'Saturn');
+      await expect(page.locator('.bath-btn')).toBeVisible();
+      await page.waitForTimeout(2500);
+      await shot(page, '11-saturn-visit');
+      await page.locator('.bath-btn').click();
+      const bath = page.locator('.saturn-bath');
+      for (let i = 0; i < 4; i++) {
+        await bath.locator('.saturn-bath__plop').click();
+        await page.waitForTimeout(400);
+      }
+      await expect(bath).toHaveAttribute('data-floating', 'saturn', { timeout: 60000 });
+      await page.waitForTimeout(800);
+      await shot(page, '12-saturn-bath');
     });
 
     test(`finale ${name}`, async ({ page }) => {
