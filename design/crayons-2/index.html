@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crayons Rollout Review</title>
+<style>
+  :root { --paper:#f8f0dd; --ink:#2b2118; --sky:#5bb8e8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 system-ui, sans-serif; }
+  header { padding:20px 16px 8px; max-width:1200px; margin:0 auto; }
+  h1 { margin:0 0 4px; font-size:26px; }
+  p { margin:0 0 12px; max-width:70ch; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0; }
+  nav button { font:inherit; padding:8px 16px; border:3px solid var(--ink); border-radius:12px; background:#fff; box-shadow:3px 3px 0 var(--ink); cursor:pointer; }
+  nav button[aria-pressed="true"] { background:var(--sky); }
+  main { max-width:1200px; margin:0 auto; padding:0 16px 40px; }
+  section { margin:28px 0; }
+  h2 { font-size:20px; margin:0 0 4px; }
+  .note { color:#5b4c3e; font-size:14px; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
+  figure { margin:0; }
+  figcaption { font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+  img { width:100%; height:auto; border:2px solid var(--ink); background:#000; display:block; }
+  body[data-device="phone"] .pair { max-width:640px; }
+  @media (max-width:520px) { .pair { grid-template-columns:1fr; } }
+</style>
+</head>
+<body data-device="tablet">
+<header>
+  <h1>Storybook crayons: remaining screens</h1>
+  <p>Before on the left, after on the right. The Moon visit, postcard and jump were already approved and are included for context.</p>
+  <nav aria-label="Device">
+    <button type="button" data-device="tablet" aria-pressed="true">Tablet</button>
+    <button type="button" data-device="phone" aria-pressed="false">Phone</button>
+    <button type="button" data-device="landscape" aria-pressed="false">Short landscape</button>
+  </nav>
+</header>
+<main id="screens"></main>
+<script>
+  const screens = [
+    ['0-home', 'Home map', 'Destination bar: paper cards, suggested world gold, locked worlds dashed. Map hint is a paper tag.'],
+    ['4-earth-welcome', 'Earth arrival', 'First Earth visit: Turn Earth or Find places.'],
+    ['5-words', 'Words card', 'Paper card, round X, sky Keep exploring.'],
+    ['6-day-night', 'Day and night', 'Paper legend; the current state is circled in grass, like Day & night. On a phone the heading now wraps so the legend no longer slides under it.'],
+    ['7-journal', 'Journal', 'Open world page in tomato (the Journal colour), found places as snapshots, empty ones dashed.'],
+    ['8-hunt-arrow', 'Hunt arrow', 'Sun-crayon round button; the counter is a paper pill with sun ticks.'],
+    ['9-finale', 'Finale', 'Paper page of snapshots, sun Hooray!'],
+    ['10-grownups', 'Grown-ups panel', 'Paper page, hand-lettered headings, sun Start playing.'],
+    ['1-visit', 'Moon visit (approved earlier)', ''],
+    ['2b-found', 'Moon after a find', 'The found-places counter, top right.'],
+  ];
+  const main = document.getElementById('screens');
+  function render(device) {
+    document.body.dataset.device = device;
+    main.replaceChildren(...screens.map(([file, title, note]) => {
+      const section = document.createElement('section');
+      section.innerHTML = `<h2>${title}</h2>${note ? `<p class="note">${note}</p>` : ''}
+        <div class="pair">
+          <figure><figcaption>Before</figcaption><img loading="lazy" alt="${title}, before" src="before/${device}-${file}.png"></figure>
+          <figure><figcaption>After</figcaption><img loading="lazy" alt="${title}, after" src="after/${device}-${file}.png"></figure>
+        </div>`;
+      return section;
+    }));
+  }
+  document.querySelectorAll('nav button').forEach((button) => button.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+    render(button.dataset.device);
+  }));
+  render('tablet');
+</script>
+</body>
+</html>

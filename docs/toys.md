@@ -39,8 +39,11 @@ indicator stays on "Day". Effort: M (reuses the house art and cues).
 
 ### Moon: jump — *less gravity* (built)
 The same child jumps on Earth and on the Moon. On the Moon they go about six times higher
-and stay up about six times longer. The footprints stay. Next steps: one narrated line, and
-maybe a "bounce walk" (hold the button to keep hopping, the Apollo way).
+and stay up about six times longer. The footprints stay. Order on a visit: gold places
+first, then Jump is the next step (ring, caption and the `toy-moon` line, "Now you can jump
+on the Moon!"); the hunt does not start itself while the toy is open. Every toy follows this
+order. Next steps: a narrated line inside the toy, and maybe a "bounce walk" (hold the button
+to keep hopping, the Apollo way).
 **Second Moon toy, for older children: phases torch.** The Sun is a torch on one side; the
 child drags the Moon round Earth, and a window shows how it looks from Earth (full,
 half, crescent). Effort: M.

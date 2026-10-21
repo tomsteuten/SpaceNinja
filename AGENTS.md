@@ -34,8 +34,10 @@ These hold for every assistant, not only the one the owner last briefed.
 - Push or merge to `main` once `npm run typecheck` and `npm test` pass. The deploy workflow
   runs the full browser suite and blocks publishing on any failure; check the run afterwards
   and fix it if it failed. Runs queue: each waits for the previous one to finish.
-- Visual changes: show the owner before/after screenshots, one screen at a time, before
-  merging, unless the owner has already approved that look. Never self-approve appearance.
+- Visual changes: a new look needs the owner's approval from before/after screenshots first.
+  Once a look is approved, roll it out without stopping per screen: restyle, run the affected
+  checks, merge, then send one before/after review of every screen touched. Never
+  self-approve appearance.
 - Ask first before spending money, creating accounts, deleting the owner's data or changing
   the product direction.
 - Prefer small focused commits. Write a doc only when it saves the next person real time;
@@ -115,12 +117,15 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 
 | Control | Crayon |
 | --- | --- |
-| Space map | sky |
-| Listen | grape |
-| Day & night | grass |
-| Jump, Find places | sun |
+| Space map, Keep exploring (any way back to the world) | sky |
+| Listen (and the panels' replay button) | grape |
+| Day & night, its Done, the current day/night state | grass |
+| Jump, Find places, Start playing, Hooray!, the hunt arrow | sun |
 | Turn Earth | teal |
-| Journal | tomato |
+| Journal, All places, the open journal page | tomato |
+
+Panels (Words card, journal, postcard, finale, grown-ups) are paper with an ink outline and a
+flat shadow. Home-map destination cards are paper; the suggested one is gold.
 
 New controls take a colour from the variables at the top of `storybook.css`; add them here.
 

@@ -72,6 +72,28 @@
 .spin-sun { border-color:var(--ink-line); }
 .spin-arrow { color:var(--ink-line); }
 
+/* --- Home map destination bar: paper cards, one per world ------------------------ */
+
+.destination-bar { background:transparent; box-shadow:none; padding:0 4px 4px 0; gap:10px; }
+.destination-choice {
+  background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:16px;
+  box-shadow:var(--lift); font:400 21px/1 var(--hand); letter-spacing:0;
+}
+.destination-choice:hover { filter:brightness(1.05); }
+.destination-choice:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.destination-choice .world-orb { border:2px solid var(--ink-line); }
+.destination-choice .world-orb--saturn::after { border-color:var(--ink-line); border-width:3px; }
+/* The suggested world glows like a gold place and gets the same paper ring as the visit row's next step. */
+.destination-choice.is-suggested {
+  background:#ffe08a; color:var(--ink-line); border:var(--line); box-shadow:var(--lift);
+  outline:4px solid var(--paper); outline-offset:3px;
+}
+/* Not yet: a flat, dashed card that still answers a press. */
+.destination-choice.is-locked { opacity:1; background:var(--paper-deep); border-style:dashed; box-shadow:none; color:#6b5d4f; }
+.destination-choice.is-locked .world-orb { filter:grayscale(.6); }
+.destination-choice__lock .icon { color:var(--ink-line); }
+.destination-choice:focus-visible { outline:4px solid var(--crayon-sky); outline-offset:3px; }
+
 /* --- World heading: a paper label on the sky --------------------------------- */
 
 .world-heading {
@@ -149,4 +171,112 @@
 }
 @media(prefers-reduced-motion:reduce) {
   .visit-actions > .btn:active { transform:none; }
+}
+
+/* --- Top corners: map hint, found-places counter, journal button ------------------ */
+
+.hint { padding:6px 14px 6px 10px; background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:14px; box-shadow:var(--lift); text-shadow:none; font:400 22px/1.15 var(--hand); transform:rotate(-1deg); transform-origin:left top; }
+.hint .icon-slot { color:var(--ink-line); }
+.slot-row { padding:10px 14px; background:var(--paper); border:var(--line); border-radius:18px; box-shadow:var(--lift); }
+.slot { width:14px; height:14px; border:2px solid var(--ink-line); background:#fff; }
+.slot.is-filled { background:var(--crayon-sun); }
+.slot.is-filled::after { color:var(--ink-line); }
+.journal-btn[data-new]::after { right:3px; top:3px; width:12px; height:12px; background:var(--crayon-sun); border:2px solid var(--ink-line); }
+
+/* --- Day and night: a paper legend; the current state is circled in crayon ----------- */
+
+.day-legend { background:var(--paper); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); font:400 19px/1 var(--hand); }
+.day-legend span::before { border:2px solid var(--ink-line); background:var(--crayon-sun); }
+.day-legend .night-key::before,.day-legend.is-house-state .night-key::before { background:#3d4a7a; box-shadow:none; }
+.day-legend.is-house-state .is-current { border-color:var(--ink-line); background:var(--crayon-grass); color:var(--ink-line); }
+
+/* --- Panels: the Words card, the journal ------------------------------------------ */
+
+.panel-shade { background:#0a0d18e6; }
+.fact-card,.journal-panel {
+  background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:8px;
+  box-shadow:6px 6px 0 var(--ink-line); font-family:var(--read); backdrop-filter:none; -webkit-backdrop-filter:none;
+}
+.fact-card .dialog-head h2,.fact-title,.journal-panel .dialog-head h2,.journal-detail-title { font:400 32px/1.05 var(--hand); letter-spacing:0; color:var(--ink-line); }
+.panel-close { background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:50%; }
+.panel-close:hover { background:#fff; color:var(--ink-line); }
+/* The pictured way back to the world is the postcard's Keep exploring, so it is sky here too. */
+.panel-return {
+  background:var(--crayon-sky); color:var(--ink-line); border:var(--line); border-radius:16px;
+  box-shadow:var(--lift); font:400 22px/1 var(--hand);
+}
+.panel-return:active,.journal-back:active,.narrate-btn:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.narrate-btn { background:var(--crayon-grape); color:var(--ink-line); border:var(--line); border-radius:16px; box-shadow:var(--lift); }
+.narrate-btn.is-speaking { background:#9479d6; }
+.journal-back { background:var(--crayon-tomato); color:var(--ink-line); border:var(--line); border-radius:16px; box-shadow:var(--lift); font:400 19px/1 var(--hand); }
+.journal-page-caption,.journal-visit-hint { color:#5b4c3e; }
+.journal-page-caption { font:400 19px var(--hand); }
+.collection-progress__world { background:#fff; color:var(--ink-line); border:var(--line); border-radius:14px; box-shadow:3px 3px 0 var(--ink-line); font:400 19px/1 var(--hand); }
+.collection-progress__world[aria-pressed="true"] { background:var(--crayon-tomato); border-color:var(--ink-line); box-shadow:3px 3px 0 var(--ink-line); }
+.collection-progress .world-orb { border:2px solid var(--ink-line); }
+.collection-progress__track > span { height:6px; background:var(--paper-deep); border:1px solid var(--ink-line); }
+.collection-progress__track > .is-found { background:var(--crayon-sun); }
+/* Found places are snapshots; places still to find are dashed outlines waiting for one. */
+.sticker { background:#fff; color:var(--ink-line); border:2px solid var(--ink-line); border-radius:4px; padding:6px 6px 0; box-shadow:3px 3px 0 var(--ink-line); font:400 16px/1.1 var(--hand); }
+.sticker .discovery-picture { border:1px solid var(--ink-line); }
+.sticker--empty { background:transparent; border:2px dashed #8a7a66; box-shadow:none; color:#6b5d4f; padding:0; }
+.sticker--empty .icon { color:#b08a3c; }
+
+/* --- Hunt arrow: a sun-crayon button pointing at the last gold place ---------------- */
+
+.hunt-arrow { background:var(--crayon-sun); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); backdrop-filter:none; -webkit-backdrop-filter:none; }
+.hunt-arrow:active { background:var(--crayon-sun); border-color:var(--ink-line); transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+
+/* --- Finale: the whole journal as one big page of snapshots ------------------------- */
+
+.finale { background:#0a0d18e0; }
+.finale__inner { background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:8px; box-shadow:6px 6px 0 var(--ink-line); backdrop-filter:none; -webkit-backdrop-filter:none; }
+.finale__badge { background:#fff; border:2px solid var(--ink-line); border-radius:50%; box-shadow:2px 2px 0 var(--ink-line); }
+.finale__title { font:400 34px/1.05 var(--hand); color:var(--ink-line); }
+.finale__line { font:400 20px var(--hand); color:var(--ink-line); }
+.finale__close { background:var(--crayon-sun); color:var(--ink-line); border:var(--line); border-radius:16px; box-shadow:var(--lift); font:400 26px/1 var(--hand); }
+
+/* --- Grown-ups: the same paper, set for reading ------------------------------------- */
+
+.grownups { background:var(--paper); color:var(--ink-line); font:16px/1.55 var(--read); }
+.grownups__title { font:400 36px/1.1 var(--hand); color:var(--ink-line); }
+.grownups__lead,.grownups__note,.grownups__reopen { color:#4a3d31; }
+.grownups__heading { font:400 22px/1.2 var(--hand); letter-spacing:0; text-transform:none; color:var(--ink-line); }
+.grownups__start { background:var(--crayon-sun); color:var(--ink-line); border:var(--line); border-radius:16px; box-shadow:var(--lift); font:400 26px/1 var(--hand); }
+.grownups__start:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.grownups__auto,.voice-option { background:#fff; color:var(--ink-line); border:2px solid var(--ink-line); }
+.grownups__reset { border-color:#b5482f; }
+.grownups__reset.is-confirming { background:var(--crayon-tomato); border-color:var(--ink-line); color:var(--ink-line); }
+.grownups__warning { color:#9a3a24; }
+.grownups__reopen { border-top:2px dashed #8a7a66; }
+.voice-option.is-chosen { background:var(--crayon-grape); border-color:var(--ink-line); }
+.voice-tags { color:#5b4c3e; }
+
+/* A found place's name pops up as a little paper tag. */
+.find-label { background:var(--paper); color:var(--ink-line); border:2px solid var(--ink-line); box-shadow:3px 3px 0 var(--ink-line); backdrop-filter:none; -webkit-backdrop-filter:none; font:400 20px/1 var(--hand); }
+.find-label .discovery-picture { border:2px solid var(--ink-line); }
+
+/* A narrow phone has no room for the heading and the day/night legend side by side, so the
+   heading wraps its words sooner while the legend is up. */
+@media (max-width:600px) {
+  .is-hands-on .world-heading { max-width:calc(100% - var(--pad-left) - var(--pad-right) - 170px); }
+  .day-legend { font-size:17px; }
+}
+
+/* theme.css whitens every .btn on hover; a crayon keeps its colour under the pointer. */
+.panel-return:hover { background:var(--crayon-sky); }
+.narrate-btn:hover { background:var(--crayon-grape); }
+.journal-back:hover { background:var(--crayon-tomato); }
+.finale__close:hover { background:var(--crayon-sun); }
+.panel-return:hover,.narrate-btn:hover,.journal-back:hover,.finale__close:hover { filter:brightness(1.05); }
+
+/* After the finds on a world with a toy, the toy is the next step, not the journal. */
+.is-toy-next .visit-actions > .btn.jump-btn { outline:4px solid var(--paper); outline-offset:3px; }
+.is-complete.is-toy-next .visit-actions .journal-btn { outline:none; }
+
+/* Short landscape lays the finale out in a row; hand lettering is wider, so scale it down. */
+@media (max-height:480px) {
+  .finale__title { font-size:26px; }
+  .finale__line { font-size:17px; min-width:7em; }
+  .finale__close { flex:none; font-size:22px; padding:0 1.1rem; }
 }

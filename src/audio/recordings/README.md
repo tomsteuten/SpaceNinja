@@ -10,6 +10,8 @@ id, spoken text; the filename is the id). The committed pack uses the Australian
 recorded in `provenance.json`. On 19 October, the four `day-night-*` activity cues were
 also generated locally with Kokoro `bf_emma` at speed 0.95. They cover entering the activity,
 night, first-visit morning and later-visit morning; all four are bundled for offline use.
+On 21 October, `toy-moon` (the Jump invitation after the Moon's three finds) was added the
+same way.
 Physical-tablet listening remains pending. The API key is read only from the
 `ELEVENLABS_API_KEY` environment variable and is never printed, logged or committed.
 

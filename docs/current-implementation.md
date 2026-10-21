@@ -1,5 +1,14 @@
 # Current implementation and handover
 
+## Crayons rollout, fast flights, Moon order — 21 October 2026
+
+Process docs rewritten for toys-first (AGENTS.md, DECISIONS.md). Playtest builds accept
+`?fast` (0.3 s flights); captures and non-flight checks use it. Storybook crayons now covers
+every child-facing screen; `e2e/style-capture.pw.ts` walks them all, with before/after in
+`design/crayons-2/index.html`. Moon: the hunt waits while Jump is open, and Jump is the next
+step after three finds (new Kokoro cue `toy-moon`, `e2e/moon-toy-order.pw.ts`). Owner review
+of the rollout, tablet listening and child observation are pending. Next: Earth bedtime spin.
+
 ## Earth feedback and rule cleanup — 20 October 2026
 
 Built on main `36a99d7`, on `codex/earth-day-feedback`. The house is larger, with clearer
