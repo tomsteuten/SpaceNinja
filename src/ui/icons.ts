@@ -51,6 +51,10 @@ const ICONS = {
   jump:
     '<circle cx="12" cy="4.5" r="2.3"/><path d="M12 7.5v6M12 9.5 8 6.5M12 9.5l4-3M12 13.5l-3 3.5M12 13.5l3 3.5"/>' +
     '<path d="M5 22h14" stroke-dasharray="2 3"/>',
+  /** Saturn's bath: a tub on little feet, a tap, and a bubble. */
+  bath:
+    '<path d="M3 12h18v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5Z"/><path d="M7 19l-1 2.5M17 19l1 2.5"/>' +
+    '<path d="M6 12V6a2 2 0 0 1 4 0"/><circle cx="15" cy="7" r="1.6"/><circle cx="18.5" cy="4" r="1"/>',
 } as const;
 
 export type IconName = keyof typeof ICONS;
