@@ -273,3 +273,10 @@
 /* After the finds on a world with a toy, the toy is the next step, not the journal. */
 .is-toy-next .visit-actions > .btn.jump-btn { outline:4px solid var(--paper); outline-offset:3px; }
 .is-complete.is-toy-next .visit-actions .journal-btn { outline:none; }
+
+/* Short landscape lays the finale out in a row; hand lettering is wider, so scale it down. */
+@media (max-height:480px) {
+  .finale__title { font-size:26px; }
+  .finale__line { font-size:17px; min-width:7em; }
+  .finale__close { flex:none; font-size:22px; padding:0 1.1rem; }
+}
