@@ -99,7 +99,8 @@ Each destination gets one hands-on toy that teaches one big idea with real numbe
 
 - One toy per world, self-contained in `src/toys/` (logic, overlay and its own CSS).
 - Physics and numbers are pure functions with unit tests (`jumpPhysics.ts` and its test).
-- Opened from a Jump-style button in the world's visit row, with its own crayon colour.
+- Opened from a button in the world's visit row with its own crayon colour (Jump on the Moon;
+  Earth's Day & night opens the bedtime spin).
 - The overlay is detached from the DOM while closed, not merely hidden: tests use
   `locator('canvas')` and expect exactly one canvas.
 - Leave the 3D scene alone; a toy is an overlay with a pictured way back.
@@ -119,9 +120,9 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 | --- | --- |
 | Space map, Keep exploring (any way back to the world) | sky |
 | Listen (and the panels' replay button) | grape |
-| Day & night, its Done, the current day/night state | grass |
+| Day & night, the current day/night state | grass |
 | Jump, Find places, Start playing, Hooray!, the hunt arrow | sun |
-| Turn Earth | teal |
+| Turn Earth (in the bedtime spin) | teal |
 | Journal, All places, the open journal page | tomato |
 
 Panels (Words card, journal, postcard, finale, grown-ups) are paper with an ink outline and a
@@ -133,7 +134,7 @@ New controls take a colour from the variables at the top of `storybook.css`; add
 
 The home map (paged neighbourhoods) offers destination buttons and tappable moving worlds. A tap
 launches one flight; misses and locked choices are acknowledged. Arrivals show discovery places
-to find; the first Earth arrival offers Turn Earth or Find places. A visit has a contextual
+to find; the first Earth arrival offers Turn Earth (the bedtime spin toy) or Find places. A visit has a contextual
 action row (Space map, Listen, Day & night where supported, a toy where built, Journal), and
 Space map is always the escape route. Discovery postcards have a pictured world-return as well
 as a large X. These are current choices: protect the playfield and the escape route, not the
@@ -259,7 +260,7 @@ src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input
 src/flight/                 cinematic and home return
 src/mission/                discovery selection and collection
-src/toys/                   one hands-on toy per world (Moon jump so far)
+src/toys/                   one hands-on toy per world (Moon jump, Earth bedtime spin)
 src/ui/                     DOM interface, styles (storybook.css last), grown-ups panel, photos
 src/audio/                  narration and sound
 src/state/                  progress, replay and settings

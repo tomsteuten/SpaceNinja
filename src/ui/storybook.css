@@ -46,7 +46,6 @@
 .visit-actions > .btn.jump-btn { background:var(--crayon-sun); }
 .visit-actions .find-places-btn { background:var(--crayon-sun); color:var(--ink-line); }
 .visit-actions .find-places-btn .icon { color:var(--ink-line); }
-.visit-actions .turn-earth-btn { background:var(--crayon-teal); }
 .visit-actions .journal-btn,.ui > .journal-btn { background:var(--crayon-tomato); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); }
 
 /* The "next thing" emphasis keeps each control's colour and adds a thick ring instead of gold. */
@@ -61,7 +60,6 @@
 }
 .is-earth-welcome .spin-btn,.spin-btn.is-busy { background:var(--crayon-grass); }
 .is-hands-on .visit-actions .spin-btn,.is-complete:not(.is-hands-on) .visit-actions .spin-btn { background:var(--crayon-grass); }
-.is-map-next .visit-actions .turn-earth-btn { background:var(--crayon-teal); }
 .is-complete:not(.has-seen-journal) .visit-actions .journal-btn,.is-complete.has-seen-journal .visit-actions .home-btn,.is-map-next .visit-actions .home-btn {
   outline:4px solid var(--paper); outline-offset:3px;
 }
@@ -188,7 +186,6 @@
 .day-legend { background:var(--paper); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); font:400 19px/1 var(--hand); }
 .day-legend span::before { border:2px solid var(--ink-line); background:var(--crayon-sun); }
 .day-legend .night-key::before,.day-legend.is-house-state .night-key::before { background:#3d4a7a; box-shadow:none; }
-.day-legend.is-house-state .is-current { border-color:var(--ink-line); background:var(--crayon-grass); color:var(--ink-line); }
 
 /* --- Panels: the Words card, the journal ------------------------------------------ */
 
@@ -256,10 +253,8 @@
 .find-label { background:var(--paper); color:var(--ink-line); border:2px solid var(--ink-line); box-shadow:3px 3px 0 var(--ink-line); backdrop-filter:none; -webkit-backdrop-filter:none; font:400 20px/1 var(--hand); }
 .find-label .discovery-picture { border:2px solid var(--ink-line); }
 
-/* A narrow phone has no room for the heading and the day/night legend side by side, so the
-   heading wraps its words sooner while the legend is up. */
+/* A narrow phone shares the top row between the heading and the day/night legend. */
 @media (max-width:600px) {
-  .is-hands-on .world-heading { max-width:calc(100% - var(--pad-left) - var(--pad-right) - 170px); }
   .day-legend { font-size:17px; }
 }
 

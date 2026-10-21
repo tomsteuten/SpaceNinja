@@ -37,9 +37,10 @@ narration; **All places** returns to the page. After all three finds, Journal is
 while Space map remains available.
 
 The first Earth visit offers **Space map · Turn Earth · Find places**, so the lesson is a
-clear choice and exploration remains available. Earth's day/night activity is hands-on:
-drag the globe, tap it, or press Turn Earth to move it through fixed sunlight. Done returns
-to discoveries. Later visits use **Space map · Listen · Day & night · Journal**; other
+clear choice and exploration remains available. Earth's day/night activity is the bedtime
+spin toy: Earth seen from above the North Pole, turned by a drag or the Turn Earth button,
+with a house going into night and back into morning. Its back button returns to
+discoveries. Later visits use **Space map · Listen · Day & night · Journal**; other
 worlds keep their timed day turns. Listen replays narration directly. The Words button
 beside the world heading opens the written fact; with sound off, Listen also becomes Words.
 World pictures and real discovery thumbnails carry the visual identity across the map,
@@ -305,9 +306,8 @@ on other arrivals and Earth revisits. There is no compulsory demonstration or li
 
 **Day & night is an activity with a visible name.** The visit controls share one row:
 Space map, Listen (Words with sound off), supported Day & night, Journal. The Sun omits
-Day & night. Earth's activity replaces Journal with a tap/keyboard Turn Earth control;
-dragging directly turns its surface and stops when the finger stops. The lesson remains
-open until **Done** or Space map. Other worlds keep Stop and timed demonstrations.
+Day & night. On Earth it opens the bedtime spin toy (`src/toys/bedtimeSpin.ts`) over the
+visit; other worlds keep Stop and timed demonstrations.
 The first-Earth invitation uses a bounded visual cue, with a still reduced-motion equivalent.
 Choosing Find places suppresses repeated invitations for that visit. The hunt arrow moves
 the viewpoint around the world, preserving sunlight so the Night Side remains night.

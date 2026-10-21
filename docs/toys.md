@@ -29,13 +29,14 @@ Optional second step: "How many fit *inside*?" pours Earths in like sweets into 
 1.3 million, shown as the jar never filling.
 *Reinforces never looking at the real Sun (the narration says so).* Effort: S.
 
-### Earth: bedtime spin (fix the current day/night) — *day and night are Earth turning*
-Redo the current activity so it reads instantly. View from above the North Pole with the Sun
-off to one side, so half of Earth is clearly lit. The child's house sits on the edge. Drag to
-spin: the house moves into the dark half, its windows light up and a little moon and stars
-appear; spin on and the sun rises. A clock face beside it shows a day passing.
-Today's version puts the Sun above, so a sideways drag hides the house round the back and the
-indicator stays on "Day". Effort: M (reuses the house art and cues).
+### Earth: bedtime spin — *day and night are Earth turning* (built)
+`src/toys/bedtimeSpin.ts`, opened by Earth's Turn Earth / Day & night; it replaced the 3D
+side-on activity, where a sideways drag hid the house round the back. Real Blue Marble and
+city-lights maps seen from above the North Pole, Sun on the left, so half is lit. A house
+on the equator (12 hours of light, 12 of dark) rides into night (windows light, "z z") and
+back into morning. Drag counter-clockwise (Earth never turns backwards) or press Turn Earth
+(three hours a press). A clock shows the hours, a counter "1 turn = 1 day". The existing
+day-night Kokoro cues speak night and morning; on the first visit morning points to the Moon.
 
 ### Moon: jump — *less gravity* (built)
 The same child jumps on Earth and on the Moon. On the Moon they go about six times higher

@@ -29,9 +29,6 @@ import { BODY_IDS, createWorld, type BodyId, type CelestialBody } from './scene/
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
-import { createDayTurnInput } from './scene/dayTurnInput';
-import { createDayMarker } from './scene/DayMarker';
-import { createDayWatch, referenceDirection, type DayEvent } from './scene/dayWatch';
 import { TEACHING_SUN_RADIUS } from './scene/dayTurnFraming';
 import { createOrbitInput } from './controls/OrbitInput';
 import { createFlightSequence } from './flight/FlightSequence';
@@ -82,15 +79,14 @@ async function main() {
   scene.add(world.group);
 
   /*
-   * Earth's hands-on day/night has one small house to watch (scene/dayWatch.ts): into night,
-   * back into morning, each change said once when it can be seen. On the first Earth visit
-   * the round trip is the rail's "you did it" and suggests the Moon (DECISIONS.md, line 4);
-   * later it suggests turning more or Done. Nothing is counted or saved.
+   * Earth's bedtime spin: into night, back into morning, each change said once. On the first
+   * Earth visit the round trip is the "you did it" and suggests the Moon; later it suggests
+   * turning more. Nothing is counted or saved.
    */
-  const dayMarker = createDayMarker();
-  const dayWatch = createDayWatch();
   let dayRail = false;
-  let nightSpoken = false;
+  /** This opening of Earth's bedtime spin has reached night, then morning again. */
+  let bedtimeNight = false;
+  let bedtimeRoundTrip = false;
 
   const ship = createSpaceship();
   const syncShipStickers = () => ship.setStickers(loadProgress().stickers);
@@ -217,7 +213,7 @@ async function main() {
       cameraReturn = null;
       huntViewTurn = null;
       dayTurn.reset();
-      endDaySpot();
+      ui.setMapInvite(false);
       sfx.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
@@ -261,11 +257,46 @@ async function main() {
       activeMission?.setPresentation(true);
       beginGuidedHunt();
     },
-    onNudgeDayTurn: () => {
-      ui.dismissTurnCoach();
-      dayTurn.nudge();
+    // The house's night and morning get the same spoken feedback the old 3D activity gave,
+    // and on the first visit morning is the cue to fly on to the Moon.
+    onBedtimePart: (part) => {
+      if (part === 'night' && !bedtimeNight) {
+        bedtimeNight = true;
+        ui.speakGuide(cueText('day-night-night'), 'day-night-night', true);
+      } else if (part === 'morning' && bedtimeNight && !bedtimeRoundTrip) {
+        bedtimeRoundTrip = true;
+        const next = dayRail ? 'day-night-moon' : 'day-night-done';
+        ui.speakGuide(cueText(next), next, true);
+        if (dayRail) ui.setMapInvite(true);
+      }
+    },
+    onBedtimeClose: () => {
+      if (follow !== 'earth') return;
+      activeMission?.setPresentation(true);
+      beginGuidedHunt();
     },
   });
+
+  /**
+   * Earth's Day & night is the bedtime spin toy (src/toys/bedtimeSpin.ts): Earth seen from
+   * above the North Pole, turned by the child, with a house riding into night and back into
+   * morning. It replaced the 3D side-on turn, where a sideways drag hid the house round the
+   * back of the planet. The 3D scene is left alone while it is open.
+   */
+  function startBedtime() {
+    huntViewTurn = null;
+    controls.cancelGesture();
+    earthDayNightPrompt = false;
+    ui.setEarthWelcome(false);
+    ui.setHint(null);
+    ui.setHuntArrow(null);
+    coach.clear();
+    spinTried = true;
+    bedtimeNight = false;
+    bedtimeRoundTrip = false;
+    ui.openBedtime();
+    ui.speakGuide(cueText('day-night-start'), 'day-night-start', true);
+  }
 
   /**
    * Start Day & night from the child's press. Store its explanation for replay/Words,
@@ -275,13 +306,12 @@ async function main() {
     const body = world.bodies[follow];
     const spin = DESTINATIONS[follow]?.spin;
     if (!spin || dayTurn.active) return;
+    if (follow === 'earth') {
+      startBedtime();
+      return;
+    }
     huntViewTurn = null;
     controls.cancelGesture();
-    dayTurnInput.clear();
-    if (follow === 'earth') {
-      earthDayNightPrompt = false;
-      ui.setEarthWelcome(false);
-    }
     // A replay pressed during the hand-back must not create two camera owners. Keep the
     // original return destination; the new turn starts from the current interpolated pose.
     const returning = Boolean(cameraReturn);
@@ -291,74 +321,9 @@ async function main() {
     body.getWorldPosition(focusPosition);
     if (!returning) preTurnCameraOffset.copy(camera.position).sub(focusPosition);
     ui.showNote(`spin-${follow}`, spin.name, spin.fact);
-    if (follow === 'earth') {
-      ui.clearFact();
-      ui.setHint(null);
-      ui.setHuntArrow(null);
-      coach.clear();
-      activeMission?.setPresentation(false);
-    }
     spinTried = true;
     ui.setSpinBusy(true);
-    if (follow === 'earth') startDaySpot(body);
-    dayTurn.start(body, undefined, follow === 'earth');
-    ui.setDayHandsOn(follow === 'earth');
-    if (follow === 'earth') {
-      ui.speakGuide(cueText('day-night-start'), 'day-night-start', true);
-    }
-  }
-
-  /**
-   * Put the house just inside daylight on the side the turn's camera will face. The axis and
-   * the camera side match DayTurn and dayTurnPose, so it starts in view after the swing.
-   */
-  function startDaySpot(body: CelestialBody) {
-    body.getWorldPosition(focusPosition);
-    const axis = new THREE.Vector3(0, 1, 0);
-    if (body.surface.parent) axis.applyQuaternion(body.surface.parent.getWorldQuaternion(new THREE.Quaternion()));
-    const view = camera.position.clone().sub(focusPosition);
-    dayMarker.attach(body.surface, body.radius, referenceDirection(SUN_DIRECTION, axis, view));
-    dayWatch.reset();
-    nightSpoken = false;
-    ui.setMapInvite(false);
-  }
-
-  function endDaySpot() {
-    dayMarker.detach();
-    ui.setMapInvite(false);
-  }
-
-  /** Words for what the child has just seen; spoken only the first time in a turn. */
-  function acknowledgeDaySpot(event: DayEvent) {
-    dayMarker.setLit(event !== 'night', !reducedMotion);
-    ui.setDayState(event === 'night' ? 'night' : 'morning');
-    if (event === 'night') {
-      ui.setDayCaption('Night time! Bring back morning.');
-      if (!nightSpoken) {
-        ui.speakGuide(cueText('day-night-night'), 'day-night-night', true);
-      }
-      nightSpoken = true;
-      return;
-    }
-    const next = dayRail ? 'day-night-moon' : 'day-night-done';
-    ui.setDayCaption(dayRail ? 'Morning again! Next, fly to the Moon.' : 'Morning again! Turn more, or tap Done.');
-    if (event === 'roundTrip') {
-      ui.speakGuide(cueText(next), next, true);
-      if (dayRail) ui.setMapInvite(true);
-    }
-  }
-
-  const daySpotOutward = new THREE.Vector3();
-  const daySpotCamera = new THREE.Vector3();
-  function observeDaySpot(dt: number) {
-    if (!dayMarker.attached) return;
-    dayMarker.update(dt);
-    if (!dayTurn.interactive) return;
-    dayMarker.outward(daySpotOutward);
-    world.bodies[follow].getWorldPosition(daySpotCamera);
-    daySpotCamera.subVectors(camera.position, daySpotCamera).normalize();
-    const event = dayWatch.observe(daySpotOutward.dot(SUN_DIRECTION), daySpotOutward.dot(daySpotCamera));
-    if (event) acknowledgeDaySpot(event);
+    dayTurn.start(body);
   }
 
   /*
@@ -384,7 +349,6 @@ async function main() {
     },
     onFinish: () => onDayTurnFinish(),
   });
-  const dayTurnInput = createDayTurnInput(canvas, dayTurn, () => ui.dismissTurnCoach());
 
   const flight = createFlightSequence({
     camera,
@@ -611,17 +575,8 @@ async function main() {
    * reaching for round the side of the world. Reduced motion cuts back; other devices ease.
    */
   function onDayTurnFinish() {
-    dayTurnInput.clear();
-    endDaySpot();
     ui.setSpinBusy(false);
-    ui.setDayHandsOn(false);
     ui.setSpinProgress(null);
-    // The guided first turn has been done; stop pulsing for it.
-    earthDayNightPrompt = false;
-    if (follow === 'earth') {
-      ui.setEarthWelcome(false);
-      activeMission?.setPresentation(true);
-    }
     // Ensure hunt guidance has begun after the optional turn. Targets were revealed on
     // arrival; this only adds guidance and is a no-op if guidance is already running.
     beginGuidedHunt();
@@ -675,7 +630,7 @@ async function main() {
    * land as a collect.
    */
   function onDayTurnSkipTap() {
-    if (dayTurn.active && !dayTurn.interactive) dayTurn.skip();
+    if (dayTurn.active) dayTurn.skip();
   }
   canvas.addEventListener('pointerup', onDayTurnSkipTap);
 
@@ -980,7 +935,7 @@ async function main() {
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
-    endDaySpot();
+    ui.setMapInvite(false);
     dayRail = false;
     flight.reset();
     // Idle whether it drove us here or Explore Again cut straight in; it holds no scene state.
@@ -1035,7 +990,6 @@ async function main() {
     trail.update(dt);
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
-    observeDaySpot(dt);
 
     if (huntViewTurn) {
       huntViewTurn.t = reducedMotion ? 1 : Math.min(1, huntViewTurn.t + (dt * 1000) / HUNT_VIEW_TURN_MS);
@@ -1266,7 +1220,6 @@ async function main() {
         guidedHunt: huntGuidance?.active ?? false,
         cameraReturning: Boolean(cameraReturn),
         dayTurning: dayTurn.active,
-        handsOnDay: dayTurn.interactive,
         earthWelcome: earthDayNightPrompt,
         bodyScreen: screenCircle(center, world.bodies[follow].viewRadius ?? world.bodies[follow].radius),
         teachingSun: (() => {
@@ -1275,13 +1228,6 @@ async function main() {
             ...screenCircle(cue.position, cue.scale.x * TEACHING_SUN_RADIUS) };
         })(),
         surfaceRotation: world.bodies[follow].surface.rotation.y,
-        daySpot: dayMarker.attached ? (() => {
-          const position = dayMarker.position(new THREE.Vector3());
-          const outward = dayMarker.outward(new THREE.Vector3());
-          return { ...screenCircle(position, dayMarker.width / 2), lit: dayWatch.lit, roundTrip: dayWatch.roundTrip,
-            facing: outward.dot(camera.position.clone().sub(center).normalize()),
-            sunlight: outward.dot(SUN_DIRECTION) };
-        })() : null,
         mapInvite: uiRoot.classList.contains('is-map-next'),
         mapReturnGuarded: ui.mapReturnGuarded,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
@@ -1308,13 +1254,12 @@ async function main() {
       narrator.stop();
       sfx.reset();
       controls.cancelGesture();
-      dayTurnInput.clear();
     },
     reset: resetAdventure,
     dispose,
     fail: (error) => {
       dayTurn.reset();
-      dayMarker.detach();
+      ui.dismissToys();
       fail('Space Ninja stopped', error, true);
     },
   });
@@ -1323,11 +1268,9 @@ async function main() {
 
   function dispose() {
     dayTurn.reset();
-    dayMarker.dispose();
     window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();
-    dayTurnInput.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
     controls.dispose();
     ui.dispose();
