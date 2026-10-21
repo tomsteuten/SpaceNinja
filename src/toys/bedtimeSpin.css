@@ -1,0 +1,24 @@
+/* Bedtime spin toy: full screen, Earth from above the pole, one big button. Storybook crayons. */
+.bedtime-spin { position:absolute; inset:0; z-index:55; background:#070a18; pointer-events:auto; touch-action:none; user-select:none; -webkit-user-select:none; }
+.bedtime-spin.is-hidden { display:none; }
+.bedtime-spin__canvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+.bedtime-spin__caption { position:absolute; left:max(14px,env(safe-area-inset-left)); top:max(14px,env(safe-area-inset-top)); max-width:calc(100% - 150px); margin:0; padding:8px 14px; background:var(--paper,#f8f0dd); color:var(--ink-line,#2b2118); border:3px solid var(--ink-line,#2b2118); border-radius:14px; box-shadow:4px 4px 0 var(--ink-line,#2b2118); font:400 24px/1.15 var(--hand,cursive); transform:rotate(-1deg); pointer-events:none; }
+.bedtime-spin__days { position:absolute; left:50%; bottom:calc(max(18px,env(safe-area-inset-bottom)) + 100px); transform:translateX(-50%); margin:0; padding:6px 14px; background:#fff; color:var(--ink-line,#2b2118); border:2px solid var(--ink-line,#2b2118); border-radius:12px; font:400 22px/1 var(--hand,cursive); white-space:nowrap; pointer-events:none; }
+.bedtime-spin__days.is-hidden,.bedtime-spin__days:empty { display:none; }
+.bedtime-spin__back,.bedtime-spin__turn { position:absolute; bottom:max(18px,env(safe-area-inset-bottom)); display:flex; align-items:center; gap:8px; height:76px; border:3px solid var(--ink-line,#2b2118); border-radius:18px; box-shadow:4px 4px 0 var(--ink-line,#2b2118); color:var(--ink-line,#2b2118); cursor:pointer; }
+.bedtime-spin__back { left:max(12px,env(safe-area-inset-left)); padding:0 14px; background:var(--crayon-sky,#5bb8e8); }
+.bedtime-spin__back .icon { width:34px; height:30px; color:var(--ink-line,#2b2118); }
+.bedtime-spin__turn { left:50%; transform:translateX(-50%); min-width:200px; justify-content:center; padding:0 24px; background:var(--crayon-teal,#57c1b4); font:400 28px/1 var(--hand,cursive); }
+.bedtime-spin__turn .world-orb,.bedtime-spin__back .world-orb { width:38px; height:38px; border:2px solid var(--ink-line,#2b2118); }
+.bedtime-spin__back:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
+.bedtime-spin__turn:active { transform:translateX(-50%) translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
+@media (max-width:520px) {
+  .bedtime-spin__turn { min-width:170px; height:72px; font-size:24px; }
+  .bedtime-spin__back { height:72px; padding:0 10px; }
+  .bedtime-spin__back .world-orb { display:none; }
+  .bedtime-spin__caption { font-size:21px; }
+}
+@media (max-height:480px) {
+  .bedtime-spin__turn,.bedtime-spin__back { height:62px; }
+  .bedtime-spin__days { bottom:calc(max(12px,env(safe-area-inset-bottom)) + 76px); }
+}
