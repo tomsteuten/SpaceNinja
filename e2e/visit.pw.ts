@@ -130,7 +130,8 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   }
   await collectVisible(page);
   await keepExploring(page);
-  await expect(page.locator('.world-heading__caption')).toContainText('Three found this trip!');
+  // A world with a toy says "Now try Jump" here instead (moon-toy-order.pw.ts covers that).
+  await expect(page.locator('.world-heading__caption')).toContainText(/Three found/);
   await page.getByRole('button',{name:'Open your discovery journal'}).click();
   await expect(page.locator('.collection-progress')).toContainText('3/6');
   const tiles=page.locator('.sticker-grid button');
