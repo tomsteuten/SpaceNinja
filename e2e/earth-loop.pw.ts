@@ -120,9 +120,11 @@ test('Earth discoveries lead into a world page, story, photo, and back to explor
   await expect(page.getByRole('button', { name: 'Open your discovery journal', exact: true })).toBeFocused();
   await expect(page.locator('.world-heading__caption')).toContainText('Space map');
   await expect(page.locator('.ui')).toHaveClass(/has-seen-journal/);
+  // Earth's bedtime spin opens and closes over a finished visit without changing what it says next.
   await page.getByRole('button', { name: /^Day and night on Earth/ }).click();
-  await page.getByRole('button', { name: 'Stop day and night', exact: true }).click();
-  await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
+  await expect(page.locator('.bedtime-spin')).toBeVisible();
+  await page.getByRole('button', { name: 'Back to Earth', exact: true }).click();
+  await expect(page.locator('.bedtime-spin')).toHaveCount(0);
   await expect(page.locator('.world-heading__caption')).toContainText('Space map');
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('idle');

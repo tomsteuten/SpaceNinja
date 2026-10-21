@@ -1,5 +1,11 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
+/*
+ * The 3D day turn: the camera swings side-on, the world turns once with the teaching Sun
+ * beside it, and the camera is handed back. Earth uses its bedtime spin toy instead
+ * (earth-day.pw.ts); the Moon and Mars still use this.
+ */
+
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 
 async function screenshot(page: Page, info: TestInfo, name: string) {
@@ -39,40 +45,13 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   });
   await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
-  await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
+  await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
-  await page.getByRole('button', { name: 'Find places', exact: true }).click();
   const activity = page.locator('.spin-btn');
   await expect(activity).toHaveText('Day & night');
-  await expect(activity).toHaveAccessibleName('Day and night on Earth: watch day and night');
   expect((await snapshot(page)).dayTurning).toBe(false);
   await assertControlsFit(page);
-  await screenshot(page, info, 'earth-contextual-controls');
-
-  if (info.project.name === 'phone') {
-    const originalViewport = page.viewportSize()!;
-    for (const viewport of [{ width: 319, height: 561 }, { width: 640, height: 360 }]) {
-      await page.setViewportSize(viewport);
-      await expect.poll(async () => (await snapshot(page)).bodyScreenRadius).toBeGreaterThan(70);
-      await assertControlsFit(page);
-      await screenshot(page, info, `earth-controls-${viewport.width}x${viewport.height}`);
-    }
-    await page.setViewportSize(originalViewport);
-    await expect.poll(async () => (await snapshot(page)).bodyScreenRadius).toBeGreaterThan(110);
-  }
-
-  // The activity is available before completing a hunt. A find then opens the postcard;
-  // the invitation waits for that reward to close rather than competing with it.
-  const target = (await snapshot(page)).targets.find((t: any) => t.visible);
-  await page.mouse.click(target.x, target.y);
-  await expect(page.getByRole('button', { name: 'Keep exploring' })).toBeVisible();
-  await expect(activity).not.toHaveClass(/is-inviting/);
-  await page.waitForTimeout(650);
-  await page.getByRole('button', { name: 'Keep exploring' }).click();
-  // Choosing discoveries suppresses repeated invitations, while leaving the lesson available.
-  await expect(activity).not.toHaveClass(/is-inviting/);
-  expect((await snapshot(page)).collected).toBe(1);
-  await screenshot(page, info, 'earth-day-night-invitation');
+  await screenshot(page, info, 'moon-contextual-controls');
 
   // Keyboard activation and explicit stop also work during the initial camera swing.
   const before = await snapshot(page);
@@ -80,56 +59,52 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'Stop day and night', exact: true })).toBeEnabled();
   await expect(page.locator('.day-legend')).toBeVisible();
-  await expect(page.locator('.mission-hud')).toBeHidden();
   expect((await snapshot(page)).dayTurning).toBe(true);
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await snapshot(page)).dayTurning).toBe(false);
   await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
-  // A skip advances the held angle; the following world frame presents that angle.
-  // Read the restored surface after that frame, rather than in the key-event task.
+  // The Moon's surface drifts slowly on its own, so the exact one-turn guarantee lives in
+  // DayTurn.test.ts; here the places and the hunt come back unchanged.
   const stoppedFrame = (await snapshot(page)).frame;
   await expect.poll(async () => (await snapshot(page)).frame).toBeGreaterThan(stoppedFrame);
   const after = await snapshot(page);
   await expect(page.locator('.day-legend')).toBeHidden();
-  await expect(page.locator('.mission-hud')).toBeVisible();
   expect(after.ids).toEqual(before.ids);
-  expect(after.collected).toBe(before.collected);
-  expect(Math.cos(after.surfaceRotation)).toBeCloseTo(Math.cos(before.surfaceRotation), 6);
-  expect(Math.sin(after.surfaceRotation)).toBeCloseTo(Math.sin(before.surfaceRotation), 6);
-  await expect(activity).not.toHaveClass(/is-inviting/);
+  await expect(page.locator('.mission-hud')).toBeVisible();
 
-  // Replay is allowed. The child turns Earth; a canvas tap assists instead of exiting.
+  // Replay is allowed; Words opens beside it without moving the controls.
   await activity.click();
-  await page.getByRole('button', { name: 'Turn Earth a little', exact: true }).click();
-  await expect.poll(() => page.locator('.spin-globe').evaluate(el =>
-    Number((el as HTMLElement).style.getPropertyValue('--turn')))).toBeGreaterThan(0.08);
-  await assertControlsFit(page);
-  await screenshot(page, info, 'earth-day-night-running');
-  await page.mouse.click(page.viewportSize()!.width / 2, page.viewportSize()!.height * 0.35);
-  expect((await snapshot(page)).dayTurning).toBe(true);
-  await page.getByRole('button', { name: 'Stop day and night', exact: true }).click();
-  await expect.poll(async () => (await snapshot(page)).dayTurning).toBe(false);
-  await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
-
+  await expect.poll(async () => (await snapshot(page)).teachingSun.visible).toBe(true);
   const controlsBeforeWords = await page.locator('.visit-actions').boundingBox();
   await page.getByRole('button', { name: 'Words', exact: true }).click();
   await assertControlsFit(page);
   const controlsWithWords = await page.locator('.visit-actions').boundingBox();
   expect(controlsWithWords!.x).toBeCloseTo(controlsBeforeWords!.x, 1);
   expect(controlsWithWords!.y).toBeCloseTo(controlsBeforeWords!.y, 1);
-  await screenshot(page, info, 'earth-day-night-words');
+  await screenshot(page, info, 'moon-day-night-words');
   await page.waitForTimeout(650);
   await page.getByRole('button', { name: 'Close the words', exact: true }).click();
 
+  // The teaching Sun and the world both stay framed through a resize mid-turn.
+  const frameBefore = (await snapshot(page)).frame;
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect.poll(async () => (await snapshot(page)).frame).toBeGreaterThan(frameBefore + 2);
+  const resized = await snapshot(page);
+  expect(resized.dayTurning).toBe(true);
+  expect(resized.teachingSun.visible).toBe(true);
+  for (const subject of [resized.teachingSun, resized.bodyScreen]) {
+    expect(subject.y - subject.radius).toBeGreaterThan(56);
+    expect(subject.y + subject.radius).toBeLessThan(318);
+  }
+
   // Returning home interrupts a turn without leaving a second camera owner behind.
-  await activity.click();
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Fly to Earth', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Fly to Moon', exact: true })).toBeVisible();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('idle');
   expect((await snapshot(page)).dayTurning).toBe(false);
   expect((await snapshot(page)).cameraReturning).toBe(false);
+  expect((await snapshot(page)).teachingSun.visible).toBe(false);
   await expect(page.locator('.visit-actions')).toBeHidden();
   await expect(page.locator('.day-legend')).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Open your discovery journal' })).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -23,6 +23,8 @@ import { createDialogFocus } from './dialog';
 import { createPanelGuard, type PanelOpening } from './panelGuard';
 import { createMapReturnGuard } from './mapReturnGuard';
 import { createMoonJump } from '../toys/moonJump';
+import { createBedtimeSpin } from '../toys/bedtimeSpin';
+import type { PartOfDay } from '../toys/daySpin';
 
 export interface DestinationChoice {
   id: string;
@@ -144,17 +146,12 @@ export interface GameUI {
    */
   setSpinAttention(on: boolean): void;
   setEarthWelcome(on: boolean): void;
-  setDayHandsOn(on: boolean): void;
-  /**
-   * Say, in the heading, what just happened to the day/night spot or what to do next. Only
-   * while the hands-on turn is open; Done and Space map stay exactly where they are.
-   */
-  setDayCaption(text: string): void;
-  /** House state, also visible without sound or reading the instruction. */
-  setDayState(state: 'day' | 'night' | 'morning'): void;
+  /** Open Earth's bedtime spin toy over the visit. */
+  openBedtime(): void;
+  /** Take any open toy away without its own exit (crash, teardown). */
+  dismissToys(): void;
   /** The Space map control's gentle "this way next" emphasis, without moving or hiding it. */
   setMapInvite(on: boolean): void;
-  dismissTurnCoach(): void;
   /**
    * Drive the button's own globe from the real turn, 0 → 1, or `null` for a resting half-lit globe.
    *
@@ -206,7 +203,10 @@ export interface UIOptions {
   onSpin(): void;
   onStopSpin(): void;
   onFindPlaces(): void;
-  onNudgeDayTurn(): void;
+  /** Earth's bedtime spin moved the house into a new part of the day. */
+  onBedtimePart(part: PartOfDay): void;
+  /** The child left the bedtime spin. */
+  onBedtimeClose(): void;
   /** The hunt arrow was pressed: turn the world towards the hidden last place. */
   onTurnToHidden(): void;
   /**
@@ -242,7 +242,8 @@ export function createUI(options: UIOptions): GameUI {
     onSpin,
     onStopSpin,
     onFindPlaces,
-    onNudgeDayTurn,
+    onBedtimePart,
+    onBedtimeClose,
     onTurnToHidden,
     onGrownups,
     onFinale,
@@ -606,17 +607,16 @@ export function createUI(options: UIOptions): GameUI {
   findPlacesButton.type = 'button';
   findPlacesButton.append(createIcon('target'), el('span', 'control-label', 'Find places'));
   findPlacesButton.addEventListener('click', onFindPlaces);
-  const turnButton = el('button', 'btn turn-earth-btn is-hidden');
-  turnButton.type = 'button';
-  turnButton.append(worldPicture('earth'), el('span', 'control-label', 'Turn Earth'));
-  turnButton.setAttribute('aria-label', 'Turn Earth a little');
-  turnButton.addEventListener('click', onNudgeDayTurn);
-  const turnCoach = el('div', 'day-gesture is-hidden');
-  turnCoach.setAttribute('aria-hidden', 'true');
-  turnCoach.append(createIcon('dragHand'));
-  root.append(turnCoach);
   visitActions.setAttribute('role', 'group');
   visitActions.setAttribute('aria-label', 'Explore this world');
+  // Earth's toy: day and night are Earth turning, seen from above the North Pole.
+  const bedtimeSpin = createBedtimeSpin(root, {
+    onPart: (part) => onBedtimePart(part),
+    onClose: () => {
+      spinButton.focus();
+      onBedtimeClose();
+    },
+  });
   // Prototype toy: on the Moon, jump side by side with yourself on Earth.
   const moonJump = createMoonJump(root, () => jumpButton.focus());
   const jumpButton = el('button', 'btn jump-btn is-hidden');
@@ -634,7 +634,7 @@ export function createUI(options: UIOptions): GameUI {
     narrator.stop();
     moonJump.open();
   });
-  visitActions.append(homeButton, listenButton, spinButton, jumpButton, findPlacesButton, turnButton);
+  visitActions.append(homeButton, listenButton, spinButton, jumpButton, findPlacesButton);
   dock.append(visitActions);
   root.append(dock);
 
@@ -1206,7 +1206,7 @@ export function createUI(options: UIOptions): GameUI {
 
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        factOpen || moonJump.isOpen;
+        factOpen || moonJump.isOpen || bedtimeSpin.isOpen;
     },
     setHint,
     showDestinations,
@@ -1216,10 +1216,8 @@ export function createUI(options: UIOptions): GameUI {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-home');
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next', 'is-toy-next');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next');
       findPlacesButton.classList.add('is-hidden');
-      turnButton.classList.add('is-hidden');
-      turnCoach.classList.add('is-hidden');
       worldHeading.classList.add('is-hidden');
       listenButton.classList.add('is-hidden');
       destinationBar.classList.add('is-hidden');
@@ -1228,6 +1226,7 @@ export function createUI(options: UIOptions): GameUI {
       missionHud.classList.add('is-hidden');
       spinButton.classList.add('is-hidden');
       moonJump.close();
+      bedtimeSpin.dismiss();
       jumpButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       factCard.classList.add('is-hidden');
@@ -1426,6 +1425,16 @@ export function createUI(options: UIOptions): GameUI {
       spinButton.classList.toggle('is-inviting', on);
     },
 
+    openBedtime() {
+      setFactOpen(false);
+      bedtimeSpin.open();
+    },
+
+    dismissToys() {
+      moonJump.close();
+      bedtimeSpin.dismiss();
+    },
+
     setEarthWelcome(on: boolean) {
       root.classList.toggle('is-earth-welcome', on);
       findPlacesButton.classList.toggle('is-hidden', !on);
@@ -1434,46 +1443,8 @@ export function createUI(options: UIOptions): GameUI {
       spinLabel.textContent = on ? 'Turn Earth' : 'Day & night';
     },
 
-    setDayHandsOn(on: boolean) {
-      if (!on && root.classList.contains('is-hands-on')) {
-        guideGeneration++;
-        pendingGuide = null;
-        narrator.stop();
-      }
-      root.classList.toggle('is-hands-on', on);
-      turnButton.classList.toggle('is-hidden', !on);
-      turnCoach.classList.toggle('is-hidden', !on);
-      if (on) {
-        headingCaption.textContent = 'Turn Earth. Watch your house.';
-        spinLabel.textContent = 'Done';
-      }
-      if (on) this.setDayState('day');
-      else {
-        dayKey.textContent = 'Day';
-        dayLegend.removeAttribute('aria-label');
-        dayLegend.removeAttribute('role');
-      }
-      dayLegend.classList.toggle('is-house-state', on);
-    },
-
-    setDayCaption(text: string) {
-      if (root.classList.contains('is-hands-on')) headingCaption.textContent = text;
-    },
-
-    setDayState(state: 'day' | 'night' | 'morning') {
-      dayKey.classList.toggle('is-current', state !== 'night');
-      nightKey.classList.toggle('is-current', state === 'night');
-      dayKey.textContent = state === 'morning' ? 'Morning!' : 'Day';
-      dayLegend.setAttribute('role', 'img');
-      dayLegend.setAttribute('aria-label', `Your house: ${state}`);
-    },
-
     setMapInvite(on: boolean) {
       root.classList.toggle('is-map-next', on);
-    },
-
-    dismissTurnCoach() {
-      turnCoach.classList.add('is-hidden');
     },
 
     setSpinProgress(progress: number | null) {
@@ -1570,10 +1541,8 @@ export function createUI(options: UIOptions): GameUI {
     reset() {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next', 'is-toy-next');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next');
       findPlacesButton.classList.add('is-hidden');
-      turnButton.classList.add('is-hidden');
-      turnCoach.classList.add('is-hidden');
       worldHeading.classList.add('is-hidden');
       listenButton.classList.add('is-hidden');
       setFactOpen(false);
@@ -1591,6 +1560,7 @@ export function createUI(options: UIOptions): GameUI {
       setHomeAvailable(false);
       spinButton.classList.add('is-hidden');
       moonJump.close();
+      bedtimeSpin.dismiss();
       jumpButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       spinBusy = false;

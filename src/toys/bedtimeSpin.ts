@@ -20,7 +20,10 @@ import {
 export interface BedtimeSpin {
   readonly isOpen: boolean;
   open(): void;
+  /** The child's own way out: calls onClose. */
   close(): void;
+  /** Taken away by a reset (flight, return, crash): no callback. */
+  dismiss(): void;
 }
 
 export interface BedtimeSpinOptions {
@@ -470,11 +473,16 @@ export function createBedtimeSpin(host: HTMLElement, options: BedtimeSpinOptions
     },
     close() {
       if (!open) return;
+      api.dismiss();
+      options.onClose?.();
+    },
+    dismiss() {
+      if (!open) return;
       open = false;
       cancelAnimationFrame(frame);
+      dragId = null;
       root.classList.add('is-hidden');
       root.remove();
-      options.onClose?.();
     },
   };
   return api;

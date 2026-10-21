@@ -51,14 +51,8 @@ export const DAY_INTRO_TURN_DURATION = 6;
 export interface DayTurn {
   /** True from start() until the turn completes or is reset. */
   readonly active: boolean;
-  /** Earth can be turned by the child instead of running a timed demonstration. */
-  readonly interactive: boolean;
   /** Begins a turn. Ignored while one is already running. `duration` is the turn itself, in seconds. */
-  start(body: CelestialBody, duration?: number, interactive?: boolean): void;
-  /** Direct finger motion; applied once, with no release inertia. */
-  turnBy(angle: number): void;
-  /** A tap/keyboard alternative advances a quarter turn at a gentle constant speed. */
-  nudge(): void;
+  start(body: CelestialBody, duration?: number): void;
   update(dt: number): void;
   /**
    * Ends the turn early, as a full completion rather than an abandonment: it applies
@@ -122,8 +116,6 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
   let swung = 0;
   let turned = 0;
   let distance = 0;
-  let handsOn = false;
-  let assistedTurn = 0;
 
   /** Puts the camera on its arc at `t`, and keeps it there as the body travels. */
   function placeCamera(t: number) {
@@ -154,8 +146,6 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
     turning = null;
     swung = 0;
     turned = 0;
-    assistedTurn = 0;
-    handsOn = false;
     controls.syncFromCamera();
     controls.enabled = true;
   }
@@ -165,19 +155,13 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       return turning !== null;
     },
 
-    get interactive() {
-      return turning !== null && handsOn;
-    },
-
-    start(body: CelestialBody, duration = DAY_TURN_DURATION, interactive = false) {
+    start(body: CelestialBody, duration = DAY_TURN_DURATION) {
       if (turning) return;
       turning = body;
       rate = FULL_TURN / duration;
       phase = 'swing';
       swung = 0;
       turned = 0;
-      handsOn = interactive;
-      assistedTurn = 0;
 
       body.getWorldPosition(centre);
       offset.subVectors(camera.position, centre);
@@ -205,18 +189,6 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       }
     },
 
-    turnBy(angle: number) {
-      if (!turning || !handsOn || !Number.isFinite(angle)) return;
-      assistedTurn = 0;
-      turned += angle;
-      turning.turnSurface(angle);
-      onProgress?.(THREE.MathUtils.euclideanModulo(turned, FULL_TURN) / FULL_TURN);
-    },
-
-    nudge() {
-      if (turning && handsOn) assistedTurn += FULL_TURN / 4;
-    },
-
     update(dt: number) {
       const body = turning;
       if (!body) return;
@@ -234,18 +206,15 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       // Clamped against what is left rather than against the clock, so the total applied
       // is exactly one turn however the frames happened to land. A few thousandths of a
       // radian of overshoot per visit would walk every marker off its coordinates.
-      const step = handsOn
-        ? Math.min(assistedTurn, FULL_TURN / 3 * dt)
-        : Math.min(FULL_TURN - turned, rate * dt);
-      if (handsOn) assistedTurn -= step;
+      const step = Math.min(FULL_TURN - turned, rate * dt);
       turned += step;
       body.turnSurface(step);
-      onProgress?.(handsOn ? THREE.MathUtils.euclideanModulo(turned, FULL_TURN) / FULL_TURN : turned / FULL_TURN);
+      onProgress?.(turned / FULL_TURN);
       // Held against the body rather than the world, so one that is still orbiting does
       // not slide out of frame while it turns.
       placeCamera(1);
 
-      if (!handsOn && turned >= FULL_TURN) {
+      if (turned >= FULL_TURN) {
         release();
         onFinish();
       }
@@ -256,9 +225,7 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
       if (!body) return;
       // Whatever is left of the one turn, applied at once — a partial turn would leave every
       // marker off its real coordinates, which is the whole thing the clamp above protects.
-      // Hands-on play may move in either direction over many turns. Restore the exact
-      // starting orientation before returning to the real-coordinate discovery hunt.
-      body.turnSurface(handsOn ? -turned : FULL_TURN - turned);
+      body.turnSurface(FULL_TURN - turned);
       turned = FULL_TURN;
       // End on the square-on pose a natural finish leaves, so the hunt starts from the same
       // composition whether the turn ran out or was skipped.
@@ -271,7 +238,6 @@ export function createDayTurn(options: DayTurnOptions): DayTurn {
     reset() {
       teachingSun?.hide();
       if (!turning) return;
-      if (handsOn) turning.turnSurface(-turned);
       release();
     },
   };

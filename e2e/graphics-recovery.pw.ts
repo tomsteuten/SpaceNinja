@@ -67,20 +67,19 @@ test('graphics loss during flight offers restart, stays stopped after restoratio
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(saved);
 });
 
-test('graphics loss releases the current day/night house and camera before restart', async ({ page }) => {
+test('graphics loss takes the bedtime spin away and releases the camera before restart', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().phase)).toBe('arrived');
-  await page.getByRole('button', { name: /^Day and night on Earth/ }).click();
-  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().daySpot !== null)).toBe(true);
-  await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().handsOnDay)).toBe(true);
+  await page.locator('.spin-btn').click();
+  await expect(page.locator('.bedtime-spin')).toBeVisible();
   await loseGraphics(page);
   await expect(page.locator('#boot')).toHaveClass(/has-crash/);
+  await expect(page.locator('.bedtime-spin')).toHaveCount(0);
   const stopped = await page.evaluate(() => (window as any).spaceNinjaSnapshot());
-  expect(stopped.handsOnDay).toBe(false);
-  expect(stopped.daySpot).toBeNull();
+  expect(stopped.dayTurning).toBe(false);
   expect(stopped.teachingSun.visible).toBe(false);
   expect(stopped.speaking).toBe(false);
   await page.getByRole('button', { name: 'Start again', exact: true }).click();

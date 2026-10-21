@@ -79,12 +79,13 @@ for (const [name, viewport] of [
       await page.getByRole('button', { name: 'Close the words', exact: true }).click();
 
       await page.locator('.spin-btn').click();
-      await page.getByRole('button', { name: 'Turn Earth a little', exact: true }).click();
-      await expect(page.locator('.day-legend')).toBeVisible();
+      const toy = page.locator('.bedtime-spin');
+      await expect(toy).toBeVisible();
+      for (let i = 0; i < 2; i++) { await toy.getByRole('button', { name: 'Turn Earth' }).click(); await page.waitForTimeout(800); }
       await page.waitForTimeout(1500);
       await shot(page, '6-day-night');
-      await page.getByRole('button', { name: 'Stop day and night', exact: true }).click();
-      await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
+      await toy.getByRole('button', { name: 'Back to Earth' }).click();
+      await expect(toy).toHaveCount(0);
 
       await page.locator('.visit-actions .journal-btn').click();
       await expect(page.locator('.journal-panel')).toBeVisible();
