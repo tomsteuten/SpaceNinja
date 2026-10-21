@@ -17,10 +17,9 @@ See the current split at any time, with no key and nothing spent:
 npm run narration:status
 ```
 
-On 22 October: 85 cues, 75 ElevenLabs, 7 Kokoro (`arrival-sun`, `toy-moon`, `toy-saturn` and
-the four `day-night-*` lines), 3 never recorded (`home-sun`, `home-nudge-sun`,
-`home-nudge-short-sun`; the map never suggests the Sun, so they don't play today). Each new
-toy adds a `toy-<world>` Kokoro line until the pass below.
+On 22 October the pass below was run: all 85 cues are ElevenLabs Emma again (it recorded
+the 7 Kokoro lines and the 3 Sun map lines that had none, 437 characters). Each new toy adds
+a `toy-<world>` Kokoro line until the pass is run again.
 
 ### The ElevenLabs pass (replaces every Kokoro line)
 
@@ -34,8 +33,7 @@ npm run narration:status                                         # expect: all E
 ```
 
 A plain run records exactly the cues that aren't already current ElevenLabs (Kokoro lines
-have no entry in `manifest.json`), and keeps the rest; on 22 October that was 10 cues and
-437 characters. It then rewrites `provenance.json` as all-ElevenLabs, which is only true
+have no entry in `manifest.json`), and keeps the rest. It then rewrites `provenance.json` as all-ElevenLabs, which is only true
 once every cue is ElevenLabs. **Don't use `--only` for this pass:** it would also drop the
 remaining Kokoro exceptions from `provenance.json` and make the grown-ups disclosure wrong.
 `--force` would re-record all 85 and spend credits for nothing. Afterwards, run `npm test`,
