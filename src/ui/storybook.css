@@ -269,3 +269,7 @@
 .journal-back:hover { background:var(--crayon-tomato); }
 .finale__close:hover { background:var(--crayon-sun); }
 .panel-return:hover,.narrate-btn:hover,.journal-back:hover,.finale__close:hover { filter:brightness(1.05); }
+
+/* After the finds on a world with a toy, the toy is the next step, not the journal. */
+.is-toy-next .visit-actions > .btn.jump-btn { outline:4px solid var(--paper); outline-offset:3px; }
+.is-complete.is-toy-next .visit-actions .journal-btn { outline:none; }

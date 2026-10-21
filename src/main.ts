@@ -1055,7 +1055,9 @@ async function main() {
      * flight or a day turn, when the camera is not theirs to move.
      */
     const cameraOurs = cameraIsOurs();
-    if (cameraOurs && !earthDayNightPrompt && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
+    // Paused while a toy or panel covers the world: the "find the places" line must not
+    // start over a child who is busy jumping on the Moon.
+    if (cameraOurs && !earthDayNightPrompt && !ui.activityCovered && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
       huntGuidance.elapsed += dt;
       if (!huntGuidance.inviteShown && huntGuidance.elapsed >= HUNT_INVITE_HINT_DELAY) {
         huntGuidance.inviteShown = true;

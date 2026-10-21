@@ -624,6 +624,11 @@ export function createUI(options: UIOptions): GameUI {
   jumpButton.append(createIcon('jump'), el('span', 'control-label', 'Jump'));
   jumpButton.setAttribute('aria-label', 'Jump on the Moon');
   jumpButton.addEventListener('click', () => {
+    // The toy was the next step after the finds; once played, the journal takes over.
+    if (root.classList.contains('is-toy-next')) {
+      root.classList.remove('is-toy-next');
+      if (!spinBusy) headingCaption.textContent = completeVisitHint();
+    }
     setFactOpen(false);
     pendingGuide = null;
     narrator.stop();
@@ -841,6 +846,7 @@ export function createUI(options: UIOptions): GameUI {
   let journalOpen = false;
   let journalOpening: PanelOpening | null = null;
   function completeVisitHint() {
+    if (root.classList.contains('is-toy-next')) return 'Three found! Now try Jump.';
     return root.classList.contains('has-seen-journal')
       ? 'Choose your next trip on the Space map.'
       : 'Three found this trip! See your journal.';
@@ -1210,7 +1216,7 @@ export function createUI(options: UIOptions): GameUI {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-home');
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next', 'is-toy-next');
       findPlacesButton.classList.add('is-hidden');
       turnButton.classList.add('is-hidden');
       turnCoach.classList.add('is-hidden');
@@ -1232,7 +1238,7 @@ export function createUI(options: UIOptions): GameUI {
 
     showArrival(cueId: string, label: string, fact: string, _emoji: string, worldId = 'earth') {
       root.classList.remove('is-home');
-      root.classList.remove('is-complete', 'has-seen-journal');
+      root.classList.remove('is-complete', 'has-seen-journal', 'is-toy-next');
       root.classList.toggle('is-earth', worldId === 'earth');
       worldHeading.classList.remove('is-hidden');
       listenButton.classList.remove('is-hidden');
@@ -1363,6 +1369,11 @@ export function createUI(options: UIOptions): GameUI {
       // The visit's finds are ready to revisit together. Keep exits in place and give the
       // journal the gold emphasis, cleared on the next arrival/flight.
       root.classList.add('is-complete');
+      // A world with a toy: the places come first, then the toy is the next thing to do.
+      // Its invitation replaces the "fly home" follow-up, which would point away from it.
+      const toyCue = visitActions.classList.contains('has-toy') ? `toy-${visitWorldId}` : null;
+      if (toyCue && narrator.hasRecording(toyCue)) followUp = { text: cueText(toyCue), cueId: toyCue };
+      if (toyCue) root.classList.add('is-toy-next');
       headingCaption.textContent = completeVisitHint();
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
@@ -1559,7 +1570,7 @@ export function createUI(options: UIOptions): GameUI {
     reset() {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-hands-on', 'is-map-next', 'is-toy-next');
       findPlacesButton.classList.add('is-hidden');
       turnButton.classList.add('is-hidden');
       turnCoach.classList.add('is-hidden');

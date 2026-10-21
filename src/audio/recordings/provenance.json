@@ -4,7 +4,7 @@
   "voice": "Emma",
   "voiceId": "56bWURjYFHyYyVf490Dp",
   "model": "eleven_multilingual_v2",
-  "disclosure": "The included narration uses ElevenLabs AI voice Emma, with local Kokoro bf_emma cues for the Sun arrival and Earth's day/night activity.",
+  "disclosure": "The included narration uses ElevenLabs AI voice Emma, with selected cues generated locally using Kokoro bf_emma.",
   "exceptions": {
     "arrival-sun": {
       "provider": "Kokoro",
@@ -42,6 +42,16 @@
       "disclosure": "The included narration uses Kokoro's British English bf_emma AI voice."
     },
     "day-night-done": {
+      "kind": "ai",
+      "provider": "Kokoro",
+      "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+      "voice": "bf_emma",
+      "speed": 0.95,
+      "modelLicense": "Apache-2.0",
+      "modelSource": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "disclosure": "The included narration uses Kokoro's British English bf_emma AI voice."
+    },
+    "toy-moon": {
       "kind": "ai",
       "provider": "Kokoro",
       "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
