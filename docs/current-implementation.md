@@ -1,16 +1,25 @@
-# Current implementation and handover
+﻿# Current implementation and handover
 
-## Quiet arrival — 22 October 2026
+## Quiet arrival â€” 22 October 2026
 
 From the owner's first child playtest: the gold places are intuitive, the arrival was busy.
 The visit row now fills in (`setVisitStage` in `src/ui/ui.ts`): hunt = Space map + Listen
-(+ Day & night on Earth); third find = the toy pops in (any `.toy-btn`); toy played = Journal
+(+ Day & night on Earth); third find = the toy pops in (any `.toy-btn`: Jump, Bath, Rover); toy played = Journal
 and Day & night. Held buttons keep their cells, so Space map never moves. The heading caption
 hides during the hunt, Words is a quiet chip (gone with sound off: Listen becomes Words), the
 counter is a plain tally, and the find line no longer queues behind the arrival welcome.
 Checked by `e2e/quiet-arrival.pw.ts` (replaces moon-toy-order); captures in `design/quiet-arrival/`.
 
-## Saturn bath toy — 21 October 2026
+## Mars rover toy â€” 22 October 2026
+
+Mars's toy is built: `src/toys/marsRover.ts` (overlay) and `roverDelay.ts` (real light time
+3.0â€“22.3 minutes, shrunk to 3 s; commands fly as dots, queue at the rover, fixed substeps;
+unit-tested). A Rover button (new `--crayon-lime`) joins Mars's visit row; after three finds
+it is the next step (ElevenLabs cue `toy-mars`). Checked by `e2e/mars-rover.pw.ts`;
+`e2e/style-capture.pw.ts` captures it. Review captures in `design/mars-rover/`. Pending:
+child observation, tablet performance, sounds.
+
+## Saturn bath toy â€” 21 October 2026
 
 Saturn's toy is built: `src/toys/saturnBath.ts` (overlay) and `bathPhysics.ts` (real mean
 densities, waterline depth of a floating sphere, fixed-substep bob that a slow frame cannot
@@ -19,7 +28,7 @@ three finds it is the next step (Kokoro cue `toy-saturn`). Checked by
 `e2e/saturn-bath.pw.ts`; `e2e/style-capture.pw.ts` captures it. Look approved from
 `design/saturn-bath/`. Pending: child observation, tablet performance, a plop sound.
 
-## Crayons rollout, fast flights, Moon order — 21 October 2026
+## Crayons rollout, fast flights, Moon order â€” 21 October 2026
 
 Process docs rewritten for toys-first (AGENTS.md, DECISIONS.md). Playtest builds accept
 `?fast` (0.3 s flights); captures and non-flight checks use it. Storybook crayons now covers
@@ -28,7 +37,7 @@ every child-facing screen; `e2e/style-capture.pw.ts` walks them all, with before
 step after three finds (new Kokoro cue `toy-moon`, `e2e/moon-toy-order.pw.ts`). Owner review
 of the rollout, tablet listening and child observation are pending. Next: Earth bedtime spin.
 
-## Earth feedback and rule cleanup — 20 October 2026
+## Earth feedback and rule cleanup â€” 20 October 2026
 
 Built on main `36a99d7`, on `codex/earth-day-feedback`. The house is larger, with clearer
 lit windows, a smaller offset gesture coach and a day/night/morning state indicator.
@@ -43,7 +52,7 @@ Full-resolution comparisons and audio: `design/wave-1/earth-feedback-2026-10-19/
 Owner visual review, target-tablet listening and child observation remain pending.
 Changes are local; this is the Earth feedback refinement, not completion of all Wave 1 work.
 
-## Graphics recovery integration — 17 October 2026
+## Graphics recovery integration â€” 17 October 2026
 
 Integrated with main `1a0a2b1`: WebGL loss now uses the existing crash lifecycle,
 silencing audio, clearing gestures and offering a focused Start again control.
@@ -57,7 +66,7 @@ physical-tablet behavior remain unconfirmed; no new route or product layout is a
 Validation on current main: typecheck, 329 unit tests, production build and all 12
 targeted graphics-recovery/history checks passed across the three viewports.
 
-## Wave 1, step 1: day/night house and the first-session rail — 17 October 2026
+## Wave 1, step 1: day/night house and the first-session rail â€” 17 October 2026
 
 DECISIONS.md line 4 changed by owner decision (16 October): the rail's "you did it" is a
 marked spot going into night and back. Earth's hands-on day/night now shows a small house
@@ -84,7 +93,7 @@ so assets and narration cannot be downloaded or generated from this environment 
 Next: Wave 1 (first-session rail, paged map as default). Typecheck and all 314 unit tests (after merging main `6a8b891`)
 pass; lifecycle, offline and accessibility browser files pass on phone.
 
-## Playability repairs — 15 October 2026
+## Playability repairs â€” 15 October 2026
 
 These repairs build on GitHub main `91f27fa`.
 
@@ -97,7 +106,7 @@ been opened on a completed visit, the existing Space map control gains the empha
 Validation: typecheck, all 362 unit tests and the production build passed. The affected
 Earth-loop and map-return browser checks passed on phone, tablet and short landscape.
 One unit-file timeout and one tablet browser failure under concurrent load passed unchanged
-on isolated reruns. Layout checks include the review's 1095×539 viewport and narrow phones.
+on isolated reruns. Layout checks include the review's 1095Ã—539 viewport and narrow phones.
 These are regression checks, not simulated child research. No full local browser suite ran.
 
 The owner granted advance visual approval, waived screenshot delivery and authorized
@@ -106,7 +115,7 @@ Physical-tablet input/performance, audio and child comprehension remain unverifi
 one-off black screen, day/night completion feedback and larger navigation redesign were
 not changed.
 
-## Map foundations — 12 October 2026
+## Map foundations â€” 12 October 2026
 
 The neighborhood model is now the tested source of map membership: every scene body must
 sit in exactly one neighborhood. `childNeighborhoods()` removes unbuilt fixtures and empty
@@ -125,7 +134,7 @@ explorer's close flight with the adventure's controls as a mode on an arrived wo
 [explorer review](../design/explorer-review-2026-10-12/index.html); (4) observe a child on
 the tablet as soon as possible.
 
-## Neighborhood map study — 8 October 2026
+## Neighborhood map study â€” 8 October 2026
 
 PR #1 was merged at `430c8df`; [deployment 37739425471](https://github.com/tomsteuten/SpaceNinja/actions/runs/37739425471)
 completed successfully. The journal check no longer blocks Pages.
@@ -146,7 +155,7 @@ including muted feedback, real Moon tapping/collection, Mars unlock, Sun travel,
 Saturn return, measured world clearance, keyboard focus, swipe, resize and history suspension.
 The unchanged default-home file also passed on all three viewports. No full local suite ran.
 
-## Deployment regression and next proposal — 8 October 2026
+## Deployment regression and next proposal â€” 8 October 2026
 
 GitHub main `849547b` did not deploy: [run 37400865343](https://github.com/tomsteuten/SpaceNinja/actions/runs/37400865343)
 passed 347 unit tests and 68 browser checks, skipped four browser checks, and failed the
@@ -166,7 +175,7 @@ rerun locally. The subsequent successful main deployment is linked in the checkp
 The [bounded map proposal](archive/map-proposal-2026-10-08.md) led to the opt-in study above;
 the proposal itself did not approve a replacement screen.
 
-## Current checkpoint — Earth discovery loop, 6 October 2026
+## Current checkpoint â€” Earth discovery loop, 6 October 2026
 
 The local Earth pass now connects finding to revisiting. First-find photos show Saved to
 your journal and the count for this visit. The third photo offers See discoveries as well
@@ -187,7 +196,7 @@ unavailable. Full-resolution before/after captures are in
 `/workspace/scratch/earth-loop-polish/`; targeted browser checks cover the entire Earth
 loop, muted words, focus return, and phone/tablet/short-landscape control clearance.
 
-## Current checkpoint — Earth interaction pass, 5 October 2026
+## Current checkpoint â€” Earth interaction pass, 5 October 2026
 
 The current local change suggests Earth first using its existing narration. First Earth
 arrival offers Turn Earth or Find places with an always-visible Space map return. Gold

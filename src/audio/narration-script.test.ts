@@ -42,7 +42,7 @@ function cuesByBody(): Record<string, string[]> {
         // A gated world: pressed before it is earned, and announced once it is.
         ...(destination.revealAfterVisiting ? [`locked-${bodyId}`, `revealed-${bodyId}`] : []),
         // A world with a toy (src/toys/) invites it once the places are found.
-        ...(bodyId === 'moon' || bodyId === 'saturn' ? [`toy-${bodyId}`] : []),
+        ...(bodyId === 'moon' || bodyId === 'saturn' || bodyId === 'mars' ? [`toy-${bodyId}`] : []),
       ],
     ]),
   );
