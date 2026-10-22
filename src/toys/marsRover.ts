@@ -639,14 +639,16 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
 
   /**
    * The clock beside Earth: while the message flies, its minute hand sweeps the real wait
-   * (12 minutes of the hour) and the face fills behind it. With reduced motion it ticks a
-   * minute at a time.
+   * (12 minutes of the hour) and the face fills behind it, staying filled while the rover
+   * works. With reduced motion it ticks a minute at a time.
    */
   function drawClock() {
     const { clock } = L!;
     const k = messageProgress(drive);
     const top = -Math.PI / 2;
-    const minutes = k === null ? 0 : reduced ? Math.floor(k * REAL_MINUTES) : k * REAL_MINUTES;
+    // Once the message has landed the face stays filled until the sample is in.
+    const landed = drive.phase === 'drive' || drive.phase === 'drill';
+    const minutes = k === null ? (landed ? REAL_MINUTES : 0) : reduced ? Math.floor(k * REAL_MINUTES) : k * REAL_MINUTES;
     const hand = top + (minutes / 60) * TAU;
     ctx.fillStyle = '#f8f0dd';
     ctx.beginPath();
@@ -733,8 +735,8 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     if (k === null) return;
     const r = Math.max(14, Math.min(24, L!.board.tile * 0.2));
     if (reduced) {
-      // Cuts, not a glide: at Earth, halfway, then at the rover, the wait unchanged.
-      drawDot(...xy(flightPoint(Math.min(1, Math.floor(k * 3) / 2))), r);
+      // Cuts, not a glide: at Earth, a third of the way, two thirds; the wait unchanged.
+      drawDot(...xy(flightPoint(Math.min(2, Math.floor(k * 3)) / 3)), r);
       return;
     }
     for (let j = 1; j <= 5; j++) {

@@ -41,7 +41,7 @@ export const DRILL_TIME = 1.6;
 /** After the third tube, a pause before the new rocks appear. */
 export const RESTOCK_TIME = 2.2;
 /** How far beside a rock the rover parks, in squares, so its arm reaches it. */
-export const PARK = 0.3;
+export const PARK = 0.5;
 const SUBSTEP = 1 / 120;
 /** The longest stretch one call will simulate; a stalled frame resumes rather than leaps. */
 export const MAX_STEP = 0.25;
