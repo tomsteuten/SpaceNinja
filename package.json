@@ -12,6 +12,7 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "narration:generate": "node scripts/generate-narration-elevenlabs.mjs",
+    "narration:status": "node scripts/narration-status.mjs",
     "narration:generate:kokoro": "node scripts/generate-narration-kokoro.mjs",
     "narration:generate:openai": "node scripts/generate-narration.mjs",
     "test:e2e": "playwright test",

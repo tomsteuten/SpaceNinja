@@ -7,6 +7,11 @@
     "arrival-mars": "440475f57b440dde07424c8f23a5f89cbb7adf69645ba9f9cc0ce799548b4a22",
     "arrival-moon": "88a8e5b28efbc882d5199a4e3f45ce6befe95aa3898babab0cb3f5f03e51cfae",
     "arrival-saturn": "c90c18ef540d80c2900236c5dd264e5e0b7c8389861e147280fc79a3c98398f0",
+    "arrival-sun": "59a23b5adcb1a9a6db038282479d2f2e667073444dbe46952c9a4dbcabe91cbd",
+    "day-night-done": "d2b95ad2854cbd3e605e187a1d71ee2aa1289374aec0f9a47ec71bdb15a6f77e",
+    "day-night-moon": "1a05d1e7c92fb9307378c037825b181ff8b7c86b5970657cb44c473b2642ff1d",
+    "day-night-night": "1c75114b53d197c4b4f0cee514ef755efd4704702275834cb1f75d1165fbc080",
+    "day-night-start": "9af9b907588f558305a966f649090d852ca7a9b8cc6d349c8deac5a983c59dba",
     "discovery-earth-amazon": "0765376026694af8e4424b4f60edb9128a9fc0ea2f40015ddd5ba0382c1844e0",
     "discovery-earth-himalaya": "82775499bc368d01cec37145532360e2246506afd05c4aee4388e41f6f29a374",
     "discovery-earth-lakes": "3dcad16eaa575c8d2d863b3473f9729dd9f4367a2300a355fa4060bc2d1b2a9b",
@@ -52,7 +57,10 @@
     "home-nudge-short-mars": "47387385597b9216eba52f6e1d952f3a5ef4355cae26f5542e4d94204ef3541e",
     "home-nudge-short-moon": "8a581cfff6177c9b1bffd0ddd1a740a099d2fd4d051a5f21093577b312f12cb3",
     "home-nudge-short-saturn": "cd38ef1322461f45ca0a615329a58bbee03f563b92cdc22330c140dc06c577e5",
+    "home-nudge-short-sun": "dbc378bdad967351bdd7f9d3e0f48c54f973a2b8c204910d88bfd9086480bccb",
+    "home-nudge-sun": "cfb6ed49730c36855f1d3ce977e95fceeb30c5397b0a8a2d3bcabc5f269a767f",
     "home-saturn": "7aa5b739811f3e7e4c669895aa5d369621a11f4f55c3fce39351fd45c7963e46",
+    "home-sun": "a644fdc26d9bce343055e46db0e0fe9cf6b29505b16526fb4dbac087b34c5127",
     "hunt-earth": "3750525bc90a6e7d3f13bf96d90e86587ad40e5bfc2229059b4ffc63a461ff9e",
     "hunt-mars": "3750525bc90a6e7d3f13bf96d90e86587ad40e5bfc2229059b4ffc63a461ff9e",
     "hunt-moon": "3750525bc90a6e7d3f13bf96d90e86587ad40e5bfc2229059b4ffc63a461ff9e",
@@ -77,6 +85,8 @@
     "success-mars": "fcbb44b05b5aedade8d1eb5a46abe563e6ecbfbb90b855ac613765b90df99c0b",
     "success-moon": "4ea0b6a59a0d3a94b8ff32cb2673c533ac46a27c25e08d612f8839828dd473f5",
     "success-next": "4fe043761c7791fd4d9b171bcf8d89675ce133a8535a9bb1c509e41dbcb4a7c3",
-    "success-saturn": "36e1b4e440757558e659b73cb4db24a224b619fb349a9ef8443cf6d82c3de7b1"
+    "success-saturn": "36e1b4e440757558e659b73cb4db24a224b619fb349a9ef8443cf6d82c3de7b1",
+    "toy-moon": "144aef3de4fba8c01ce3c1065762a5597b52c890d32fdb7bf630a5ace6bb7516",
+    "toy-saturn": "18acfce9a80c348cd6484c50242663ab2bed0a2799c8828b0037623157756250"
   }
 }
