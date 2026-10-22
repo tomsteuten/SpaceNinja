@@ -1,5 +1,14 @@
 # Current implementation and handover
 
+## Mars rover, one verb — 23 October 2026
+
+Playtest 2 found the rover's arrows, delayed queue and exact parking confusing. Now the child
+taps a rock (gold glow, gentle wobble, 64 px+ invisible targets); a dot flies from Earth for
+2 s while the clock sweeps the real 12 minutes; then the rover drives itself there and drills.
+Busy taps get a shimmer, never queue. `roverDelay.ts` is a small phase machine (message,
+drive, drill, restock) with unit tests; `e2e/mars-rover.pw.ts` and the style-capture shots
+follow the new flow. Owner approved from `design/rover-simple/`. Pending: child observation.
+
 ## Quiet arrival â€” 22 October 2026
 
 From the owner's first child playtest: the gold places are intuitive, the arrival was busy.

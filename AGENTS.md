@@ -131,7 +131,7 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 | Jump, Find places, Start playing, Hooray!, the hunt arrow | sun |
 | Turn Earth (in the bedtime spin) | teal |
 | Bath (Saturn's toy) and Plop! inside it | bubble |
-| Rover (Mars's toy), its arrow keys and Drill | lime |
+| Rover (Mars's toy) | lime |
 | Journal, All places, the open journal page | tomato |
 
 Panels (Words card, journal, postcard, finale, grown-ups) are paper with an ink outline and a
