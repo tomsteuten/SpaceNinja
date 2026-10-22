@@ -1,0 +1,74 @@
+<title>Rover, one verb</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Andika:wght@400;700&display=swap">
+<style>
+/* Layout: a storybook review sheet; per viewport, four moments, before beside after. */
+:root {
+  --paper: #f8f0dd; --ink: #2b2118; --muted: #6b5a48; --lime: #b9dc4f; --sky: #5bb8e8; --line: #d9c9a8;
+  --hand: 'Patrick Hand', 'Comic Sans MS', cursive; --body: 'Andika', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 48px; }
+main { max-width: 1100px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--hand); font-weight: 400; margin: 0; text-wrap: balance; }
+h1 { font-size: 2.6rem; line-height: 1.05; }
+h2 { font-size: 1.9rem; }
+h3 { font-size: 1.3rem; }
+p, ul { margin: 0; max-width: 68ch; }
+ul { padding-left: 1.2em; display: grid; gap: 4px; }
+.intro { display: grid; gap: 12px; }
+.note { border: 3px solid var(--ink); border-radius: 14px; box-shadow: 4px 4px 0 var(--ink); background: #fff8e8; padding: 14px 18px; display: grid; gap: 8px; transform: rotate(-0.4deg); }
+.chip { display: inline-block; font: 1rem var(--hand); border: 2px solid var(--ink); border-radius: 10px; padding: 0 8px; background: var(--lime); }
+.chip.before { background: var(--line); }
+section { display: grid; gap: 14px; }
+.moment { display: grid; grid-template-columns: 11rem 1fr 1fr; gap: 12px; align-items: start; border-top: 2px dashed var(--line); padding-top: 14px; }
+.moment > div { min-width: 0; display: grid; gap: 6px; }
+.moment .label { display: grid; gap: 4px; }
+.moment .label p { color: var(--muted); font-size: 0.92rem; }
+.shot img { display: block; width: 100%; max-width: 100%; border: 2px solid var(--ink); border-radius: 8px; background: #070a18; }
+.tablet .shot img { max-width: 420px; }
+.phone .shot img { max-width: 300px; }
+@media (max-width: 720px) {
+  .moment { grid-template-columns: 1fr 1fr; }
+  .moment .label { grid-column: 1 / -1; }
+}
+</style>
+<main>
+  <div class="intro">
+    <h1>Mars rover, one verb</h1>
+    <p>After playtest 2: arrows on a grid, moves acting seconds later, a queue of eight and exact parking for Drill were too much. Now the child does one thing: <strong>tap a rock</strong>.</p>
+    <ul>
+      <li>Rocks still to drill glow gold (like the places in the world) and wobble gently. Each has a big invisible tap target (at least 64 px).</li>
+      <li>A glowing dot flies from Earth to the rover in 2 s. The clock's minute hand sweeps 12 minutes, the real wait on a typical day, and the face fills yellow behind it. It stays filled while the rover works.</li>
+      <li>Only when the dot lands does the rover drive itself to the rock and drill. A tube fills; three tubes bring new rocks.</li>
+      <li>Taps while busy get a soft shimmer ring round the rover and are forgotten, not queued.</li>
+      <li>Caption: "Tap a rock!", "Mars is far away!", "A rock sample!", "Three samples!", then back to "Tap a rock!". No "Wait…".</li>
+    </ul>
+    <div class="note">
+      <h3>About these captures</h3>
+      <p>Captured with reduced motion on (as the review script always does), so the rocks don't wobble here and the dot cuts in thirds instead of gliding. "Before" is today's main, driven to the same moments with the arrows.</p>
+      <p>Proposed narration, not recorded: "Tap a rock. Your message takes a long time to reach Mars!"</p>
+    </div>
+  </div>
+  <div id="views"></div>
+</main>
+<script>
+const moments = [
+  ['14-mars-rover-open', 'Opened', 'The first thing the child sees.'],
+  ['15-mars-rover-message', 'Message flying', 'Before: four commands in flight. After: one dot, the clock sweeping.'],
+  ['16-mars-rover-drilling', 'Drilling', 'The rover at the rock, drill down.'],
+  ['17-mars-rover-three-samples', 'Three samples', 'All three tubes full, just before new rocks.'],
+];
+const views = [['phone', 'Phone (390 × 844)'], ['tablet', 'Tablet (768 × 1024)']];
+const root = document.getElementById('views');
+for (const [view, name] of views) {
+  let html = `<section class="${view}"><h2>${name}</h2>`;
+  for (const [file, title, text] of moments) {
+    html += `<div class="moment"><div class="label"><h3>${title}</h3><p>${text}</p></div>` +
+      ['before', 'after'].map(when => `<div class="shot"><span class="chip ${when}">${when}</span>` +
+        `<img src="${when}/${view}-${file}.png" alt="${when}: ${title}, ${view}" loading="lazy"></div>`).join('') + `</div>`;
+  }
+  root.insertAdjacentHTML('beforeend', html + '</section>');
+}
+</script>
