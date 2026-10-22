@@ -25,6 +25,7 @@ import { createMapReturnGuard } from './mapReturnGuard';
 import { createMoonJump } from '../toys/moonJump';
 import { createBedtimeSpin } from '../toys/bedtimeSpin';
 import { createSaturnBath } from '../toys/saturnBath';
+import { createMarsRover } from '../toys/marsRover';
 import type { PartOfDay } from '../toys/daySpin';
 
 export interface DestinationChoice {
@@ -651,7 +652,23 @@ export function createUI(options: UIOptions): GameUI {
     narrator.stop();
     saturnBath.open();
   });
-  visitActions.append(homeButton, listenButton, spinButton, jumpButton, bathButton, findPlacesButton);
+  // Mars's toy: drive Perseverance, with every command taking minutes to get there.
+  const marsRover = createMarsRover(root, { onClose: () => roverButton.focus() });
+  const roverButton = el('button', 'btn rover-btn is-hidden');
+  roverButton.type = 'button';
+  roverButton.append(createIcon('rover'), el('span', 'control-label', 'Rover'));
+  roverButton.setAttribute('aria-label', 'Drive the Mars rover');
+  roverButton.addEventListener('click', () => {
+    if (root.classList.contains('is-toy-next')) {
+      root.classList.remove('is-toy-next');
+      if (!spinBusy) headingCaption.textContent = completeVisitHint();
+    }
+    setFactOpen(false);
+    pendingGuide = null;
+    narrator.stop();
+    marsRover.open();
+  });
+  visitActions.append(homeButton, listenButton, spinButton, jumpButton, bathButton, roverButton, findPlacesButton);
   dock.append(visitActions);
   root.append(dock);
 
@@ -864,7 +881,9 @@ export function createUI(options: UIOptions): GameUI {
   let journalOpening: PanelOpening | null = null;
   function completeVisitHint() {
     if (root.classList.contains('is-toy-next')) {
-      return visitWorldId === 'saturn' ? 'Three found! Now try the bath.' : 'Three found! Now try Jump.';
+      if (visitWorldId === 'saturn') return 'Three found! Now try the bath.';
+      if (visitWorldId === 'mars') return 'Three found! Now drive the rover.';
+      return 'Three found! Now try Jump.';
     }
     return root.classList.contains('has-seen-journal')
       ? 'Choose your next trip on the Space map.'
@@ -1225,7 +1244,7 @@ export function createUI(options: UIOptions): GameUI {
 
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        factOpen || moonJump.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen;
+        factOpen || moonJump.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen || marsRover.isOpen;
     },
     setHint,
     showDestinations,
@@ -1247,8 +1266,10 @@ export function createUI(options: UIOptions): GameUI {
       moonJump.close();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
+      marsRover.dismiss();
       jumpButton.classList.add('is-hidden');
       bathButton.classList.add('is-hidden');
+      roverButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
@@ -1276,7 +1297,8 @@ export function createUI(options: UIOptions): GameUI {
       this.showSpin(spin ? (worldId === 'earth' ? 'Day and night on Earth' : spin.label) : null, spin?.tint);
       jumpButton.classList.toggle('is-hidden', worldId !== 'moon');
       bathButton.classList.toggle('is-hidden', worldId !== 'saturn');
-      visitActions.classList.toggle('has-toy', worldId === 'moon' || worldId === 'saturn');
+      roverButton.classList.toggle('is-hidden', worldId !== 'mars');
+      visitActions.classList.toggle('has-toy', worldId === 'moon' || worldId === 'saturn' || worldId === 'mars');
     },
 
     beginMission(caption: string, total: number, cueId?: string) {
@@ -1456,6 +1478,7 @@ export function createUI(options: UIOptions): GameUI {
       moonJump.close();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
+      marsRover.dismiss();
     },
 
     setEarthWelcome(on: boolean) {
@@ -1585,8 +1608,10 @@ export function createUI(options: UIOptions): GameUI {
       moonJump.close();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
+      marsRover.dismiss();
       jumpButton.classList.add('is-hidden');
       bathButton.classList.add('is-hidden');
+      roverButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       spinBusy = false;
       spinLabel.textContent = 'Day & night';

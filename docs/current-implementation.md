@@ -1,5 +1,14 @@
 # Current implementation and handover
 
+## Mars rover toy — 22 October 2026
+
+Mars's toy is built: `src/toys/marsRover.ts` (overlay) and `roverDelay.ts` (real light time
+3.0–22.3 minutes, shrunk to 3 s; commands fly as dots, queue at the rover, fixed substeps;
+unit-tested). A Rover button (new `--crayon-lime`) joins Mars's visit row; after three finds
+it is the next step (ElevenLabs cue `toy-mars`). Checked by `e2e/mars-rover.pw.ts`;
+`e2e/style-capture.pw.ts` captures it. Review captures in `design/mars-rover/`. Pending:
+child observation, tablet performance, sounds.
+
 ## Saturn bath toy — 21 October 2026
 
 Saturn's toy is built: `src/toys/saturnBath.ts` (overlay) and `bathPhysics.ts` (real mean

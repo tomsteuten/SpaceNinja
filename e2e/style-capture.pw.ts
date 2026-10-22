@@ -1,5 +1,5 @@
 // Full-resolution captures of every child-facing screen for visual review: home map, Moon
-// visit, postcard, jump toy, Earth hunt, Words card, day/night, journal, Saturn bath, hunt arrow, finale
+// visit, postcard, jump toy, Earth hunt, Words card, day/night, journal, Saturn bath, Mars rover, hunt arrow, finale
 // and grown-ups panel.
 // Skipped unless STYLE_OUT is set: STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone
 import { expect, test, type Page } from '@playwright/test';
@@ -108,6 +108,23 @@ for (const [name, viewport] of [
       await expect(bath).toHaveAttribute('data-floating', 'saturn', { timeout: 60000 });
       await page.waitForTimeout(800);
       await shot(page, '12-saturn-bath');
+    });
+
+    test(`mars rover ${name}`, async ({ page }) => {
+      await start(page, '/?fast', { visited: ['earth', 'moon'],discoveries: [], stickers: [] });
+      await fly(page, 'Mars');
+      await expect(page.locator('.rover-btn')).toBeVisible();
+      await page.waitForTimeout(2500);
+      await shot(page, '13-mars-visit');
+      await page.locator('.rover-btn').click();
+      const rover = page.locator('.mars-rover');
+      for (const move of ['right', 'up', 'up']) await rover.locator(`.mars-rover__key--${move}`).click();
+      await rover.locator('.mars-rover__drill').click();
+      await page.waitForTimeout(600);
+      await shot(page, '14-mars-rover-messages');
+      await expect(rover).toHaveAttribute('data-samples', '1', { timeout: 60000 });
+      await page.waitForTimeout(1000);
+      await shot(page, '15-mars-rover-sample');
     });
 
     test(`finale ${name}`, async ({ page }) => {
