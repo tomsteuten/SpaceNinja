@@ -18,6 +18,22 @@ test('Mars: the rover waits for each message, drills a sample, and is the next s
   await page.getByRole('button', { name: 'Fly to Mars', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
 
+  // Mars's row is five controls (Space map, Listen, Day & night, Rover, Find places): all fit,
+  // side by side, each a big enough touch target.
+  const row = (await page.locator('.visit-actions').boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(row.x).toBeGreaterThanOrEqual(0);
+  expect(row.x + row.width).toBeLessThanOrEqual(viewport.width);
+  expect(row.y + row.height).toBeLessThanOrEqual(viewport.height);
+  const boxes = await page.locator('.visit-actions > button:visible').evaluateAll(buttons =>
+    buttons.map(button => button.getBoundingClientRect().toJSON() as DOMRect));
+  expect(boxes).toHaveLength(5);
+  for (let i = 0; i < boxes.length; i++) {
+    expect(boxes[i]!.width).toBeGreaterThanOrEqual(54);
+    expect(boxes[i]!.height).toBeGreaterThanOrEqual(54);
+    if (i) expect(boxes[i]!.x).toBeGreaterThanOrEqual(boxes[i - 1]!.x + boxes[i - 1]!.width);
+  }
+
   // Straight into the toy. A message leaves Earth at once; the rover stays put until it lands.
   await page.getByRole('button', { name: 'Drive the Mars rover', exact: true }).click();
   const rover = page.locator('.mars-rover');
