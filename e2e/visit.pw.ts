@@ -130,8 +130,11 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   }
   await collectVisible(page);
   await keepExploring(page);
-  // A world with a toy says "Now try Jump" here instead (moon-toy-order.pw.ts covers that).
+  // The Moon's toy is the next step; the journal joins the row once it has been played
+  // (quiet-arrival.pw.ts covers the order).
   await expect(page.locator('.world-heading__caption')).toContainText(/Three found/);
+  await page.getByRole('button',{name:'Jump on the Moon',exact:true}).click();
+  await page.getByRole('button',{name:'Back to the Moon',exact:true}).click();
   await page.getByRole('button',{name:'Open your discovery journal'}).click();
   await expect(page.locator('.collection-progress')).toContainText('3/6');
   const tiles=page.locator('.sticker-grid button');

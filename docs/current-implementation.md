@@ -1,5 +1,15 @@
 # Current implementation and handover
 
+## Quiet arrival — 22 October 2026
+
+From the owner's first child playtest: the gold places are intuitive, the arrival was busy.
+The visit row now fills in (`setVisitStage` in `src/ui/ui.ts`): hunt = Space map + Listen
+(+ Day & night on Earth); third find = the toy pops in (any `.toy-btn`); toy played = Journal
+and Day & night. Held buttons keep their cells, so Space map never moves. The heading caption
+hides during the hunt, Words is a quiet chip (gone with sound off: Listen becomes Words), the
+counter is a plain tally, and the find line no longer queues behind the arrival welcome.
+Checked by `e2e/quiet-arrival.pw.ts` (replaces moon-toy-order); captures in `design/quiet-arrival/`.
+
 ## Saturn bath toy — 21 October 2026
 
 Saturn's toy is built: `src/toys/saturnBath.ts` (overlay) and `bathPhysics.ts` (real mean

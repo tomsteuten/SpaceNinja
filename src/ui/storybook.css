@@ -269,7 +269,7 @@
 .panel-return:hover,.narrate-btn:hover,.journal-back:hover,.finale__close:hover { filter:brightness(1.05); }
 
 /* After the finds on a world with a toy, the toy is the next step, not the journal. */
-.is-toy-next .visit-actions > .btn.jump-btn,.is-toy-next .visit-actions > .btn.bath-btn { outline:4px solid var(--paper); outline-offset:3px; }
+.is-toy-next .visit-actions > .btn.toy-btn { outline:4px solid var(--paper); outline-offset:3px; }
 .is-complete.is-toy-next .visit-actions .journal-btn { outline:none; }
 
 /* Short landscape lays the finale out in a row; hand lettering is wider, so scale it down. */
@@ -278,3 +278,23 @@
   .finale__line { font-size:17px; min-width:7em; }
   .finale__close { flex:none; font-size:22px; padding:0 1.1rem; }
 }
+
+/* --- Quiet arrival (owner's playtest, 22 Oct 2026) ------------------------------ */
+
+/* Held controls keep their cell, so the row never reflows and Space map never moves. */
+.visit-actions > .btn.is-held { visibility:hidden; pointer-events:none; }
+/* The toy (and later the journal) arrives with one short pop; reduced motion just shows it. */
+.visit-actions > .btn.is-appearing { animation:row-appear .32s cubic-bezier(.3,1.5,.6,1) both; }
+@keyframes row-appear { from { opacity:0; transform:scale(.6); } to { opacity:1; transform:none; } }
+@media(prefers-reduced-motion:reduce) { .visit-actions > .btn.is-appearing { animation:none; } }
+
+/* While the gold places are the task, the heading is just the world's name. */
+.is-hunting:not(.is-earth-welcome):not(.is-day-active) .world-heading__caption { display:none; }
+.is-hunting .world-heading { padding-bottom:6px; }
+/* Words stays reachable but quiet: a small paper chip, not a white button. */
+.world-words { background:transparent; border-width:1.5px; font-weight:400; min-height:40px; padding:4px 10px; }
+/* Sound off: the row's own button already says Words. */
+.is-sound-off .world-words { display:none; }
+
+/* The places counter reads as a quiet tally, not another card to deal with. */
+.slot-row { padding:7px 11px; gap:7px; background:#fdf6e3cc; border-width:2px; box-shadow:none; }

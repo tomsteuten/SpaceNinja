@@ -3,6 +3,20 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-22 — A quieter arrival: the places first, the toy as the reward
+
+The owner's first child playtest: on arrival the child went straight for the gold rings, so
+finding them works, but was confused by how much was going on at once (five buttons, a
+caption, a Words button, a counter and two queued voice lines). The owner chose progressive
+disclosure and a quieter screen over more animation or narration: no pulsing rings, no
+immediate pointing hand. During the hunt the row is Space map and Listen (Earth keeps Day &
+night, its toy); the world's toy pops in after the third find and the Journal and Day & night
+follow once it has been played. Held buttons keep their grid cells so Space map never moves.
+Listen stays as the replay and the sound-off Words route; the heading loses its caption while
+the hunt is on and its Words button goes quiet (hidden when sound is off). Only the arrival
+welcome speaks at arrival: the find instruction is now a nudge after a quiet spell, never
+queued behind the welcome. Child comprehension of the new arrival is unverified.
+
 ## 2026-10-20 — Toys first, instead of adding worlds in waves
 
 The owner changed direction: stop adding worlds sideways and give each destination one

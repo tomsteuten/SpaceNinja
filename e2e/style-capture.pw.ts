@@ -11,13 +11,13 @@ const OUT = process.env.STYLE_OUT ?? '';
 test.skip(!OUT, 'Set STYLE_OUT to capture.');
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 
-async function start(page: Page, query = '/?fast', progress?: object) {
+async function start(page: Page, query = '/?fast', progress?: object, sound = 'off') {
   mkdirSync(OUT, { recursive: true });
-  await page.addInitScript((saved) => {
+  await page.addInitScript(([saved, sound]) => {
     Math.random = () => 0.1;
-    localStorage.setItem('spaceninja.sound.v1', 'off');
+    localStorage.setItem('spaceninja.sound.v1', sound as string);
     if (saved) localStorage.setItem('spaceninja.progress.v1', saved);
-  }, progress ? JSON.stringify(progress) : null);
+  }, [progress ? JSON.stringify(progress) : null, sound] as const);
   await page.goto(query);
 }
 
@@ -25,6 +25,28 @@ async function fly(page: Page, world: string) {
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: `Fly to ${world}`, exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase, { timeout: 200000 }).toBe('arrived');
+}
+
+/** Find the next place (turning to it by the arrow if it is round the back), closing any postcard. */
+async function findNext(page: Page) {
+  const found = (await snapshot(page)).collected;
+  for (let attempt = 0; attempt < 3 && (await snapshot(page)).collected === found; attempt++) {
+    let target = (await snapshot(page)).targets.find((t: any) => t.visible);
+    if (!target) {
+      await page.locator('.hunt-arrow').click();
+      await expect.poll(async () => (await snapshot(page)).targets.some((t: any) => t.visible)).toBe(true);
+      target = (await snapshot(page)).targets.find((t: any) => t.visible);
+    }
+    await page.mouse.click(target.x, target.y);
+    await expect.poll(async () => (await snapshot(page)).collected, { timeout: 10000 }).toBe(found + 1).catch(() => {});
+  }
+  expect((await snapshot(page)).collected).toBe(found + 1);
+  await page.waitForTimeout(1500);
+  if (await page.locator('.photo-view').isVisible()) {
+    await page.waitForTimeout(650);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.photo-view')).toBeHidden();
+  }
 }
 
 for (const [name, viewport] of [
@@ -44,7 +66,7 @@ for (const [name, viewport] of [
       await shot(page, '0-home');
       await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
       await expect.poll(async () => (await snapshot(page)).phase, { timeout: 200000 }).toBe('arrived');
-      await expect(page.locator('.jump-btn')).toBeVisible();
+      await expect(page.locator('.home-btn')).toBeVisible();
       await page.waitForTimeout(2500);
       await shot(page, '1-visit');
 
@@ -58,6 +80,9 @@ for (const [name, viewport] of [
       await page.waitForTimeout(1000);
       await shot(page, '2b-found');
 
+      await findNext(page);
+      await findNext(page);
+      await expect(page.locator('.jump-btn')).toBeVisible();
       await page.locator('.jump-btn').click();
       await page.locator('.moon-jump__jump').click();
       await page.waitForTimeout(1700);
@@ -87,6 +112,8 @@ for (const [name, viewport] of [
       await toy.getByRole('button', { name: 'Back to Earth' }).click();
       await expect(toy).toHaveCount(0);
 
+      // The journal joins the row once the visit's places are found.
+      for (let i = 0; i < 3; i++) await findNext(page);
       await page.locator('.visit-actions .journal-btn').click();
       await expect(page.locator('.journal-panel')).toBeVisible();
       await page.waitForTimeout(1000);
@@ -96,9 +123,10 @@ for (const [name, viewport] of [
     test(`saturn bath ${name}`, async ({ page }) => {
       await start(page, '/?fast', { visited: ['earth', 'moon', 'mars'], discoveries: [], stickers: [] });
       await fly(page, 'Saturn');
-      await expect(page.locator('.bath-btn')).toBeVisible();
+      await expect(page.locator('.home-btn')).toBeVisible();
       await page.waitForTimeout(2500);
       await shot(page, '11-saturn-visit');
+      for (let i = 0; i < 3; i++) await findNext(page);
       await page.locator('.bath-btn').click();
       const bath = page.locator('.saturn-bath');
       for (let i = 0; i < 4; i++) {
@@ -138,6 +166,21 @@ for (const [name, viewport] of [
       await expect(page.locator('.finale')).toBeVisible({ timeout: 20000 });
       await page.waitForTimeout(2500);
       await shot(page, '9-finale');
+    });
+
+    // The arrival as a child meets it: on arrival, after the first find, after the third.
+    test(`quiet arrival ${name}`, async ({ page }) => {
+      await start(page, '/?fast', undefined, 'on');
+      await fly(page, 'Moon');
+      await page.waitForTimeout(2500);
+      await shot(page, 'q1-arrival');
+      await findNext(page);
+      await shot(page, 'q2-first-find');
+      await findNext(page);
+      await findNext(page);
+      await expect(page.locator('#ui')).toHaveClass(/is-toy-next/);
+      await page.waitForTimeout(3000);
+      await shot(page, 'q3-third-find');
     });
 
     test(`grownups ${name}`, async ({ page }) => {

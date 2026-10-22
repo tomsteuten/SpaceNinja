@@ -255,7 +255,7 @@ async function main() {
       ui.setEarthWelcome(false);
       ui.setSpinAttention(false);
       activeMission?.setPresentation(true);
-      beginGuidedHunt();
+      beginGuidedHunt(true);
     },
     // The house's night and morning get the same spoken feedback the old 3D activity gave,
     // and on the first visit morning is the cue to fly on to the Moon.
@@ -273,7 +273,7 @@ async function main() {
     onBedtimeClose: () => {
       if (follow !== 'earth') return;
       activeMission?.setPresentation(true);
-      beginGuidedHunt();
+      beginGuidedHunt(true);
     },
   });
 
@@ -594,14 +594,15 @@ async function main() {
     controls.enabled = false;
   }
 
-  function beginGuidedHunt() {
+  /** `speak`: say the find instruction (a press or a quiet spell started it, not a tap on a place). */
+  function beginGuidedHunt(speak = false) {
     if (!huntGuidance || huntGuidance.world !== follow || huntGuidance.active) return;
     const config = DESTINATIONS[follow];
     const mission = missions[follow];
     if (!config?.mission || !mission) return;
     huntGuidance.active = true;
     ui.setHint(null);
-    ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`);
+    ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`, speak);
     // Refresh the supported activity label; revealHunt already made it visible on arrival.
     if (follow !== 'earth') ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
   }
@@ -1017,7 +1018,7 @@ async function main() {
         huntGuidance.inviteShown = true;
         ui.setHint('Tap a gold place');
       }
-      if (huntGuidance.elapsed >= HUNT_GUIDANCE_AUTO_START) beginGuidedHunt();
+      if (huntGuidance.elapsed >= HUNT_GUIDANCE_AUTO_START) beginGuidedHunt(true);
     }
 
     const huntGuidanceActive =
@@ -1047,7 +1048,7 @@ async function main() {
         shouldInviteSpin({
           idleFor,
           huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
-          spinOffered: Boolean(spin),
+          spinOffered: Boolean(spin) && ui.spinAvailable,
           spinBusy: dayTurn.active || narrator.speaking,
           spinTried,
           spinIsPrimary: follow === 'earth',

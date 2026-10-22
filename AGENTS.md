@@ -109,9 +109,10 @@ Each destination gets one hands-on toy that teaches one big idea with real numbe
   `locator('canvas')` and expect exactly one canvas.
 - Leave the 3D scene alone; a toy is an overlay with a pictured way back.
 - One short caption at most, plus one narrated line (Kokoro while building).
-- A new visit button changes counts that tests rely on (`e2e/childFeedback.pw.ts` expects five
-  controls on the Moon). Narrow phones must still fit the row with wrapping labels and touch
-  targets of at least 54 px.
+- The toy button carries class `toy-btn`: it is held back during the hunt and pops in as the
+  next step after the third find (`setVisitStage` in `src/ui/ui.ts`, `e2e/quiet-arrival.pw.ts`).
+  A new visit button changes the row's cells; narrow phones must still fit it with wrapping
+  labels and touch targets of at least 54 px.
 
 ## Visual style
 
@@ -139,9 +140,10 @@ New controls take a colour from the variables at the top of `storybook.css`; add
 
 The home map (paged neighbourhoods) offers destination buttons and tappable moving worlds. A tap
 launches one flight; misses and locked choices are acknowledged. Arrivals show discovery places
-to find; the first Earth arrival offers Turn Earth (the bedtime spin toy) or Find places. A visit has a contextual
-action row (Space map, Listen, Day & night where supported, a toy where built, Journal), and
-Space map is always the escape route. Discovery postcards have a pictured world-return as well
+to find; the first Earth arrival offers Turn Earth (the bedtime spin toy) or Find places. A visit's action row fills
+in as the visit goes on: during the hunt only Space map and Listen (plus Day & night on Earth);
+after the third find the toy pops in; once it is played, Journal and Day & night join. Held
+controls keep their grid cells, so Space map never moves, and it is always the escape route. Discovery postcards have a pictured world-return as well
 as a large X. These are current choices: protect the playfield and the escape route, not the
 position of each button.
 

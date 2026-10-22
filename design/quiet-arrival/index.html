@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Quiet arrival</title>
+<style>body{font:16px system-ui;margin:16px;background:#f4efe4}h2{margin:24px 0 8px}table{border-collapse:collapse}td,th{padding:6px;vertical-align:top;text-align:left}img{max-width:100%;border:1px solid #333;display:block}th{font-weight:600}</style>
+<h1>Quiet arrival — before / after (Moon, sound on)</h1>
+<div id="v"></div>
+<script>
+const views = ['phone','tablet','landscape'], steps = [['q1-arrival','On arrival'],['q2-first-find','After the first find'],['q3-third-find','After the third find']];
+const only = new URLSearchParams(location.search).get('view');
+for (const v of views) { if (only && v !== only) continue;
+  let h = `<h2>${v}</h2><table><tr><th></th>${steps.map(s=>`<th>${s[1]}</th>`).join('')}</tr>`;
+  for (const when of ['before','after']) h += `<tr><th>${when}</th>${steps.map(s=>`<td><img src="${when}/${v}-${s[0]}.png"></td>`).join('')}</tr>`;
+  document.getElementById('v').insertAdjacentHTML('beforeend', h + '</table>'); }
+</script>

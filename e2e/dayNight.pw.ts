@@ -47,6 +47,22 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
   await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
+  // Day & night joins the Moon's row after the places and the toy (quiet-arrival.pw.ts).
+  for (let i = 0; i < 3; i++) {
+    let target = (await snapshot(page)).targets.find((t: any) => t.visible);
+    if (!target) {
+      await page.locator('.hunt-arrow').click();
+      await expect.poll(async () => (await snapshot(page)).targets.some((t: any) => t.visible)).toBe(true);
+      target = (await snapshot(page)).targets.find((t: any) => t.visible);
+    }
+    await page.mouse.click(target.x, target.y);
+    await expect(page.locator('.photo-view.is-reward')).toBeVisible();
+    await page.waitForTimeout(650);
+    await page.getByRole('button', { name: 'Close the photo', exact: true }).click();
+    await expect(page.locator('.photo-view')).toBeHidden();
+  }
+  await page.getByRole('button', { name: 'Jump on the Moon', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to the Moon', exact: true }).click();
   const activity = page.locator('.spin-btn');
   await expect(activity).toHaveText('Day & night');
   expect((await snapshot(page)).dayTurning).toBe(false);
@@ -70,7 +86,7 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   const after = await snapshot(page);
   await expect(page.locator('.day-legend')).toBeHidden();
   expect(after.ids).toEqual(before.ids);
-  await expect(page.locator('.mission-hud')).toBeVisible();
+  await expect(page.locator('.visit-actions')).toBeVisible();
 
   // Replay is allowed; Words opens beside it without moving the controls.
   await activity.click();
