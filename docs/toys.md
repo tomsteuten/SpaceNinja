@@ -49,13 +49,15 @@ to keep hopping, the Apollo way).
 child drags the Moon round Earth, and a window shows how it looks from Earth (full,
 half, crescent). Effort: M.
 
-### Mars: drive the rover — *Mars is so far away that messages take minutes*
-Drive Perseverance around Jezero crater with big arrow buttons. Each command flies to Mars as
-a glowing dot, and the rover only moves when it arrives. Real delay is 3–22 minutes; the toy
-shrinks it to a few seconds with a little clock that says "really: 12 minutes". Children
-quickly learn to plan several moves ahead, which is what real rover drivers do. Drill a rock
-to collect a sample tube.
-NASA publishes free 3D models of Perseverance. Effort: M.
+### Mars: drive the rover — *Mars is so far away that messages take minutes* (built)
+`src/toys/marsRover.ts`, opened by Mars's Rover button (lime crayon). Earth and a little clock
+on one side, Jezero crater (with its old river fan) on the other. Each arrow or Drill press
+leaves Earth as a glowing dot; the rover moves one square only when it arrives, and moves that
+arrive while it is busy wait their turn (`roverDelay.ts`: light time 3.0 to 22.3 minutes,
+shrunk to 3 s; the clock says "really: 12 minutes", a typical day, not today's). Drill on a
+rock for a sample tube; three tubes bring new rocks. Places first, then the rover is the next
+step (`toy-mars`, "Now you can drive the rover on Mars!"). Next: sounds, and maybe NASA's free
+3D model of Perseverance. Effort: M.
 
 ### Saturn: bath time — *Saturn is so light for its size it would float* (built)
 `src/toys/saturnBath.ts`, opened by Saturn's Bath button (bubble crayon). A giant claw-foot

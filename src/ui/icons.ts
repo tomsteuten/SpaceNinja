@@ -55,6 +55,14 @@ const ICONS = {
   bath:
     '<path d="M3 12h18v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5Z"/><path d="M7 19l-1 2.5M17 19l1 2.5"/>' +
     '<path d="M6 12V6a2 2 0 0 1 4 0"/><circle cx="15" cy="7" r="1.6"/><circle cx="18.5" cy="4" r="1"/>',
+  /** Mars rover: Perseverance from the side, six wheels and its camera mast. */
+  rover:
+    '<path d="M4 12.5h13v3.5H4z"/><path d="M15 12.5V7.5M12.5 5h5.5v2.5h-5.5z"/><path d="M7 12.5 6 10h4"/>' +
+    '<circle cx="5.5" cy="19" r="2"/><circle cx="10.5" cy="19" r="2"/><circle cx="15.5" cy="19" r="2"/>',
+  /** The rover's drill: a bit going down into a rock. */
+  drill:
+    '<path d="M8.5 2.5h7v5h-7z"/><path d="M12 7.5v2M9.5 9.5h5L12 18z"/><path d="M10.4 12.2l3.2 1M11 15l2 .7"/>' +
+    '<path d="M4 21.5c2-2 5-2.5 8-2.5s6 .5 8 2.5"/>',
 } as const;
 
 export type IconName = keyof typeof ICONS;

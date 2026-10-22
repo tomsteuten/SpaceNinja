@@ -104,7 +104,7 @@ Each destination gets one hands-on toy that teaches one big idea with real numbe
 - One toy per world, self-contained in `src/toys/` (logic, overlay and its own CSS).
 - Physics and numbers are pure functions with unit tests (`jumpPhysics.ts` and its test).
 - Opened from a button in the world's visit row with its own crayon colour (Jump on the Moon,
-  Bath on Saturn; Earth's Day & night opens the bedtime spin).
+  Bath on Saturn, Rover on Mars; Earth's Day & night opens the bedtime spin).
 - The overlay is detached from the DOM while closed, not merely hidden: tests use
   `locator('canvas')` and expect exactly one canvas.
 - Leave the 3D scene alone; a toy is an overlay with a pictured way back.
@@ -130,6 +130,7 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 | Jump, Find places, Start playing, Hooray!, the hunt arrow | sun |
 | Turn Earth (in the bedtime spin) | teal |
 | Bath (Saturn's toy) and Plop! inside it | bubble |
+| Rover (Mars's toy), its arrow keys and Drill | lime |
 | Journal, All places, the open journal page | tomato |
 
 Panels (Words card, journal, postcard, finale, grown-ups) are paper with an ink outline and a
@@ -267,7 +268,7 @@ src/scene/                  renderer, worlds, ship, sky, textures, day turn
 src/controls/               orbit input
 src/flight/                 cinematic and home return
 src/mission/                discovery selection and collection
-src/toys/                   one hands-on toy per world (Moon jump, Earth bedtime spin, Saturn bath)
+src/toys/                   one hands-on toy per world (Moon jump, Earth bedtime spin, Saturn bath, Mars rover)
 src/ui/                     DOM interface, styles (storybook.css last), grown-ups panel, photos
 src/audio/                  narration and sound
 src/state/                  progress, replay and settings
