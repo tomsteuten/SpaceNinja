@@ -1,0 +1,114 @@
+<title>Space Map Next Step</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Andika:wght@400;700&display=swap">
+<style>
+/* Layout: one band per map state; before and after side by side, phone then tablet. */
+:root {
+  --paper: #f8f0dd; --paper-deep: #efe4cc; --ink: #2b2118; --muted: #6b5d4f;
+  --sun: #f2b632; --grass: #74c27a; --tomato: #f07a62; --frame: #2b2118;
+  --hand: 'Patrick Hand', 'Comic Sans MS', cursive; --read: Andika, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1d1a24; --paper-deep: #29243a; --ink: #f3ead6; --muted: #b9ad9b; --frame: #0b0912; color-scheme: dark } }
+:root[data-theme="dark"] { --paper: #1d1a24; --paper-deep: #29243a; --ink: #f3ead6; --muted: #b9ad9b; --frame: #0b0912; color-scheme: dark }
+body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--read);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+main { max-width: 1180px; margin: 0 auto; display: grid; gap: 40px; }
+h1, h2 { font-family: var(--hand); font-weight: 400; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 48px); line-height: 1.05; }
+h2 { font-size: 28px; line-height: 1.1; }
+header { display: grid; gap: 12px; max-width: 70ch; }
+header p, .state p { margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 15px; color: var(--muted); }
+.legend b { color: var(--ink); }
+.chip { display: inline-block; padding: 0 8px; border: 2px solid var(--ink); border-radius: 8px; font-family: var(--hand); font-size: 18px; }
+.chip.sun { background: var(--sun); color: #2b2118; } .chip.grass { background: var(--grass); color: #2b2118; }
+.state { display: grid; gap: 14px; padding-top: 22px; border-top: 3px dashed var(--muted); }
+.state > p { max-width: 75ch; }
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, .62fr)) repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figcaption { font: 600 13px/1.2 var(--read); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+figcaption.after { color: var(--ink); }
+img { display: block; max-width: 100%; height: auto; border: 3px solid var(--frame); border-radius: 12px; }
+.after img { box-shadow: 5px 5px 0 var(--sun); }
+@media (max-width: 760px) { .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.notes { max-width: 75ch; display: grid; gap: 8px; }
+.notes ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<main>
+  <header>
+    <h1>Space map: what's next, shown</h1>
+    <p>Playtest 2: back on the Space map after a world, the child didn't know what to do. "Mars is ready" was spoken and the "Tap Mars" pill was written, and neither reached a child who can't read yet. These captures show the map at each step of a fresh adventure, from main (before) and this branch (after).</p>
+    <div class="legend">
+      <span><span class="chip grass">✓</span> <b>tick</b>: you've been there</span>
+      <span><span class="chip sun">⬇</span> <b>bouncing arrow</b>: go here next (same crayon as the hunt arrow)</span>
+      <span><b>ring in the sky</b>: the same world, pulsing; the parked ship's nose points at it too</span>
+    </div>
+  </header>
+
+  <section class="state">
+    <h2>1 · First map</h2>
+    <p>The arrow sits on Earth from the very first screen, and the ring now circles Earth in the sky. Before, the ship aimed at the Moon whenever Earth was suggested; now its nose points at Earth.</p>
+    <div class="shots" data-shot="1-first-map"></div>
+  </section>
+
+  <section class="state">
+    <h2>2 · Tapping a locked world</h2>
+    <p>Saturn tapped on a first-run map. Before: "Visit Mars first", pointing at another padlock. After: the arrow and the ring jump to the Moon (the nearest world a child can actually go to), its card bounces with a sun outline for about 2.6 s, then everything settles back. "The" mid-sentence is now lower case.</p>
+    <div class="shots" data-shot="2-locked-tap"></div>
+  </section>
+
+  <section class="state">
+    <h2>3 · Back from Earth</h2>
+    <p>Earth wears a green tick; the arrow and the ring move to the Moon.</p>
+    <div class="shots" data-shot="3-map-after-earth"></div>
+  </section>
+
+  <section class="state">
+    <h2>4 · Back from the Moon: Mars unlocks</h2>
+    <p>Held at 0.4 s into the unlock moment. The Mars card pops, its padlock flies off with a sun sparkle, and at about 0.9 s the arrow drops onto it. Before, the card just turned gold.</p>
+    <div class="shots" data-shot="4-mars-unlocking"></div>
+  </section>
+
+  <section class="state">
+    <h2>5 · Back from the Moon, settled</h2>
+    <p>Two ticks, the arrow bouncing on Mars, Mars ringed in the sky.</p>
+    <div class="shots" data-shot="5-map-after-moon"></div>
+  </section>
+
+  <section class="state">
+    <h2>6 · Back from Mars: Saturn unlocks</h2>
+    <p>Three ticks; the same unlock moment, then the arrow on Saturn. Saturn's ring takes in its rings, so it is the largest. Worth a look on the tablet.</p>
+    <div class="shots" data-shot="6-map-after-mars"></div>
+  </section>
+
+  <section class="state notes">
+    <h2>Notes</h2>
+    <ul>
+      <li>The "Tap X" pill stays as a reinforcement; it is no longer the only cue.</li>
+      <li>Reduced motion: no bounce, pulse, pop or sparkle. The arrow and ring stay, still.</li>
+      <li>"Done" means visited, the same fact that unlocks the next world, so ticks and padlocks always agree.</li>
+      <li>The live map shows every world on one screen, so there is no page to turn to. The neighbourhood pager in <code>src/map/</code> isn't wired in yet.</li>
+      <li>New crayon use: grass for the done tick, sun for the map arrow and the unlock sparkle. Both added to the colour table in AGENTS.md.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+for (const row of document.querySelectorAll('.shots')) {
+  const name = row.dataset.shot;
+  for (const [device, when] of [['phone', 'before'], ['phone', 'after'], ['tablet', 'before'], ['tablet', 'after']]) {
+    const figure = document.createElement('figure');
+    figure.className = when;
+    const caption = document.createElement('figcaption');
+    caption.className = when;
+    caption.textContent = `${device} · ${when}`;
+    const img = document.createElement('img');
+    img.src = `${when}/${device}-${name}.png`;
+    img.alt = `${device} ${when}: ${name.replace(/^\d-/, '').replace(/-/g, ' ')}`;
+    figure.append(caption, img);
+    row.append(figure);
+  }
+}
+</script>

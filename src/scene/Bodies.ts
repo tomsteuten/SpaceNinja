@@ -128,7 +128,10 @@ export interface World {
    * Visibility and hit-target reveal rules are unchanged.
    */
   setFocus(id: BodyId | null): void;
-  setSelected(id: BodyId | null): void;
+  /** Ring the world the map points at; `pulse` false (reduced motion) holds it still. */
+  setSelected(id: BodyId | null, pulse?: boolean): void;
+  /** The world wearing the ring, for checks. */
+  readonly selected: BodyId | null;
   /** 0 freezes the Moon mid-orbit so the flight has a stationary destination. */
   setOrbitSpeedScale(scale: number): void;
   update(dt: number, elapsed: number, camera: THREE.Camera): void;
@@ -739,8 +742,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       ? [[id, selectionRing, selectionScale] as const] : [];
   });
 
-  function setSelected(id: BodyId | null) {
-    for (const [bodyId, ring] of rings) ring.visible = bodyId === id;
+  // Reduced motion keeps the ring and drops its breathing.
+  let selectionPulse = true;
+  function setSelected(id: BodyId | null, pulse = true) {
+    selectionPulse = pulse;
+    for (const [bodyId, ring, scale] of rings) {
+      ring.visible = bodyId === id;
+      ring.scale.setScalar(scale);
+    }
   }
 
   /*
@@ -852,6 +861,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     setRevealed,
     setFocus,
     setSelected,
+    get selected() {
+      return rings.find(([, ring]) => ring.visible)?.[0] ?? null;
+    },
 
     setOrbitSpeedScale(scale: number) {
       orbitSpeedScale = scale;
@@ -918,9 +930,12 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
         }
       }
 
-      const pulse = 1 + Math.sin(elapsed * 3.2) * 0.05;
+      // A visible breath, size and brightness together, so "go here" reads as alive.
+      const wave = Math.sin(elapsed * 3.2);
       for (const [, ring, scale] of rings) {
-        if (ring.visible) ring.scale.setScalar(scale * pulse);
+        if (!ring.visible) continue;
+        ring.scale.setScalar(selectionPulse ? scale * (1 + wave * 0.09) : scale);
+        ring.material.opacity = selectionPulse ? 0.75 + wave * 0.25 : 0.9;
       }
 
       // Shrink the corona slightly as the camera approaches, so it never swallows the view.

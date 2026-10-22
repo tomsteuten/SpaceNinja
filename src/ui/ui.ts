@@ -45,6 +45,8 @@ export interface DestinationChoice {
   locked?: boolean;
   /** What to say when a locked one is pressed: the world that unlocks it. */
   unlockedBy?: string;
+  /** Been there: the card wears a tick, so a pre-reader can see what is finished. */
+  done?: boolean;
 }
 
 export interface GameUI {
@@ -193,6 +195,11 @@ export interface GameUI {
    * and the padlock.
    */
   nudgeDestination(id: string): void;
+  /**
+   * Move the map's pointer to another card for a moment and make that card pulse: on a
+   * locked press, the world that unlocks it. Null puts the pointer back on the suggestion.
+   */
+  pointDestination(id: string | null): void;
   /** Back to the opening state, without rebuilding any of the DOM. */
   reset(): void;
   dispose(): void;
@@ -281,12 +288,34 @@ export function createUI(options: UIOptions): GameUI {
   destinationBar.setAttribute('aria-label', 'Choose a world');
   root.append(destinationBar);
 
+  /*
+   * Show, don't tell (playtest 2): after a visit the spoken "Mars is ready" and the Tap pill
+   * were not enough for a child who cannot read. One bouncing arrow sits on the card to
+   * press next. It is the same object wherever the map points, so it moves, never multiplies.
+   */
+  const destinationPointer = el('span', 'destination-choice__pointer');
+  destinationPointer.setAttribute('aria-hidden', 'true');
+  destinationPointer.append(createIcon('pointer'));
+  let suggestedDestination: string | null = null;
+
+  function placePointer(id: string | null) {
+    for (const card of destinationBar.querySelectorAll('.is-pointed')) card.classList.remove('is-pointed');
+    const card = id ? destinationBar.querySelector(`[data-destination="${id}"]`) : null;
+    if (!card) {
+      destinationPointer.remove();
+      return;
+    }
+    card.classList.add('is-pointed');
+    card.append(destinationPointer);
+  }
+
   function showDestinations(
     choices: readonly DestinationChoice[],
     suggestedId: string | null = null,
     newlyRevealedId: string | null = null,
   ) {
     root.classList.toggle('is-home', choices.length > 0);
+    suggestedDestination = suggestedId;
     destinationBar.replaceChildren();
     destinationBar.style.setProperty('--destination-count', String(choices.length));
     for (const choice of choices) {
@@ -322,12 +351,30 @@ export function createUI(options: UIOptions): GameUI {
         const lock = createIcon('lock');
         lock.classList.add('destination-choice__lock');
         button.append(lock);
+      } else if (choice.id === newlyRevealedId) {
+        // The unlock moment: the padlock this card wore a moment ago pops off with a
+        // sparkle, then the pointer drops onto it (storybook.css). Each piece is removed
+        // by its own animation; reduced motion never draws them.
+        const lock = createIcon('lock');
+        lock.classList.add('destination-choice__lock', 'is-popping');
+        lock.addEventListener('animationend', () => lock.remove(), { once: true });
+        const sparkle = el('span', 'destination-choice__sparkle');
+        sparkle.setAttribute('aria-hidden', 'true');
+        sparkle.addEventListener('animationend', () => sparkle.remove(), { once: true });
+        button.append(lock, sparkle);
+      }
+      if (choice.done) {
+        const tick = createIcon('tick');
+        tick.classList.add('destination-choice__done');
+        button.append(tick);
+        button.classList.add('is-done');
       }
       button.dataset.destination = choice.id;
       button.addEventListener('click', () => onChooseDestination(choice.id));
       destinationBar.append(button);
     }
     destinationBar.classList.toggle('is-hidden', choices.length === 0);
+    placePointer(suggestedId);
   }
 
   /* --- mission HUD --------------------------------------------------------- */
@@ -1596,6 +1643,12 @@ export function createUI(options: UIOptions): GameUI {
       button.classList.remove('is-refused');
       void (button as HTMLElement).offsetWidth;
       button.classList.add('is-refused');
+    },
+
+    pointDestination(id: string | null) {
+      for (const card of destinationBar.querySelectorAll('.is-unlocker')) card.classList.remove('is-unlocker');
+      if (id) destinationBar.querySelector(`[data-destination="${id}"]`)?.classList.add('is-unlocker');
+      placePointer(id ?? suggestedDestination);
     },
 
     setHuntArrow(side: -1 | 1 | null) {

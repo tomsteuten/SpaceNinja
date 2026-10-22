@@ -59,6 +59,10 @@ const ICONS = {
   rover:
     '<path d="M4 12.5h13v3.5H4z"/><path d="M15 12.5V7.5M12.5 5h5.5v2.5h-5.5z"/><path d="M7 12.5 6 10h4"/>' +
     '<circle cx="5.5" cy="19" r="2"/><circle cx="10.5" cy="19" r="2"/><circle cx="15.5" cy="19" r="2"/>',
+  /** Done: a crayon tick, for a world the child has already been to. */
+  tick: '<path d="m5 12.5 4.5 4.5L19 6.5"/>',
+  /** The map's "go here next": a fat arrow pointing down at the card. */
+  pointer: '<path d="M8.5 2.5h7v8.5H20L12 21 4 11h4.5Z"/>',
   /** The rover's drill: a bit going down into a rock. */
   drill:
     '<path d="M8.5 2.5h7v5h-7z"/><path d="M12 7.5v2M9.5 9.5h5L12 18z"/><path d="M10.4 12.2l3.2 1M11 15l2 .7"/>' +

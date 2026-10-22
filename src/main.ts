@@ -139,6 +139,7 @@ async function main() {
    */
   function mapChoices() {
     const visible = new Set(visibleDestinationIds());
+    const visited = loadProgress().visited;
     return BODY_IDS.map((id) => ({
       id,
       // The full scene name is "The Moon"; a four-choice phone bar has room for the
@@ -147,12 +148,31 @@ async function main() {
       emoji: DESTINATIONS[id]?.emoji ?? '✨',
       locked: !visible.has(id),
       unlockedBy: gateLabel(id),
+      // Visited is the same fact that unlocks the next world, so tick and padlock agree.
+      done: visited.includes(id),
     }));
   }
 
+  /** The world that unlocks `id`, as it reads mid-sentence: "visit the Moon first". */
   function gateLabel(id: BodyId): string | undefined {
     const gate = DESTINATIONS[id]?.revealAfterVisiting;
-    return gate ? world.bodies[gate as BodyId]?.label : undefined;
+    return gate ? sentenceLabel(gate as BodyId) : undefined;
+  }
+
+  function sentenceLabel(id: BodyId): string {
+    return world.bodies[id].label.replace(/^The /, 'the ');
+  }
+
+  /**
+   * The world to go to first so that `id` opens: its gate, or the gate's own gate while that
+   * one is still locked too. Saturn on a first-run map points at the Moon, not a padlocked
+   * Mars, so the highlight is always a card a child can actually press.
+   */
+  function unlockerOf(id: BodyId): BodyId | null {
+    const visible = visibleDestinationIds();
+    let gate = DESTINATIONS[id]?.revealAfterVisiting as BodyId | undefined;
+    while (gate && !visible.includes(gate)) gate = DESTINATIONS[gate]?.revealAfterVisiting as BodyId | undefined;
+    return gate ?? null;
   }
 
   const controls = createOrbitInput({
@@ -554,7 +574,16 @@ async function main() {
    * naming a world while the ship points at another.
    */
   let suggested: BodyId | null = null;
+  /** For a moment after a locked press: the world that unlocks it, pointed at instead. */
+  let pointed: BodyId | null = null;
   let follow: BodyId = 'earth';
+
+  /** Card pointer, scene ring and ship's nose move together; null goes back to the suggestion. */
+  function pointAt(id: BodyId | null) {
+    pointed = id;
+    ui.pointDestination(id);
+    world.setSelected(id ?? suggested, !reducedMotion);
+  }
 
   /* --- the hunt ------------------------------------------------------------ */
 
@@ -700,18 +729,24 @@ async function main() {
     if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
     if (!visibleDestinationIds().includes(id)) {
-      const gate = gateLabel(id);
+      // Shown, not only said: the padlocked card shakes, and the pointer and the scene's
+      // ring jump to the world that opens it until the hint settles back.
+      const unlocker = unlockerOf(id);
       ui.nudgeDestination(id);
-      ui.setHint(gate ? 'Visit ' + gate + ' first' : 'Not yet', 'lock');
+      pointAt(unlocker);
+      ui.setHint(unlocker ? 'Visit ' + sentenceLabel(unlocker) + ' first' : 'Not yet', 'lock');
       // The spoken half of the padlock: "Not yet. You can visit the Moon first." Only the
       // reveal-gated worlds have a locked cue, which is exactly the set that can be locked.
       if (DESTINATIONS[id]?.revealAfterVisiting) ui.speakGuide(cueText(`locked-${id}`), `locked-${id}`);
       window.clearTimeout(nudge);
       nudge = window.setTimeout(() => {
-        if (flight.phase === 'idle') showOpeningHints();
+        if (flight.phase !== 'idle') return;
+        pointAt(null);
+        showOpeningHints();
       }, 2600);
       return;
     }
+    pointed = null;
     const destination = world.bodies[id];
     if (!destination) return;
     // The flight is told which latitude to arrive over; it does not know why. Matching
@@ -845,13 +880,15 @@ async function main() {
     return nextWorld(loadProgress(), visibleDestinationIds()) as BodyId | null;
   }
 
-  /** The light destination pill and the parked ship's nose share one suggestion.
-   * A broad scene halo overwhelmed the Moon and Saturn; leave their silhouettes clear.
+  /**
+   * The gold card, its pointer, the ring round the world in the scene and the parked ship's
+   * nose share one suggestion (playtest 2: a spoken "Mars is ready" alone was not enough).
+   * The ring is a thin crayon line, not the broad halo that once overwhelmed the Moon.
    */
   function applySuggestion(newlyRevealed: BodyId | null = null) {
     suggested = suggestedDestination();
-    world.setSelected(null);
     ui.showDestinations(mapChoices(), suggested, newlyRevealed);
+    pointAt(null);
     // A fresh suggestion is a fresh set of map nudges: the cue ids name this world, so the old
     // "given" flags no longer apply, and the idle clock starts again.
     mapIdle = 0;
@@ -1147,11 +1184,10 @@ async function main() {
     }
 
     if (flight.phase === 'idle') {
-      // The idle ship keeps its nose pointed at the world the map is suggesting, so it
-      // never sits blankly side-on — and so the ship, the ring and the hint all point the
-      // same way. The Moon whenever the suggestion is Earth or absent: a ship aimed at the
-      // planet it is parked beside reads as pointing at nothing.
-      const aim = suggested && suggested !== 'earth' ? suggested : 'moon';
+      // The idle ship keeps its nose pointed at the world the map is pointing at, so the
+      // ship, the ring and the card's arrow all agree — Earth included, nose down towards
+      // the planet it is parked beside (playtest 2). The Moon only when nothing is suggested.
+      const aim = pointed ?? suggested ?? 'moon';
       world.bodies[aim].getWorldPosition(aimPosition);
       shipHeading.subVectors(aimPosition, ship.group.position);
       ship.orient(shipHeading);
@@ -1230,6 +1266,8 @@ async function main() {
         })(),
         surfaceRotation: world.bodies[follow].surface.rotation.y,
         mapInvite: uiRoot.classList.contains('is-map-next'),
+        mapRing: world.selected,
+        shipAim: flight.phase === 'idle' ? (pointed ?? suggested ?? 'moon') : null,
         mapReturnGuarded: ui.mapReturnGuarded,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,

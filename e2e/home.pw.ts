@@ -29,8 +29,8 @@ test('home invites the first Earth experience and answers future-world presses',
   }
   await attachShot(page, 'home-map', info);
 
-  await page.getByRole('button', { name: 'Mars — visit The Moon first', exact: true }).click();
-  await expect(page.locator('.hint')).toHaveText('Visit The Moon first');
+  await page.getByRole('button', { name: 'Mars — visit the Moon first', exact: true }).click();
+  await expect(page.locator('.hint')).toHaveText('Visit the Moon first');
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().phase)).toBe('idle');
   await expect(page.locator('[data-destination="mars"]')).toHaveClass(/is-refused/);
   await journal.click();

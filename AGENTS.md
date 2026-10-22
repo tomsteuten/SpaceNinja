@@ -128,14 +128,16 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 | Space map, Keep exploring (any way back to the world) | sky |
 | Listen (and the panels' replay button) | grape |
 | Day & night, the current day/night state | grass |
-| Jump, Find places, Start playing, Hooray!, the hunt arrow | sun |
+| Done tick on a visited world's map card | grass |
+| Jump, Find places, Start playing, Hooray!, the hunt arrow, the map's next-world arrow and unlock sparkle | sun |
 | Turn Earth (in the bedtime spin) | teal |
 | Bath (Saturn's toy) and Plop! inside it | bubble |
 | Rover (Mars's toy), its arrow keys and Drill | lime |
 | Journal, All places, the open journal page | tomato |
 
 Panels (Words card, journal, postcard, finale, grown-ups) are paper with an ink outline and a
-flat shadow. Home-map destination cards are paper; the suggested one is gold.
+flat shadow. Home-map destination cards are paper; the suggested one is gold and carries the
+bouncing arrow, matched by a pulsing ring on the world and the parked ship's nose.
 
 New controls take a colour from the variables at the top of `storybook.css`; add them here.
 
