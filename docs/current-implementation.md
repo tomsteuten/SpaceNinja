@@ -1,4 +1,4 @@
-﻿# Current implementation and handover
+# Current implementation and handover
 
 ## Quiet arrival â€” 22 October 2026
 
