@@ -1,0 +1,67 @@
+{
+ "j01-sound-off-arrival": {
+  "root": "ui is-sound-off is-hunting",
+  "hint": null,
+  "heading": "The MoonTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Words"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "j02-reload-mid-visit": {
+  "root": "ui is-sound-off is-home",
+  "hint": "Tap Moon",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:is-suggested",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "j03-reload-after-start": {
+  "root": "ui is-sound-off is-home",
+  "hint": "Tap Moon",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:is-suggested",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "j04-grownups": {
+  "root": "ui is-sound-off is-home",
+  "hint": "Tap Moon",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:is-suggested",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ }
+}

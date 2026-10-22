@@ -1,0 +1,336 @@
+{
+ "f01-map-mars-offered": {
+  "root": "ui is-home",
+  "hint": "Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "f02-mars-toy-next": {
+  "root": "ui is-complete is-toy-next",
+  "hint": null,
+  "heading": "MarsThree found! Now drive the rover.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Rover"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "f03-rover-open": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [
+   ".mars-rover"
+  ],
+  "toyCaption": "Send the rover a message!"
+ },
+ "f04-rover-first-press": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [
+   ".mars-rover"
+  ],
+  "toyCaption": "Wait… Mars is far away!"
+ },
+ "f05-rover-waiting": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [
+   ".mars-rover"
+  ],
+  "toyCaption": "Wait… Mars is far away!"
+ },
+ "f06-rover-moved": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [
+   ".mars-rover"
+  ],
+  "toyCaption": "Wait… Mars is far away!"
+ },
+ "f07-rover-mashed": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [
+   ".mars-rover"
+  ],
+  "toyCaption": "Wait… Mars is far away!"
+ },
+ "f08-rover-mashed-later": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [
+   ".mars-rover"
+  ],
+  "toyCaption": "Wait… Mars is far away!"
+ },
+ "f09-rover-settled": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [
+   ".mars-rover"
+  ],
+  "toyCaption": "Wait… Mars is far away!"
+ },
+ "f10-after-rover": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "MarsThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Rover",
+   "Journal"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "g01-map-after-mars": {
+  "root": "ui is-home",
+  "hint": "Saturn is ready",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:plain",
+   "saturn:is-suggested is-new"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "g02-map-after-mars-later": {
+  "root": "ui is-home",
+  "hint": "Tap Saturn",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:plain",
+   "saturn:is-suggested is-new"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "g03-saturn-arrival": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "SaturnTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "g04-saturn-toy-next": {
+  "root": "ui is-complete is-toy-next",
+  "hint": null,
+  "heading": "SaturnThree found! Now try the bath.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Bath"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "g05-bath-open": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "SaturnThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Bath",
+   "Journal"
+  ],
+  "overlays": [
+   ".saturn-bath"
+  ],
+  "toyCaption": "Drag a planet into the bath!"
+ },
+ "g06-bath-floating": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "SaturnThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Bath",
+   "Journal"
+  ],
+  "overlays": [
+   ".saturn-bath"
+  ],
+  "toyCaption": "Only Saturn floats!"
+ },
+ "g07-after-bath": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "SaturnThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Bath",
+   "Journal"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "g08-map-after-saturn": {
+  "root": "ui is-home",
+  "hint": "More to find · Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested",
+   "saturn:plain"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "g09-map-after-saturn-later": {
+  "root": "ui is-home",
+  "hint": "More to find · Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested",
+   "saturn:plain"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ }
+}

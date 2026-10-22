@@ -1,0 +1,623 @@
+{
+ "a01-splash": {
+  "root": "ui is-home",
+  "hint": "Tap Earth",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:is-suggested",
+   "moon:plain",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "a02-map-first": {
+  "root": "ui is-home",
+  "hint": "Tap Earth",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:is-suggested",
+   "moon:plain",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "a03-locked-tap": {
+  "root": "ui is-home",
+  "hint": "Tap Earth",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:is-suggested",
+   "moon:plain",
+   "mars:is-locked is-refused",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "a04-locked-after": {
+  "root": "ui is-home",
+  "hint": "Tap Earth",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:is-suggested",
+   "moon:plain",
+   "mars:is-locked is-refused",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "a05-miss": {
+  "root": "ui is-home",
+  "hint": "Tap Earth",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:is-suggested",
+   "moon:plain",
+   "mars:is-locked is-refused",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "b01-earth-welcome": {
+  "root": "ui is-earth is-hunting is-earth-welcome",
+  "hint": null,
+  "heading": "EarthMake night. Bring back morning.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Turn Earth",
+   "Find places"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "b02-earth-welcome-later": {
+  "root": "ui is-earth is-hunting is-earth-welcome",
+  "hint": null,
+  "heading": "EarthMake night. Bring back morning.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Turn Earth",
+   "Find places"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "b03-bedtime-open": {
+  "root": "ui is-earth is-hunting",
+  "hint": null,
+  "heading": "EarthTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [
+   ".bedtime-spin"
+  ],
+  "toyCaption": "Daytime at your house"
+ },
+ "b04-bedtime-night": {
+  "root": "ui is-earth is-hunting",
+  "hint": null,
+  "heading": "EarthTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [
+   ".bedtime-spin"
+  ],
+  "toyCaption": "Night-time. Bedtime!"
+ },
+ "b05-bedtime-morning": {
+  "root": "ui is-earth is-hunting is-map-next",
+  "hint": null,
+  "heading": "EarthTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [
+   ".bedtime-spin"
+  ],
+  "toyCaption": "Daytime at your house"
+ },
+ "b06-earth-after-bedtime": {
+  "root": "ui is-earth is-hunting is-map-next",
+  "hint": null,
+  "heading": "EarthTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "b07-find1-label": {
+  "root": "ui is-earth is-hunting is-map-next",
+  "hint": null,
+  "heading": "EarthTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [
+   ".photo-view"
+  ],
+  "toyCaption": null
+ },
+ "b08-postcard1": {
+  "root": "ui is-earth is-hunting is-map-next",
+  "hint": null,
+  "heading": "EarthTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [
+   ".photo-view"
+  ],
+  "toyCaption": null
+ },
+ "b09-after-postcard1": {
+  "root": "ui is-earth is-hunting is-map-next",
+  "hint": null,
+  "heading": "EarthTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "b10-after-find2": {
+  "root": "ui is-earth is-hunting is-map-next",
+  "hint": null,
+  "heading": "EarthOne more! Tap the arrow.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [
+   ".hunt-arrow"
+  ],
+  "toyCaption": null
+ },
+ "b11-postcard3": {
+  "root": "ui is-earth is-map-next is-complete",
+  "hint": null,
+  "heading": "EarthThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night"
+  ],
+  "overlays": [
+   ".photo-view"
+  ],
+  "toyCaption": null
+ },
+ "b12-after-find3": {
+  "root": "ui is-earth is-map-next is-complete",
+  "hint": null,
+  "heading": "EarthThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Journal"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "b13-after-find3-later": {
+  "root": "ui is-earth is-map-next is-complete",
+  "hint": null,
+  "heading": "EarthThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Journal"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "b14-journal": {
+  "root": "ui is-earth is-map-next is-complete has-seen-journal",
+  "hint": null,
+  "heading": "EarthChoose your next trip on the Space map.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [],
+  "overlays": [
+   ".journal-panel"
+  ],
+  "toyCaption": null
+ },
+ "b15-after-journal": {
+  "root": "ui is-earth is-map-next is-complete has-seen-journal",
+  "hint": null,
+  "heading": "EarthChoose your next trip on the Space map.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Journal"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "c01-returning": {
+  "root": "ui is-home",
+  "hint": "Tap Moon",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:is-suggested",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "c02-map-after-earth": {
+  "root": "ui is-home",
+  "hint": "Tap Moon",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:is-suggested",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "c03-map-after-earth-later": {
+  "root": "ui is-home",
+  "hint": "Tap Moon",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:is-suggested",
+   "mars:is-locked",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "d01-moon-arrival": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "The MoonTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "d02-moon-arrival-later": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "The MoonTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "d03-toy-popping": {
+  "root": "ui is-complete is-toy-next",
+  "hint": null,
+  "heading": "The MoonThree found! Now try Jump.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Jump"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "d04-toy-next": {
+  "root": "ui is-complete is-toy-next",
+  "hint": null,
+  "heading": "The MoonThree found! Now try Jump.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Jump"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "d05-jump-open": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "The MoonThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Jump",
+   "Journal"
+  ],
+  "overlays": [
+   ".moon-jump"
+  ],
+  "toyCaption": null
+ },
+ "d06-jump-mid": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "The MoonThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Jump",
+   "Journal"
+  ],
+  "overlays": [
+   ".moon-jump"
+  ],
+  "toyCaption": "Same jump! On the Moon you fly over your own head."
+ },
+ "d07-jump-after": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "The MoonThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Jump",
+   "Journal"
+  ],
+  "overlays": [
+   ".moon-jump"
+  ],
+  "toyCaption": "Same jump! On the Moon you fly over your own head."
+ },
+ "d08-after-jump": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "The MoonThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Jump",
+   "Journal"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "d09-after-jump-later": {
+  "root": "ui is-complete",
+  "hint": null,
+  "heading": "The MoonThree found this trip! See your journal.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Day & night",
+   "Jump",
+   "Journal"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "e01-map-after-moon": {
+  "root": "ui is-home",
+  "hint": "Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested is-new",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "e02-map-after-moon-2s": {
+  "root": "ui is-home",
+  "hint": "Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested is-new",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "e03-map-after-moon-6s": {
+  "root": "ui is-home",
+  "hint": "Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested is-new",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "e04-map-after-moon-18s": {
+  "root": "ui is-home",
+  "hint": "Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested is-new",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "e05-mars-first-arrival": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "MarsTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "e06-mars-first-arrival-later": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "MarsTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ }
+}

@@ -1,0 +1,75 @@
+{
+ "h01-flight-start": {
+  "root": "ui",
+  "hint": null,
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "h02-flight-mid": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "The MoonTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "h03-flight-landed": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "The MoonTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "h04-pullback": {
+  "root": "ui is-home",
+  "hint": "Mars is ready",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested is-new",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "h05-home-after-early-exit": {
+  "root": "ui is-home",
+  "hint": "Tap Mars",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:is-suggested is-new",
+   "saturn:is-locked"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ }
+}

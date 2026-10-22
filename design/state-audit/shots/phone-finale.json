@@ -1,0 +1,115 @@
+{
+ "i01-map-before-finale": {
+  "root": "ui is-home",
+  "hint": "More to find · Tap Moon",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:is-suggested",
+   "mars:plain",
+   "saturn:plain"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "i03-revisited-find": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "The MoonTap a gold placeWords",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "i02-hunt-arrow": {
+  "root": "ui is-hunting",
+  "hint": null,
+  "heading": "The MoonOne more! Tap the arrow.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen"
+  ],
+  "overlays": [
+   ".hunt-arrow"
+  ],
+  "toyCaption": null
+ },
+ "i04-finale": {
+  "root": "ui is-complete is-toy-next",
+  "hint": null,
+  "heading": "The MoonThree found! Now try Jump.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Jump"
+  ],
+  "overlays": [
+   ".finale"
+  ],
+  "toyCaption": null
+ },
+ "i05-after-finale": {
+  "root": "ui is-complete is-toy-next",
+  "hint": null,
+  "heading": "The MoonThree found! Now try Jump.Words",
+  "caption": null,
+  "fact": null,
+  "destinations": [],
+  "row": [
+   "Space map",
+   "Listen",
+   "Jump"
+  ],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "i06-map-after-finale": {
+  "root": "ui is-home",
+  "hint": "Tap a world to fly there",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:plain",
+   "saturn:plain"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ },
+ "i07-map-after-finale-later": {
+  "root": "ui is-home",
+  "hint": "Tap a world to fly there",
+  "heading": null,
+  "caption": null,
+  "fact": null,
+  "destinations": [
+   "sun:plain",
+   "earth:plain",
+   "moon:plain",
+   "mars:plain",
+   "saturn:plain"
+  ],
+  "row": [],
+  "overlays": [],
+  "toyCaption": null
+ }
+}
