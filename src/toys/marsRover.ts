@@ -1,10 +1,10 @@
 /**
  * Mars rover: Mars is so far away that messages take minutes. Earth hangs in space on one
- * side; Perseverance waits on the floor of Jezero crater on the other. Each arrow the child
- * presses leaves Earth as a glowing dot, and the rover does nothing until it arrives, so
- * they soon learn to send several moves ahead, as real rover drivers do. Drill on a rock to
- * collect a sample tube. The real wait is about 12 minutes on a typical day (3 to 22); the
- * toy shrinks it to three seconds while a little clock says the real number.
+ * side; Perseverance waits on the floor of Jezero crater on the other. The child taps a
+ * glowing rock; a message leaves Earth as a glowing dot while a little clock's hand sweeps
+ * through the real wait (about 12 minutes on a typical day, 3 to 22), and only when the dot
+ * arrives does the rover drive itself to the rock and drill a sample tube. Taps while it is
+ * busy get a little shimmer from the rover and are not queued. Three tubes bring new rocks.
  *
  * A self-contained overlay like the Saturn bath; it owns nothing in the 3D scene. The
  * timing is in roverDelay.ts.
@@ -13,8 +13,7 @@ import './marsRover.css';
 import { worldPicture } from '../ui/pictures';
 import { createIcon } from '../ui/icons';
 import {
-  PLAY_DELAY, allDrilled, createDrive, progress, realDelayLabel, rockAt, rocksFor, roverPosition, send,
-  stepDrive, type Command, type Drive, type Move,
+  PLAY_DELAY, allDrilled, createDrive, delayMinutes, messageProgress, stepDrive, tap, type Drive,
 } from './roverDelay';
 
 export interface MarsRover {
@@ -35,19 +34,17 @@ const MAX_STEP = 0.1;
 const COLS = 6;
 const ROWS = 4;
 const INK = '#2b2118';
-/** Minutes of a clock hour the message really takes; the clock shows that much of its face. */
-const REAL_LABEL = realDelayLabel();
-const REAL_MINUTES = Number(REAL_LABEL.match(/\d+/)![0]);
-const MOVES: readonly Move[] = ['up', 'left', 'down', 'right'];
-const MOVE_NAMES: Record<Move, string> = { up: 'up', down: 'down', left: 'left', right: 'right' };
-/** Arrow glyph angle, pointing right at 0. */
-const ANGLE: Record<Move, number> = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
+/** Minutes of a clock hour a message really takes; the hand sweeps that much of the face. */
+const REAL_MINUTES = delayMinutes();
+/** The rover's "not now" shimmer, seconds. */
+const NUDGE_TIME = 0.6;
+/** Rocks set per round never exceed this, so the tap targets are made once. */
+const MAX_ROCKS = 3;
 
 interface Layout {
   wide: boolean;
   earth: { x: number; y: number; r: number };
   clock: { x: number; y: number; r: number };
-  label: { x: number; y: number; size: number };
   tubes: { x: number; y: number; size: number };
   /** The edge of Mars: a huge circle whose near side is the horizon. */
   limb: { x: number; y: number; r: number };
@@ -70,19 +67,6 @@ function seeded(seed: number) {
 }
 const STARS = (() => { const r = seeded(31); return Array.from({ length: 90 }, () => [r(), r(), 0.4 + r() * 1.2]); })();
 const PEBBLES = (() => { const r = seeded(7); return Array.from({ length: 70 }, () => [r(), r(), 0.5 + r()]); })();
-
-function arrowSvg(move: Move): SVGSVGElement {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('class', 'mars-rover__arrow');
-  const path = document.createElementNS(ns, 'path');
-  path.setAttribute('d', 'M4 9.5h9V5l7 7-7 7v-4.5H4Z');
-  path.setAttribute('transform', `rotate(${(ANGLE[move] * 180) / Math.PI} 12 12)`);
-  svg.append(path);
-  return svg;
-}
 
 let earthBall: Promise<HTMLCanvasElement | null> | null = null;
 function earthPicture() {
@@ -129,25 +113,16 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
   back.setAttribute('aria-label', 'Back to Mars');
   back.append(createIcon('back'), worldPicture('mars'));
 
-  const pad = el('div', 'mars-rover__pad');
-  const moveButtons = MOVES.map(move => {
-    const button = el('button', `mars-rover__key mars-rover__key--${move}`);
+  // Each rock's tap target: an invisible button much bigger than the drawn rock.
+  const rockButtons = Array.from({ length: MAX_ROCKS }, (_, i) => {
+    const button = el('button', 'mars-rover__rock');
     button.type = 'button';
-    button.dataset.move = move;
-    button.setAttribute('aria-label', `Drive ${MOVE_NAMES[move]}`);
-    button.append(arrowSvg(move));
-    button.addEventListener('click', () => command(move, button));
+    button.setAttribute('aria-label', `Send the rover to rock ${i + 1}`);
+    button.addEventListener('click', () => tapRock(i));
     return button;
   });
-  pad.append(...moveButtons);
 
-  const drillButton = el('button', 'mars-rover__drill');
-  drillButton.type = 'button';
-  drillButton.setAttribute('aria-label', 'Drill a rock');
-  drillButton.append(createIcon('drill'), el('span', '', 'Drill'));
-  drillButton.addEventListener('click', () => command('drill', drillButton));
-
-  root.append(canvas, caption, back, drillButton, pad);
+  root.append(canvas, caption, back, ...rockButtons);
 
   const ctx = canvas.getContext('2d')!;
   let open = false;
@@ -156,32 +131,29 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
   let width = 0;
   let height = 0;
   let dpr = 1;
+  let reduced = false;
   let L: Layout | null = null;
   let earth: HTMLCanvasElement | null = null;
   let drive: Drive = createDrive(COLS, ROWS);
-  let round = 0;
-  let restock = 0;
   let wheel = 0;
+  let nudge = 0;
+  let nudges = 0;
   let flyers: Flyer[] = [];
   let dust: Dust[] = [];
-  let sent = false;
 
   function say(text: string) {
     if (caption.textContent !== text) caption.textContent = text;
   }
 
-  function command(c: Command, button: HTMLElement) {
-    if (!open) return;
-    if (!send(drive, c)) {
-      // The list is full: a little shake, nothing lost.
-      button.classList.remove('is-full');
-      void button.offsetWidth;
-      button.classList.add('is-full');
-      return;
-    }
-    if (!sent) {
-      sent = true;
-      say('Wait… Mars is far away!');
+  function tapRock(i: number) {
+    const rock = drive.rocks[i];
+    if (!open || !rock) return;
+    const result = tap(drive, rock);
+    if (result === 'sent') say('Mars is far away!');
+    else if (result === 'busy') {
+      // Not now: a little shimmer on the rover, and nothing remembered.
+      nudge = NUDGE_TIME;
+      nudges++;
     }
     syncState();
   }
@@ -198,9 +170,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     const wide = width > height * 1.15;
     root.classList.toggle('is-wide', wide);
     const gap = 14;
-    const padBox = rectOf(pad);
     const backBox = rectOf(back);
-    const drillBox = rectOf(drillButton);
     const captionBottom = caption.textContent ? rectOf(caption).bottom : gap;
     let region: { x0: number; y0: number; x1: number; y1: number };
     let earthAt: Layout['earth'];
@@ -211,25 +181,21 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
       const r = Math.max(26, Math.min(height * 0.11, spaceW * 0.2, 70));
       earthAt = { x: gap + r + 6, y: captionBottom + r + 18, r };
       limb = { x: spaceW + height * 2.2, y: height / 2, r: height * 2.2 };
-      region = { x0: spaceW + gap * 1.5, y0: gap, x1: Math.min(padBox.left, drillBox.left) - gap, y1: height - gap };
+      region = { x0: spaceW + gap * 1.5, y0: gap, x1: width - gap, y1: height - gap };
     } else {
       root.style.removeProperty('--space-w');
       const r = Math.max(30, Math.min(width * 0.12, height * 0.075, 80));
       earthAt = { x: gap + r + 8, y: captionBottom + r + 16, r };
       const horizon = earthAt.y + r + Math.max(46, r * 0.75);
       limb = { x: width / 2, y: horizon + width * 2.4, r: width * 2.4 };
-      region = { x0: gap, y0: horizon + gap * 1.6, x1: width - gap, y1: Math.min(padBox.top, backBox.top, drillBox.top) - gap };
+      region = { x0: gap, y0: horizon + gap * 1.6, x1: width - gap, y1: backBox.top - gap };
     }
-    // The clock sits out of the dots' way: under Earth when Mars is beside it, beside Earth
-    // when Mars is below, with its words beside or under it.
-    const clockR = earthAt.r * 0.62;
-    const labelSize = Math.round(Math.max(17, Math.min(26, earthAt.r * 0.36)));
+    // The clock sits out of the dot's way: under Earth when Mars is beside it, beside Earth
+    // when Mars is below.
+    const clockR = earthAt.r * 0.8;
     const clock = wide
-      ? { x: earthAt.x, y: earthAt.y + earthAt.r + 14 + clockR, r: clockR }
-      : { x: earthAt.x + earthAt.r + 16 + clockR, y: earthAt.y, r: clockR };
-    const label = wide
-      ? { x: clock.x - clockR, y: clock.y + clockR + 8, size: labelSize }
-      : { x: clock.x + clockR + 12, y: clock.y - labelSize * 0.6, size: labelSize };
+      ? { x: earthAt.x, y: earthAt.y + earthAt.r + 18 + clockR, r: clockR }
+      : { x: earthAt.x + earthAt.r + 22 + clockR, y: earthAt.y, r: clockR };
     // The rover's mast pokes above its square, so the top row needs a little headroom.
     const tile = Math.max(28, Math.min((region.x1 - region.x0) / COLS, (region.y1 - region.y0) / (ROWS + 0.45), 130));
     const boardW = tile * COLS;
@@ -243,7 +209,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     const tubes = wide
       ? { x: board.x + boardW, y: Math.max(gap + 4, board.y - tile * 0.45 - tubeSize * 1.6), size: tubeSize }
       : { x: board.x + boardW, y: board.y - tile * 0.45 - tubeSize * 1.6, size: tubeSize };
-    return { wide, earth: earthAt, clock, label, tubes, limb, board };
+    return { wide, earth: earthAt, clock, tubes, limb, board };
   }
 
   function resize() {
@@ -253,6 +219,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     L = layout();
+    placeRocks();
   }
 
   function squareCentre(col: number, row: number) {
@@ -260,27 +227,34 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     return { x: b.x + (col + 0.5) * b.tile, y: b.y + (row + 0.5) * b.tile };
   }
 
-  /**
-   * The rover's middle on screen and its size. On a square with a rock it parks just behind
-   * the rock, so the rock shows in front of it and the drill reaches it.
-   */
-  function roverAt() {
-    const p = roverPosition(drive);
-    const c = squareCentre(p.col, p.row);
-    const tile = L!.board.tile;
-    const dir = drive.facing === 'right' ? 1 : -1;
-    const a = drive.action;
-    const back = (col: number, row: number) => (rockAt(drive, col, row) ? -dir * tile * 0.3 : 0);
-    let shift = back(drive.col, drive.row);
-    if (a?.kind === 'drive') {
-      const t = Math.min(1, a.elapsed / a.duration);
-      const k = t * t * (3 - 2 * t);
-      shift = back(a.from[0], a.from[1]) * (1 - k) + back(a.to[0], a.to[1]) * k;
-    }
-    return { x: c.x + shift, y: c.y, s: tile * 0.95, dir };
+  /** Where a rock sits on screen: low on its square, so the rover's arm reaches it. */
+  function rockCentre(col: number, row: number) {
+    const c = squareCentre(col, row);
+    return { x: c.x, y: c.y + L!.board.tile * 0.1 };
   }
 
-  /** Where the dots arrive: the rover's antenna, wherever it is now. */
+  /** Lay the tap targets over the rocks that are left; drilled ones have none. */
+  function placeRocks() {
+    if (!L) return;
+    const size = Math.max(64, L.board.tile * 1.15);
+    rockButtons.forEach((button, i) => {
+      const rock = drive.rocks[i];
+      button.classList.toggle('is-done', !rock || rock.drilled);
+      if (!rock) return;
+      const c = rockCentre(rock.col, rock.row);
+      button.style.left = `${c.x - size / 2}px`;
+      button.style.top = `${c.y - size / 2}px`;
+      button.style.width = button.style.height = `${size}px`;
+    });
+  }
+
+  /** The rover's middle on screen and its size. */
+  function roverAt() {
+    const c = squareCentre(drive.x, drive.y);
+    return { x: c.x, y: c.y, s: L!.board.tile * 0.95, dir: drive.facing === 'right' ? 1 : -1 };
+  }
+
+  /** Where the dot arrives: the rover's antenna, wherever it is now. */
   function antenna() {
     const r = roverAt();
     return { x: r.x - r.s * 0.08 * r.dir, y: r.y - r.s * 0.42 };
@@ -296,38 +270,37 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
   }
 
   function syncState() {
-    root.dataset.col = String(drive.col);
-    root.dataset.row = String(drive.row);
+    root.dataset.phase = drive.phase;
     root.dataset.samples = String(drive.samples);
-    root.dataset.flying = String(drive.messages.length);
-    root.dataset.busy = drive.action ? drive.action.kind : '';
+    root.dataset.flying = drive.phase === 'message' ? '1' : '0';
+    root.dataset.rocks = String(drive.rocks.filter(r => !r.drilled).length);
+    root.dataset.nudges = String(nudges);
   }
 
   /* --- update ------------------------------------------------------------- */
 
   function update(dt: number) {
+    const target = drive.target;
     const events = stepDrive(drive, dt);
-    if (drive.action?.kind === 'drive') wheel += dt * 6 * (drive.facing === 'right' ? 1 : -1);
-    if (drive.action?.kind === 'drill' && L) {
+    if (drive.phase === 'drive') wheel += dt * 6 * (drive.facing === 'right' ? 1 : -1);
+    if (drive.phase === 'drill' && L) {
       const { x, y, s, dir } = roverAt();
       const tip = { x: x + s * 0.52 * dir, y: y + s * 0.22 };
       if (Math.random() < dt * 30) {
         dust.push({ x: tip.x, y: tip.y, vx: (Math.random() - 0.5) * s * 1.2, vy: -s * (0.4 + Math.random() * 0.6), life: 0.7 });
       }
     }
-    if (events.sampled && L) {
-      const c = squareCentre(drive.col, drive.row);
+    if (events.sampled && L && target) {
+      const c = rockCentre(target.col, target.row);
       flyers.push({ x: c.x, y: c.y, tx: L.tubes.x, ty: L.tubes.y, t: 0 });
       say(allDrilled(drive) ? 'Three samples!' : 'A rock sample!');
-      if (allDrilled(drive)) restock = 2.5;
+      placeRocks();
     }
-    if (restock > 0 && !drive.action) {
-      restock -= dt;
-      if (restock <= 0) {
-        round++;
-        drive.rocks = rocksFor(round, COLS, ROWS, [drive.col, drive.row]);
-      }
+    if (events.restocked) {
+      say('Tap a rock!');
+      placeRocks();
     }
+    nudge = Math.max(0, nudge - dt);
     for (const f of flyers) f.t += dt / 0.9;
     flyers = flyers.filter(f => f.t < 1);
     for (const d of dust) {
@@ -351,7 +324,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     }
   }
 
-  function drawMars(t: number) {
+  function drawMars() {
     const { limb, board } = L!;
     ctx.save();
     ctx.beginPath();
@@ -414,54 +387,62 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
       ctx.fill();
     }
     ctx.restore();
-    // Chalk dots on the squares, so steps can be counted.
-    ctx.fillStyle = '#fff3dd88';
-    for (let c = 0; c <= COLS; c++) {
-      for (let r = 0; r <= ROWS; r++) {
-        ctx.beginPath();
-        ctx.arc(board.x + c * board.tile, board.y + r * board.tile, Math.max(2, board.tile * 0.035), 0, TAU);
-        ctx.fill();
-      }
-    }
     ctx.restore();
-    void t;
   }
 
-  /** A boulder, low on its square, so a rover parked behind it can reach it with the drill. */
-  function drawRock(col: number, row: number, drilled: boolean) {
-    const centre = squareCentre(col, row);
-    const x = centre.x;
-    const y = centre.y + L!.board.tile * 0.1;
+  /**
+   * A boulder. While the rover is free, rocks still to drill glow gold like the places in the
+   * world, and wobble gently (still, with reduced motion): tap me.
+   */
+  function drawRock(i: number, t: number) {
+    const rock = drive.rocks[i]!;
+    const { x, y } = rockCentre(rock.col, rock.row);
     const s = L!.board.tile * 0.72;
+    const inviting = !rock.drilled && drive.phase === 'idle';
+    const chosen = drive.target === rock;
+    if (inviting || chosen) {
+      const pulse = reduced ? 1 : 0.85 + 0.15 * Math.sin(t * 3 + i * 2);
+      const glow = ctx.createRadialGradient(x, y, s * 0.1, x, y, s * 0.75 * pulse);
+      glow.addColorStop(0, '#ffd75acc');
+      glow.addColorStop(1, '#ffd75a00');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(x, y, s * 0.75 * pulse, 0, TAU);
+      ctx.fill();
+    }
+    ctx.save();
+    ctx.translate(x, y + s * 0.2);
+    if (inviting && !reduced) ctx.rotate(Math.sin(t * 3.2 + i * 2.1) * 0.07);
     ctx.fillStyle = '#00000033';
     ctx.beginPath();
-    ctx.ellipse(x, y + s * 0.2, s * 0.3, s * 0.08, 0, 0, TAU);
+    ctx.ellipse(0, 0, s * 0.3, s * 0.08, 0, 0, TAU);
     ctx.fill();
     ctx.fillStyle = '#8e7a6a';
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = chosen ? '#ffd75a' : INK;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x - s * 0.3, y + s * 0.2);
-    ctx.lineTo(x - s * 0.26, y - s * 0.02);
-    ctx.lineTo(x - s * 0.1, y - s * 0.16);
-    ctx.lineTo(x + s * 0.14, y - s * 0.13);
-    ctx.lineTo(x + s * 0.29, y + s * 0.02);
-    ctx.lineTo(x + s * 0.3, y + s * 0.2);
+    ctx.moveTo(-s * 0.3, 0);
+    ctx.lineTo(-s * 0.26, -s * 0.22);
+    ctx.lineTo(-s * 0.1, -s * 0.36);
+    ctx.lineTo(s * 0.14, -s * 0.33);
+    ctx.lineTo(s * 0.29, -s * 0.18);
+    ctx.lineTo(s * 0.3, 0);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
     ctx.strokeStyle = '#b8a594';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x - s * 0.18, y - s * 0.04);
-    ctx.lineTo(x + s * 0.02, y - s * 0.08);
+    ctx.moveTo(-s * 0.18, -s * 0.24);
+    ctx.lineTo(s * 0.02, -s * 0.28);
     ctx.stroke();
-    if (drilled) {
+    if (rock.drilled) {
       ctx.fillStyle = INK;
       ctx.beginPath();
-      ctx.ellipse(x + s * 0.06, y + s * 0.06, s * 0.05, s * 0.035, 0, 0, TAU);
+      ctx.ellipse(s * 0.06, -s * 0.14, s * 0.05, s * 0.035, 0, 0, TAU);
       ctx.fill();
     }
+    ctx.restore();
   }
 
   function drawWheel(x: number, y: number, r: number) {
@@ -483,16 +464,28 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     }
   }
 
+  /** "Not now": a soft ring around the rover that grows and fades (holds still with reduced motion). */
+  function drawNudge() {
+    if (nudge <= 0) return;
+    const { x, y, s } = roverAt();
+    const k = 1 - nudge / NUDGE_TIME;
+    const r = reduced ? s * 0.6 : s * (0.45 + 0.3 * k);
+    ctx.save();
+    ctx.globalAlpha = 1 - k;
+    ctx.strokeStyle = '#fff6b0';
+    ctx.lineWidth = Math.max(3, s * 0.06);
+    ctx.beginPath();
+    ctx.ellipse(x, y - s * 0.1, r, r * 0.75, 0, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   /** Perseverance from the side, facing right before the mirror: six wheels, mast, arm. */
   function drawRover(t: number) {
     const { x: cx, y: cy, s } = roverAt();
-    const c = { x: cx, y: cy };
-    const a = drive.action;
-    let wobble = 0;
-    if (a?.kind === 'bump') wobble = Math.sin((a.elapsed / a.duration) * Math.PI * 4) * s * 0.05;
-    const bob = a?.kind === 'drive' ? Math.sin(t * 22) * s * 0.008 : 0;
+    const bob = drive.phase === 'drive' && !reduced ? Math.sin(t * 22) * s * 0.008 : 0;
     ctx.save();
-    ctx.translate(c.x + wobble, c.y + bob);
+    ctx.translate(cx, cy + bob);
     if (drive.facing === 'left') ctx.scale(-1, 1);
     ctx.fillStyle = '#00000033';
     ctx.beginPath();
@@ -512,7 +505,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     ctx.lineTo(s * 0.36, s * 0.2);
     ctx.stroke();
     // The arm: tucked in front, or reaching down to drill.
-    const drilling = a?.kind === 'drill';
+    const drilling = drive.phase === 'drill';
     ctx.strokeStyle = '#d8d2c6';
     ctx.lineWidth = Math.max(4, s * 0.06);
     ctx.beginPath();
@@ -531,7 +524,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     ctx.fillStyle = '#9a948b';
     ctx.strokeStyle = INK;
     ctx.lineWidth = 2.5;
-    const jiggle = drilling ? Math.sin(t * 60) * s * 0.01 : 0;
+    const jiggle = drilling && !reduced ? Math.sin(t * 60) * s * 0.01 : 0;
     ctx.beginPath();
     if (drilling) ctx.roundRect(s * 0.45 + jiggle, s * 0.1, s * 0.14, s * 0.12, 3);
     else ctx.roundRect(s * 0.38, s * 0.0, s * 0.13, s * 0.1, 3);
@@ -601,16 +594,15 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     ctx.restore();
   }
 
-  /** A command's glowing dot, with its arrow (or a drill bit) inside. */
-  function drawDot(x: number, y: number, r: number, c: Command, alpha = 1) {
+  /** The message: a big glowing dot with a little drill bit inside. */
+  function drawDot(x: number, y: number, r: number) {
     ctx.save();
-    ctx.globalAlpha = alpha;
-    const glow = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 2);
-    glow.addColorStop(0, '#fff6b0cc');
+    const glow = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 2.2);
+    glow.addColorStop(0, '#fff6b0dd');
     glow.addColorStop(1, '#fff6b000');
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(x, y, r * 2, 0, TAU);
+    ctx.arc(x, y, r * 2.2, 0, TAU);
     ctx.fill();
     ctx.fillStyle = '#fff3a0';
     ctx.strokeStyle = INK;
@@ -619,33 +611,18 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     ctx.arc(x, y, r, 0, TAU);
     ctx.fill();
     ctx.stroke();
-    ctx.translate(x, y);
     ctx.fillStyle = INK;
-    if (c === 'drill') {
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.35, -r * 0.5);
-      ctx.lineTo(r * 0.35, -r * 0.5);
-      ctx.lineTo(0, r * 0.6);
-      ctx.closePath();
-      ctx.fill();
-    } else {
-      ctx.rotate(ANGLE[c]);
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.55, -r * 0.2);
-      ctx.lineTo(r * 0.05, -r * 0.2);
-      ctx.lineTo(r * 0.05, -r * 0.5);
-      ctx.lineTo(r * 0.6, 0);
-      ctx.lineTo(r * 0.05, r * 0.5);
-      ctx.lineTo(r * 0.05, r * 0.2);
-      ctx.lineTo(-r * 0.55, r * 0.2);
-      ctx.closePath();
-      ctx.fill();
-    }
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.35, y - r * 0.5);
+    ctx.lineTo(x + r * 0.35, y - r * 0.5);
+    ctx.lineTo(x, y + r * 0.6);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 
   function drawEarth() {
-    const { earth: e, clock, label } = L!;
+    const { earth: e } = L!;
     if (earth) ctx.drawImage(earth, e.x - e.r, e.y - e.r, e.r * 2, e.r * 2);
     else {
       ctx.fillStyle = '#2f6aa8';
@@ -658,20 +635,31 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     ctx.beginPath();
     ctx.arc(e.x, e.y, e.r, 0, TAU);
     ctx.stroke();
-    // The little clock: a slice of its face for the real wait, and a hand that runs through
-    // it while the oldest message is on its way.
+  }
+
+  /**
+   * The clock beside Earth: while the message flies, its minute hand sweeps the real wait
+   * (12 minutes of the hour) and the face fills behind it. With reduced motion it ticks a
+   * minute at a time.
+   */
+  function drawClock() {
+    const { clock } = L!;
+    const k = messageProgress(drive);
+    const top = -Math.PI / 2;
+    const minutes = k === null ? 0 : reduced ? Math.floor(k * REAL_MINUTES) : k * REAL_MINUTES;
+    const hand = top + (minutes / 60) * TAU;
     ctx.fillStyle = '#f8f0dd';
     ctx.beginPath();
     ctx.arc(clock.x, clock.y, clock.r, 0, TAU);
     ctx.fill();
-    const top = -Math.PI / 2;
-    const slice = (REAL_MINUTES / 60) * TAU;
-    ctx.fillStyle = '#fff3a0';
-    ctx.beginPath();
-    ctx.moveTo(clock.x, clock.y);
-    ctx.arc(clock.x, clock.y, clock.r * 0.92, top, top + slice);
-    ctx.closePath();
-    ctx.fill();
+    if (minutes > 0) {
+      ctx.fillStyle = '#ffd75a';
+      ctx.beginPath();
+      ctx.moveTo(clock.x, clock.y);
+      ctx.arc(clock.x, clock.y, clock.r * 0.92, top, hand);
+      ctx.closePath();
+      ctx.fill();
+    }
     ctx.strokeStyle = INK;
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -685,22 +673,22 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
       ctx.lineTo(clock.x + Math.cos(a) * clock.r * 0.9, clock.y + Math.sin(a) * clock.r * 0.9);
       ctx.stroke();
     }
-    const oldest = drive.messages[0];
-    const hand = top + (oldest ? progress(drive, oldest) : 0) * slice;
+    // A short hour hand, so it reads as a clock; the long minute hand does the sweeping.
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(clock.x, clock.y);
+    ctx.lineTo(clock.x + Math.cos(top - TAU / 6) * clock.r * 0.45, clock.y + Math.sin(top - TAU / 6) * clock.r * 0.45);
+    ctx.stroke();
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(clock.x, clock.y);
-    ctx.lineTo(clock.x + Math.cos(hand) * clock.r * 0.75, clock.y + Math.sin(hand) * clock.r * 0.75);
+    ctx.lineTo(clock.x + Math.cos(hand) * clock.r * 0.8, clock.y + Math.sin(hand) * clock.r * 0.8);
     ctx.stroke();
     ctx.fillStyle = INK;
     ctx.beginPath();
-    ctx.arc(clock.x, clock.y, 3, 0, TAU);
+    ctx.arc(clock.x, clock.y, 3.5, 0, TAU);
     ctx.fill();
-    ctx.font = `${label.size}px 'Patrick Hand', cursive`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#f8f0dd';
-    ctx.fillText(REAL_LABEL, label.x, label.y);
   }
 
   function drawTube(x: number, y: number, size: number, full: boolean) {
@@ -740,19 +728,39 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     }
   }
 
+  function drawMessage() {
+    const k = messageProgress(drive);
+    if (k === null) return;
+    const r = Math.max(14, Math.min(24, L!.board.tile * 0.2));
+    if (reduced) {
+      // Cuts, not a glide: at Earth, halfway, then at the rover, the wait unchanged.
+      drawDot(...xy(flightPoint(Math.min(1, Math.floor(k * 3) / 2))), r);
+      return;
+    }
+    for (let j = 1; j <= 5; j++) {
+      const q = flightPoint(Math.max(0, k - j * 0.03));
+      ctx.fillStyle = `rgba(255, 243, 160, ${0.4 - j * 0.07})`;
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, r * (0.75 - j * 0.1), 0, TAU);
+      ctx.fill();
+    }
+    drawDot(...xy(flightPoint(k)), r);
+  }
+
   function draw(t: number) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawSpace();
     if (!L) return;
-    drawMars(t);
+    drawMars();
     drawEarth();
-    // Rocks behind the rover's row are drawn before it, the rest after.
-    const p = roverPosition(drive);
-    for (const r of drive.rocks) if (r.row <= p.row && !(r.col === drive.col && r.row === drive.row)) drawRock(r.col, r.row, r.drilled);
+    drawClock();
+    // Rocks behind the rover are drawn before it; the one it drills, and nearer ones, after.
+    const order = drive.rocks.map((_, i) => i);
+    const behind = (i: number) => drive.rocks[i]!.row < drive.y - 0.01;
+    for (const i of order) if (behind(i)) drawRock(i, t);
     drawRover(t);
-    const under = rockAt(drive, drive.col, drive.row);
-    if (under) drawRock(under.col, under.row, under.drilled);
-    for (const r of drive.rocks) if (r.row > p.row) drawRock(r.col, r.row, r.drilled);
+    for (const i of order) if (!behind(i)) drawRock(i, t);
+    drawNudge();
     for (const d of dust) {
       ctx.fillStyle = `rgba(201, 140, 96, ${Math.max(0, d.life / 0.7)})`;
       ctx.beginPath();
@@ -760,23 +768,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
       ctx.fill();
     }
     drawTubes();
-    const r = Math.max(11, Math.min(20, L.board.tile * 0.17));
-    // Arrived, waiting their turn: stacked over the rover's antenna.
-    const ant = antenna();
-    drive.waiting.forEach((c, i) => drawDot(ant.x, ant.y - r * 1.2 - i * r * 2.3, r * 0.85, c));
-    // On their way: a faint trail behind each dot.
-    for (const m of drive.messages) {
-      const k = progress(drive, m);
-      for (let j = 1; j <= 4; j++) {
-        const q = flightPoint(Math.max(0, k - j * 0.035));
-        ctx.fillStyle = `rgba(255, 243, 160, ${0.35 - j * 0.07})`;
-        ctx.beginPath();
-        ctx.arc(q.x, q.y, r * (0.7 - j * 0.1), 0, TAU);
-        ctx.fill();
-      }
-      const at = flightPoint(k);
-      drawDot(at.x, at.y, r, m.command);
-    }
+    drawMessage();
   }
 
   function loop(now: number) {
@@ -791,23 +783,17 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
   /* --- input -------------------------------------------------------------- */
 
   back.addEventListener('click', () => api.close());
-  const KEYS: Record<string, Move> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
   root.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
       event.preventDefault();
       api.close();
-      return;
-    }
-    const move = KEYS[event.key];
-    if (move) {
-      event.preventDefault();
-      command(move, moveButtons[MOVES.indexOf(move)]!);
     }
   });
   const onResize = () => { if (open) resize(); };
   window.addEventListener('resize', onResize);
   // The caption's height feeds the layout; keep them in step when it changes.
-  new MutationObserver(() => { if (open) L = layout(); }).observe(caption, { childList: true, characterData: true, subtree: true });
+  new MutationObserver(() => { if (open) { L = layout(); placeRocks(); } })
+    .observe(caption, { childList: true, characterData: true, subtree: true });
 
   const api: MarsRover = {
     get isOpen() { return open; },
@@ -816,19 +802,19 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
       open = true;
       host.append(root);
       root.classList.remove('is-hidden');
+      reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
       drive = createDrive(COLS, ROWS, PLAY_DELAY);
-      round = 0;
-      restock = 0;
       wheel = 0;
+      nudge = 0;
+      nudges = 0;
       flyers = [];
       dust = [];
-      sent = false;
-      say('Send the rover a message!');
+      say('Tap a rock!');
       resize();
       syncState();
       last = 0;
       frame = requestAnimationFrame(loop);
-      moveButtons[0]!.focus();
+      rockButtons[0]!.focus();
       void earthPicture().then(found => { earth = found; });
     },
     close() {
@@ -845,4 +831,8 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
     },
   };
   return api;
+}
+
+function xy(p: { x: number; y: number }): [number, number] {
+  return [p.x, p.y];
 }

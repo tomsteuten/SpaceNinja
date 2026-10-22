@@ -147,13 +147,23 @@ for (const [name, viewport] of [
       for (let i = 0; i < 3; i++) await findNext(page);
       await page.locator('.rover-btn').click();
       const rover = page.locator('.mars-rover');
-      for (const move of ['right', 'up', 'up']) await rover.locator(`.mars-rover__key--${move}`).click();
-      await rover.locator('.mars-rover__drill').click();
+      await expect(rover).toHaveAttribute('data-phase', 'idle');
       await page.waitForTimeout(600);
-      await shot(page, '14-mars-rover-messages');
-      await expect(rover).toHaveAttribute('data-samples', '1', { timeout: 60000 });
+      await shot(page, '14-mars-rover-open');
+      const rock = (n: number) => rover.getByRole('button', { name: `Send the rover to rock ${n}`, exact: true });
+      await rock(2).click();
+      await page.waitForTimeout(1100);
+      await shot(page, '15-mars-rover-message');
+      await expect(rover).toHaveAttribute('data-phase', 'drill', { timeout: 60000 });
+      await page.waitForTimeout(700);
+      await shot(page, '16-mars-rover-drilling');
+      for (const n of [1, 3]) {
+        await expect(rover).toHaveAttribute('data-phase', 'idle', { timeout: 60000 });
+        await rock(n).click();
+      }
+      await expect(rover).toHaveAttribute('data-phase', 'restock', { timeout: 60000 });
       await page.waitForTimeout(1000);
-      await shot(page, '15-mars-rover-sample');
+      await shot(page, '17-mars-rover-three-samples');
     });
 
     test(`finale ${name}`, async ({ page }) => {
