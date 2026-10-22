@@ -63,6 +63,8 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   }
   await page.getByRole('button', { name: 'Jump on the Moon', exact: true }).click();
   await page.getByRole('button', { name: 'Back to the Moon', exact: true }).click();
+  // Measure the row once the newly arrived buttons have finished popping in.
+  await expect(page.locator('.visit-actions .is-appearing')).toHaveCount(0);
   const activity = page.locator('.spin-btn');
   await expect(activity).toHaveText('Day & night');
   expect((await snapshot(page)).dayTurning).toBe(false);

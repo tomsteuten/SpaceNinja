@@ -705,6 +705,10 @@ export function createUI(options: UIOptions): GameUI {
       for (const control of appearing) {
         hold(control, false);
         control.classList.add('is-appearing');
+        // Settled once the pop ends (reduced motion has none, so the timer is the backstop).
+        const settle = () => control.classList.remove('is-appearing');
+        control.addEventListener('animationend', settle, { once: true });
+        later(settle, 600);
       }
     };
     // The third find's postcard may still be loading its photograph; wait for it, and then

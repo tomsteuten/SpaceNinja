@@ -68,6 +68,8 @@ test('Moon: toy and journal wait for the finds, the toy is the next step, Space 
   await expect(page.locator('.world-heading__caption')).toBeVisible();
   await expect(journal).toBeHidden();
   await stays();
+  // Measured once its pop has settled.
+  await expect(page.locator('.visit-actions .is-appearing')).toHaveCount(0);
   const jumpBox = (await jump.boundingBox())!;
   expect(jumpBox.width).toBeGreaterThanOrEqual(54);
   expect(jumpBox.height).toBeGreaterThanOrEqual(54);
