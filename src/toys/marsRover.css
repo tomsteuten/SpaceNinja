@@ -1,0 +1,43 @@
+/* Mars rover toy: full screen, Earth in space beside Jezero crater, big arrow keys. Storybook crayons. */
+.mars-rover { position:absolute; inset:0; z-index:55; background:#070a18; pointer-events:auto; touch-action:none; user-select:none; -webkit-user-select:none; --key:76px; }
+.mars-rover.is-hidden { display:none; }
+.mars-rover__canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.mars-rover__caption { position:absolute; left:max(14px,env(safe-area-inset-left)); top:max(14px,env(safe-area-inset-top)); max-width:calc(100% - 28px); margin:0; padding:8px 14px; background:var(--paper,#f8f0dd); color:var(--ink-line,#2b2118); border:3px solid var(--ink-line,#2b2118); border-radius:14px; box-shadow:4px 4px 0 var(--ink-line,#2b2118); font:400 24px/1.15 var(--hand,cursive); transform:rotate(-1deg); pointer-events:none; }
+.mars-rover__caption:empty { display:none; }
+.mars-rover.is-wide .mars-rover__caption { max-width:calc(var(--space-w,30%) - 14px); }
+.mars-rover button { position:absolute; display:flex; align-items:center; justify-content:center; gap:8px; border:3px solid var(--ink-line,#2b2118); border-radius:18px; box-shadow:4px 4px 0 var(--ink-line,#2b2118); color:var(--ink-line,#2b2118); cursor:pointer; padding:0; }
+.mars-rover button:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
+.mars-rover__back { left:max(12px,env(safe-area-inset-left)); bottom:max(18px,env(safe-area-inset-bottom)); height:var(--key); padding:0 14px !important; background:var(--crayon-sky,#5bb8e8); }
+.mars-rover__back .icon { width:34px; height:30px; color:var(--ink-line,#2b2118); }
+.mars-rover__back .world-orb { width:38px; height:38px; border:2px solid var(--ink-line,#2b2118); }
+/* The arrow keys: an upside-down T, like a keyboard's, so each points where the rover goes. */
+.mars-rover__pad { position:absolute; right:max(14px,env(safe-area-inset-right)); bottom:max(18px,env(safe-area-inset-bottom)); display:grid; grid-template-columns:repeat(3,var(--key)); grid-template-rows:repeat(2,var(--key)); gap:10px; }
+.mars-rover__pad .mars-rover__key { position:static; width:var(--key); height:var(--key); background:var(--crayon-lime,#b9dc4f); }
+.mars-rover__key--up { grid-column:2; grid-row:1; }
+.mars-rover__key--left { grid-column:1; grid-row:2; }
+.mars-rover__key--down { grid-column:2; grid-row:2; }
+.mars-rover__key--right { grid-column:3; grid-row:2; }
+.mars-rover__arrow { width:56%; height:56%; fill:var(--paper,#f8f0dd); stroke:var(--ink-line,#2b2118); stroke-width:2; stroke-linejoin:round; }
+.mars-rover__drill { height:var(--key); padding:0 18px 0 12px !important; background:var(--crayon-lime,#b9dc4f); font:400 26px/1 var(--hand,cursive); }
+.mars-rover__drill .icon { width:38px; height:38px; color:var(--ink-line,#2b2118); }
+/* Tall screens: Drill sits over the way back, on the left. Wide ones: over the arrows. */
+.mars-rover:not(.is-wide) .mars-rover__drill { left:max(12px,env(safe-area-inset-left)); bottom:calc(max(18px,env(safe-area-inset-bottom)) + var(--key) + 12px); }
+.mars-rover.is-wide .mars-rover__drill { right:max(14px,env(safe-area-inset-right)); bottom:calc(max(18px,env(safe-area-inset-bottom)) + var(--key) * 2 + 22px); }
+.mars-rover button.is-full { animation:mars-rover-full .35s; }
+@keyframes mars-rover-full { 25% { translate:-5px 0; } 75% { translate:5px 0; } }
+@media (max-width:520px) {
+  .mars-rover { --key:66px; }
+  .mars-rover__back { padding:0 12px !important; }
+  .mars-rover__back .world-orb { display:none; }
+  .mars-rover__drill { font-size:23px; }
+  .mars-rover__caption { font-size:21px; }
+}
+@media (max-height:480px) {
+  .mars-rover { --key:58px; }
+  .mars-rover__pad { gap:8px; }
+  .mars-rover__caption { font-size:20px; }
+  .mars-rover__drill { font-size:22px; }
+  .mars-rover.is-wide .mars-rover__drill { bottom:calc(max(12px,env(safe-area-inset-bottom)) + var(--key) * 2 + 18px); }
+  .mars-rover__back,.mars-rover__pad { bottom:max(12px,env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion:reduce) { .mars-rover button.is-full { animation:none; } }
