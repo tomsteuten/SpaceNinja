@@ -108,7 +108,9 @@ Each destination gets one hands-on toy that teaches one big idea with real numbe
 - The overlay is detached from the DOM while closed, not merely hidden: tests use
   `locator('canvas')` and expect exactly one canvas.
 - Leave the 3D scene alone; a toy is an overlay with a pictured way back.
-- One short caption at most, plus one narrated line (Kokoro while building).
+- One short caption at most, plus one narrated line (Kokoro while building). Kokoro is a
+  different voice from the shipped ElevenLabs one: `npm run narration:status` shows the split,
+  and `src/audio/recordings/README.md` describes the one-command ElevenLabs pass.
 - A new visit button changes counts that tests rely on (`e2e/childFeedback.pw.ts` expects five
   controls on the Moon). Narrow phones must still fit the row with wrapping labels and touch
   targets of at least 54 px.

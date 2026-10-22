@@ -3,15 +3,43 @@
 Put authored MP3 narration here. The filename is the stable cue id used by the game, for
 example `arrival-earth.mp3`, `discovery-earth-sahara.mp3`, or `spin-earth.mp3`.
 
-**Shipped pack, reconciled 4 October 2026:** the main pack uses the ElevenLabs voice
-chosen by the owner by ear, from `../narration-script.json`, which is the one manifest (stable
-id, spoken text; the filename is the id). The committed pack uses the Australian voice **Emma**
-(`eleven_multilingual_v2`). The Sun arrival uses a Kokoro `bf_emma` per-cue exception,
-recorded in `provenance.json`. On 19 October, the four `day-night-*` activity cues were
-also generated locally with Kokoro `bf_emma` at speed 0.95. They cover entering the activity,
-night, first-visit morning and later-visit morning; all four are bundled for offline use.
-On 21 October, `toy-moon` (the Jump invitation after the Moon's three finds) was added the
-same way.
+**One voice, two engines (as of 22 October 2026).** The pack is meant to be one voice: the
+ElevenLabs voice **Emma** (`eleven_multilingual_v2`), chosen by the owner by ear. While toys
+are being built, new lines are generated locally with Kokoro `bf_emma` (free, no key), a
+*different-sounding* British voice, so a child currently hears two voices. Each Kokoro line is
+recorded as an exception in `provenance.json`. Some cues have words but no recording yet and
+are silent until recorded. `../narration-script.json` is the one list of every cue (id and
+spoken text; the filename is the id).
+
+See the current split at any time, with no key and nothing spent:
+
+```bash
+npm run narration:status
+```
+
+On 22 October the pass below was run: all 85 cues are ElevenLabs Emma again (it recorded
+the 7 Kokoro lines and the 3 Sun map lines that had none, 437 characters). Each new toy adds
+a `toy-<world>` Kokoro line until the pass is run again.
+
+### The ElevenLabs pass (replaces every Kokoro line)
+
+Needs `ELEVENLABS_API_KEY` (owner-approved spend; DECISIONS.md, line 5). Run it after any toy
+branches in progress have merged, so their new lines are included:
+
+```bash
+npm run narration:status                                         # what will be recorded
+node --env-file=.env scripts/generate-narration-elevenlabs.mjs   # plain run: no --only, no --force
+npm run narration:status                                         # expect: all ElevenLabs
+```
+
+A plain run records exactly the cues that aren't already current ElevenLabs (Kokoro lines
+have no entry in `manifest.json`), and keeps the rest. It then rewrites `provenance.json` as all-ElevenLabs, which is only true
+once every cue is ElevenLabs. **Don't use `--only` for this pass:** it would also drop the
+remaining Kokoro exceptions from `provenance.json` and make the grown-ups disclosure wrong.
+`--force` would re-record all 85 and spend credits for nothing. Afterwards, run `npm test`,
+listen to the new lines (ideally on the tablet), commit the MP3s with `manifest.json` and
+`provenance.json`, and update this section.
+
 Physical-tablet listening remains pending. The API key is read only from the
 `ELEVENLABS_API_KEY` environment variable and is never printed, logged or committed.
 
@@ -21,10 +49,8 @@ falls back to the device voice when the speaker button is pressed. Only cues wit
 start automatically; an incomplete voice pack therefore never makes the poor platform voice
 begin talking by itself.
 
-The script and recordings currently contain 79 authored cues and 76 MP3 files. The three
-unrecorded cues are `home-sun`, `home-nudge-sun` and `home-nudge-short-sun`. This is a
-4 October inventory, not a fixed pack size: derive requirements from the script and
-`narration-script.test.ts` when adding content. Missing clips do not silence other recordings.
+Derive the required cues from the script and `narration-script.test.ts` when adding content.
+Missing clips do not silence other recordings.
 
 ## Regenerating the pack
 
@@ -75,7 +101,3 @@ npm install --no-save kokoro-js   # then: npm run narration:generate:kokoro
 All three generators write `provenance.json` beside the MP3s to supply the adult-facing AI
 disclosure. A human recording pack may replace it with its own plain-language origin note.
 
-The Sun arrival currently uses the bundled local Kokoro `bf_emma` fallback. This per-cue
-exception is recorded in `provenance.json`; regenerate it with `--only=arrival-sun` to match
-the ElevenLabs pack when a key is available. The three Sun map invitations have authored
-words and use the normal per-cue fallback until recorded.
