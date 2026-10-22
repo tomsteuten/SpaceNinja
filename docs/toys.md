@@ -150,7 +150,7 @@ the next. Then visit Ceres and its bright salty spots. Effort: S.
 - **One shared toy shell.** Two-panel comparison, one big action button, pictured back
   button, one caption, one narrated cue. The Moon jump already has this shape; pull it out
   into a common helper on the second toy, not before.
-- **Narration.** One Kokoro cue per toy while building, ElevenLabs later.
+- **Narration.** One ElevenLabs Emma cue per toy (DECISIONS.md #5).
 
 ## Suggested order
 
