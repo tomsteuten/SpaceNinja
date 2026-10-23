@@ -683,6 +683,8 @@ export function createUI(options: UIOptions): GameUI {
     // the rest of the row is there for the child to find when they come back.
     if (root.classList.contains('is-toy-next')) {
       root.classList.remove('is-toy-next');
+      // Toy played: the way on is the one ringed step; Journal joins unringed.
+      root.classList.add('is-map-next');
       if (!spinBusy) headingCaption.textContent = completeVisitHint();
     }
     if (visitStage === 'toy') setVisitStage('open');
@@ -988,9 +990,7 @@ export function createUI(options: UIOptions): GameUI {
       if (visitWorldId === 'mars') return 'Three found! Now drive the rover.';
       return 'Three found! Now try Jump.';
     }
-    return root.classList.contains('has-seen-journal')
-      ? 'Choose your next trip on the Space map.'
-      : 'Three found this trip! See your journal.';
+    return 'Choose your next trip on the Space map.';
   }
   function setJournalOpen(open: boolean) {
     journalOpen = open;
@@ -1387,7 +1387,7 @@ export function createUI(options: UIOptions): GameUI {
 
     showArrival(cueId: string, label: string, fact: string, _emoji: string, worldId = 'earth') {
       root.classList.remove('is-home');
-      root.classList.remove('is-complete', 'has-seen-journal', 'is-toy-next');
+      root.classList.remove('is-complete', 'has-seen-journal', 'is-toy-next', 'is-map-next');
       root.classList.toggle('is-earth', worldId === 'earth');
       worldHeading.classList.remove('is-hidden');
       listenButton.classList.remove('is-hidden');
@@ -1526,6 +1526,8 @@ export function createUI(options: UIOptions): GameUI {
       const toyCue = visitActions.classList.contains('has-toy') ? `toy-${visitWorldId}` : null;
       if (toyCue && narrator.hasRecording(toyCue)) followUp = { text: cueText(toyCue), cueId: toyCue };
       if (toyCue) root.classList.add('is-toy-next');
+      // No toy: nothing stands between the third find and the way on, so Space map is ringed.
+      else root.classList.add('is-map-next');
       // Only the toy pops in now; the journal waits until the toy has been played.
       setVisitStage(toyCue ? 'toy' : 'open');
       headingCaption.textContent = completeVisitHint();

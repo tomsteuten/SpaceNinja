@@ -65,7 +65,8 @@ test('first Earth visit: Turn Earth opens the bedtime spin, and night then morni
   await expect(page.locator('canvas')).toHaveCount(1);
   await expect(page.locator('.spin-btn')).toBeFocused();
   await expect.poll(async () => (await snapshot(page)).guidedHunt).toBe(true);
-  expect((await snapshot(page)).mapInvite).toBe(true);
+  // The hunt is the next step: no ring on Space map while gold places remain.
+  expect((await snapshot(page)).mapInvite).toBe(false);
 });
 
 test('a later Earth visit: Day & night opens the spin, a full turn is a day, and the places are untouched', async ({ page }) => {

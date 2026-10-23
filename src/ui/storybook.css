@@ -56,8 +56,6 @@
 
 /* The "next thing" emphasis keeps each control's colour and adds a thick ring instead of gold. */
 .is-earth-welcome .spin-btn,.spin-btn.is-busy,
-.is-complete:not(.has-seen-journal) .visit-actions .journal-btn,
-.is-complete.has-seen-journal .visit-actions .home-btn,
 .is-map-next .visit-actions .home-btn,
 .is-hands-on .visit-actions .spin-btn,
 .is-map-next .visit-actions .turn-earth-btn,
@@ -66,12 +64,11 @@
 }
 .is-earth-welcome .spin-btn,.spin-btn.is-busy { background:var(--crayon-grass); }
 .is-hands-on .visit-actions .spin-btn,.is-complete:not(.is-hands-on) .visit-actions .spin-btn { background:var(--crayon-grass); }
-.is-complete:not(.has-seen-journal) .visit-actions .journal-btn,.is-complete.has-seen-journal .visit-actions .home-btn,.is-map-next .visit-actions .home-btn {
+.is-map-next .visit-actions .home-btn {
   outline:4px solid var(--paper); outline-offset:3px;
 }
-.is-complete:not(.has-seen-journal) .visit-actions .journal-btn { background:var(--crayon-tomato); }
-.is-complete.has-seen-journal .visit-actions .home-btn,.is-map-next .visit-actions .home-btn { background:var(--crayon-sky); }
-.is-complete:not(.has-seen-journal) .visit-actions .journal-btn .icon,.is-complete.has-seen-journal .visit-actions .home-btn .icon-slot,.is-map-next .visit-actions .home-btn .icon-slot { color:var(--ink-line); }
+.is-map-next .visit-actions .home-btn { background:var(--crayon-sky); }
+.is-map-next .visit-actions .home-btn .icon-slot { color:var(--ink-line); }
 .spin-globe { border-color:var(--ink-line); }
 .spin-sun { border-color:var(--ink-line); }
 .spin-arrow { color:var(--ink-line); }
@@ -318,7 +315,6 @@
 
 /* After the finds on a world with a toy, the toy is the next step, not the journal. */
 .is-toy-next .visit-actions > .btn.toy-btn { outline:4px solid var(--paper); outline-offset:3px; }
-.is-complete.is-toy-next .visit-actions .journal-btn { outline:none; }
 
 /* Short landscape lays the finale out in a row; hand lettering is wider, so scale it down. */
 @media (max-height:480px) {

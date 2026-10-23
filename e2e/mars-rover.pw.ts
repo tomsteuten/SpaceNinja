@@ -101,6 +101,6 @@ test('Mars: the rover is the next step after three finds; a tapped rock waits fo
   await expect(page.locator('canvas')).toHaveCount(1);
 
   await expect(ui).not.toHaveClass(/is-toy-next/);
-  await expect(page.locator('.world-heading__caption')).toHaveText('Three found this trip! See your journal.');
+  await expect(page.locator('.world-heading__caption')).toHaveText('Choose your next trip on the Space map.');
   await expect(page.locator('.visit-actions .journal-btn')).toBeVisible();
 });

@@ -18,7 +18,7 @@
 .visit-actions .home-btn { background:linear-gradient(#315d72,#23465b); border-color:#9ed9dc; }
 .visit-actions .listen-btn { background:linear-gradient(#354e71,#293d5c); }
 .visit-actions .journal-btn { background:linear-gradient(#4c4a70,#373655); border-color:#b8b9dd88; }
-.is-earth-welcome .spin-btn,.spin-btn.is-busy,.visit-actions .turn-earth-btn,.is-complete:not(.has-seen-journal) .visit-actions .journal-btn,.is-complete.has-seen-journal .visit-actions .home-btn,.is-map-next .visit-actions .home-btn { background:linear-gradient(#ffe6a5,#f4cf7c); border-color:#fff0c3; color:var(--control-ink); box-shadow:inset 0 2px #fff7dd,0 4px 0 #9b713e,0 6px 12px #0003; }
+.is-earth-welcome .spin-btn,.spin-btn.is-busy,.visit-actions .turn-earth-btn,.is-map-next .visit-actions .home-btn { background:linear-gradient(#ffe6a5,#f4cf7c); border-color:#fff0c3; color:var(--control-ink); box-shadow:inset 0 2px #fff7dd,0 4px 0 #9b713e,0 6px 12px #0003; }
 .is-earth .visit-actions .spin-btn:hover,.visit-actions .spin-btn.is-busy:hover { filter:brightness(1.04); }
 .visit-actions .find-places-btn { border-color:#e5c783; color:#ffe7a2; }
 .visit-actions .find-places-btn .icon { color:#ffe7a2; }
@@ -30,7 +30,7 @@
 .is-map-next .visit-actions .turn-earth-btn { background:linear-gradient(#315d72,#23465b); border-color:#9ed9dc; color:var(--ink); box-shadow:inset 0 2px #ffffff20,0 4px 0 #0b1528; }
 /* Gold marks the first lesson, then the journal after the visit's three finds. */
 .is-complete:not(.is-hands-on) .visit-actions .spin-btn { background:var(--control-panel); border-color:var(--control-edge); color:var(--ink); }
-.is-complete:not(.has-seen-journal) .visit-actions .journal-btn .icon,.is-complete.has-seen-journal .visit-actions .home-btn .icon-slot,.is-map-next .visit-actions .home-btn .icon-slot { color:#35516a; }
+.is-map-next .visit-actions .home-btn .icon-slot { color:#35516a; }
 .spin-picture { width:46px; height:38px; position:relative; display:flex; justify-content:flex-end; padding-top:2px; }
 .spin-sun { position:absolute; left:1px; top:2px; width:13px; height:13px; background:#ffcc4e; border:2px solid #a87936; border-radius:50%; box-shadow:0 0 0 3px #ffdd7926; }
 .spin-globe { display:block; position:relative; width:27px; height:27px; overflow:hidden; border-radius:50%; background:var(--world,#739bb3); background-size:auto 100%; background-position:center; border:2px solid #d3e8ed; }

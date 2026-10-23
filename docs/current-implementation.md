@@ -1,5 +1,16 @@
 # Current implementation and handover
 
+## One next step at a time — 23 October 2026
+
+Playtest 2: after a world the child did not know what to do next. The visit row now rings one
+step and the heading agrees: toy (unchanged), then Space map (`is-map-next`) once the toy is
+played, or straight after the third find on a world with no toy. Journal and Day & night join
+unringed; no journal detour. First Earth visit: the ring clears when the bedtime spin closes, so
+nothing is ringed during the hunt; it returns when the places are found. Heading after the
+finds: "Choose your next trip on the Space map." Open: cue `day-night-moon` ("Morning again! You
+can fly to the Moon next.") now disagrees with the hunt that follows; proposed "Morning again!
+Now find the gold places." (needs re-recording).
+
 ## Space map shows what's next — 23 October 2026
 
 Playtest 2: back on the map the child did not know what to do; "X is ready" was only said.
