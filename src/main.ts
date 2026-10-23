@@ -292,6 +292,8 @@ async function main() {
     },
     onBedtimeClose: () => {
       if (follow !== 'earth') return;
+      // The gold places are the next step now; Space map is ringed again once they are found.
+      ui.setMapInvite(false);
       activeMission?.setPresentation(true);
       beginGuidedHunt(true);
     },

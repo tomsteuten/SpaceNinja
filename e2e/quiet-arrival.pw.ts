@@ -64,6 +64,8 @@ test('Moon: toy and journal wait for the finds, the toy is the next step, Space 
   await expect(ui).toHaveClass(/is-toy-next/);
   await expect(jump).toBeVisible();
   await expect(jump).toHaveCSS('outline-style', 'solid');
+  await expect(ui).not.toHaveClass(/is-map-next/);
+  await expect(spaceMap).toHaveCSS('outline-style', 'none');
   await expect(page.locator('.world-heading__caption')).toHaveText('Three found! Now try Jump.');
   await expect(page.locator('.world-heading__caption')).toBeVisible();
   await expect(journal).toBeHidden();
@@ -85,7 +87,11 @@ test('Moon: toy and journal wait for the finds, the toy is the next step, Space 
   // After the toy: the journal and Day & night are there, and Space map has not moved.
   await expect(journal).toBeVisible();
   await expect(dayNight).toBeVisible();
-  await expect(page.locator('.world-heading__caption')).toHaveText('Three found this trip! See your journal.');
+  await expect(page.locator('.world-heading__caption')).toHaveText('Choose your next trip on the Space map.');
+  // One next step: Space map is ringed, Journal is there but not.
+  await expect(ui).toHaveClass(/is-map-next/);
+  await expect(spaceMap).toHaveCSS('outline-style', 'solid');
+  await expect(journal).toHaveCSS('outline-style', 'none');
   await stays();
   await spaceMap.click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('idle');

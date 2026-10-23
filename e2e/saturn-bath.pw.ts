@@ -63,6 +63,6 @@ test('Saturn: the bath is the next step after three finds, and floats only Satur
   await expect(page.locator('.saturn-bath')).toHaveCount(0);
   // Detached when closed, not hidden: the scene's canvas is the only one left.
   await expect(page.locator('canvas')).toHaveCount(1);
-  await expect(page.locator('.world-heading__caption')).toHaveText('Three found this trip! See your journal.');
+  await expect(page.locator('.world-heading__caption')).toHaveText('Choose your next trip on the Space map.');
   await expect(page.locator('.visit-actions .journal-btn')).toBeVisible();
 });
