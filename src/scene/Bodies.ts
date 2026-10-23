@@ -461,8 +461,9 @@ function createOrbitingBody(
     hitMeshes = [targets.planet, targets.rings];
     // The selection ring takes in the whole ring system. Was 2.4, lowered with the others
     // for the same reason — and a ringed world needs it least, since this is a multiple of
-    // the *outer ring* rather than of the body.
-    selectionScale = worldViewRadius(world) * 1.7;
+    // the *outer ring* rather than of the body. 1.7 → 1.35 once the ring became the map's
+    // always-on "go here" (owner, map review): at 1.7 it dwarfed Saturn on the tablet.
+    selectionScale = worldViewRadius(world) * 1.35;
   } else {
     // Floored, because a small body far from the camera is otherwise a pixel-hunt.
     const hit = createHitMesh(Math.max(0.72, world.radius * 2.6));
