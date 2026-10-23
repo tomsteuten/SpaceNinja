@@ -1,0 +1,118 @@
+<title>Done, Made Visible</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Andika:wght@400;700&display=swap">
+<style>
+/* Layout: one band per state; before and after side by side, phone then tablet. Same frame as the map-next review. */
+:root {
+  --paper: #f8f0dd; --paper-deep: #efe4cc; --ink: #2b2118; --muted: #6b5d4f;
+  --sun: #f2b632; --grass: #74c27a; --tomato: #f07a62; --frame: #2b2118;
+  --hand: 'Patrick Hand', 'Comic Sans MS', cursive; --read: Andika, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1d1a24; --paper-deep: #29243a; --ink: #f3ead6; --muted: #b9ad9b; --frame: #0b0912; color-scheme: dark } }
+:root[data-theme="dark"] { --paper: #1d1a24; --paper-deep: #29243a; --ink: #f3ead6; --muted: #b9ad9b; --frame: #0b0912; color-scheme: dark }
+body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--read);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+main { max-width: 1180px; margin: 0 auto; display: grid; gap: 40px; }
+h1, h2 { font-family: var(--hand); font-weight: 400; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 48px); line-height: 1.05; }
+h2 { font-size: 28px; line-height: 1.1; }
+header { display: grid; gap: 12px; max-width: 72ch; }
+header p, .state p { margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 15px; color: var(--muted); }
+.legend b { color: var(--ink); }
+.chip { display: inline-block; padding: 0 8px; border: 2px solid var(--ink); border-radius: 8px; font-family: var(--hand); font-size: 18px; color: #2b2118; }
+.chip.sun { background: var(--sun); } .chip.grass { background: var(--grass); }
+.state { display: grid; gap: 14px; padding-top: 22px; border-top: 3px dashed var(--muted); }
+.state > p, .state ul { max-width: 75ch; }
+.state ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, .62fr)) repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.shots.ref { grid-template-columns: minmax(0, .62fr) minmax(0, 1fr); max-width: 560px; }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figcaption { font: 600 13px/1.2 var(--read); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+figcaption.after { color: var(--ink); }
+img { display: block; max-width: 100%; height: auto; border: 3px solid var(--frame); border-radius: 12px; }
+.after img { box-shadow: 5px 5px 0 var(--sun); }
+.missing { display: grid; place-items: center; aspect-ratio: 390 / 844; border: 3px dashed var(--muted); border-radius: 12px; color: var(--muted); font-size: 14px; text-align: center; padding: 8px; }
+.tablet .missing { aspect-ratio: 768 / 1024; }
+@media (max-width: 760px) { .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+code { font-size: .92em; }
+</style>
+
+<main>
+  <header>
+    <h1>Done, made visible</h1>
+    <p>Fix 5 from the state-change audit. "Done" comes at three sizes: a visit (three places), a world (all six) and the whole game. None of them shows well today. A finished visit opens a journal that is half dashed "Still to find" tiles, and once every world is visited the map sends the child back to a finished world with the same gold card a brand-new world gets.</p>
+    <p>These are design mocks: the real build, captured at each state, then the same screen with a mock stylesheet and script laid over it (<code>design/done-visible/mock.css</code>, <code>mock.js</code>). Nothing in the game has changed yet.</p>
+    <div class="legend">
+      <span><span class="chip sun">3 found!</span> <b>trip sticker</b>: this visit is finished</span>
+      <span><span class="chip grass">✓</span> <b>tick</b>: found / been there (the map's tick)</span>
+      <span><span class="chip sun">★</span> <b>sun star</b>: a whole world found</span>
+      <span><span class="chip sun">●●●○○○</span> <b>pips</b>: places found and left, the journal's own track</span>
+    </div>
+  </header>
+
+  <section class="state">
+    <h2>A1 · Journal after the first finished visit (Earth)</h2>
+    <p>Before: three photos mixed in among three dashed "Still to find" tiles, in the book's order, so the Night Side sits last behind two empties. After: the visit's three snapshots lead the page, tilted like the postcards, each with a green tick, under a big sun "3 found!" sticker. The three places left become a small calm "Next time" strip with a rocket and three gold-place rings, the same ring the child hunts on the world. The world chips move below.</p>
+    <div class="shots" data-shot="1-journal-first"></div>
+  </section>
+
+  <section class="state">
+    <h2>A2 · Journal mid-game (Mars, with Earth complete)</h2>
+    <p>The same page after a Mars visit, with all of Earth and half the Moon already found. Earth's chip swaps its "6/6" for a sun star: a whole world done. Mars leads with its trip.</p>
+    <div class="shots" data-shot="2-journal-mid"></div>
+  </section>
+
+  <section class="state">
+    <h2>B · Space map once every world is visited</h2>
+    <p>Before: the Moon card is gold with the arrow, exactly like a world that just unlocked. After: every visited card carries its journal track as pips (sun = found, white = left). The suggested Moon keeps the gold, the tick and the bouncing arrow, and its half-white pips are the picture of "more to find here". Earth, fully found, wears a sun star in place of its tick. The pill's journal icon becomes the gold-place ring; the words stay as a reinforcement.</p>
+    <div class="shots" data-shot="3-map-all-visited"></div>
+    <p>For comparison, a brand-new unlock as approved in map-next: no tick and no pips, a padlock that pops off with a sparkle, then the arrow.</p>
+    <div class="shots ref" data-ref="ref-new-unlock"></div>
+  </section>
+
+  <section class="state">
+    <h2>Notes for building it</h2>
+    <ul>
+      <li>The trip layout appears only when the journal opens on a visit whose three places are all found. Opened any other time (from the map, mid-hunt) the page keeps found photos first and the "Next time" strip in place of dashed tiles, without the sticker.</li>
+      <li>"This trip" is the visit's own three finds (the mission already knows them), not the last three in storage.</li>
+      <li>A world with all six found shows its six photos and no strip; the sun star replaces the count on its chip and the tick on its map card.</li>
+      <li>Crayons: sun for the trip sticker, the star and found pips; grass for the photo ticks (the same "done" tick as the map). Both added to the AGENTS.md table on implementation.</li>
+      <li>Reduced motion: nothing here moves except the arrow, which already follows the reduced-motion rule.</li>
+      <li>Not in scope: the finale (whole game done, audit state 24) is unchanged.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+const exists = src => new Promise(resolve => { const i = new Image(); i.onload = () => resolve(true); i.onerror = () => resolve(false); i.src = src; });
+async function figure(device, when, src, alt) {
+  const fig = document.createElement('figure');
+  fig.className = `${when} ${device}`;
+  const caption = document.createElement('figcaption');
+  caption.className = when;
+  caption.textContent = `${device} · ${when}`;
+  fig.append(caption);
+  if (await exists(src)) {
+    const img = document.createElement('img');
+    img.src = src; img.alt = alt; img.loading = 'lazy';
+    fig.append(img);
+  } else {
+    const gap = document.createElement('div');
+    gap.className = 'missing';
+    gap.textContent = 'Capture still running';
+    fig.append(gap);
+  }
+  return fig;
+}
+for (const row of document.querySelectorAll('.shots[data-shot]')) {
+  const name = row.dataset.shot;
+  const label = name.replace(/^\d-/, '').replace(/-/g, ' ');
+  const pairs = [['phone', 'before'], ['phone', 'after'], ['tablet', 'before'], ['tablet', 'after']];
+  Promise.all(pairs.map(([d, w]) => figure(d, w, `shots/${d}-${name}-${w}.png`, `${d} ${w}: ${label}`))).then(f => row.append(...f));
+}
+for (const row of document.querySelectorAll('.shots[data-ref]')) {
+  Promise.all(['phone', 'tablet'].map(d => figure(d, 'new unlock', `shots/${d}-${row.dataset.ref}.png`, `${d}: Saturn just unlocked`))).then(f => row.append(...f));
+}
+</script>

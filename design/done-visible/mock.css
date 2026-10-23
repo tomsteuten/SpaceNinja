@@ -1,0 +1,78 @@
+/* Design mock for "make done visible" (fix 5). Injected over the real build by
+   e2e/done-visible-capture.pw.ts; uses the storybook.css variables. Not shipped. */
+
+/* --- A. The journal after a finished visit: this trip first --------------------------- */
+
+.journal-panel.is-trip .journal-page-caption,
+.journal-panel.is-trip .journal-visit-hint,
+.journal-panel.is-trip .sticker-grid { display:none; }
+.journal-panel.is-trip { gap:16px; }
+
+.trip { position:relative; flex:none; padding:14px 10px 16px; background:#fff8e6; border:var(--line); border-radius:10px; box-shadow:var(--lift); }
+.trip__head { display:flex; align-items:center; gap:10px; margin:0 0 12px 66px; font:400 26px/1 var(--hand); color:var(--ink-line); }
+.trip__head .world-orb { width:30px; height:30px; border:2px solid var(--ink-line); }
+/* The "3 found!" crayon sticker: a sun starburst slapped on the corner of the page. */
+.trip__badge {
+  position:absolute; left:-14px; top:-20px; width:84px; height:84px; display:grid; place-items:center; transform:rotate(-12deg);
+  filter:drop-shadow(3px 3px 0 var(--ink-line));
+}
+.trip__badge::before {
+  content:''; position:absolute; inset:0; background:var(--crayon-sun);
+  clip-path:polygon(50% 0,59% 18%,79% 9%,78% 30%,98% 33%,85% 50%,98% 67%,78% 70%,79% 91%,59% 82%,50% 100%,41% 82%,21% 91%,22% 70%,2% 67%,15% 50%,2% 33%,22% 30%,21% 9%,41% 18%);
+}
+.trip__badge b,.trip__badge span { position:relative; display:block; text-align:center; color:var(--ink-line); }
+.trip__badge b { font:400 38px/.8 var(--hand); }
+.trip__badge span { font:400 15px/1 var(--hand); margin-top:-14px; }
+.trip__photos { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.trip__photos .sticker { position:relative; height:auto; min-height:0; padding:6px 6px 4px; }
+.trip__photos .sticker .discovery-picture { height:auto; aspect-ratio:1; }
+.trip__photos .sticker > span { font-size:15px; padding:6px 2px 4px; text-align:center; }
+.trip__photos .sticker:nth-child(1) { transform:rotate(-3deg); }
+.trip__photos .sticker:nth-child(2) { transform:rotate(2deg) translateY(4px); }
+.trip__photos .sticker:nth-child(3) { transform:rotate(-1.5deg); }
+/* Each one gets a green tick, the same tick the map card wears for "been there". */
+.trip__photos .sticker::after {
+  content:''; position:absolute; right:-8px; top:-8px; width:26px; height:26px; border:2px solid var(--ink-line); border-radius:50%;
+  background:var(--crayon-grass) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232b2118' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 6.5'/%3E%3C/svg%3E") center/17px no-repeat;
+}
+
+/* "Next time": the places left on this world, small and calm, with a rocket, not empty tiles. */
+.next-time { flex:none; display:flex; align-items:center; gap:12px; padding:10px 12px; border:2px dashed #8a7a66; border-radius:14px; }
+.next-time__label { display:flex; align-items:center; gap:6px; font:400 20px/1 var(--hand); color:#5b4c3e; white-space:nowrap; }
+.next-time__label svg { width:26px; height:26px; color:var(--ink-line); fill:var(--crayon-sky); transform:rotate(35deg); }
+.next-time__slots { display:flex; gap:10px; margin-left:auto; }
+.next-time__slot { position:relative; width:44px; height:44px; display:grid; place-items:center; border-radius:50%; background:var(--paper-deep); border:2px solid #8a7a66; }
+.next-time__slot svg { width:32px; height:32px; color:#b08a3c; }
+
+/* A whole world found: the chip's count becomes a sun star. */
+.collection-progress__world.is-full > span:nth-child(2) { position:relative; font-size:0; width:32px; height:32px; filter:drop-shadow(2px 2px 0 var(--ink-line)); }
+.collection-progress__world.is-full > span:nth-child(2)::before { content:''; position:absolute; inset:0; background:var(--crayon-sun); clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+
+/* --- B. The map once every world is visited ------------------------------------------- */
+
+/* Visited worlds carry their journal track: sun pips found, empty pips still to find.
+   Half the pips empty means "more there"; a brand-new world has no pips and no tick. */
+.destination-choice .pips { display:flex; gap:3px; }
+.destination-choice .pips > i { width:10px; height:10px; border-radius:50%; background:#fff; border:1.5px solid var(--ink-line); }
+.destination-choice .pips > i.is-found { background:var(--crayon-sun); }
+.destination-choice.is-suggested .pips > i:not(.is-found) { background:#fff; }
+/* Every place found: the green tick becomes a sun star. */
+.destination-choice.is-full .destination-choice__done { background:none; border:none; border-radius:0; width:36px; height:36px; left:-12px; top:-12px; filter:drop-shadow(2px 2px 0 var(--ink-line)); }
+.destination-choice.is-full .destination-choice__done::before { content:''; position:absolute; inset:0; background:var(--crayon-sun); clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
+.destination-choice.is-full .destination-choice__done .icon { display:none; }
+.destination-choice.is-full .pips { display:none; }
+.hint .icon-slot svg.mock-target { color:#b08a3c; }
+@media (max-width:520px) {
+  .destination-choice { gap:2px; }
+  .destination-choice .pips { gap:2px; }
+  .destination-choice .pips > i { width:7px; height:7px; }
+  .trip__badge { width:72px; height:72px; left:-12px; top:-18px; }
+  .trip__badge b { font-size:32px; }
+  .trip__head { margin-left:52px; font-size:23px; }
+  .trip__photos { gap:9px; }
+  .trip__photos .sticker > span { font-size:14px; }
+  .next-time { gap:8px; padding:8px 10px; }
+  .next-time__slots { gap:6px; }
+  .next-time__slot { width:36px; height:36px; }
+  .next-time__slot svg { width:26px; height:26px; }
+}
