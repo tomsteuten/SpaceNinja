@@ -63,9 +63,11 @@
 .destination-choice.is-full .pips { display:none; }
 .hint .icon-slot svg.mock-target { color:#b08a3c; }
 @media (max-width:520px) {
+  /* Owner: bigger dots on phone. 11 px reads at arm's length; a slightly smaller orb keeps the 76 px card. */
   .destination-choice { gap:2px; }
-  .destination-choice .pips { gap:2px; }
-  .destination-choice .pips > i { width:7px; height:7px; }
+  .destination-choice .world-orb { width:26px; height:26px; }
+  .destination-choice .pips { gap:3px; }
+  .destination-choice .pips > i { width:11px; height:11px; }
   .trip__badge { width:72px; height:72px; left:-12px; top:-18px; }
   .trip__badge b { font-size:32px; }
   .trip__head { margin-left:52px; font-size:23px; }
