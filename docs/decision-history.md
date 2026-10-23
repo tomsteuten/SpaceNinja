@@ -3,6 +3,13 @@
 This records consequential product and engineering reversals without turning every previous
 solution into a permanent instruction. Current operating guidance lives in `AGENTS.md`.
 
+## 2026-10-23 — One narration voice: ElevenLabs Emma
+
+DECISIONS.md #5 said "Kokoro while building, a paid ElevenLabs pass later", so a child heard two
+voices. All shipped narration is now ElevenLabs Emma, and the owner made that the rule: every
+new cue is recorded in Emma with a plain generator run. Kokoro stays only as a keyless local
+fallback for development.
+
 ## 2026-10-22 — A quieter arrival: the places first, the toy as the reward
 
 The owner's first child playtest: on arrival the child went straight for the gold rings, so

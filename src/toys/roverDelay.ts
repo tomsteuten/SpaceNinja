@@ -2,12 +2,13 @@
  * The maths behind the Mars rover: Mars is so far away that a message from Earth, travelling
  * at the speed of light, takes minutes to arrive. From about 3 minutes when the two planets
  * are closest to about 22 when the Sun is between them. A rover driver cannot steer live;
- * they send a list of moves and wait.
+ * they send their plan and wait.
  *
- * The toy shrinks the wait to a few seconds while a little clock says the real number. A
- * command leaves Earth as a glowing dot, and the rover does nothing until it arrives; moves
- * that arrive while it is busy wait their turn. Time is seconds, and every step is fixed
- * size, so a slow frame changes nothing and a stalled one cannot leap.
+ * The toy has one verb. The child taps a rock; a message leaves Earth and takes a couple of
+ * seconds to reach Mars (a little clock shows the real 12 minutes); then the rover drives
+ * itself to that rock and drills a sample. Taps while it is busy are not queued. Time is
+ * seconds, and every step is fixed size, so a slow frame changes nothing and a stalled one
+ * cannot leap.
  */
 
 /** Speed of light, km/s. */
@@ -26,35 +27,24 @@ export function lightMinutes(km: number): number {
   return lightSeconds(km) / 60;
 }
 
-/** What the little clock says: "really: 12 minutes". */
-export function realDelayLabel(km: number = MARS_EXAMPLE_KM): string {
-  const minutes = Math.max(1, Math.round(lightMinutes(km)));
-  return `really: ${minutes} minute${minutes === 1 ? '' : 's'}`;
+/** Whole minutes the clock shows a message taking: 12 on a typical day. */
+export function delayMinutes(km: number = MARS_EXAMPLE_KM): number {
+  return Math.max(1, Math.round(lightMinutes(km)));
 }
 
-/** The message's trip in play, seconds: long enough to plan ahead, short enough to wait. */
-export const PLAY_DELAY = 3;
-/** How long the rover takes to drive one square, to bump into the crater edge, or to drill. */
-export const MOVE_TIME = 0.7;
-export const BUMP_TIME = 0.45;
+/** The message's trip in play, seconds: long enough to watch, short enough to wait. */
+export const PLAY_DELAY = 2;
+/** Rover speed in squares a second, and the shortest drive, so even a near rock is a trip. */
+export const DRIVE_SPEED = 2.2;
+export const MIN_DRIVE = 0.6;
 export const DRILL_TIME = 1.6;
-/** Messages in flight plus moves waiting at the rover: a long list, but not an endless one. */
-export const MAX_QUEUE = 8;
+/** After the third tube, a pause before the new rocks appear. */
+export const RESTOCK_TIME = 2.2;
+/** How far beside a rock the rover parks, in squares, so its arm reaches it. */
+export const PARK = 0.5;
 const SUBSTEP = 1 / 120;
 /** The longest stretch one call will simulate; a stalled frame resumes rather than leaps. */
 export const MAX_STEP = 0.25;
-
-export type Move = 'up' | 'down' | 'left' | 'right';
-export type Command = Move | 'drill';
-
-const STEP: Record<Move, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-
-export interface Message {
-  readonly id: number;
-  readonly command: Command;
-  /** Seconds since it left Earth. */
-  age: number;
-}
 
 export interface Rock {
   readonly col: number;
@@ -62,148 +52,154 @@ export interface Rock {
   drilled: boolean;
 }
 
-export interface Action {
-  readonly command: Command;
-  /** Where the rover started and where it is going (the same square for a bump or a drill). */
-  readonly from: readonly [number, number];
-  readonly to: readonly [number, number];
-  readonly kind: 'drive' | 'bump' | 'drill';
-  readonly duration: number;
-  elapsed: number;
-}
+export type Phase = 'idle' | 'message' | 'drive' | 'drill' | 'restock';
 
 export interface Drive {
   readonly cols: number;
   readonly rows: number;
   readonly delay: number;
-  col: number;
-  row: number;
-  /** Which way the rover's nose points on screen; up and down keep the last one. */
+  /** Where the rover is, in squares (fractional while driving). */
+  x: number;
+  y: number;
+  /** Which way the rover's nose points on screen. */
   facing: 'left' | 'right';
   rocks: Rock[];
-  /** On their way from Earth, oldest first. */
-  messages: Message[];
-  /** Arrived while the rover was busy, in the order they arrived. */
-  waiting: Command[];
-  action: Action | null;
+  round: number;
+  phase: Phase;
+  /** Seconds into the current phase, and how long it lasts. */
+  elapsed: number;
+  duration: number;
+  /** The rock the message is about; null when idle. */
+  target: Rock | null;
+  /** Where the drive started and where it parks. */
+  from: readonly [number, number];
+  to: readonly [number, number];
   samples: number;
-  nextId: number;
 }
 
 export interface DriveEvents {
-  arrived: Message[];
-  bumped: boolean;
-  /** A drill finished on a rock not drilled before: one more sample tube. */
+  /** The message reached Mars this step. */
+  arrived: boolean;
+  /** A drill finished: one more sample tube. */
   sampled: boolean;
-  /** A drill finished on plain ground. */
-  dusty: boolean;
+  /** New rocks appeared. */
+  restocked: boolean;
 }
 
-/** Rocks to drill: a few squares away from the start, rearranged after every three tubes. */
+export type TapResult = 'sent' | 'busy' | 'drilled';
+
+/** Rocks to drill, rearranged after every three tubes. */
 export const ROCK_SETS: readonly (readonly [number, number])[][] = [
   [[3, 0], [1, 1], [5, 2]],
   [[4, 1], [0, 0], [2, 3]],
   [[5, 0], [2, 1], [4, 3]],
+  [[1, 3], [3, 2], [0, 1]],
 ];
 
 export function createDrive(cols = 6, rows = 4, delay = PLAY_DELAY): Drive {
   return {
-    cols, rows, delay, col: 0, row: rows - 1, facing: 'right',
-    rocks: rocksFor(0, cols, rows), messages: [], waiting: [], action: null, samples: 0, nextId: 1,
+    cols, rows, delay, x: 0, y: rows - 1, facing: 'right',
+    rocks: rocksFor(0, cols, rows), round: 0,
+    phase: 'idle', elapsed: 0, duration: 0, target: null, from: [0, rows - 1], to: [0, rows - 1], samples: 0,
   };
 }
 
-/** The rock set for this round, kept inside the board and off the square the rover is on. */
+/**
+ * The rock set for this round, kept on the board. With `avoid` (where the rover is), the
+ * first set from this round on with no rock under or right beside the rover.
+ */
 export function rocksFor(round: number, cols: number, rows: number, avoid?: readonly [number, number]): Rock[] {
-  const set = ROCK_SETS[((round % ROCK_SETS.length) + ROCK_SETS.length) % ROCK_SETS.length]!;
-  const spots = set.map(([c, r]) => [Math.min(cols - 1, c), Math.min(rows - 1, r)] as const);
-  return spots
-    .filter(([c, r], i) => !(avoid && avoid[0] === c && avoid[1] === r) &&
-      spots.findIndex(([c2, r2]) => c2 === c && r2 === r) === i)
-    .map(([col, row]) => ({ col, row, drilled: false }));
+  const n = ROCK_SETS.length;
+  const place = (set: readonly (readonly [number, number])[]) =>
+    set.map(([c, r]) => ({ col: Math.min(cols - 1, c), row: Math.min(rows - 1, r), drilled: false }));
+  const clear = (rocks: Rock[]) =>
+    !avoid || rocks.every(r => Math.hypot(r.col - avoid[0], r.row - avoid[1]) >= 1);
+  for (let k = 0; k < n; k++) {
+    const rocks = place(ROCK_SETS[(((round + k) % n) + n) % n]!);
+    if (clear(rocks)) return rocks;
+  }
+  return place(ROCK_SETS[((round % n) + n) % n]!).filter(r => clear([r]));
 }
 
-export function rockAt(d: Drive, col: number, row: number): Rock | undefined {
-  return d.rocks.find(r => r.col === col && r.row === row);
+/** Busy: a message on its way, the rover driving or drilling, or new rocks coming. */
+export function busy(d: Drive): boolean {
+  return d.phase !== 'idle';
 }
 
-/** Everything sent and not yet done: in flight, waiting, and the move under way. */
-export function queued(d: Drive): number {
-  return d.messages.length + d.waiting.length + (d.action ? 1 : 0);
+/** The child taps a rock. Sent only when the rover is free; never queued. */
+export function tap(d: Drive, rock: Rock): TapResult {
+  if (busy(d)) return 'busy';
+  if (rock.drilled || !d.rocks.includes(rock)) return 'drilled';
+  d.target = rock;
+  d.phase = 'message';
+  d.elapsed = 0;
+  d.duration = d.delay;
+  return 'sent';
 }
 
-/** Send a command from Earth. Null when the list is full. */
-export function send(d: Drive, command: Command): Message | null {
-  if (queued(d) >= MAX_QUEUE) return null;
-  const message: Message = { id: d.nextId++, command, age: 0 };
-  d.messages.push(message);
-  return message;
+/** How far along its trip the message is, 0 at Earth to 1 at the rover; null when none. */
+export function messageProgress(d: Drive): number | null {
+  if (d.phase !== 'message') return null;
+  return Math.min(1, Math.max(0, d.elapsed / d.duration));
 }
 
-/** How far along its trip a message is, 0 at Earth to 1 at the rover. */
-export function progress(d: Drive, m: Message): number {
-  return Math.min(1, Math.max(0, m.age / d.delay));
+/** Where the rover parks to drill a rock: beside it, on the side it comes from. */
+export function parkingSpot(d: Drive, rock: Rock): { x: number; y: number; facing: 'left' | 'right' } {
+  const dx = rock.col - d.x;
+  const facing = Math.abs(dx) < 1e-6 ? d.facing : dx > 0 ? 'right' : 'left';
+  return { x: rock.col - (facing === 'right' ? PARK : -PARK), y: rock.row, facing };
 }
 
-function begin(d: Drive, command: Command): Action {
-  const from = [d.col, d.row] as const;
-  if (command === 'drill') return { command, from, to: from, kind: 'drill', duration: DRILL_TIME, elapsed: 0 };
-  if (command === 'left' || command === 'right') d.facing = command;
-  const [dc, dr] = STEP[command];
-  const to = [d.col + dc, d.row + dr] as const;
-  const inside = to[0] >= 0 && to[0] < d.cols && to[1] >= 0 && to[1] < d.rows;
-  if (!inside) return { command, from, to: from, kind: 'bump', duration: BUMP_TIME, elapsed: 0 };
-  return { command, from, to, kind: 'drive', duration: MOVE_TIME, elapsed: 0 };
+function enter(d: Drive, phase: Phase, duration: number) {
+  d.phase = phase;
+  d.elapsed = 0;
+  d.duration = duration;
 }
 
-function finish(d: Drive, a: Action, events: DriveEvents) {
-  d.col = a.to[0];
-  d.row = a.to[1];
-  if (a.kind === 'bump') events.bumped = true;
-  if (a.kind === 'drill') {
-    const rock = rockAt(d, d.col, d.row);
-    if (rock && !rock.drilled) {
-      rock.drilled = true;
-      d.samples++;
-      events.sampled = true;
-    } else {
-      events.dusty = true;
-    }
+function advance(d: Drive, events: DriveEvents) {
+  if (d.phase === 'message') {
+    events.arrived = true;
+    const spot = parkingSpot(d, d.target!);
+    d.facing = spot.facing;
+    d.from = [d.x, d.y];
+    d.to = [spot.x, spot.y];
+    enter(d, 'drive', Math.max(MIN_DRIVE, Math.hypot(spot.x - d.x, spot.y - d.y) / DRIVE_SPEED));
+  } else if (d.phase === 'drive') {
+    [d.x, d.y] = d.to;
+    enter(d, 'drill', DRILL_TIME);
+  } else if (d.phase === 'drill') {
+    d.target!.drilled = true;
+    d.target = null;
+    d.samples++;
+    events.sampled = true;
+    if (allDrilled(d)) enter(d, 'restock', RESTOCK_TIME);
+    else enter(d, 'idle', 0);
+  } else if (d.phase === 'restock') {
+    d.round++;
+    d.rocks = rocksFor(d.round, d.cols, d.rows, [d.x, d.y]);
+    events.restocked = true;
+    enter(d, 'idle', 0);
   }
 }
 
 /** Advance `dt` seconds in small fixed steps. */
 export function stepDrive(d: Drive, dt: number): DriveEvents {
-  const events: DriveEvents = { arrived: [], bumped: false, sampled: false, dusty: false };
+  const events: DriveEvents = { arrived: false, sampled: false, restocked: false };
   let left = Number.isFinite(dt) ? Math.min(Math.max(0, dt), MAX_STEP) : 0;
   while (left > 1e-9) {
     const h = Math.min(SUBSTEP, left);
     left -= h;
-    for (const m of d.messages) m.age += h;
-    while (d.messages.length && d.messages[0]!.age >= d.delay) {
-      const m = d.messages.shift()!;
-      events.arrived.push(m);
-      d.waiting.push(m.command);
+    if (d.phase === 'idle') continue;
+    d.elapsed += h;
+    if (d.phase === 'drive') {
+      const t = Math.min(1, d.elapsed / d.duration);
+      const k = t * t * (3 - 2 * t);
+      d.x = d.from[0] + (d.to[0] - d.from[0]) * k;
+      d.y = d.from[1] + (d.to[1] - d.from[1]) * k;
     }
-    if (d.action) {
-      d.action.elapsed += h;
-      if (d.action.elapsed >= d.action.duration) {
-        finish(d, d.action, events);
-        d.action = null;
-      }
-    }
-    if (!d.action && d.waiting.length) d.action = begin(d, d.waiting.shift()!);
+    if (d.elapsed >= d.duration) advance(d, events);
   }
   return events;
-}
-
-/** Where the rover is drawn, in squares, mid-move included. */
-export function roverPosition(d: Drive): { col: number; row: number } {
-  const a = d.action;
-  if (!a || a.kind !== 'drive') return { col: d.col, row: d.row };
-  const t = Math.min(1, a.elapsed / a.duration);
-  const k = t * t * (3 - 2 * t);
-  return { col: a.from[0] + (a.to[0] - a.from[0]) * k, row: a.from[1] + (a.to[1] - a.from[1]) * k };
 }
 
 /** Every rock drilled: time for a new set. */

@@ -51,13 +51,14 @@ half, crescent). Effort: M.
 
 ### Mars: drive the rover — *Mars is so far away that messages take minutes* (built)
 `src/toys/marsRover.ts`, opened by Mars's Rover button (lime crayon). Earth and a little clock
-on one side, Jezero crater (with its old river fan) on the other. Each arrow or Drill press
-leaves Earth as a glowing dot; the rover moves one square only when it arrives, and moves that
-arrive while it is busy wait their turn (`roverDelay.ts`: light time 3.0 to 22.3 minutes,
-shrunk to 3 s; the clock says "really: 12 minutes", a typical day, not today's). Drill on a
-rock for a sample tube; three tubes bring new rocks. Places first, then the rover is the next
-step (`toy-mars`, "Now you can drive the rover on Mars!"). Next: sounds, and maybe NASA's free
-3D model of Perseverance. Effort: M.
+on one side, Jezero crater (with its old river fan) on the other. One verb, after playtest 2:
+the child taps a glowing, wobbling rock; a dot flies from Earth for 2 s while the clock's
+minute hand sweeps the real 12 minutes (`roverDelay.ts`: light time 3.0 to 22.3 minutes, a
+typical day, not today's); only then does the rover drive itself there and drill a sample
+tube. Taps while busy get a shimmer and are not queued; three tubes bring new rocks. Places
+first, then the rover is the next step (`toy-mars`, "Now you can drive the rover on Mars!").
+Next: sounds, maybe a narrated line inside ("Tap a rock. Your message takes a long time to
+reach Mars!"), and maybe NASA's free 3D model of Perseverance. Effort: M.
 
 ### Saturn: bath time — *Saturn is so light for its size it would float* (built)
 `src/toys/saturnBath.ts`, opened by Saturn's Bath button (bubble crayon). A giant claw-foot
@@ -149,7 +150,7 @@ the next. Then visit Ceres and its bright salty spots. Effort: S.
 - **One shared toy shell.** Two-panel comparison, one big action button, pictured back
   button, one caption, one narrated cue. The Moon jump already has this shape; pull it out
   into a common helper on the second toy, not before.
-- **Narration.** One Kokoro cue per toy while building, ElevenLabs later.
+- **Narration.** One ElevenLabs Emma cue per toy (DECISIONS.md #5).
 
 ## Suggested order
 

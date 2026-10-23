@@ -13,5 +13,6 @@ reopen these on their own.
    provenance. Nothing documentary is invented.
 4. **Gas and ice giants have no invented ground.** Their places and toys use clouds, rings,
    orbits and moons; no landing.
-5. **Kokoro narration while building.** New cues use local, free Kokoro. A paid ElevenLabs pass
-   for all new cues is a separate, owner-approved step later.
+5. **One voice: ElevenLabs Emma.** Every narrated cue, new ones included, uses the ElevenLabs
+   Emma voice, recorded with a plain generator run (`src/audio/recordings/README.md`;
+   `npm run narration:status` checks it). Kokoro is only a keyless local fallback, not shipped.

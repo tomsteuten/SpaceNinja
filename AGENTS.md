@@ -108,9 +108,9 @@ Each destination gets one hands-on toy that teaches one big idea with real numbe
 - The overlay is detached from the DOM while closed, not merely hidden: tests use
   `locator('canvas')` and expect exactly one canvas.
 - Leave the 3D scene alone; a toy is an overlay with a pictured way back.
-- One short caption at most, plus one narrated line (Kokoro while building). Kokoro is a
-  different voice from the shipped ElevenLabs one: `npm run narration:status` shows the split,
-  and `src/audio/recordings/README.md` describes the one-command ElevenLabs pass.
+- One short caption at most, plus one narrated line in the shipped ElevenLabs Emma voice
+  (DECISIONS.md #5): record it with a plain generator run as `src/audio/recordings/README.md`
+  describes, and check `npm run narration:status` shows no Kokoro lines.
 - The toy button carries class `toy-btn`: it is held back during the hunt and pops in as the
   next step after the third find (`setVisitStage` in `src/ui/ui.ts`, `e2e/quiet-arrival.pw.ts`).
   A new visit button changes the row's cells; narrow phones must still fit it with wrapping
@@ -132,7 +132,7 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 | Jump, Find places, Start playing, Hooray!, the hunt arrow, the map's next-world arrow and unlock sparkle | sun |
 | Turn Earth (in the bedtime spin) | teal |
 | Bath (Saturn's toy) and Plop! inside it | bubble |
-| Rover (Mars's toy), its arrow keys and Drill | lime |
+| Rover (Mars's toy) | lime |
 | Journal, All places, the open journal page | tomato |
 
 Panels (Words card, journal, postcard, finale, grown-ups) are paper with an ink outline and a
