@@ -1,5 +1,14 @@
 # Current implementation and handover
 
+## Space map shows what's next — 23 October 2026
+
+Playtest 2: back on the map the child did not know what to do; "X is ready" was only said.
+Now visited worlds wear a grass tick; the suggested world has a bouncing sun arrow on its card,
+a pulsing ring in the scene (thin enough for Saturn) and the parked ship's nose. A world just
+unlocked drops its padlock with a sparkle (`is-new`), then the arrow lands. A locked tap moves
+arrow and ring to the nearest pressable world that opens it ("Visit the Moon first"). Reduced
+motion keeps them still. `e2e/map-next.pw.ts`; owner approved from `design/map-next/`.
+
 ## Mars rover, one verb — 23 October 2026
 
 Playtest 2 found the rover's arrows, delayed queue and exact parking confusing. Now the child
