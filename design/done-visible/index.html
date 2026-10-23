@@ -43,7 +43,7 @@ code { font-size: .92em; }
   <header>
     <h1>Done, made visible</h1>
     <p>Fix 5 from the state-change audit. "Done" comes at three sizes: a visit (three places), a world (all six) and the whole game. None of them shows well today. A finished visit opens a journal that is half dashed "Still to find" tiles, and once every world is visited the map sends the child back to a finished world with the same gold card a brand-new world gets.</p>
-    <p>These are design mocks: the real build, captured at each state, then the same screen with a mock stylesheet and script laid over it (<code>design/done-visible/mock.css</code>, <code>mock.js</code>). Nothing in the game has changed yet.</p>
+    <p>Built. "Before" is main before the change; "after" is branch <code>claude/done-visible-550f08</code>, both captured from the real game by <code>e2e/done-visible-capture.pw.ts</code>. The design was approved from a mock laid over the build; the after shots now come from the implementation itself.</p>
     <div class="legend">
       <span><span class="chip sun">3 found!</span> <b>trip sticker</b>: this visit is finished</span>
       <span><span class="chip grass">✓</span> <b>tick</b>: found / been there (the map's tick)</span>
@@ -73,10 +73,11 @@ code { font-size: .92em; }
   </section>
 
   <section class="state">
-    <h2>Notes for building it</h2>
+    <h2>Notes</h2>
     <ul>
-      <li>The trip layout appears only when the journal opens on a visit whose three places are all found. Opened any other time (from the map, mid-hunt) the page keeps found photos first and the "Next time" strip in place of dashed tiles, without the sticker.</li>
-      <li>"This trip" is the visit's own three finds (the mission already knows them), not the last three in storage.</li>
+      <li>The trip layout appears only when the journal opens on the page of a visit whose places are all found. Any other page (another world, or opened from the map) lists the found photos, then the "Next time" strip in place of dashed tiles, without the sticker.</li>
+      <li>"This trip" is the visit's own finds, in the order the child found them, not the last three in storage.</li>
+      <li>Short landscape: the dots are 9 px with a smaller world picture so the 67 px card still holds them; a Playwright check keeps them inside the card at every viewport.</li>
       <li>A world with all six found shows its six photos and no strip; the sun star replaces the count on its chip and the tick on its map card.</li>
       <li>Crayons: sun for the trip sticker, the star and found pips; grass for the photo ticks (the same "done" tick as the map). Both added to the AGENTS.md table on implementation.</li>
       <li>Owner review: dots bigger on phone. They are now 11 px (10 px on tablet) with a 26 px world picture, so the phone card keeps its 76 px height.</li>
