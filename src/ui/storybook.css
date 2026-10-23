@@ -106,6 +106,24 @@
   background:var(--crayon-grass); border:2px solid var(--ink-line); border-radius:50%; transform:rotate(-8deg);
 }
 .destination-choice__done .icon { width:17px; height:17px; color:var(--ink-line); stroke-width:3.4; }
+/* Visited with places left: the journal's dots, sun for found, white for still to find (state audit 22). */
+.destination-choice__pips { display:flex; gap:3px; }
+.destination-choice__pips > span { width:10px; height:10px; border-radius:50%; background:#fff; border:1.5px solid var(--ink-line); }
+.destination-choice__pips > .is-found { background:var(--crayon-sun); }
+/* Every place found: the tick becomes a sun star (drawn by the clipped ::before with the journal chip's). */
+.destination-choice.is-full .destination-choice__done { background:none; border:none; border-radius:0; width:36px; height:36px; left:-12px; top:-12px; filter:drop-shadow(2px 2px 0 var(--ink-line)); }
+.destination-choice.is-full .destination-choice__done .icon { display:none; }
+/* Owner review: dots a five-year-old can see on a phone; a smaller world keeps the 76 px card. */
+@media(max-width:599px) {
+  .destination-choice:has(.destination-choice__pips) { gap:2px; }
+  .destination-choice:has(.destination-choice__pips) .world-orb { width:26px; height:26px; }
+  .destination-choice__pips > span { width:11px; height:11px; }
+}
+@media(min-width:600px) and (max-height:480px) {
+  .destination-choice:has(.destination-choice__pips) { gap:1px; }
+  .destination-choice:has(.destination-choice__pips) .world-orb { width:22px; height:22px; }
+  .destination-choice__pips > span { width:9px; height:9px; }
+}
 .destination-choice__pointer {
   position:absolute; left:50%; bottom:calc(100% - 12px); z-index:2; width:34px; height:38px; margin-left:-17px;
   pointer-events:none; animation:pointer-bounce .9s ease-in-out infinite;
@@ -264,8 +282,66 @@
 /* Found places are snapshots; places still to find are dashed outlines waiting for one. */
 .sticker { background:#fff; color:var(--ink-line); border:2px solid var(--ink-line); border-radius:4px; padding:6px 6px 0; box-shadow:3px 3px 0 var(--ink-line); font:400 16px/1.1 var(--hand); }
 .sticker .discovery-picture { border:1px solid var(--ink-line); }
-.sticker--empty { background:transparent; border:2px dashed #8a7a66; box-shadow:none; color:#6b5d4f; padding:0; }
-.sticker--empty .icon { color:#b08a3c; }
+.sticker-grid:empty { display:none; }
+
+/*
+ * Done, shown (state audit 11). A finished visit's page leads with the trip: a sun "3 found!"
+ * sticker over its three snapshots, each wearing the map's grass tick. Places left are a calm
+ * "Next time" strip of gold-place rings; the world chips follow underneath.
+ */
+.journal-trip:empty,.journal-next:empty,.journal-panel.is-reading .journal-trip,.journal-panel.is-reading .journal-next { display:none; }
+.journal-panel.is-trip .journal-page-caption,.journal-panel.is-trip .journal-visit-hint { display:none; }
+.journal-panel.is-trip .collection-progress { order:1; }
+.journal-panel.is-trip > .panel-return { order:2; }
+.journal-trip { position:relative; flex:none; margin:10px 0 0 6px; padding:14px 10px 16px; background:#fff8e6; border:var(--line); border-radius:10px; box-shadow:var(--lift); }
+.journal-trip__head { display:flex; align-items:center; gap:10px; margin:0 0 12px 66px; font:400 26px/1 var(--hand); color:var(--ink-line); }
+.journal-trip__head .world-orb { width:30px; height:30px; border:2px solid var(--ink-line); }
+.journal-trip__badge {
+  position:absolute; left:-14px; top:-20px; width:84px; height:84px; display:grid; place-items:center; transform:rotate(-12deg);
+  filter:drop-shadow(3px 3px 0 var(--ink-line)); pointer-events:none;
+}
+.journal-trip__badge::before {
+  content:''; position:absolute; inset:0; background:var(--crayon-sun);
+  clip-path:polygon(50% 0,59% 18%,79% 9%,78% 30%,98% 33%,85% 50%,98% 67%,78% 70%,79% 91%,59% 82%,50% 100%,41% 82%,21% 91%,22% 70%,2% 67%,15% 50%,2% 33%,22% 30%,21% 9%,41% 18%);
+}
+.journal-trip__badge b,.journal-trip__badge span { position:relative; display:block; text-align:center; color:var(--ink-line); }
+.journal-trip__badge b { font:400 38px/.8 var(--hand); }
+.journal-trip__badge span { font:400 15px/1 var(--hand); margin-top:-14px; }
+.journal-trip__photos { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.journal-trip__photos .sticker { position:relative; overflow:visible; min-height:0; padding:6px 6px 4px; }
+.journal-trip__photos .sticker .discovery-picture { height:auto; aspect-ratio:1; }
+.journal-trip__photos .sticker > span { font-size:15px; padding:6px 2px 4px; text-align:center; }
+.journal-trip__photos .sticker:nth-child(1) { transform:rotate(-3deg); }
+.journal-trip__photos .sticker:nth-child(2) { transform:rotate(2deg) translateY(4px); }
+.journal-trip__photos .sticker:nth-child(3) { transform:rotate(-1.5deg); }
+.journal-trip__photos .sticker > .journal-trip__tick {
+  position:absolute; right:-8px; top:-8px; width:26px; height:26px; padding:0; display:grid; place-items:center;
+  background:var(--crayon-grass); border:2px solid var(--ink-line); border-radius:50%;
+}
+.journal-trip__tick .icon { width:17px; height:17px; color:var(--ink-line); stroke-width:3.4; }
+.journal-next { flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:10px 12px; border:2px dashed #8a7a66; border-radius:14px; }
+.journal-next__label { display:flex; align-items:center; gap:6px; font:400 20px/1 var(--hand); color:#5b4c3e; white-space:nowrap; }
+.journal-next__label .icon { width:26px; height:26px; color:var(--ink-line); fill:var(--crayon-sky); transform:rotate(35deg); }
+.journal-next__slots { display:flex; flex-wrap:wrap; gap:10px; margin-left:auto; }
+.journal-next__slots > .icon-slot { width:44px; height:44px; display:grid; place-items:center; border-radius:50%; background:var(--paper-deep); border:2px solid #8a7a66; }
+.journal-next__slots .icon { width:32px; height:32px; color:#b08a3c; }
+/* A whole world found: the chip's count becomes a sun star. */
+.collection-progress__world.is-full > span:nth-child(2) { position:relative; font-size:0; width:32px; height:32px; filter:drop-shadow(2px 2px 0 var(--ink-line)); }
+.collection-progress__world.is-full > span:nth-child(2)::before,.destination-choice.is-full .destination-choice__done::before {
+  content:''; position:absolute; inset:0; background:var(--crayon-sun);
+  clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+@media(max-width:599px) {
+  .journal-trip__badge { width:72px; height:72px; left:-12px; top:-18px; }
+  .journal-trip__badge b { font-size:32px; }
+  .journal-trip__head { margin-left:52px; font-size:23px; }
+  .journal-trip__photos { gap:9px; }
+  .journal-trip__photos .sticker > span { font-size:14px; }
+  .journal-next { gap:8px; padding:8px 10px; }
+  .journal-next__slots { gap:6px; }
+  .journal-next__slots > .icon-slot { width:36px; height:36px; }
+  .journal-next__slots .icon { width:26px; height:26px; }
+}
 
 /* --- Hunt arrow: a sun-crayon button pointing at the last gold place ---------------- */
 

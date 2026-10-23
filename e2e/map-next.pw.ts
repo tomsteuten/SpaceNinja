@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
+import { DISCOVERIES } from '../src/config';
 
 // Playtest 2: back on the Space map after a world, the child did not know what to do next.
 // The map now shows it: a tick on worlds already visited, one arrow on the card to press
@@ -60,3 +61,46 @@ test('the map shows what is done and what to do next', async ({ page }) => {
     expect(box.height).toBeGreaterThanOrEqual(54);
   }
 });
+
+// State audit 22: with every world visited the arrow sends the child back to one, which must
+// not look like a brand-new world. Visited cards carry the journal's dots; a whole world found
+// wears a sun star instead of the tick; the pill shows the gold place, not the journal.
+test('once every world is visited, "more to find" is a picture', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('spaceninja.sound.v1', 'off');
+    localStorage.setItem('spaceninja.grownups.v1', 'yes');
+  });
+  await page.addInitScript((discoveries) => localStorage.setItem('spaceninja.progress.v1', JSON.stringify({
+    visited: ['earth', 'moon', 'mars', 'saturn'], stickers: [], discoveries,
+  })), allButThree());
+  await page.goto('/?fast');
+
+  await expect(card(page, 'earth')).toHaveClass(/is-full/);
+  await expect(card(page, 'earth').locator('.destination-choice__pips')).toHaveCount(0);
+  for (const id of ['moon', 'mars', 'saturn']) {
+    await expect(card(page, id)).not.toHaveClass(/is-full/);
+    await expect(card(page, id).locator('.destination-choice__pips > span')).toHaveCount(6);
+    await expect(card(page, id).locator('.destination-choice__pips > .is-found')).toHaveCount(3);
+  }
+  await expect(page.locator('.destination-choice__pointer')).toHaveCount(1);
+  await expect(page.locator('.destination-choice.is-new')).toHaveCount(0);
+  await expect(page.locator('.hint')).toContainText('More to find');
+  await expect(page.locator('.hint .icon circle')).toHaveCount(2);
+  // The dots stay inside their card at every viewport.
+  for (const button of await page.locator('.destination-choice:has(.destination-choice__pips)').all()) {
+    const box = (await button.boundingBox())!;
+    const pips = (await button.locator('.destination-choice__pips').boundingBox())!;
+    expect(pips.y + pips.height).toBeLessThanOrEqual(box.y + box.height - 2);
+    expect(pips.x).toBeGreaterThanOrEqual(box.x);
+    expect(pips.x + pips.width).toBeLessThanOrEqual(box.x + box.width);
+  }
+});
+
+/** Every Earth place and the first three of each other world, by id from the build's own config. */
+function allButThree() {
+  const all = Object.keys(DISCOVERIES);
+  return ['earth', 'moon', 'mars', 'saturn'].flatMap(world => {
+    const own = all.filter(id => id.startsWith(world + '-'));
+    return world === 'earth' ? own : own.slice(0, 3);
+  });
+}

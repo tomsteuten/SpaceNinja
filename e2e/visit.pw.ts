@@ -137,7 +137,7 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await page.getByRole('button',{name:'Back to the Moon',exact:true}).click();
   await page.getByRole('button',{name:'Open your discovery journal'}).click();
   await expect(page.locator('.collection-progress')).toContainText('3/6');
-  const tiles=page.locator('.sticker-grid button');
+  const tiles=page.locator('.journal-panel button.sticker');
   let photoFound=false;
   for(let i=0; i<await tiles.count(); i++) {
     await tiles.nth(i).click();

@@ -1,7 +1,7 @@
 import { createSessionLifecycle } from './session/lifecycle';
 import { fail } from './session/failure';
 import { registerOffline } from './session/offline';
-import { nextWorld } from './state/replay';
+import { nextWorld, worldCollections } from './state/replay';
 /**
  * Entry point. Builds the scene, wires input to the flight sequence, the missions and the
  * UI. Session lifecycle owns browser transitions; this route supplies reset and disposal.
@@ -139,7 +139,9 @@ async function main() {
    */
   function mapChoices() {
     const visible = new Set(visibleDestinationIds());
-    const visited = loadProgress().visited;
+    const progress = loadProgress();
+    const visited = progress.visited;
+    const pages = new Map(worldCollections(progress.discoveries).map(page => [page.id, page]));
     return BODY_IDS.map((id) => ({
       id,
       // The full scene name is "The Moon"; a four-choice phone bar has room for the
@@ -150,6 +152,8 @@ async function main() {
       unlockedBy: gateLabel(id),
       // Visited is the same fact that unlocks the next world, so tick and padlock agree.
       done: visited.includes(id),
+      found: pages.get(id)?.found,
+      total: pages.get(id)?.total,
     }));
   }
 
@@ -937,7 +941,8 @@ async function main() {
     const label = world.bodies[next].label.replace(/^The /, '');
     const revisit = loadProgress().visited.includes(next);
     ui.setHint(revisit ? 'More to find · Tap ' + label : 'Tap ' + label,
-      revisit ? 'journal' : 'rocket');
+      // Going back for more: the gold place the child hunts there, not the journal.
+      revisit ? 'target' : 'rocket');
   }
 
   // Whatever was chosen last time, applied before anything can make a noise.

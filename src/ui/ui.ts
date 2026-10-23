@@ -47,6 +47,12 @@ export interface DestinationChoice {
   unlockedBy?: string;
   /** Been there: the card wears a tick, so a pre-reader can see what is finished. */
   done?: boolean;
+  /**
+   * Places found and carried, for a world with places. A visited card shows them as the
+   * journal's dots, so "more to find" is a picture; all found swaps the tick for a sun star.
+   */
+  found?: number;
+  total?: number;
 }
 
 export interface GameUI {
@@ -368,6 +374,18 @@ export function createUI(options: UIOptions): GameUI {
         tick.classList.add('destination-choice__done');
         button.append(tick);
         button.classList.add('is-done');
+        // Once every world is visited the arrow sends the child back to one, so a finished
+        // visit must not look like a brand-new world (state audit 22): the card carries the
+        // journal's dots, sun for found and white for still to find.
+        const total = choice.total ?? 0;
+        const found = Math.min(choice.found ?? 0, total);
+        button.classList.toggle('is-full', total > 0 && found === total);
+        if (total > 0 && found < total) {
+          const pips = el('span', 'destination-choice__pips');
+          pips.setAttribute('aria-hidden', 'true');
+          for (let i = 0; i < total; i++) pips.append(el('span', i < found ? 'is-found' : ''));
+          button.querySelector('.destination-choice__label')!.after(pips);
+        }
       }
       button.dataset.destination = choice.id;
       button.addEventListener('click', () => onChooseDestination(choice.id));
@@ -395,6 +413,8 @@ export function createUI(options: UIOptions): GameUI {
 
   let slots: HTMLElement[] = [];
   let visitFound = 0;
+  /** This visit's places, in the order found: the journal leads with them once the visit is done. */
+  let visitFinds: string[] = [];
 
   function buildSlots(total: number) {
     visitFound = 0;
@@ -822,7 +842,7 @@ export function createUI(options: UIOptions): GameUI {
   journalBack.addEventListener('click', () => {
     const id = detailFor;
     clearJournalDetail();
-    stickerGrid.querySelector<HTMLButtonElement>(`[data-discovery="${id}"]`)?.focus();
+    journalPanel.querySelector<HTMLButtonElement>(`.sticker[data-discovery="${id}"]`)?.focus();
   });
   const stickerGrid = el('div', 'sticker-grid');
   // Scrollable containers otherwise become an extra Tab stop in Chromium even when empty.
@@ -877,8 +897,17 @@ export function createUI(options: UIOptions): GameUI {
   const journalHeader = el('div', 'dialog-head');
   journalHeader.append(journalTitle, journalClose);
   closeJournal.type = 'button';
-  journalPanel.append(journalHeader, collectionProgress, journalPageCaption, journalVisitHint, stickerGrid,
-    journalBack, journalDetailTitle, journalDetail, journalActions, closeJournal);
+  /*
+   * Playtest 2 / state audit 11: a finished visit opened a page that was half dashed "Still
+   * to find" tiles, which read as failure. Now the trip's own three snapshots lead the page
+   * under a "3 found!" sticker, and the places left are a small calm "Next time" strip of
+   * gold-place rings, the same ring the child hunts on the world.
+   */
+  const journalTrip = el('section', 'journal-trip');
+  journalTrip.setAttribute('aria-label', 'Found on this trip');
+  const journalNext = el('div', 'journal-next');
+  journalPanel.append(journalHeader, journalTrip, collectionProgress, journalPageCaption, journalVisitHint, stickerGrid,
+    journalNext, journalBack, journalDetailTitle, journalDetail, journalActions, closeJournal);
   const journalFocus = createDialogFocus(journalPanel, () => closeJournal, () => setJournalOpen(false));
 
   const journalShade = el('div', 'panel-shade journal-shade is-hidden');
@@ -905,6 +934,8 @@ export function createUI(options: UIOptions): GameUI {
       label.prepend(worldPicture(world.id));
       row.append(label,
         el('span', '', `${world.found}/${world.total}`));
+      // Every place on the world found: the count becomes a sun star (storybook.css).
+      row.classList.toggle('is-full', world.found === world.total);
       const track = el('span', 'collection-progress__track');
       track.setAttribute('aria-hidden', 'true');
       for (let i = 0; i < world.total; i++) track.append(el('span', i < world.found ? 'is-found' : ''));
@@ -922,25 +953,60 @@ export function createUI(options: UIOptions): GameUI {
     journalPageCaption.textContent = `${worldLabel} · ${count} of ${places.length} places found`;
     journalVisitHint.textContent = count < places.length
       ? `Each trip has three places. Visit ${worldLabel} again to find more.` : '';
-    for (const discovery of places) {
-      if (!found.includes(discovery.id)) {
-        const empty = el('div', 'sticker sticker--empty');
-        empty.append(createIcon('target'), el('span', '', 'Still to find'));
-        stickerGrid.append(empty);
-        continue;
+    // The trip leads only on the page of the visit just finished; any other page lists what
+    // is found, then the places still waiting.
+    const trip = root.classList.contains('is-complete') && !root.classList.contains('is-home')
+      && journalWorldId === visitWorldId
+      ? places.filter(d => visitFinds.includes(d.id) && found.includes(d.id))
+        .sort((a, b) => visitFinds.indexOf(a.id) - visitFinds.indexOf(b.id))
+      : [];
+    journalPanel.classList.toggle('is-trip', trip.length > 0);
+    journalTrip.replaceChildren();
+    if (trip.length) {
+      const badge = el('span', 'journal-trip__badge');
+      badge.setAttribute('aria-hidden', 'true');
+      badge.append(el('b', undefined, String(trip.length)), el('span', undefined, 'found!'));
+      const head = el('p', 'journal-trip__head', `${worldLabel} trip`);
+      head.prepend(worldPicture(journalWorldId));
+      const photos = el('div', 'journal-trip__photos');
+      for (const discovery of trip) {
+        const tile = stickerTile(discovery);
+        // The map card's "been there" tick, on each snapshot of this trip.
+        const tick = createIcon('tick');
+        tick.classList.add('journal-trip__tick');
+        tile.append(tick);
+        photos.append(tile);
       }
-      // A button, because it does something: it tells you the whole story of the place.
-      const tile = el('button', 'sticker') as HTMLButtonElement;
-      tile.type = 'button';
-      tile.dataset.discovery = discovery.id;
-      tile.setAttribute('aria-label', `${discovery.name} — read more`);
-      tile.append(
-        discoveryPicture(discovery.id),
-        el('span', undefined, discovery.name),
-      );
-      tile.addEventListener('click', () => showJournalDetail(discovery));
-      stickerGrid.append(tile);
+      journalTrip.append(badge, head, photos);
     }
+    for (const discovery of places) {
+      if (found.includes(discovery.id) && !trip.includes(discovery)) stickerGrid.append(stickerTile(discovery));
+    }
+    journalNext.replaceChildren();
+    const left = places.length - count;
+    if (left > 0) {
+      const label = el('span', 'journal-next__label', 'Next time');
+      label.prepend(createIcon('rocket'));
+      const rings = el('span', 'journal-next__slots');
+      rings.setAttribute('role', 'img');
+      rings.setAttribute('aria-label', `${left} more ${left === 1 ? 'place' : 'places'} to find`);
+      for (let i = 0; i < left; i++) rings.append(createIcon('target'));
+      journalNext.append(label, rings);
+    }
+  }
+
+  /** A found place: a button, because it does something — it tells the whole story of the place. */
+  function stickerTile(discovery: Discovery) {
+    const tile = el('button', 'sticker') as HTMLButtonElement;
+    tile.type = 'button';
+    tile.dataset.discovery = discovery.id;
+    tile.setAttribute('aria-label', `${discovery.name} — read more`);
+    tile.append(
+      discoveryPicture(discovery.id),
+      el('span', undefined, discovery.name),
+    );
+    tile.addEventListener('click', () => showJournalDetail(discovery));
+    return tile;
   }
 
   /** The story owns one place and its lazy photograph until the reader returns to the page. */
@@ -1397,6 +1463,7 @@ export function createUI(options: UIOptions): GameUI {
       arrivalFact = fact;
       arrivalCue = cueId;
       visitWorldId = worldId;
+      visitFinds = [];
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
@@ -1494,6 +1561,7 @@ export function createUI(options: UIOptions): GameUI {
       // the words rather than waited on: the card must not hang on a network probe. A first
       // find becomes a big postcard once that photograph is actually ready; repeats keep the
       // compact card so a familiar place does not keep stopping play.
+      if (!visitFinds.includes(discovery.id)) visitFinds.push(discovery.id);
       photoFor = discovery.id;
       photoPending = attachPhoto(discovery, !revisited);
       journalButton.setAttribute('data-new', 'true');
@@ -1706,6 +1774,7 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     reset() {
+      visitFinds = [];
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next');

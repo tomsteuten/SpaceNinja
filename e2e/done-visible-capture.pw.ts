@@ -1,5 +1,6 @@
-// Before/after captures for "make done visible" (fix 5, design/done-visible). Each state is shot
-// as the build shows it, then again with design/done-visible/mock.{css,js} applied over it.
+// Captures for the "make done visible" review (fix 5, design/done-visible): the journal after a
+// finished visit, mid-game, and the map with every world visited. Shots are named "-after";
+// set SHOT_SUFFIX=before when running against an older build for the "before" set.
 // Skipped unless STYLE_OUT is set: STYLE_OUT=design/done-visible/shots npx playwright test e2e/done-visible-capture.pw.ts --project=phone
 // Runs both viewports whichever project is named.
 import { expect, test, type Page } from '@playwright/test';
@@ -8,6 +9,7 @@ import { join } from 'node:path';
 import { DISCOVERIES } from '../src/config';
 
 const OUT = process.env.STYLE_OUT ?? '';
+const SUFFIX = process.env.SHOT_SUFFIX ?? 'after';
 test.skip(!OUT, 'Set STYLE_OUT to capture.');
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 const all = (world: string) => Object.keys(DISCOVERIES).filter(id => id.startsWith(world + '-'));
@@ -26,11 +28,6 @@ async function start(page: Page, progress?: object) {
   // The splash shows whenever the grown-ups note has not been acknowledged; wait for it rather than race it.
   if (await startButton.waitFor({ timeout: 30000 }).then(() => true, () => false)) await startButton.click();
   await page.waitForTimeout(2500);
-}
-
-async function mock(page: Page) {
-  await page.addStyleTag({ path: 'design/done-visible/mock.css' });
-  await page.addScriptTag({ path: 'design/done-visible/mock.js' });
 }
 
 async function tapNext(page: Page) {
@@ -62,11 +59,9 @@ async function finishVisit(page: Page, world: string) {
   if (await findPlaces.isVisible()) await findPlaces.click();
   for (let i = 0; i < 3; i++) await tapNext(page);
   await page.waitForTimeout(1500);
-  const before = new Set<string>(await page.evaluate(() => JSON.parse(localStorage.getItem('spaceninja.progress.v1')!).discoveries));
   await page.evaluate(() => (document.querySelector('.visit-actions .journal-btn') as HTMLElement).click());
   await expect(page.locator('.journal-panel')).toBeVisible();
   await page.waitForTimeout(800);
-  return [...before].filter(id => id.startsWith(world.toLowerCase() + '-')).slice(-3);
 }
 
 for (const [name, viewport] of [
@@ -75,28 +70,22 @@ for (const [name, viewport] of [
 ] as const) {
   test.describe(name, () => {
     test.use({ viewport, deviceScaleFactor: 1, reducedMotion: 'reduce', hasTouch: false });
-    const shot = (page: Page, file: string) => page.screenshot({ path: join(OUT, `${name}-${file}.png`), timeout: 180000 });
+    const shot = (page: Page, file: string) => page.screenshot({ path: join(OUT, `${name}-${file}-${SUFFIX}.png`), timeout: 180000 });
 
     test('journal after the first finished visit', async ({ page }) => {
       test.setTimeout(900000);
       mkdirSync(OUT, { recursive: true });
       await start(page);
-      const trip = await finishVisit(page, 'Earth');
-      await shot(page, '1-journal-first-before');
-      await mock(page);
-      await page.evaluate(ids => (window as any).doneMock.journal('earth', ids), trip);
-      await shot(page, '1-journal-first-after');
+      await finishVisit(page, 'Earth');
+      await shot(page, '1-journal-first');
     });
 
     test('journal mid-game', async ({ page }) => {
       test.setTimeout(900000);
       mkdirSync(OUT, { recursive: true });
       await start(page, { visited: ['earth', 'moon'], stickers: [], discoveries: [...all('earth'), ...all('moon').slice(0, 3)] });
-      const trip = await finishVisit(page, 'Mars');
-      await shot(page, '2-journal-mid-before');
-      await mock(page);
-      await page.evaluate(ids => (window as any).doneMock.journal('mars', ids), trip);
-      await shot(page, '2-journal-mid-after');
+      await finishVisit(page, 'Mars');
+      await shot(page, '2-journal-mid');
     });
 
     test('map with every world visited', async ({ page }) => {
@@ -106,10 +95,7 @@ for (const [name, viewport] of [
         visited: ['earth', 'moon', 'mars', 'saturn'], stickers: [],
         discoveries: [...all('earth'), ...all('moon').slice(0, 3), ...all('mars').slice(0, 3), ...all('saturn').slice(0, 3)],
       });
-      await shot(page, '3-map-all-visited-before');
-      await mock(page);
-      await page.evaluate(() => (window as any).doneMock.map());
-      await shot(page, '3-map-all-visited-after');
+      await shot(page, '3-map-all-visited');
     });
   });
 }

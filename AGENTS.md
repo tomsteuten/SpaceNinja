@@ -128,8 +128,9 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 | Space map, Keep exploring (any way back to the world) | sky |
 | Listen (and the panels' replay button) | grape |
 | Day & night, the current day/night state | grass |
-| Done tick on a visited world's map card | grass |
+| Done tick on a visited world's map card and on this trip's journal snapshots | grass |
 | Jump, Find places, Start playing, Hooray!, the hunt arrow, the map's next-world arrow and unlock sparkle | sun |
+| "3 found!" trip sticker, a whole world's star (journal chip and map card), found dots on map cards | sun |
 | Turn Earth (in the bedtime spin) | teal |
 | Bath (Saturn's toy) and Plop! inside it | bubble |
 | Rover (Mars's toy) | lime |
@@ -137,7 +138,9 @@ crayon colour everywhere it appears, so a pre-reader can say "the yellow one":
 
 Panels (Words card, journal, postcard, finale, grown-ups) are paper with an ink outline and a
 flat shadow. Home-map destination cards are paper; the suggested one is gold and carries the
-bouncing arrow, matched by a pulsing ring on the world and the parked ship's nose.
+bouncing arrow, matched by a pulsing ring on the world and the parked ship's nose. A visited card
+carries the journal's dots (sun found, white still to find); a world with every place found
+swaps its tick for a sun star. A finished visit's journal page leads with that trip's snapshots.
 
 New controls take a colour from the variables at the top of `storybook.css`; add them here.
 

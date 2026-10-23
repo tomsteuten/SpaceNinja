@@ -1,5 +1,14 @@
 # Current implementation and handover
 
+## Done, shown — 23 October 2026
+
+State audit 11 and 22. A finished visit's journal page leads with the trip: a sun "3 found!"
+sticker over this visit's snapshots (grass ticks), the places left as a "Next time" strip of
+gold-place rings, world chips underneath; no more dashed "Still to find" tiles. A world with
+every place found shows a sun star on its chip and on its map card instead of the tick. Visited
+map cards carry the journal's dots (11 px on phone), so a world with more to find no longer looks
+like a new unlock; the "More to find" pill shows the gold place. Review: `design/done-visible/`.
+
 ## One next step at a time — 23 October 2026
 
 Playtest 2: after a world the child did not know what to do next. The visit row now rings one
