@@ -394,6 +394,9 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   moon: {
     emoji: '🌙',
+    // Kept for its recordings and cue ids: the Moon's row now shows Moonlight in Day & night's
+    // cell (ui.showSpin), so this timed turn is no longer reachable on the Moon. Mars and
+    // Saturn still use it.
     spin: {
       invite: 'You can turn the Moon. Tap the globe.',
       label: 'Spin the Moon',

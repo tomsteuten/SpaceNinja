@@ -1,5 +1,5 @@
 // Full-resolution captures of every child-facing screen for visual review: home map, Moon
-// visit, postcard, jump toy, Earth hunt, Words card, day/night, journal, Saturn bath, Mars rover, hunt arrow, finale
+// visit, postcard, jump toy, Moonlight, Earth hunt, Words card, day/night, journal, Saturn bath, Mars rover, hunt arrow, finale
 // and grown-ups panel.
 // Skipped unless STYLE_OUT is set: STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone
 import { expect, test, type Page } from '@playwright/test';
@@ -90,6 +90,21 @@ for (const [name, viewport] of [
       await page.locator('.moon-jump__jump').click();
       await page.waitForTimeout(1700);
       await shot(page, '3-jump');
+      await page.getByRole('button', { name: 'Back to the Moon', exact: true }).click();
+
+      // Moonlight took Day & night's cell: a crescent, the full Moon, and the Sun switched off.
+      await page.locator('.moonlight-btn').click();
+      const light = page.locator('.moon-light');
+      await expect(light).toBeVisible();
+      await page.waitForTimeout(500);
+      await shot(page, '18-moonlight-crescent');
+      for (let i = 0; i < 3; i++) await light.locator('.moon-light__move').click();
+      await expect(light).toHaveAttribute('data-phase', 'Full Moon');
+      await page.waitForTimeout(300);
+      await shot(page, '19-moonlight-full');
+      await light.getByRole('button', { name: 'Sun off' }).click();
+      await page.waitForTimeout(300);
+      await shot(page, '20-moonlight-sun-off');
     });
 
     test(`earth ${name}`, async ({ page }) => {

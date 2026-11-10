@@ -1,0 +1,53 @@
+/* Moonlight toy: full screen, the Sun, Earth and a Moon on a dashed path, a window onto the Moon. Storybook crayons. */
+.moon-light { position:absolute; inset:0; z-index:55; background:#070a18; pointer-events:auto; touch-action:none; user-select:none; -webkit-user-select:none; }
+.moon-light.is-hidden { display:none; }
+.moon-light__canvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+.moon-light__canvas.is-dragging { cursor:grabbing; }
+.moon-light__caption { position:absolute; left:max(14px,env(safe-area-inset-left)); top:max(14px,env(safe-area-inset-top)); max-width:min(calc(100% - 28px),420px); margin:0; padding:8px 14px; background:var(--paper,#f8f0dd); color:var(--ink-line,#2b2118); border:3px solid var(--ink-line,#2b2118); border-radius:14px; box-shadow:4px 4px 0 var(--ink-line,#2b2118); font:400 24px/1.15 var(--hand,cursive); transform:rotate(-1deg); pointer-events:none; }
+.moon-light__caption:empty { display:none; }
+/* The round window onto the Moon as a child on Earth sees it; its picture is its own canvas. */
+.moon-light__window { position:absolute; box-sizing:border-box; overflow:hidden; border:4px solid var(--paper,#f8f0dd); border-radius:50%; background:#05060f; box-shadow:5px 5px 0 #000a; pointer-events:none; }
+.moon-light__window canvas { display:block; width:100%; height:100%; }
+.moon-light__tag { position:absolute; display:flex; align-items:center; gap:6px; padding:4px 12px 4px 8px; background:var(--paper,#f8f0dd); color:var(--ink-line,#2b2118); border:3px solid var(--ink-line,#2b2118); border-radius:14px; box-shadow:3px 3px 0 var(--ink-line,#2b2118); font:400 22px/1 var(--hand,cursive); white-space:nowrap; transform:translateX(-50%) rotate(1deg); pointer-events:none; }
+.moon-light__tag .icon { width:30px; height:26px; color:var(--ink-line,#2b2118); }
+/* The Sun is a button: a crayon Sun with a little switch. Off, it goes grey and the light stops. */
+.moon-light__sun { position:absolute; display:flex; flex-direction:column; align-items:center; gap:6px; width:92px; padding:0; border:0; background:none; font:400 20px/1 var(--hand,cursive); color:var(--ink-line,#2b2118); cursor:pointer; }
+.moon-light__sun-disc { position:relative; display:block; width:84px; height:84px; border:3px solid var(--ink-line,#2b2118); border-radius:50%; background:radial-gradient(circle at 35% 30%,#fff3b7,#ffd466 60%,#f2b632); box-shadow:0 0 28px #ffc35c88; }
+.moon-light__sun-disc::before { content:''; position:absolute; inset:-15px; z-index:-1; border-radius:50%; background:repeating-conic-gradient(var(--crayon-sun,#f2b632) 0 7deg,transparent 7deg 30deg); -webkit-mask:radial-gradient(circle,transparent 55%,#000 57%); mask:radial-gradient(circle,transparent 55%,#000 57%); }
+.moon-light__switch { position:absolute; left:50%; bottom:13px; width:46px; height:24px; transform:translateX(-50%); box-sizing:border-box; border:3px solid var(--ink-line,#2b2118); border-radius:999px; background:var(--crayon-grass,#74c27a); }
+.moon-light__switch::after { content:''; position:absolute; top:1px; left:calc(100% - 17px); width:16px; height:16px; border-radius:50%; background:var(--ink-line,#2b2118); }
+.moon-light__sun-text { padding:4px 10px; background:var(--paper,#f8f0dd); border:3px solid var(--ink-line,#2b2118); border-radius:12px; box-shadow:3px 3px 0 var(--ink-line,#2b2118); white-space:nowrap; }
+.moon-light__sun:active .moon-light__sun-text { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
+.moon-light.is-sun-off .moon-light__sun-disc { background:radial-gradient(circle at 35% 30%,#d4d7e0,#9399a8 65%,#6f7586); box-shadow:none; }
+.moon-light.is-sun-off .moon-light__sun-disc::before { display:none; }
+.moon-light.is-sun-off .moon-light__switch { background:#c9ccd6; }
+.moon-light.is-sun-off .moon-light__switch::after { left:1px; }
+.moon-light__back,.moon-light__move { position:absolute; bottom:max(18px,env(safe-area-inset-bottom)); display:flex; align-items:center; gap:8px; height:76px; border:3px solid var(--ink-line,#2b2118); border-radius:18px; box-shadow:4px 4px 0 var(--ink-line,#2b2118); color:var(--ink-line,#2b2118); cursor:pointer; }
+.moon-light__back { left:max(12px,env(safe-area-inset-left)); padding:0 14px; background:var(--crayon-sky,#5bb8e8); }
+.moon-light__back .icon { width:34px; height:30px; color:var(--ink-line,#2b2118); }
+.moon-light__move { left:50%; transform:translateX(-50%); min-width:200px; justify-content:center; padding:0 24px; background:var(--crayon-moon,#c5cdd9); font:400 28px/1 var(--hand,cursive); }
+.moon-light__move .icon { width:38px; height:38px; color:var(--ink-line,#2b2118); }
+.moon-light__move .world-orb,.moon-light__back .world-orb { width:38px; height:38px; border:2px solid var(--ink-line,#2b2118); }
+.moon-light__back:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
+.moon-light__move:active { transform:translateX(-50%) translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
+.moon-light button:focus-visible { outline:4px solid #fff; outline-offset:4px; }
+@media (max-width:520px) {
+  .moon-light__move { left:auto; right:max(12px,env(safe-area-inset-right)); transform:none; min-width:0; height:72px; padding:0 16px; font-size:24px; white-space:nowrap; }
+  .moon-light__move:active { transform:translate(3px,3px); }
+  .moon-light__back { height:72px; padding:0 10px; }
+  .moon-light__back .world-orb { display:none; }
+  .moon-light__caption { font-size:21px; }
+  .moon-light__tag { font-size:20px; }
+}
+@media (max-height:480px) {
+  .moon-light__move,.moon-light__back { height:62px; }
+  .moon-light__caption { font-size:20px; max-width:38%; }
+  .moon-light__tag { font-size:19px; padding:3px 10px 3px 6px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .moon-light__back:active,.moon-light__sun:active .moon-light__sun-text { transform:none; }
+  .moon-light__move:active { transform:translateX(-50%); }
+}
+@media (prefers-reduced-motion:reduce) and (max-width:520px) {
+  .moon-light__move:active { transform:none; }
+}

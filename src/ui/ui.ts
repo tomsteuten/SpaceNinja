@@ -26,6 +26,7 @@ import { createMoonJump } from '../toys/moonJump';
 import { createBedtimeSpin } from '../toys/bedtimeSpin';
 import { createSaturnBath } from '../toys/saturnBath';
 import { createMarsRover } from '../toys/marsRover';
+import { createMoonLight } from '../toys/moonLight';
 import type { PartOfDay } from '../toys/daySpin';
 
 export interface GameUI {
@@ -584,10 +585,32 @@ export function createUI(options: UIOptions): GameUI {
   roverButton.append(createIcon('rover'), el('span', 'control-label', 'Rover'));
   roverButton.setAttribute('aria-label', 'Drive the Mars rover');
   roverButton.addEventListener('click', () => openToy(() => marsRover.open()));
+  // The Moon's second toy, Moonlight (the Moon shines with the Sun's light). It takes the
+  // place of Day & night in the Moon's row, joins the same way (after a first find or the
+  // toy), and is never the ringed next step: Jump keeps that. So it is not a `toy-btn`, and
+  // opening it does not count as the visit's toy being played.
+  const moonLight = createMoonLight(root, {
+    onClose: () => moonlightButton.focus(),
+    onSay: (cueId, text) => speakToyLine(cueId, text),
+  });
+  const moonlightButton = el('button', 'btn moonlight-btn is-hidden');
+  moonlightButton.type = 'button';
+  moonlightButton.append(createIcon('moonlight'), el('span', 'control-label', 'Moonlight'));
+  moonlightButton.setAttribute('aria-label', 'Moonlight: why the Moon shines');
+  moonlightButton.addEventListener('click', () => {
+    setFactOpen(false);
+    pendingGuide = null;
+    narrator.stop();
+    moonLight.open();
+  });
+  /** A toy's own line: its words are already on screen; it plays only if it has a recording. */
+  function speakToyLine(cueId: string, text: string) {
+    if (soundOn && narrator.hasRecording(cueId)) narrator.speak(text, cueId, false);
+  }
   // The toy sits straight after Listen, so on arrival the three shown controls are side by
   // side and the ones that join later (Day & night, then Journal at the end) fill in to the
   // right. Earth's toy is its Day & night button, so its row reads the same way.
-  visitActions.append(homeButton, listenButton, jumpButton, bathButton, roverButton, spinButton, findPlacesButton);
+  visitActions.append(homeButton, listenButton, jumpButton, bathButton, roverButton, moonlightButton, spinButton, findPlacesButton);
   dock.append(visitActions);
   root.append(dock);
 
@@ -626,6 +649,7 @@ export function createUI(options: UIOptions): GameUI {
         (toy): [HTMLElement, boolean] => [toy, false]),
       [journalButton, stage !== 'open'],
       [spinButton, !earth && stage !== 'open'],
+      [moonlightButton, stage !== 'open'],
     ];
     const appearing: HTMLElement[] = [];
     for (const [control, held] of controls) {
@@ -1292,7 +1316,7 @@ export function createUI(options: UIOptions): GameUI {
 
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        factOpen || moonJump.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen || marsRover.isOpen;
+        factOpen || moonJump.isOpen || moonLight.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen || marsRover.isOpen;
     },
     setHint,
 
@@ -1321,12 +1345,14 @@ export function createUI(options: UIOptions): GameUI {
       missionHud.classList.add('is-hidden');
       spinButton.classList.add('is-hidden');
       moonJump.close();
+      moonLight.dismiss();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
       marsRover.dismiss();
       jumpButton.classList.add('is-hidden');
       bathButton.classList.add('is-hidden');
       roverButton.classList.add('is-hidden');
+      moonlightButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       setVisitStage('open', false);
       factCard.classList.add('is-hidden');
@@ -1359,6 +1385,7 @@ export function createUI(options: UIOptions): GameUI {
       jumpButton.classList.toggle('is-hidden', worldId !== 'moon');
       bathButton.classList.toggle('is-hidden', worldId !== 'saturn');
       roverButton.classList.toggle('is-hidden', worldId !== 'mars');
+      moonlightButton.classList.toggle('is-hidden', worldId !== 'moon');
       visitActions.classList.toggle('has-toy', worldId === 'moon' || worldId === 'saturn' || worldId === 'mars');
       // Space map, Listen and the toy; Journal joins once the child has done something.
       setVisitStage(DESTINATIONS[worldId]?.mission ? 'arrival' : 'open', false);
@@ -1531,8 +1558,10 @@ export function createUI(options: UIOptions): GameUI {
       spinLabel.textContent = 'Day & night';
       spinGlobe.style.backgroundImage = worldPicture(visitWorldId).style.backgroundImage;
       if (tint) spinGlobe.style.setProperty('--world', tint);
-      spinButton.classList.toggle('is-hidden', !label);
-      if (label) spinButton.classList.add('fade-in');
+      // On the Moon, Moonlight takes Day & night's cell in the row (its timed turn stays for Mars and Saturn).
+      const moonlit = visitWorldId === 'moon';
+      spinButton.classList.toggle('is-hidden', !label || moonlit);
+      if (label && !moonlit) spinButton.classList.add('fade-in');
     },
 
     setSpinAttention(on: boolean) {
@@ -1549,6 +1578,7 @@ export function createUI(options: UIOptions): GameUI {
 
     dismissToys() {
       moonJump.close();
+      moonLight.dismiss();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
       marsRover.dismiss();
@@ -1669,12 +1699,14 @@ export function createUI(options: UIOptions): GameUI {
       setHomeAvailable(false);
       spinButton.classList.add('is-hidden');
       moonJump.close();
+      moonLight.dismiss();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
       marsRover.dismiss();
       jumpButton.classList.add('is-hidden');
       bathButton.classList.add('is-hidden');
       roverButton.classList.add('is-hidden');
+      moonlightButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       setVisitStage('open', false);
       spinBusy = false;

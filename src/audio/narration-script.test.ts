@@ -63,6 +63,15 @@ const SCREEN_CUES = [
   'day-night-done',
   'success-next',
   'finale',
+  // The lesson toys' opening lines and captions (src/toys/moonLight.ts, sunStar.ts). Script
+  // only for now (DECISIONS.md #9): they show as words and play once they have a recording.
+  'toy-moonlight',
+  'toy-sun',
+  'moonlight-on',
+  'moonlight-off',
+  'sunstar-earth',
+  'sunstar-neptune',
+  'sunstar-far',
 ];
 
 function expectedCueIds(): string[] {

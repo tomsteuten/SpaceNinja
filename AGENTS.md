@@ -99,7 +99,7 @@ New controls take a variable from the top of `storybook.css`; add them here.
 | Listen, panel replay | grape |
 | Day & night and its state; done tick on map cards and journal snapshots | grass |
 | Jump, Find places, Start playing, Hooray!, hunt/next-world arrows; found dots, "3 found!", world star | sun |
-| Turn Earth (teal), Bath/Plop! (bubble), Rover (lime) | per toy |
+| Turn Earth (teal), Bath/Plop! (bubble), Rover (lime), Moonlight/Move Moon (moon, silver), Far away (star, indigo) | per toy |
 | Journal, All places, open journal page | tomato |
 
 ## Architecture map

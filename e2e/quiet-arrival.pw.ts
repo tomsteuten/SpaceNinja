@@ -7,7 +7,7 @@ const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaS
  * A quiet arrival (owner's playtest, 22 Oct 2026: the gold places were obvious, the screen
  * around them was too busy), with open exploring (DECISIONS.md): nothing is held back.
  * On arrival the visit row is Space map, Listen and the world's toy, and nothing is ringed.
- * The journal and Day & night join once the child has done something (a first find or the
+ * The journal and (on the Moon) Moonlight join once the child has done something (a first find or the
  * toy). At most one next step is ringed: the toy after the third find if it has not been
  * played, else Space map. Space map stays exactly where it was throughout.
  */
@@ -58,14 +58,14 @@ test('Moon: the toy is there on arrival, the journal joins after a find, one nex
   const { spaceMap, stays } = await arriveAtMoon(page);
   const jump = page.locator('.jump-btn');
   const journal = page.locator('.visit-actions .journal-btn');
-  const dayNight = page.locator('.spin-btn');
+  const moonlight = page.locator('.moonlight-btn');
   const ui = page.locator('#ui');
 
   // Arrival: Space map, Listen and Jump. Nothing ringed, nothing else talking.
   await expect(page.locator('.visit-actions > button:visible')).toHaveCount(3);
   await expect(page.getByRole('button', { name: 'Words', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Jump on the Moon', exact: true })).toBeVisible();
-  for (const held of [journal, dayNight]) await expect(held).toBeHidden();
+  for (const held of [journal, moonlight]) await expect(held).toBeHidden();
   await expectNothingRinged(page, spaceMap, jump);
   await expect(page.locator('.world-heading__caption')).toBeHidden();
   // Sound off: the row's Words button is the reading route, so the heading has none.
@@ -77,7 +77,7 @@ test('Moon: the toy is there on arrival, the journal joins after a find, one nex
   const reached: string[] = [];
   for (let i = 0; i < 8; i++) {
     await page.keyboard.press('Tab');
-    expect(await page.evaluate(() => document.activeElement?.matches('.journal-btn, .spin-btn'))).toBe(false);
+    expect(await page.evaluate(() => document.activeElement?.matches('.journal-btn, .moonlight-btn, .spin-btn'))).toBe(false);
     reached.push(await page.evaluate(() => ['home-btn', 'listen-btn', 'jump-btn']
       .find(name => document.activeElement?.classList.contains(name)) ?? ''));
   }
@@ -85,11 +85,13 @@ test('Moon: the toy is there on arrival, the journal joins after a find, one nex
   for (const index of order) expect(index).toBeGreaterThanOrEqual(0);
   expect(order, 'Space map, then Listen, then the toy').toEqual([...order].sort((a, b) => a - b));
 
-  // A first find is doing something: the journal and Day & night join once its postcard is
+  // A first find is doing something: the journal and Moonlight join once its postcard is
   // closed. Still nothing ringed, and Space map has not moved.
   await findOne(page);
   await expect(journal).toBeVisible();
-  await expect(dayNight).toBeVisible();
+  await expect(moonlight).toBeVisible();
+  await expect(page.locator('.spin-btn')).toBeHidden();
+  await expect(moonlight).toHaveCSS('outline-style', 'none');
   await expect(page.locator('.visit-actions .is-appearing')).toHaveCount(0);
   await expectNothingRinged(page, spaceMap, jump);
   await stays();
@@ -139,7 +141,7 @@ test('Moon: playing Jump first needs no finds, rings nothing, and the finds then
   await expect(page.locator('.moon-jump')).toHaveCount(0);
   // Played the toy: the journal joins; places remain, so nothing is ringed.
   await expect(journal).toBeVisible();
-  await expect(page.locator('.spin-btn')).toBeVisible();
+  await expect(page.locator('.moonlight-btn')).toBeVisible();
   await expectNothingRinged(page, spaceMap, jump);
   await stays();
   // The gold places are still there and still work.
