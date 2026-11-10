@@ -20,7 +20,6 @@ import {
   DESTINATIONS,
   SUN_DIRECTION,
   framingRadiusFor,
-  revealedDestinations,
 } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
@@ -79,11 +78,11 @@ async function main() {
   scene.add(world.group);
 
   /*
-   * Earth's bedtime spin: into night, back into morning, each change said once. On the first
-   * Earth visit the round trip is the "you did it" and suggests the Moon; later it suggests
-   * turning more. Nothing is counted or saved.
+   * Earth's bedtime spin: into night, back into morning, each change said once. Once the
+   * visit's places are found (Space map is then the ringed next step) the round trip suggests
+   * the Moon if it is still unvisited; otherwise it suggests turning more. Nothing is counted
+   * or saved.
    */
-  let dayRail = false;
   /** This opening of Earth's bedtime spin has reached night, then morning again. */
   let bedtimeNight = false;
   let bedtimeRoundTrip = false;
@@ -99,11 +98,14 @@ async function main() {
   scene.add(trail.group);
 
   /**
-   * Keep the opening subjects readable; each visit widens the map to its next world. The
-   * shot fits exactly the worlds that are drawn, so framing and reveal cannot drift apart.
+   * Every world is drawn and tappable from the first second: nothing is locked (DECISIONS.md),
+   * so the scene never hides a body and the map frames all of them.
    */
+  const MAP_WORLDS: readonly BodyId[] = BODY_IDS;
+
+  /** The shot fits exactly the worlds that are drawn, so framing and drawing cannot drift apart. */
   function framingRadius(): number {
-    return framingRadiusFor(visibleDestinationIds());
+    return framingRadiusFor(MAP_WORLDS);
   }
 
   /**
@@ -119,26 +121,8 @@ async function main() {
     return camera.aspect < 1 ? 0.3 : 0.16;
   }
 
-  /** Scene visibility and navigation use the same visit gates as camera framing. */
-  function visibleDestinationIds(): BodyId[] {
-    return revealedDestinations(loadProgress().visited) as BodyId[];
-  }
-
-  function applyReveal(animate = false): BodyId[] {
-    return world.setRevealed(visibleDestinationIds(), animate && !reducedMotion);
-  }
-
-  /**
-   * Every world gets a button, earned or not — the un-earned ones padlocked.
-   *
-   * The bar used to list only revealed worlds, which meant a first run showed two buttons
-   * and gave a child no reason to believe there was anywhere else at all. The *bodies* stay
-   * reveal-gated (that fixes two real composition failures — see DestinationChoice.locked),
-   * so this puts the future in the one place it costs nothing: a padlocked chip that names
-   * the world and does not draw it.
-   */
+  /** Every world gets a button, and every button flies there. */
   function mapChoices() {
-    const visible = new Set(visibleDestinationIds());
     const progress = loadProgress();
     const visited = progress.visited;
     const pages = new Map(worldCollections(progress.discoveries).map(page => [page.id, page]));
@@ -148,35 +132,11 @@ async function main() {
       // identity, not the article. Keeping this derivation here avoids duplicate copy.
       label: world.bodies[id].label.replace(/^The /, ''),
       emoji: DESTINATIONS[id]?.emoji ?? '✨',
-      locked: !visible.has(id),
-      unlockedBy: gateLabel(id),
-      // Visited is the same fact that unlocks the next world, so tick and padlock agree.
+      // Been there: a tick, so a pre-reader can see what is done. It opens nothing.
       done: visited.includes(id),
       found: pages.get(id)?.found,
       total: pages.get(id)?.total,
     }));
-  }
-
-  /** The world that unlocks `id`, as it reads mid-sentence: "visit the Moon first". */
-  function gateLabel(id: BodyId): string | undefined {
-    const gate = DESTINATIONS[id]?.revealAfterVisiting;
-    return gate ? sentenceLabel(gate as BodyId) : undefined;
-  }
-
-  function sentenceLabel(id: BodyId): string {
-    return world.bodies[id].label.replace(/^The /, 'the ');
-  }
-
-  /**
-   * The world to go to first so that `id` opens: its gate, or the gate's own gate while that
-   * one is still locked too. Saturn on a first-run map points at the Moon, not a padlocked
-   * Mars, so the highlight is always a card a child can actually press.
-   */
-  function unlockerOf(id: BodyId): BodyId | null {
-    const visible = visibleDestinationIds();
-    let gate = DESTINATIONS[id]?.revealAfterVisiting as BodyId | undefined;
-    while (gate && !visible.includes(gate)) gate = DESTINATIONS[gate]?.revealAfterVisiting as BodyId | undefined;
-    return gate ?? null;
   }
 
   const controls = createOrbitInput({
@@ -188,7 +148,6 @@ async function main() {
   controls.setFocusRadius(world.bodies.earth.radius);
   controls.setTarget(new THREE.Vector3(), true);
   controls.frame(framingRadius(), true, framingInset());
-  applyReveal();
 
   const narrator = createNarrator();
   const sfx = createSfx();
@@ -221,7 +180,7 @@ async function main() {
       narrator.resume();
       if (mapIntroPending) {
         mapIntroPending = false;
-        announceMap(null, false);
+        announceMap(false);
       }
     },
   });
@@ -237,7 +196,6 @@ async function main() {
       cameraReturn = null;
       huntViewTurn = null;
       dayTurn.reset();
-      ui.setMapInvite(false);
       sfx.reset();
       // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
       // reduced motion start() declines and this cuts straight home, exactly as it always did.
@@ -281,23 +239,23 @@ async function main() {
       activeMission?.setPresentation(true);
       beginGuidedHunt(true);
     },
-    // The house's night and morning get the same spoken feedback the old 3D activity gave,
-    // and on the first visit morning is the cue to fly on to the Moon.
+    // The house's night and morning get the same spoken feedback the old 3D activity gave.
+    // "You can fly to the Moon next" only while it is true and agrees with the screen: the
+    // Moon is still unvisited and Space map is the ringed next step (the places are found).
     onBedtimePart: (part) => {
       if (part === 'night' && !bedtimeNight) {
         bedtimeNight = true;
         ui.speakGuide(cueText('day-night-night'), 'day-night-night', true);
       } else if (part === 'morning' && bedtimeNight && !bedtimeRoundTrip) {
         bedtimeRoundTrip = true;
-        const next = dayRail ? 'day-night-moon' : 'day-night-done';
+        const onToMoon = ui.mapIsNext && suggestedDestination() === 'moon';
+        const next = onToMoon ? 'day-night-moon' : 'day-night-done';
         ui.speakGuide(cueText(next), next, true);
-        if (dayRail) ui.setMapInvite(true);
       }
     },
     onBedtimeClose: () => {
       if (follow !== 'earth') return;
-      // The gold places are the next step now; Space map is ringed again once they are found.
-      ui.setMapInvite(false);
+      // The gold places are still there to find, never required.
       activeMission?.setPresentation(true);
       beginGuidedHunt(true);
     },
@@ -403,11 +361,11 @@ async function main() {
       spinIdle = 0;
       // Read before the visit is recorded: a first visit is one that has not been.
       const firstVisit = !loadProgress().visited.includes(destination.id);
-      // Arriving is the achievement that opens the rest of the system up. The sticker is
-      // still the collection's, and is still awarded by finishing it.
+      // Recorded for the map's tick and its suggestion; it opens nothing, since nothing is
+      // locked. The sticker is still the collection's, and is still awarded by finishing it.
       markVisited(destination.id);
 
-      // The destination and its real-coordinate targets are the subject now. Other earned
+      // The destination and its real-coordinate targets are the subject now. Other
       // worlds and the parked ship remain visible enough to preserve context, but cannot
       // become opaque foreground objects when a child drags around to the hidden place.
       world.setFocus(destination.id);
@@ -433,7 +391,6 @@ async function main() {
       // Supported Day & night is visible on settled arrival for every mission world.
       // Earth's first-visit invitation can pulse and speak, but the child starts the turn.
       earthDayNightPrompt = destination.id === 'earth' && firstVisit;
-      dayRail = earthDayNightPrompt;
       if (destination.id === 'earth') {
         ui.setEarthWelcome(earthDayNightPrompt);
         mission.setPresentation(!earthDayNightPrompt);
@@ -580,16 +537,7 @@ async function main() {
    * naming a world while the ship points at another.
    */
   let suggested: BodyId | null = null;
-  /** For a moment after a locked press: the world that unlocks it, pointed at instead. */
-  let pointed: BodyId | null = null;
   let follow: BodyId = 'earth';
-
-  /** Card pointer, scene ring and ship's nose move together; null goes back to the suggestion. */
-  function pointAt(id: BodyId | null) {
-    pointed = id;
-    ui.pointDestination(id);
-    world.setSelected(id ?? suggested, !reducedMotion);
-  }
 
   /* --- the hunt ------------------------------------------------------------ */
 
@@ -734,25 +682,6 @@ async function main() {
   function launch(id: BodyId | null) {
     if (!id) return;
     if (flight.phase !== 'idle' || activeMission?.active || homeReturn.active) return;
-    if (!visibleDestinationIds().includes(id)) {
-      // Shown, not only said: the padlocked card shakes, and the pointer and the scene's
-      // ring jump to the world that opens it until the hint settles back.
-      const unlocker = unlockerOf(id);
-      ui.nudgeDestination(id);
-      pointAt(unlocker);
-      ui.setHint(unlocker ? 'Visit ' + sentenceLabel(unlocker) + ' first' : 'Not yet', 'lock');
-      // The spoken half of the padlock: "Not yet. You can visit the Moon first." Only the
-      // reveal-gated worlds have a locked cue, which is exactly the set that can be locked.
-      if (DESTINATIONS[id]?.revealAfterVisiting) ui.speakGuide(cueText(`locked-${id}`), `locked-${id}`);
-      window.clearTimeout(nudge);
-      nudge = window.setTimeout(() => {
-        if (flight.phase !== 'idle') return;
-        pointAt(null);
-        showOpeningHints();
-      }, 2600);
-      return;
-    }
-    pointed = null;
     const destination = world.bodies[id];
     if (!destination) return;
     // The flight is told which latitude to arrive over; it does not know why. Matching
@@ -816,8 +745,6 @@ async function main() {
 
   /* --- hints --------------------------------------------------------------- */
 
-  let nudge = 0;
-
   /*
    * The idle coach. Shows the gesture on the thing the gesture applies to, after a while
    * with nothing touched — see ui/coach.ts for why an arrow and a sentence were not enough.
@@ -875,15 +802,13 @@ async function main() {
   window.addEventListener('pointerdown', onAnyPress, true);
 
   /**
-   * The one world the map is pointing at: genuinely unvisited, furthest earned one first.
-   *
-   * Once the outer journey is done this naturally brings Earth back into the story rather
-   * than claiming Saturn is "new" forever, and when everywhere has been visited it returns
-   * an incomplete collection becomes the next invitation. Once every place has been found,
-   * the map stops suggesting a task.
+   * The one world the map is pointing at: the first unvisited world in journey order (Earth,
+   * the Moon, Mars, Saturn). When everywhere has been visited an incomplete collection becomes
+   * the invitation; once every place has been found, the map stops suggesting anything. Only
+   * ever a hint: every world can be flown to at any time.
    */
   function suggestedDestination(): BodyId | null {
-    return nextWorld(loadProgress(), visibleDestinationIds()) as BodyId | null;
+    return nextWorld(loadProgress(), MAP_WORLDS) as BodyId | null;
   }
 
   /**
@@ -891,10 +816,10 @@ async function main() {
    * nose share one suggestion (playtest 2: a spoken "Mars is ready" alone was not enough).
    * The ring is a thin crayon line, not the broad halo that once overwhelmed the Moon.
    */
-  function applySuggestion(newlyRevealed: BodyId | null = null) {
+  function applySuggestion() {
     suggested = suggestedDestination();
-    ui.showDestinations(mapChoices(), suggested, newlyRevealed);
-    pointAt(null);
+    ui.showDestinations(mapChoices(), suggested);
+    world.setSelected(suggested, !reducedMotion);
     // A fresh suggestion is a fresh set of map nudges: the cue ids name this world, so the old
     // "given" flags no longer apply, and the idle clock starts again.
     mapIdle = 0;
@@ -902,37 +827,24 @@ async function main() {
   }
 
   /**
-   * The one spoken line on landing at the map, once per arrival there (the visual hint in
-   * `showOpeningHints` may be refreshed more often, e.g. after a locked press, and must not
-   * re-announce). A brand-new save uses the existing `home-earth` cue; a world unlocked by the
-   * last visit with `revealed-<id>`; a plain Fly Home with nothing unlocked with `fly-home`;
-   * any other map with `home-<suggested>` (or `home-any` when nothing is suggested).
+   * The one spoken line on landing at the map, once per arrival there. A brand-new save uses
+   * the `home-earth` cue; a Fly Home uses `fly-home`; any other map `home-<suggested>` (or
+   * `home-any` when nothing is suggested).
    */
-  function announceMap(newlyRevealed: BodyId | null, viaFlyHome: boolean) {
+  function announceMap(viaFlyHome: boolean) {
     const visited = loadProgress().visited;
     const cue =
       visited.length === 0
         ? 'home-earth'
-        : newlyRevealed
-          ? `revealed-${newlyRevealed}`
-          : viaFlyHome
-            ? 'fly-home'
-            : suggested
-              ? `home-${suggested}`
-              : 'home-any';
+        : viaFlyHome
+          ? 'fly-home'
+          : suggested
+            ? `home-${suggested}`
+            : 'home-any';
     ui.speakGuide(cueText(cue), cue);
   }
 
-  function showOpeningHints(newlyRevealed?: BodyId) {
-    window.clearTimeout(nudge);
-    if (newlyRevealed) {
-      const label = world.bodies[newlyRevealed].label.replace(/^The /, '');
-      ui.setHint(label + ' is ready', 'rocket');
-      nudge = window.setTimeout(() => {
-        if (flight.phase === 'idle') ui.setHint('Tap ' + label, 'rocket');
-      }, 3600);
-      return;
-    }
+  function showOpeningHints() {
     const next = suggested;
     if (!next) {
       ui.setHint('Tap a world to fly there', 'rocket');
@@ -955,7 +867,7 @@ async function main() {
   // up, this is deferred to the "Start playing" press (onStart above), so it never talks over
   // the splash. Without a splash (a later load, storage remembered), there has been no gesture
   // yet, so it fails silently and the map nudge repeats it once the child touches anything.
-  if (!greeting) announceMap(null, false);
+  if (!greeting) announceMap(false);
 
   /* --- restart ------------------------------------------------------------- */
 
@@ -980,8 +892,6 @@ async function main() {
     for (const mission of Object.values(missions)) mission.reset();
     activeMission = null;
     dayTurn.reset();
-    ui.setMapInvite(false);
-    dayRail = false;
     flight.reset();
     // Idle whether it drove us here or Explore Again cut straight in; it holds no scene state.
     homeReturn.reset();
@@ -997,9 +907,6 @@ async function main() {
     // Or the last flight's exhaust hangs in space, still out at the destination.
     trail.reset();
     world.reset();
-    // A world visited this run may have unlocked the next one. It appears only after the
-    // pull-back lands, when the map is stable enough for the reveal to be understood.
-    const newlyRevealed = applyReveal(true);
 
     controls.reset();
     controls.setFocusRadius(world.bodies.earth.radius);
@@ -1009,11 +916,11 @@ async function main() {
     follow = 'earth';
 
     ui.reset();
-    applySuggestion(newlyRevealed[0] ?? null);
-    showOpeningHints(newlyRevealed[0]);
-    // Landing back at the map: a world just readied announces itself, a plain Fly Home says so,
-    // a progress reset (visited now empty) gets the first-run welcome.
-    announceMap(newlyRevealed[0] ?? null, true);
+    applySuggestion();
+    showOpeningHints();
+    // Landing back at the map: a Fly Home says so, a progress reset (visited now empty) gets
+    // the first-run welcome.
+    announceMap(true);
   }
 
   /* --- frame loop ---------------------------------------------------------- */
@@ -1092,7 +999,10 @@ async function main() {
         shouldInviteSpin({
           idleFor,
           huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
-          spinOffered: Boolean(spin) && ui.spinAvailable,
+          // Not while another control is the ringed next step: on the Moon, Mars and Saturn
+          // the toy is ringed after the finds, and a pulsing Day & night beside it would make
+          // two. Earth's toy *is* Day & night, so there the two agree.
+          spinOffered: Boolean(spin) && ui.spinAvailable && !(ui.toyIsNext && follow !== 'earth'),
           spinBusy: dayTurn.active || narrator.speaking,
           spinTried,
           spinIsPrimary: follow === 'earth',
@@ -1194,7 +1104,7 @@ async function main() {
       // The idle ship keeps its nose pointed at the world the map is pointing at, so the
       // ship, the ring and the card's arrow all agree — Earth included, nose down towards
       // the planet it is parked beside (playtest 2). The Moon only when nothing is suggested.
-      const aim = pointed ?? suggested ?? 'moon';
+      const aim = suggested ?? 'moon';
       world.bodies[aim].getWorldPosition(aimPosition);
       shipHeading.subVectors(aimPosition, ship.group.position);
       ship.orient(shipHeading);
@@ -1266,6 +1176,12 @@ async function main() {
         dayTurning: dayTurn.active,
         earthWelcome: earthDayNightPrompt,
         bodyScreen: screenCircle(center, world.bodies[follow].viewRadius ?? world.bodies[follow].radius),
+        // Every drawn world's silhouette on screen, so the map's framing can be checked
+        // against exactly the worlds it draws.
+        mapScreen: Object.fromEntries(MAP_WORLDS.map((id) => {
+          const body = world.bodies[id];
+          return [id, screenCircle(body.getWorldPosition(new THREE.Vector3()), body.viewRadius ?? body.radius)];
+        })),
         teachingSun: (() => {
           const cue = world.teachingSun.group;
           return { visible: cue.visible,
@@ -1274,7 +1190,7 @@ async function main() {
         surfaceRotation: world.bodies[follow].surface.rotation.y,
         mapInvite: uiRoot.classList.contains('is-map-next'),
         mapRing: world.selected,
-        shipAim: flight.phase === 'idle' ? (pointed ?? suggested ?? 'moon') : null,
+        shipAim: flight.phase === 'idle' ? (suggested ?? 'moon') : null,
         mapReturnGuarded: ui.mapReturnGuarded,
         bodyScreenRadius: Math.abs(center.clone().addScaledVector(
           new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), world.bodies[follow].radius,
@@ -1314,7 +1230,6 @@ async function main() {
 
   function dispose() {
     dayTurn.reset();
-    window.clearTimeout(nudge);
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);

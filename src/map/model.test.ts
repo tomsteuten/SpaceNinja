@@ -14,11 +14,11 @@ describe('map browsing without progress', () => {
     const real = NEIGHBORHOODS.flatMap(n => n.places.flatMap(p => p.body ? [p.body] : []));
     expect(real.sort()).toEqual(['earth','mars','moon','saturn','sun']);
     for (const n of NEIGHBORHOODS) for (const p of n.places) {
-      if (!p.body) expect(availability(p,[p.id])).toBe('unbuilt');
+      expect(availability(p)).toBe(p.body ? 'ready' : 'unbuilt');
     }
+    // Nothing is locked: a built world is ready whatever has been visited.
     const mars = NEIGHBORHOODS.find(n => n.id === 'mars')!.places[0]!;
-    expect(availability(mars,['earth','moon','sun'])).toBe('locked');
-    expect(availability(mars,['earth','moon','sun','mars'])).toBe('ready');
+    expect(availability(mars)).toBe('ready');
   });
   it('fits all companions in three controls while retaining the parent', () => {
     for (const n of NEIGHBORHOODS) {
@@ -49,7 +49,7 @@ describe('neighborhoods as the map\'s source of membership', () => {
     expect(shown.map(n => n.id)).toEqual(['earth','mars','saturn']);
     for (const n of shown) {
       expect(n.places.length).toBeGreaterThan(0);
-      for (const p of n.places) expect(availability(p,[...BODY_IDS])).not.toBe('unbuilt');
+      for (const p of n.places) expect(availability(p)).toBe('ready');
     }
     const saturn = shown.find(n => n.id === 'saturn')!;
     expect(saturn.places.map(p => p.id)).toEqual(['saturn']);

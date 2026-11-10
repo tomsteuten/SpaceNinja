@@ -39,8 +39,6 @@ function cuesByBody(): Record<string, string[]> {
         `home-${bodyId}`,
         `home-nudge-${bodyId}`,
         `home-nudge-short-${bodyId}`,
-        // A gated world: pressed before it is earned, and announced once it is.
-        ...(destination.revealAfterVisiting ? [`locked-${bodyId}`, `revealed-${bodyId}`] : []),
         // A world with a toy (src/toys/) invites it once the places are found.
         ...(bodyId === 'moon' || bodyId === 'saturn' || bodyId === 'mars' ? [`toy-${bodyId}`] : []),
       ],
@@ -108,7 +106,7 @@ describe('narration script', () => {
     // invitation and nudge stays under about eight words so it is over before it is a lecture.
     const words = (line: string) => line.trim().split(/\s+/).length;
     const invitations = Object.keys(script.cues).filter(
-      (id) => /^(home-(?!first|nudge)|revealed-|locked-|spin-invite-|toy-|success-next|find-nudge$|hunt-nudge$)/.test(id),
+      (id) => /^(home-(?!first|nudge)|spin-invite-|toy-|success-next|find-nudge$|hunt-nudge$)/.test(id),
     );
     expect(invitations.length).toBeGreaterThan(0);
     for (const id of invitations) {

@@ -4,11 +4,11 @@ import type { Page } from '@playwright/test';
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 
 /*
- * Mars's toy is the rover. Like Jump on the Moon, the places come first and the toy appears as the
- * next step after three finds; inside, the child taps a rock, the message takes a while to
- * reach Mars, and only then does the rover drive there and drill.
+ * Mars's toy is the rover. Like Jump on the Moon it is in the row from arrival, and after three
+ * finds it is the ringed next step if it has not been played; inside, the child taps a rock,
+ * the message takes a while to reach Mars, and only then does the rover drive there and drill.
  */
-test('Mars: the rover is the next step after three finds; a tapped rock waits for the message, then is drilled', async ({ page }) => {
+test('Mars: the rover is there on arrival and ringed after three finds; a tapped rock waits for the message, then is drilled', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('spaceninja.sound.v1', 'off');
     localStorage.setItem('spaceninja.progress.v1', JSON.stringify({ visited: ['earth', 'moon'], discoveries: [], stickers: [] }));
@@ -18,9 +18,12 @@ test('Mars: the rover is the next step after three finds; a tapped rock waits fo
   await page.getByRole('button', { name: 'Fly to Mars', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
 
-  // The rover waits for the places: during the hunt the row is Space map and Listen.
+  // Nothing held back: the row is Space map, Listen and the rover. The journal joins later.
   await expect(page.locator('.home-btn')).toBeVisible();
-  await expect(page.locator('.rover-btn')).toBeHidden();
+  await expect(page.locator('.rover-btn')).toBeVisible();
+  await expect(page.locator('.visit-actions .journal-btn')).toBeHidden();
+  await expect(page.locator('.visit-actions > button:visible')).toHaveCount(3);
+  await expect(page.locator('#ui')).not.toHaveClass(/is-toy-next/);
 
   for (let i = 0; i < 3; i++) {
     let target = (await snapshot(page)).targets.find((t: any) => t.visible);
@@ -42,7 +45,7 @@ test('Mars: the rover is the next step after three finds; a tapped rock waits fo
   await expect(page.locator('.world-heading__caption')).toHaveText('Three found! Now drive the rover.');
   await expect(page.locator('.visit-actions .is-appearing')).toHaveCount(0);
 
-  // Rover has its own cell in the row (Space map, Listen, Day & night, Rover, Journal): the
+  // Rover has its own cell in the row (Space map, Listen, Rover, Day & night, Journal): the
   // row fits, side by side, each control a big enough touch target.
   const row = (await page.locator('.visit-actions').boundingBox())!;
   const viewport = page.viewportSize()!;
@@ -51,7 +54,7 @@ test('Mars: the rover is the next step after three finds; a tapped rock waits fo
   expect(row.y + row.height).toBeLessThanOrEqual(viewport.height);
   const boxes = await page.locator('.visit-actions > button:visible').evaluateAll(buttons =>
     buttons.map(button => button.getBoundingClientRect().toJSON() as DOMRect));
-  expect(boxes).toHaveLength(3);
+  expect(boxes).toHaveLength(5);
   for (let i = 0; i < boxes.length; i++) {
     expect(boxes[i]!.width).toBeGreaterThanOrEqual(54);
     expect(boxes[i]!.height).toBeGreaterThanOrEqual(54);

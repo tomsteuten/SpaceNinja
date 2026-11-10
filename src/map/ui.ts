@@ -4,7 +4,6 @@ import { availability, companionPages, NEIGHBORHOODS, pageIndex, type MapPlace, 
 import './map.css';
 
 export function createMapUI(root: HTMLElement, model: ReturnType<typeof createMapModel>, options: {
-  revealed(): readonly string[]; prerequisite(id: string): string | undefined;
   choose(place: MapPlace): void; browse(step: number): void; moreMoons(): void;
 }) {
   function node<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = '') {
@@ -41,11 +40,10 @@ export function createMapUI(root: HTMLElement, model: ReturnType<typeof createMa
     orb.style.setProperty('--orb-color',place.color); return orb;
   }
   function render() {
-    const revealed = options.revealed(), n = model.neighborhood, primary = n.places[0]!;
-    const state = availability(primary,revealed);
+    const n = model.neighborhood, primary = n.places[0]!;
+    const state = availability(primary);
     title.textContent = n.title; container.dataset.neighborhood = n.id;
-    instruction.textContent = state === 'ready' ? 'Tap a world to fly there' : state === 'locked'
-      ? `Visit ${options.prerequisite(primary.id)} first` : 'Coming later · keep exploring the map';
+    instruction.textContent = state === 'ready' ? 'Tap a world to fly there' : 'Coming later · keep exploring the map';
     previous.name.textContent = NEIGHBORHOODS[pageIndex(model.index,-1)]!.places[0]!.label;
     next.name.textContent = NEIGHBORHOODS[pageIndex(model.index,1)]!.places[0]!.label;
     previous.button.setAttribute('aria-label',`Previous neighborhood: ${previous.name.textContent}`);
@@ -54,18 +52,17 @@ export function createMapUI(root: HTMLElement, model: ReturnType<typeof createMa
     moons.hidden = companionPages(n) === 1;
     moons.textContent = `More moons ${model.companionPage+1}/${companionPages(n)} ›`;
     preview.hidden = state === 'ready';
-    preview.setAttribute('aria-label',`Preview ${primary.label}: ${state === 'locked' ? 'locked' : 'coming later'}`);
+    preview.setAttribute('aria-label',`Preview ${primary.label}: coming later`);
     const previewLabel = node('span','map-preview-label');
-    previewLabel.append(createIcon(state === 'locked' ? 'lock' : 'construction'),document.createTextNode(state === 'locked' ? 'Visit to unlock' : 'Coming later'));
+    previewLabel.append(createIcon('construction'),document.createTextNode('Coming later'));
     preview.replaceChildren(picture(primary),previewLabel);
     destinations.replaceChildren(...model.places.map(place => {
-      const state = availability(place,revealed), button = node('button','map-destination'); button.type = 'button';
+      const state = availability(place), button = node('button','map-destination'); button.type = 'button';
       button.dataset.destination = place.id; button.dataset.availability = state;
-      button.setAttribute('aria-label',state === 'ready' ? `Fly to ${place.label}` : state === 'locked'
-        ? `${place.label} — visit ${options.prerequisite(place.id)} first` : `${place.label} — coming later`);
+      button.setAttribute('aria-label',state === 'ready' ? `Fly to ${place.label}` : `${place.label} — coming later`);
       if (state !== 'ready') button.setAttribute('aria-disabled','true');
       button.append(picture(place),node('span','',place.label));
-      if (state !== 'ready') button.append(createIcon(state === 'locked' ? 'lock' : 'construction'));
+      if (state !== 'ready') button.append(createIcon('construction'));
       button.addEventListener('click',() => options.choose(place)); return button;
     }));
     destinations.dataset.count = String(model.places.length);

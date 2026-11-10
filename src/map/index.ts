@@ -9,7 +9,6 @@ import { neighborhoodBounds } from './framing';
 export function createNeighborhoodMap(options: {
   root: HTMLElement; canvas: HTMLCanvasElement; camera: THREE.PerspectiveCamera;
   world: World; controls: OrbitInput; ship: THREE.Object3D;
-  revealed(): BodyId[]; prerequisite(id: string): string | undefined;
   covered(): boolean; launch(id: BodyId): void; tap(x: number,y: number): void; onBrowse(): void;
 }) {
   const { root, canvas, camera, world, controls, ship } = options;
@@ -18,22 +17,18 @@ export function createNeighborhoodMap(options: {
   let gesture: { id: number; x: number; y: number; moved: number; multi: boolean } | null = null;
   const center = new THREE.Vector3(), point = new THREE.Vector3();
   const ui = createMapUI(root, model, {
-    revealed: options.revealed, prerequisite: options.prerequisite,
     choose, browse,
     moreMoons() { if (!active || options.covered()) return; model.moreMoons(); ui.render(); ui.measure(); },
   });
 
   function choose(place: MapPlace) {
     if (!active || options.covered()) return;
-    const state = availability(place, options.revealed());
-    if (state === 'unbuilt') { ui.feedback(`${place.label} is coming later. Try Earth, Moon or Sun.`); return; }
-    if (state === 'locked') ui.feedback(`Visit ${options.prerequisite(place.id)} first`);
+    if (availability(place) === 'unbuilt') { ui.feedback(`${place.label} is coming later. Try Earth, Moon or Sun.`); return; }
     if (place.body) options.launch(place.body);
   }
   function refresh() {
     ui.render(); ui.measure();
-    const shown = model.neighborhood.scene.filter(id => options.revealed().includes(id));
-    world.setRevealed(shown);
+    world.setShown(model.neighborhood.scene);
     world.setFocus(null);
     ship.visible = model.neighborhood.id === 'earth';
     controls.cancelGesture();
@@ -47,8 +42,7 @@ export function createNeighborhoodMap(options: {
     update();
   }
   function bounds() {
-    const ids = model.neighborhood.scene.filter(id => options.revealed().includes(id));
-    const framed = neighborhoodBounds(ids.map(id => {
+    const framed = neighborhoodBounds(model.neighborhood.scene.map(id => {
       const body = world.bodies[id]; body.getWorldPosition(point);
       return { x: point.x, y: point.y, z: point.z, radius: body.viewRadius ?? body.radius };
     }));
@@ -105,10 +99,7 @@ export function createNeighborhoodMap(options: {
   return {
     get active() { return active; }, get neighborhood() { return model.neighborhood.id; },
     get offset() { return ui.offset; },
-    show(newlyReady?: BodyId) {
-      active=true; ui.setActive(true); refresh(); update();
-      if (newlyReady) ui.feedback(`${world.bodies[newlyReady].label.replace(/^The /,'')} is ready on the map`);
-    },
+    show() { active=true; ui.setActive(true); refresh(); update(); },
     hide() { active=false; clearGesture(); ui.setActive(false); ship.visible=true; },
     update, restingPose, clearGesture,
     resize() { if (active) { ui.measure(); update(); } },

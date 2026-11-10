@@ -1,9 +1,9 @@
 /**
- * Geometry for Earth and the orbiting catalogue worlds, in reveal order.
+ * Geometry for Earth and the orbiting catalogue worlds, in journey order.
  *
  * Owns sizes, orbits, spins, rings, surface specifications and derived map framing.
  * Bodies.ts builds orbiting worlds through its shared builder; Earth keeps its paired-map
- * builder. Facts, places and reveal prerequisites remain in DESTINATIONS in config.ts.
+ * builder. Facts and places remain in DESTINATIONS in config.ts.
  * The Sun observation destination has separate geometry and presentation. Adding a world
  * also requires the dependencies listed in docs/worlds-roadmap.md, including BODY_IDS.
  *
@@ -161,7 +161,7 @@ const saturn: WorldGeometry = {
   },
 };
 
-/** In the order they are earned: the home world first, then each world as it is revealed. */
+/** In journey order: the home world first, then outwards. The map suggests worlds in this order. */
 export const WORLDS: readonly WorldGeometry[] = [earth, moon, mars, saturn];
 
 export const WORLD_IDS: readonly string[] = WORLDS.map((world) => world.id);
@@ -200,16 +200,14 @@ export function reach(world: WorldGeometry): number {
 /**
  * How much of the scene the opening shot tries to fit, given which worlds are drawn.
  *
- * The furthest reach among the revealed worlds, plus a margin. This replaces the three
- * hand-named tiers (Moon, Mars, Saturn) with the rule they were all instances of, so the
- * shot widens exactly when a new world is revealed and never for one that is hidden. The
- * cost is the same as it always was: fitting an outer world shrinks the inner ones, which is
- * why worlds are revealed one at a time rather than all at once. Ids the catalogue does not
- * know are ignored, so stale saved progress cannot break framing.
+ * The furthest reach among the drawn worlds, plus a margin: the shot fits exactly the worlds
+ * on screen. Fitting an outer world shrinks the inner ones; that is the cost of drawing every
+ * world from the first second. Ids the catalogue does not know (the Sun, which sits far off
+ * the map, or a stale id) are ignored, so they cannot break framing.
  */
-export function framingRadiusFor(revealedIds: readonly string[]): number {
+export function framingRadiusFor(drawnIds: readonly string[]): number {
   let furthest = 0;
-  for (const id of revealedIds) {
+  for (const id of drawnIds) {
     const world = BY_ID.get(id);
     if (world) furthest = Math.max(furthest, reach(world));
   }

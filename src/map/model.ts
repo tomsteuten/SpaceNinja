@@ -28,8 +28,9 @@ export function childNeighborhoods(all: readonly Neighborhood[] = NEIGHBORHOODS)
     return [places.length === n.places.length ? n : { ...n, title: places[0]!.label, places }];
   });
 }
-export function availability(place: MapPlace, revealed: readonly string[]): 'ready' | 'locked' | 'unbuilt' {
-  return !place.body ? 'unbuilt' : revealed.includes(place.body) ? 'ready' : 'locked';
+/** Nothing is locked: a place with a built body is ready to fly to, anything else is a fixture. */
+export function availability(place: MapPlace): 'ready' | 'unbuilt' {
+  return place.body ? 'ready' : 'unbuilt';
 }
 export function pageIndex(index: number, step: number, count = NEIGHBORHOODS.length): number {
   return ((index + step) % count + count) % count;

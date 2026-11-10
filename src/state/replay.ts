@@ -13,7 +13,9 @@ export function worldCollections(found: readonly string[]) {
 }
 
 /**
- * Unvisited worlds first; then help finish a collection instead of suggesting nothing.
+ * The one gentle hint on the map: the first unvisited world in journey order (`available` is
+ * given in that order: Earth, the Moon, Mars, Saturn); then help finish a collection instead
+ * of suggesting nothing. It is only ever a suggestion: every world can be flown to at any time.
  *
  * Only worlds with places to find are suggested. The Sun is an observation visit with no
  * task, and it is not drawn on the home map (it sits behind the camera), so a "Tap Sun"
@@ -21,10 +23,7 @@ export function worldCollections(found: readonly string[]) {
  */
 export function nextWorld(progress: Progress, available: readonly string[]): string | null {
   const worlds = available.filter(id => DESTINATIONS[id]?.mission);
-  // Begin with the home world's hands-on lesson; later trips keep their open progression.
-  if (progress.visited.length === 0 && worlds.includes('earth')) return 'earth';
-  const unvisited = [...worlds].reverse().find(id => id !== 'earth' && !progress.visited.includes(id))
-    ?? worlds.find(id => !progress.visited.includes(id));
+  const unvisited = worlds.find(id => !progress.visited.includes(id));
   if (unvisited) return unvisited;
   const collections = worldCollections(progress.discoveries)
     .filter(world => worlds.includes(world.id) && world.found < world.total);

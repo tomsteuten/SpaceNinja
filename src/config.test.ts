@@ -1,43 +1,30 @@
 /**
- * Reveal-gating decides which worlds are drawn, and it has to track the framing tiers exactly:
- * a world framed for tapping but not drawn is a promise of "tap Mars" pointing at nothing, and
- * a world drawn before its tier looms into a shot it was never composed for (Saturn across a
- * portrait phone at the opening, Mars crossing Saturn's rings). This pins the gate to the same
- * visits the framing widens on.
+ * Nothing is locked: every destination is drawn and tappable from the first second, and the
+ * home map's framing has to fit exactly that set. A world framed for tapping but not drawn is
+ * a promise pointing at nothing; a world drawn outside the shot cannot be tapped at all. This
+ * pins the destination list to the scene's bodies and the map framing to all of them.
  */
 
 import { describe, expect, it } from 'vitest';
-import { DESTINATIONS, WIDE_FRAMING_VISIT, WIDER_FRAMING_VISIT, revealedDestinations } from './config';
+import { DESTINATIONS, MAP_FRAMING_RADIUS, framingRadiusFor } from './config';
 import { BODY_IDS } from './scene/Bodies';
 
-describe('revealedDestinations', () => {
-  it('has copy and reveal metadata for every built scene body', () => {
+describe('open exploring', () => {
+  it('has copy for every built scene body', () => {
     expect(Object.keys(DESTINATIONS).sort()).toEqual([...BODY_IDS].sort());
   });
 
-  it('opens on the Sun, Earth and the Moon', () => {
-    expect(new Set(revealedDestinations([]))).toEqual(new Set(['sun', 'earth', 'moon']));
+  it('gates no destination on a visit', () => {
+    for (const config of Object.values(DESTINATIONS)) {
+      expect(Object.keys(config)).not.toContain('revealAfterVisiting');
+    }
   });
 
-  it('reveals Mars once the Moon has been visited', () => {
-    const revealed = new Set(revealedDestinations([WIDE_FRAMING_VISIT]));
-    expect(revealed.has('mars')).toBe(true);
-    // ...and not Saturn yet, which is the state that removes the Mars-through-rings overlap.
-    expect(revealed.has('saturn')).toBe(false);
-  });
-
-  it('reveals Saturn once Mars has been visited', () => {
-    expect(new Set(revealedDestinations([WIDE_FRAMING_VISIT, WIDER_FRAMING_VISIT]))).toEqual(
-      new Set(['sun', 'earth', 'moon', 'mars', 'saturn']),
-    );
-  });
-
-  it('gates on the same visits the framing tiers widen on', () => {
-    // If these drift, a world is framed for tapping while still hidden, or drawn while the
-    // camera has not widened to include it.
-    expect(DESTINATIONS.mars?.revealAfterVisiting).toBe(WIDE_FRAMING_VISIT);
-    expect(DESTINATIONS.saturn?.revealAfterVisiting).toBe(WIDER_FRAMING_VISIT);
-    expect(DESTINATIONS.earth?.revealAfterVisiting).toBeUndefined();
-    expect(DESTINATIONS.moon?.revealAfterVisiting).toBeUndefined();
+  it('frames the home map on every world it draws', () => {
+    // main.ts draws every body and frames with framingRadiusFor over the same ids.
+    expect(framingRadiusFor(BODY_IDS)).toBeCloseTo(MAP_FRAMING_RADIUS);
+    for (const id of BODY_IDS) {
+      expect(framingRadiusFor(BODY_IDS)).toBeGreaterThanOrEqual(framingRadiusFor([id]));
+    }
   });
 });

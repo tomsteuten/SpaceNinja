@@ -6,12 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-  FRAMING_RADIUS,
-  FRAMING_RADIUS_WIDE,
-  FRAMING_RADIUS_WIDER,
-  revealedDestinations,
-} from '../config';
+import { MAP_FRAMING_RADIUS } from '../config';
 import { BODY_IDS } from '../scene/Bodies';
 import { SHIP_DECAL_IDS } from '../scene/shipDecals';
 import { FINALE_STICKER, STICKERS } from '../state/progress';
@@ -28,7 +23,7 @@ import {
 } from './catalogue';
 
 describe('world catalogue', () => {
-  it('lists the worlds with surface hunts, in reveal order, starting at home', () => {
+  it('lists the worlds with surface hunts, in journey order, starting at home', () => {
     expect(WORLD_IDS).toEqual(BODY_IDS.filter(id => id !== 'sun'));
     expect(WORLDS[0]?.orbit).toBeUndefined();
     for (const world of WORLDS.slice(1)) expect(world.orbit).toBeDefined();
@@ -49,20 +44,16 @@ describe('world catalogue', () => {
     expect(reach(saturn)).toBeCloseTo(6.6 + 3.45);
   });
 
-  it('derives the three shipped framing tiers from the revealed set', () => {
-    expect(FRAMING_RADIUS).toBeCloseTo(2.95);
-    expect(FRAMING_RADIUS_WIDE).toBeCloseTo(5.71);
-    expect(FRAMING_RADIUS_WIDER).toBeCloseTo(10.23);
-    expect(framingRadiusFor(revealedDestinations([]))).toBeCloseTo(FRAMING_RADIUS);
-    expect(framingRadiusFor(revealedDestinations(['moon']))).toBeCloseTo(FRAMING_RADIUS_WIDE);
-    expect(framingRadiusFor(revealedDestinations(['moon', 'mars']))).toBeCloseTo(FRAMING_RADIUS_WIDER);
+  it('frames the home map out to Saturn\'s outer ring, since every world is drawn', () => {
+    expect(MAP_FRAMING_RADIUS).toBeCloseTo(10.23);
+    expect(framingRadiusFor(BODY_IDS)).toBeCloseTo(MAP_FRAMING_RADIUS);
   });
 
   it('widens only for worlds that are drawn, and ignores ids it does not know', () => {
-    // Visiting Mars without the Moon is impossible in play, but saved progress can say
-    // anything; the shot must still fit whatever revealedDestinations returns.
-    expect(framingRadiusFor(['earth', 'moon', 'saturn'])).toBeCloseTo(FRAMING_RADIUS_WIDER);
-    expect(framingRadiusFor(['earth', 'moon', 'vulcan'])).toBeCloseTo(FRAMING_RADIUS);
+    expect(framingRadiusFor(['earth', 'moon'])).toBeCloseTo(2.95);
+    expect(framingRadiusFor(['earth', 'moon', 'mars'])).toBeCloseTo(5.71);
+    expect(framingRadiusFor(['earth', 'moon', 'saturn'])).toBeCloseTo(MAP_FRAMING_RADIUS);
+    expect(framingRadiusFor(['earth', 'moon', 'vulcan'])).toBeCloseTo(2.95);
     expect(framingRadiusFor([])).toBe(FRAMING_MARGIN);
   });
 

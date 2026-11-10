@@ -56,9 +56,9 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
       const { x, y, width, height } = button.getBoundingClientRect();
       return { x, y, width, height };
     }));
-  // During the hunt only Space map and Listen show; Day & night, Jump and Journal keep their
-  // cells for later in the visit (quiet-arrival.pw.ts), so these two are already full size.
-  expect(row).toHaveLength(2);
+  // On arrival Space map, Listen and Jump show; Day & night and Journal keep their cells for
+  // later in the visit (quiet-arrival.pw.ts), so these three are already full size.
+  expect(row).toHaveLength(3);
   for (const box of row) expect(box.width).toBeGreaterThanOrEqual(54);
   for (const box of row) {
     expect(box.y).toBeCloseTo(row[0]!.y, 1);

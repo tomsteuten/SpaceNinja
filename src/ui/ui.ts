@@ -32,19 +32,6 @@ export interface DestinationChoice {
   id: string;
   label: string;
   emoji: string;
-  /**
-   * Earned, but not yet. A locked world is shown in the bar and still *not drawn* in the
-   * scene — see `revealedDestinations`. Reveal-gating the bodies fixes two composition
-   * failures reported from a real deploy (Saturn looming across the bottom of a portrait
-   * phone during "Tap the Moon"; Mars crossing Saturn's rings and reading as a moon caught
-   * in them), so the bodies stay gated. What it also did, though, was hide the fact that
-   * there is anywhere else to go at all: the first-run map is Earth and the Moon and gives
-   * a child no reason to believe in a Mars. A padlocked button says "there is more" without
-   * putting an un-earned planet in the shot.
-   */
-  locked?: boolean;
-  /** What to say when a locked one is pressed: the world that unlocks it. */
-  unlockedBy?: string;
   /** Been there: the card wears a tick, so a pre-reader can see what is finished. */
   done?: boolean;
   /**
@@ -58,6 +45,10 @@ export interface DestinationChoice {
 export interface GameUI {
   /** A reward, journal, celebration or transcript currently has the child's attention. */
   readonly activityCovered: boolean;
+  /** The world's toy is the visit's one ringed next step (after the finds, before it is played). */
+  readonly toyIsNext: boolean;
+  /** Space map is the visit's one ringed next step. */
+  readonly mapIsNext: boolean;
   /** Day & night is in the visit row now, not held back until later in the visit. */
   readonly spinAvailable: boolean;
   /** A repeat tap over the old Space map footprint would still be ignored (mapReturnGuard.ts). */
@@ -65,11 +56,7 @@ export interface GameUI {
   /** A short line at the top, optionally led by one of the interface's own icons. */
   setHint(text: string | null, icon?: IconName): void;
   /** Large, stable alternatives to tapping small moving worlds in the canvas. */
-  showDestinations(
-    choices: readonly DestinationChoice[],
-    suggestedId?: string | null,
-    newlyRevealedId?: string | null,
-  ): void;
+  showDestinations(choices: readonly DestinationChoice[], suggestedId?: string | null): void;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
   /** With a `worldId`, the card's title is led by a small picture of that world. */
@@ -159,12 +146,10 @@ export interface GameUI {
    */
   setSpinAttention(on: boolean): void;
   setEarthWelcome(on: boolean): void;
-  /** Open Earth's bedtime spin toy over the visit. */
+  /** Open Earth's bedtime spin toy over the visit. It is Earth's toy, so this plays it. */
   openBedtime(): void;
   /** Take any open toy away without its own exit (crash, teardown). */
   dismissToys(): void;
-  /** The Space map control's gentle "this way next" emphasis, without moving or hiding it. */
-  setMapInvite(on: boolean): void;
   /**
    * Drive the button's own globe from the real turn, 0 → 1, or `null` for a resting half-lit globe.
    *
@@ -195,17 +180,6 @@ export interface GameUI {
    * arrow's own nudge.
    */
   huntArrowCentre(): { x: number; y: number } | null;
-  /**
-   * Shake a destination button. The wordless half of answering a press on a locked world —
-   * the hint line says which world unlocks it, and a child who cannot read gets the shake
-   * and the padlock.
-   */
-  nudgeDestination(id: string): void;
-  /**
-   * Move the map's pointer to another card for a moment and make that card pulse: on a
-   * locked press, the world that unlocks it. Null puts the pointer back on the suggestion.
-   */
-  pointDestination(id: string | null): void;
   /** Back to the opening state, without rebuilding any of the DOM. */
   reset(): void;
   dispose(): void;
@@ -295,14 +269,14 @@ export function createUI(options: UIOptions): GameUI {
   root.append(destinationBar);
 
   /*
-   * Show, don't tell (playtest 2): after a visit the spoken "Mars is ready" and the Tap pill
-   * were not enough for a child who cannot read. One bouncing arrow sits on the card to
-   * press next. It is the same object wherever the map points, so it moves, never multiplies.
+   * Show, don't tell (playtest 2): a spoken suggestion and the Tap pill were not enough for a
+   * child who cannot read. One bouncing arrow sits on the card the map suggests. It is the
+   * same object wherever the map points, so it moves, never multiplies. A suggestion only:
+   * every card flies there.
    */
   const destinationPointer = el('span', 'destination-choice__pointer');
   destinationPointer.setAttribute('aria-hidden', 'true');
   destinationPointer.append(createIcon('pointer'));
-  let suggestedDestination: string | null = null;
 
   function placePointer(id: string | null) {
     for (const card of destinationBar.querySelectorAll('.is-pointed')) card.classList.remove('is-pointed');
@@ -315,13 +289,8 @@ export function createUI(options: UIOptions): GameUI {
     card.append(destinationPointer);
   }
 
-  function showDestinations(
-    choices: readonly DestinationChoice[],
-    suggestedId: string | null = null,
-    newlyRevealedId: string | null = null,
-  ) {
+  function showDestinations(choices: readonly DestinationChoice[], suggestedId: string | null = null) {
     root.classList.toggle('is-home', choices.length > 0);
-    suggestedDestination = suggestedId;
     destinationBar.replaceChildren();
     destinationBar.style.setProperty('--destination-count', String(choices.length));
     for (const choice of choices) {
@@ -329,46 +298,13 @@ export function createUI(options: UIOptions): GameUI {
       button.type = 'button';
       // "Fly to", not "Choose": one press on this button is the whole journey now, and the
       // label a screen reader speaks should say what the press actually does.
-      button.setAttribute(
-        'aria-label',
-        choice.locked
-          ? `${choice.label} — visit ${choice.unlockedBy ?? 'another world'} first`
-          : `Fly to ${choice.label}`,
-      );
-      /*
-       * Deliberately neither `disabled` nor `aria-disabled`. A disabled button answers a
-       * five-year-old's press with nothing at all, which reads as a broken app — the same
-       * reason `showTapEcho` exists for a tap that hits empty space — and `aria-disabled`
-       * tells assistive technology the same lie, that there is nothing here to press. There
-       * is: it shakes, and it says which world unlocks it, and its label says so up front.
-       */
-      button.classList.toggle('is-locked', Boolean(choice.locked));
+      button.setAttribute('aria-label', `Fly to ${choice.label}`);
       // A suggestion, not a selection — nothing is ever in a chosen-but-not-acted-on state
       // any more. It marks the world the map is pointing at, alongside the
       // parked ship's nose.
       button.classList.toggle('is-suggested', choice.id === suggestedId);
-      button.classList.toggle('is-new', choice.id === newlyRevealedId);
-      // The world keeps its own picture even while locked — that picture is the whole
-      // reason to want to go there, and a child who cannot read "Saturn" can want the one
-      // with the rings. The padlock is a corner badge over it rather than a replacement.
       const orb = worldPicture(choice.id);
       button.append(orb, el('span', 'destination-choice__label', choice.label));
-      if (choice.locked) {
-        const lock = createIcon('lock');
-        lock.classList.add('destination-choice__lock');
-        button.append(lock);
-      } else if (choice.id === newlyRevealedId) {
-        // The unlock moment: the padlock this card wore a moment ago pops off with a
-        // sparkle, then the pointer drops onto it (storybook.css). Each piece is removed
-        // by its own animation; reduced motion never draws them.
-        const lock = createIcon('lock');
-        lock.classList.add('destination-choice__lock', 'is-popping');
-        lock.addEventListener('animationend', () => lock.remove(), { once: true });
-        const sparkle = el('span', 'destination-choice__sparkle');
-        sparkle.setAttribute('aria-hidden', 'true');
-        sparkle.addEventListener('animationend', () => sparkle.remove(), { once: true });
-        button.append(lock, sparkle);
-      }
       if (choice.done) {
         const tick = createIcon('tick');
         tick.classList.add('destination-choice__done');
@@ -526,7 +462,7 @@ export function createUI(options: UIOptions): GameUI {
     onHide: () => {
       factCard.inert = false;
       journalPanel.inert = false;
-      pendingReveal?.();
+      pendingAppear?.();
     },
   });
   /** What the thumbnail currently shows, so a tap opens the right one. */
@@ -697,17 +633,22 @@ export function createUI(options: UIOptions): GameUI {
   });
   // Prototype toy: on the Moon, jump side by side with yourself on Earth.
   const moonJump = createMoonJump(root, () => jumpButton.focus());
-  /** Open a world's toy from its visit-row button. Every toy button shares this. */
-  function openToy(open: () => void) {
-    // The toy was the next step after the finds; once played, the journal takes over, and
-    // the rest of the row is there for the child to find when they come back.
-    if (root.classList.contains('is-toy-next')) {
-      root.classList.remove('is-toy-next');
-      // Toy played: the way on is the one ringed step; Journal joins unringed.
+  /** The world's toy has been opened, so it counts as played for this visit. */
+  let toyPlayed = false;
+  function markToyPlayed() {
+    toyPlayed = true;
+    root.classList.remove('is-toy-next');
+    // Played after the finds: Space map is the one ringed way on, and Journal joins unringed.
+    // Played before them: nothing is ringed. The places are still there, never required.
+    if (root.classList.contains('is-complete')) {
       root.classList.add('is-map-next');
       if (!spinBusy) headingCaption.textContent = completeVisitHint();
     }
-    if (visitStage === 'toy') setVisitStage('open');
+    if (visitStage !== 'open') setVisitStage('open');
+  }
+  /** Open a world's toy from its visit-row button. Every toy button shares this. */
+  function openToy(open: () => void) {
+    markToyPlayed();
     setFactOpen(false);
     pendingGuide = null;
     narrator.stop();
@@ -732,26 +673,31 @@ export function createUI(options: UIOptions): GameUI {
   roverButton.append(createIcon('rover'), el('span', 'control-label', 'Rover'));
   roverButton.setAttribute('aria-label', 'Drive the Mars rover');
   roverButton.addEventListener('click', () => openToy(() => marsRover.open()));
-  visitActions.append(homeButton, listenButton, spinButton, jumpButton, bathButton, roverButton, findPlacesButton);
+  // The toy sits straight after Listen, so on arrival the three shown controls are side by
+  // side and the ones that join later (Day & night, then Journal at the end) fill in to the
+  // right. Earth's toy is its Day & night button, so its row reads the same way.
+  visitActions.append(homeButton, listenButton, jumpButton, bathButton, roverButton, spinButton, findPlacesButton);
   dock.append(visitActions);
   root.append(dock);
 
   /*
-   * The visit row fills in as the visit goes on. Owner's playtest, 22 Oct 2026: the child
-   * went straight for the gold places but was confused by how much was on screen at once.
+   * The visit row. Owner's playtest, 22 Oct 2026: five buttons, a caption, a counter and two
+   * queued voice lines on arrival were too much for the child. Open exploring (DECISIONS.md)
+   * keeps that quiet arrival without holding anything back:
    *
-   *   hunt  the gold places are the task: Space map and Listen (Earth keeps Day & night).
-   *   toy   three found: the world's toy pops in as the next step.
-   *   open  the toy has been played, or the world has none: Journal and Day & night join.
+   *   arrival  Space map, Listen and the world's toy (on Earth, Day & night: its bedtime
+   *            spin). The gold places are on the world too, and optional.
+   *   open     the child has done something, found a first place or played the toy:
+   *            Journal (and Day & night on the Moon, Mars and Saturn) join.
    *
    * A held control keeps its cell in the grid, invisible and out of the focus order, so the
    * row never reflows and Space map never moves when the others arrive.
    */
-  type VisitStage = 'hunt' | 'toy' | 'open';
+  type VisitStage = 'arrival' | 'open';
   let visitStage: VisitStage = 'open';
   let stageGeneration = 0;
-  /** A reveal waiting for the third find's postcard to close, so its pop is seen. */
-  let pendingReveal: (() => void) | null = null;
+  /** Controls waiting for a first find's postcard to close, so their pop is seen. */
+  let pendingAppear: (() => void) | null = null;
   function hold(control: HTMLElement, held: boolean) {
     control.classList.toggle('is-held', held);
     if (held) control.setAttribute('aria-hidden', 'true');
@@ -761,12 +707,12 @@ export function createUI(options: UIOptions): GameUI {
   function setVisitStage(stage: VisitStage, appear = true) {
     visitStage = stage;
     const generation = ++stageGeneration;
-    pendingReveal = null;
-    root.classList.toggle('is-hunting', stage === 'hunt');
+    pendingAppear = null;
     const earth = visitWorldId === 'earth';
     const controls: [HTMLElement, boolean][] = [
+      // The toy is never held back.
       ...[...visitActions.querySelectorAll<HTMLElement>('.toy-btn')].map(
-        (toy): [HTMLElement, boolean] => [toy, stage === 'hunt']),
+        (toy): [HTMLElement, boolean] => [toy, false]),
       [journalButton, stage !== 'open'],
       [spinButton, !earth && stage !== 'open'],
     ];
@@ -778,7 +724,7 @@ export function createUI(options: UIOptions): GameUI {
     if (appearing.length === 0) return;
     const reveal = () => {
       if (generation !== stageGeneration) return;
-      pendingReveal = null;
+      pendingAppear = null;
       for (const control of appearing) {
         hold(control, false);
         control.classList.add('is-appearing');
@@ -788,11 +734,11 @@ export function createUI(options: UIOptions): GameUI {
         later(settle, 600);
       }
     };
-    // The third find's postcard may still be loading its photograph; wait for it, and then
+    // A first find's postcard may still be loading its photograph; wait for it, and then
     // for the child to close it, so the pop happens in front of them rather than behind it.
     void photoPending.catch(() => undefined).then(() => {
       if (generation !== stageGeneration) return;
-      if (photoViewer.isOpen) pendingReveal = reveal;
+      if (photoViewer.isOpen) pendingAppear = reveal;
       else reveal();
     });
   }
@@ -1050,13 +996,23 @@ export function createUI(options: UIOptions): GameUI {
 
   let journalOpen = false;
   let journalOpening: PanelOpening | null = null;
+  /** What the heading says after the finds: always the one ringed next step. */
   function completeVisitHint() {
     if (root.classList.contains('is-toy-next')) {
       if (visitWorldId === 'saturn') return 'Three found! Now try the bath.';
       if (visitWorldId === 'mars') return 'Three found! Now drive the rover.';
+      if (visitWorldId === 'earth') return 'Three found! Now turn Earth.';
       return 'Three found! Now try Jump.';
     }
     return 'Choose your next trip on the Space map.';
+  }
+  /** The visit's toy control: Jump, Bath or Rover, and on Earth its Day & night spin. */
+  function visitToy(): HTMLElement | null {
+    if (visitWorldId === 'moon') return jumpButton;
+    if (visitWorldId === 'saturn') return bathButton;
+    if (visitWorldId === 'mars') return roverButton;
+    if (visitWorldId === 'earth' && DESTINATIONS.earth?.spin) return spinButton;
+    return null;
   }
   function setJournalOpen(open: boolean) {
     journalOpen = open;
@@ -1415,6 +1371,14 @@ export function createUI(options: UIOptions): GameUI {
       return !spinButton.classList.contains('is-hidden') && !spinButton.classList.contains('is-held');
     },
 
+    get toyIsNext() {
+      return root.classList.contains('is-toy-next');
+    },
+
+    get mapIsNext() {
+      return root.classList.contains('is-map-next');
+    },
+
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
         factOpen || moonJump.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen || marsRover.isOpen;
@@ -1427,7 +1391,8 @@ export function createUI(options: UIOptions): GameUI {
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
       root.classList.remove('is-home');
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next', 'is-hunting');
+      toyPlayed = false;
       findPlacesButton.classList.add('is-hidden');
       worldHeading.classList.add('is-hidden');
       listenButton.classList.add('is-hidden');
@@ -1464,6 +1429,9 @@ export function createUI(options: UIOptions): GameUI {
       arrivalCue = cueId;
       visitWorldId = worldId;
       visitFinds = [];
+      toyPlayed = false;
+      // While places remain the heading is just the world's name (storybook.css).
+      root.classList.toggle('is-hunting', Boolean(DESTINATIONS[worldId]?.mission));
       setHint(null);
       destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
@@ -1474,8 +1442,8 @@ export function createUI(options: UIOptions): GameUI {
       bathButton.classList.toggle('is-hidden', worldId !== 'saturn');
       roverButton.classList.toggle('is-hidden', worldId !== 'mars');
       visitActions.classList.toggle('has-toy', worldId === 'moon' || worldId === 'saturn' || worldId === 'mars');
-      // A world with gold places starts with just them; the rest of the row comes after.
-      setVisitStage(DESTINATIONS[worldId]?.mission ? 'hunt' : 'open', false);
+      // Space map, Listen and the toy; Journal joins once the child has done something.
+      setVisitStage(DESTINATIONS[worldId]?.mission ? 'arrival' : 'open', false);
     },
 
     beginMission(caption: string, total: number, cueId?: string, speak = false) {
@@ -1564,6 +1532,8 @@ export function createUI(options: UIOptions): GameUI {
       if (!visitFinds.includes(discovery.id)) visitFinds.push(discovery.id);
       photoFor = discovery.id;
       photoPending = attachPhoto(discovery, !revisited);
+      // A first find is doing something: the journal joins, after its postcard is closed.
+      if (visitStage !== 'open') setVisitStage('open');
       journalButton.setAttribute('data-new', 'true');
       if (journalOpen) renderJournal();
     },
@@ -1589,15 +1559,18 @@ export function createUI(options: UIOptions): GameUI {
       // The visit's finds are ready to revisit together. Keep exits in place and give the
       // journal the gold emphasis, cleared on the next arrival/flight.
       root.classList.add('is-complete');
-      // A world with a toy: the places come first, then the toy is the next thing to do.
-      // Its invitation replaces the "fly home" follow-up, which would point away from it.
-      const toyCue = visitActions.classList.contains('has-toy') ? `toy-${visitWorldId}` : null;
-      if (toyCue && narrator.hasRecording(toyCue)) followUp = { text: cueText(toyCue), cueId: toyCue };
-      if (toyCue) root.classList.add('is-toy-next');
-      // No toy: nothing stands between the third find and the way on, so Space map is ringed.
-      else root.classList.add('is-map-next');
-      // Only the toy pops in now; the journal waits until the toy has been played.
-      setVisitStage(toyCue ? 'toy' : 'open');
+      root.classList.remove('is-hunting');
+      // One ringed next step. The toy, if it has not been played this visit: its invitation
+      // replaces the "fly home" follow-up, which would point away from it (Earth has no toy
+      // line; its Day & night invitation speaks for itself). Otherwise Space map.
+      if (visitToy() && !toyPlayed) {
+        root.classList.add('is-toy-next');
+        const toyCue = `toy-${visitWorldId}`;
+        followUp = narrator.hasRecording(toyCue) ? { text: cueText(toyCue), cueId: toyCue } : undefined;
+      } else {
+        root.classList.add('is-map-next');
+      }
+      setVisitStage('open');
       headingCaption.textContent = completeVisitHint();
       // Clear the slots before the award lands: they share the top of the screen.
       missionHud.classList.add('is-hidden');
@@ -1651,6 +1624,7 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     openBedtime() {
+      markToyPlayed();
       setFactOpen(false);
       bedtimeSpin.open();
     },
@@ -1668,10 +1642,6 @@ export function createUI(options: UIOptions): GameUI {
       headingCaption.textContent = on ? 'Make night. Bring back morning.'
         : root.classList.contains('is-complete') ? completeVisitHint() : 'Tap a gold place';
       spinLabel.textContent = on ? 'Turn Earth' : 'Day & night';
-    },
-
-    setMapInvite(on: boolean) {
-      root.classList.toggle('is-map-next', on);
     },
 
     setSpinProgress(progress: number | null) {
@@ -1703,22 +1673,6 @@ export function createUI(options: UIOptions): GameUI {
       root.classList.toggle('is-sound-off', !on);
       if (!on) narrator.stop();
       updateNarrateButton();
-    },
-
-    nudgeDestination(id: string) {
-      const button = destinationBar.querySelector(`[data-destination="${id}"]`);
-      if (!button) return;
-      // Restart the animation on a repeat press rather than ignoring it: a child who presses
-      // a locked world twice is asking twice and should be answered twice.
-      button.classList.remove('is-refused');
-      void (button as HTMLElement).offsetWidth;
-      button.classList.add('is-refused');
-    },
-
-    pointDestination(id: string | null) {
-      for (const card of destinationBar.querySelectorAll('.is-unlocker')) card.classList.remove('is-unlocker');
-      if (id) destinationBar.querySelector(`[data-destination="${id}"]`)?.classList.add('is-unlocker');
-      placePointer(id ?? suggestedDestination);
     },
 
     setHuntArrow(side: -1 | 1 | null) {
@@ -1777,7 +1731,8 @@ export function createUI(options: UIOptions): GameUI {
       visitFinds = [];
       dayLegend.classList.add('is-hidden');
       missionHud.style.visibility = '';
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next', 'is-hunting');
+      toyPlayed = false;
       findPlacesButton.classList.add('is-hidden');
       worldHeading.classList.add('is-hidden');
       listenButton.classList.add('is-hidden');

@@ -24,7 +24,7 @@ async function dragAround(page: Page, from: number, degrees: number) {
   await page.mouse.up();
 }
 
-test('first Earth visit: Turn Earth opens the bedtime spin, and night then morning points on to the Moon', async ({ page }) => {
+test('first Earth visit: Turn Earth opens the bedtime spin; night then morning, with the places still optional', async ({ page }) => {
   const cues: string[] = [];
   page.on('request', (request) => {
     const match = /(day-night-[a-z]+)[^/]*\.mp3/.exec(request.url());
@@ -51,22 +51,27 @@ test('first Earth visit: Turn Earth opens the bedtime spin, and night then morni
   await expect.poll(async () => Number(await toy.getAttribute('data-hour'))).toBeGreaterThan(startHour + 3);
   await expect(toy).toHaveAttribute('data-part', 'night');
 
-  // The big button carries on through the night to morning.
+  // The big button carries on through the night to morning. No places are found yet, so
+  // Space map is not ringed and morning does not send the child away to the Moon: it says
+  // "keep turning", which is true. ("Fly to the Moon next" is kept for after the finds.)
   const turn = toy.getByRole('button', { name: 'Turn Earth' });
-  for (let i = 0; i < 6 && !(await snapshot(page)).mapInvite; i++) {
+  for (let i = 0; i < 6 && !cues.includes('day-night-done'); i++) {
     await turn.click();
     await page.waitForTimeout(700);
   }
-  await expect.poll(async () => (await snapshot(page)).mapInvite).toBe(true);
-  await expect.poll(() => cues).toEqual(expect.arrayContaining(['day-night-start', 'day-night-night', 'day-night-moon']));
+  await expect.poll(() => cues).toEqual(expect.arrayContaining(['day-night-start', 'day-night-night', 'day-night-done']));
+  expect(cues).not.toContain('day-night-moon');
+  expect((await snapshot(page)).mapInvite).toBe(false);
 
   await toy.getByRole('button', { name: 'Back to Earth' }).click();
   await expect(toy).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveCount(1);
   await expect(page.locator('.spin-btn')).toBeFocused();
   await expect.poll(async () => (await snapshot(page)).guidedHunt).toBe(true);
-  // The hunt is the next step: no ring on Space map while gold places remain.
+  // The toy has been played: the journal joins. Nothing is ringed while gold places remain.
+  await expect(page.locator('.visit-actions .journal-btn')).toBeVisible();
   expect((await snapshot(page)).mapInvite).toBe(false);
+  await expect(page.locator('#ui')).not.toHaveClass(/is-toy-next/);
 });
 
 test('a later Earth visit: Day & night opens the spin, a full turn is a day, and the places are untouched', async ({ page }) => {

@@ -18,7 +18,6 @@ const ICONS = {
   back: '<path d="m12 7-8 11 8 10M5 18h20c7 0 10 4 10 10"/>',
   spaceMap: '<path d="m9 6-6 6 6 6M4 12h12" stroke="#e2f2f6" stroke-width="3"/><circle cx="23" cy="24" r="10" fill="#69b7d5" stroke="#d0eef1"/><path d="m21 15-5 7 7 2 1 8 6-7-2-7Z" fill="#b8d8a5" stroke="none"/><circle cx="35" cy="9" r="5" fill="#d8d9dd" stroke="#eff1ef"/><circle cx="36" cy="8" r="1.5" fill="#a2aabb" stroke="none"/>',
   dragHand: '<path d="M4 9H1m0 0 3-3M1 9l3 3M20 9h3m0 0-3-3m3 3-3 3" stroke="#fff0c4"/><path d="M9 20V8a2 2 0 0 1 4 0v6l2-1 4 2v4l-3 4h-5l-5-6a2 2 0 0 1 3-2" fill="#fff0c4" stroke="#263b55"/>',
-  lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/>',
   rocket:
     '<path d="M12 2.6c2.7 2.4 4.1 5.5 4.1 8.9v3.2l1.8 1.9v3.2l-2.9-1.3-3 1.3-3-1.3-2.9 1.3v-3.2l1.8-1.9v-3.2c0-3.4 1.4-6.5 4.1-8.9Z"/>' +
     '<circle cx="12" cy="10" r="1.7"/>',

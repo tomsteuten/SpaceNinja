@@ -48,9 +48,9 @@ export interface Progress {
    * Bodies the ship has actually arrived at.
    *
    * Kept apart from stickers because "where you have been" and "what you finished" are
-   * different facts, and the game needs the first one on its own: the opening shot widens
-   * to take in Mars once the Moon has been *visited*. Tying that to a sticker meant a
-   * child who flew to the Moon and simply looked at it never unlocked anything.
+   * different facts, and the game needs the first one on its own: the map ticks a world and
+   * moves its suggestion on once it has been *visited*, whether or not anything was found.
+   * Nothing is locked, so a visit opens nothing; the field is kept for saved progress.
    */
   visited: string[];
 }

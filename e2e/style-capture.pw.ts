@@ -112,7 +112,7 @@ for (const [name, viewport] of [
       await toy.getByRole('button', { name: 'Back to Earth' }).click();
       await expect(toy).toHaveCount(0);
 
-      // The journal joins the row once the visit's places are found.
+      // The journal joined the row when Day & night (Earth's toy) was played.
       for (let i = 0; i < 3; i++) await findNext(page);
       await page.locator('.visit-actions .journal-btn').click();
       await expect(page.locator('.journal-panel')).toBeVisible();

@@ -73,12 +73,7 @@
 .destination-bar { width:min(620px,calc(100% - var(--pad-left) - var(--pad-right))); grid-template-columns:repeat(var(--destination-count,5),minmax(0,1fr)); }
 .destination-choice { height:91px; }
 .destination-choice.is-suggested { background:linear-gradient(#ffe6a5,#f4cf7c); color:var(--control-ink); border-color:#fff0c3; box-shadow:inset 0 2px #fff7dd,0 4px 0 #9b713e,0 6px 12px #0003; }
-.destination-choice.is-locked { opacity:.68; }
-.destination-choice__lock { position:absolute; right:6px; top:6px; }
-.destination-choice__lock .icon { width:13px; height:13px; }
 .destination-choice:focus-visible { outline:3px solid var(--control-blue); outline-offset:3px; }
-.destination-choice.is-refused { animation:refuse .4s ease; }
-@keyframes refuse { 25%,75% { translate:-3px 0; } 50% { translate:3px 0; } }
 
 /* Reading, collection and photographs share a contained panel and pictured exit. */
 .panel-shade,.photo-view { position:absolute; inset:0; z-index:50; background:#060a16ed; display:flex; align-items:center; justify-content:center; padding:24px; pointer-events:auto; }

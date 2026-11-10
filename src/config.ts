@@ -84,31 +84,26 @@ export const CAMERA_NEAR = 0.05;
 export const CAMERA_FAR = 800;
 
 /**
- * The three framing tiers, as the catalogue derives them: the opening shot fits Earth and
- * the Moon; visiting the Moon widens it to Mars; visiting Mars widens it to Saturn's outer
- * ring. They are instances of one rule (`framingRadiusFor`) rather than three hand-tuned
- * numbers, and main.ts asks the rule directly for whatever set of worlds is revealed. The
- * names remain for the tests.
+ * The home map's framing, as the catalogue derives it: the furthest reach among the worlds
+ * that are drawn, which is every world from the first second (nothing is locked, see
+ * DECISIONS.md). It used to come in three tiers that widened as each outer world was earned;
+ * with every world drawn there is one shot, out to Saturn's outer ring.
  *
- * The opening tier has to cover the Moon at the far side of its orbit, or a portrait phone
- * — whose horizontal field of view is tiny — loses the destination off the edge of the
- * screen. The wide tier is deliberately not the opening framing: fitting Mars shrinks Earth
- * and the Moon to a third of the size, a bad first impression for a five-year-old who has
- * not been given a reason to care yet. The widest tier is the one that costs the most: a
- * fourth, far body can only be framed for tapping on a narrow portrait phone by pulling
- * right back, which shrinks Earth, the Moon and Mars to specks in that one shot. That trade
- * was made on purpose (there is no other way to keep the tap-the-world-you-see model with
- * an outer planet) and it is the composition to watch on the real tablet.
+ * That shot is the one that costs the most: a far body can only be framed for tapping on a
+ * narrow portrait phone by pulling right back, which shrinks Earth, the Moon and Mars to
+ * specks. The destination bar is the stable way to choose a small world, so the scene can
+ * stay scenery; it is the composition to watch on the real tablet.
+ *
+ * main.ts frames the map with `framingRadiusFor` over the ids it draws, so framing and
+ * drawing cannot drift apart; this constant is the same rule applied to every world.
  */
-export const FRAMING_RADIUS = framingRadiusFor(['earth', 'moon']);
-export const FRAMING_RADIUS_WIDE = framingRadiusFor(['earth', 'moon', 'mars']);
-export const FRAMING_RADIUS_WIDER = framingRadiusFor(['earth', 'moon', 'mars', 'saturn']);
+export const MAP_FRAMING_RADIUS = framingRadiusFor(['earth', 'moon', 'mars', 'saturn']);
 export { FRAMING_MARGIN, framingRadiusFor };
 export const MIN_ORBIT_DISTANCE = 0.6;
 /**
- * Raised from 20 so FRAMING_RADIUS_WIDER fits on the narrowest phone in portrait, where the
- * horizontal field of view is only about 34 degrees — the previous 20 was set for
- * FRAMING_RADIUS_WIDE (Mars) and cannot reach Saturn's orbit. The cost is that a child can
+ * Raised from 20 so MAP_FRAMING_RADIUS fits on the narrowest phone in portrait, where the
+ * horizontal field of view is only about 34 degrees — the previous 20 was set for a shot
+ * that reached Mars and cannot reach Saturn's orbit. The cost is that a child can
  * now pinch any scene out this far too; the inner scenes already allowed zooming a body down
  * to a speck, so this extends an existing property rather than introducing a new one.
  */
@@ -132,24 +127,6 @@ export const MAX_ORBIT_DISTANCE = 36;
  * is a cut — fade out, arrive, fade in — not the same sweep played fast.
  */
 export const FLIGHT_DURATION = 7; // seconds
-
-/**
- * Reaching this is what widens the opening shot to take in Mars.
- *
- * Tied to *visiting* the Moon, not to finishing its collection. Collecting is optional —
- * a child who flies out, looks at the Moon and comes home has done the thing this game is
- * about, and gating the rest of the solar system behind a tapping game would have told
- * them otherwise.
- */
-export const WIDE_FRAMING_VISIT = 'moon';
-
-/**
- * And visiting Mars is what widens the shot again to take in Saturn. Same reasoning as
- * WIDE_FRAMING_VISIT: tied to *going*, not to finishing a collection, so the next world
- * appears for a child who flew to Mars and looked around, whether or not they found its
- * three places.
- */
-export const WIDER_FRAMING_VISIT = 'mars';
 
 /**
  * A real place on a real body, at its real coordinates.
@@ -230,7 +207,7 @@ export interface Discovery {
  * generic and takes the body at runtime, so only the copy lives here.
  */
 export interface DestinationConfig {
-  /** Wordless identity used by the large map controls and reveal announcement. */
+  /** Wordless identity used by the large map controls. */
   emoji: string;
   /** Shown on arrival. */
   fact: string;
@@ -273,20 +250,6 @@ export interface DestinationConfig {
      */
     tint: string;
   };
-  /**
-   * Don't draw this world until that one has been visited.
-   *
-   * The framing tiers already widen the opening shot to take a world in only once the
-   * previous one has been reached (WIDE_FRAMING_VISIT / WIDER_FRAMING_VISIT) — but the body
-   * was drawn all along, so an outer world a child had not earned yet still loomed into the
-   * shot: Saturn across the bottom of a portrait phone during "Tap the Moon", and Mars
-   * crossing Saturn's rings. Gating the *body* on the same visit the framing gates on makes
-   * the reveal real: the opening is Earth and the Moon, Mars appears once the Moon has been
-   * seen, Saturn once Mars has. A body keeps orbiting while hidden, so revealing it later
-   * does not teleport it. The value is a body id; kept a plain string so config.ts stays free
-   * of a Bodies.ts import. Earth and the Moon set nothing — they are there from the start.
-   */
-  revealAfterVisiting?: string;
   /** Surface hunts are a capability; a star visit has no solid places to collect. */
   mission?: {
     instruction: string;
@@ -557,8 +520,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   mars: {
     emoji: '🔴',
-    // Revealed once the Moon has been visited — the same gate WIDE_FRAMING_VISIT widens on.
-    revealAfterVisiting: 'moon',
     spin: {
       invite: 'You can turn Mars. Tap the globe.',
       label: 'Spin Mars',
@@ -664,10 +625,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
   },
   saturn: {
     emoji: '🪐',
-    // Revealed once Mars has been visited — the same gate WIDER_FRAMING_VISIT widens on. This
-    // is what stops Saturn looming into the opening shot before a child has earned it, and
-    // (until Mars is reached) removes the Mars-through-the-rings overlap entirely.
-    revealAfterVisiting: 'mars',
     // The animated turn is a calm one like the others (SATURN_SPIN_RATE), not the real
     // ten-hour whirl — the fact tells the truth the picture would only make dizzying.
     spin: {
@@ -816,17 +773,3 @@ export const DISCOVERIES: Record<string, Discovery> = Object.fromEntries(
  * future destination too, instead of quietly going wrong again the next time one is added.
  */
 export const JOURNAL_SLOTS = Object.keys(DISCOVERIES).length;
-
-/**
- * Which destinations are drawn, given where a child has been.
- *
- * A world with no `revealAfterVisiting` is always shown; one that has it appears only once
- * that gate world has been visited. Derived from the config rather than written down, so a new
- * outer world is gated by adding the field and nothing else — and it takes the id list rather
- * than reading storage, so it is a pure function the scene can be checked against without one.
- */
-export function revealedDestinations(visited: readonly string[]): string[] {
-  return Object.entries(DESTINATIONS)
-    .filter(([, config]) => !config.revealAfterVisiting || visited.includes(config.revealAfterVisiting))
-    .map(([id]) => id);
-}
