@@ -1,3 +1,6 @@
+> As of 10 November 2026 [DECISIONS.md](../DECISIONS.md) governs. Toys are optional per world
+> and no longer gate visits. This file is the idea bank, not a schedule.
+
 # Toys: one big idea per world
 
 The Moon jump (`src/toys/moonJump.ts`) is the pattern. Each destination gets **one toy**: a

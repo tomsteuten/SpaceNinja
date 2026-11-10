@@ -296,9 +296,8 @@ flight.
 **One tap is one journey.** Touching a world starts the flight — there is no separate Fly
 button. It used to take two presses, and the second one was somewhere else on screen, so the
 natural response to "I touched Mars and nothing happened" was to touch Mars again. That
-defeated adults as reliably as children. The worlds not yet earned still appear in the bar,
-padlocked: the bodies stay reveal-gated so an un-earned planet cannot loom into the shot, but
-hiding them completely also hid the fact that there was anywhere else to go.
+defeated adults as reliably as children. (Since 10 November 2026 nothing is locked, see
+DECISIONS.md: every world can be visited from the first second.)
 
 **Arrival offers an action immediately.** The first Earth visit invites turning Earth or
 finding places, with a visible way back to the map. Gold places are available immediately
@@ -331,7 +330,7 @@ this keeps every destination inside one composable frame. Radii, though, stay tr
 Moon really is 0.27 Earths and Mars really is 0.53 — because relative size is something a
 child can learn from a picture, and relative distance at this scale is unshowable.
 
-**The map only widens and reveals a world once it has earned the right to.** Fitting every
+**(Superseded 10 November 2026: worlds no longer unlock in order, see DECISIONS.md.) The map used to widen and reveal a world only once it had earned the right to.** Fitting every
 destination from the first frame shrinks Earth and the Moon to specks, which is a poor first
 impression for a child with no reason to care about the outer worlds yet. *Visiting* the
 Moon widens the view and reveals Mars; visiting Mars does the same for Saturn. The new world

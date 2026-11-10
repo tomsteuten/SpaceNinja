@@ -1,5 +1,17 @@
 # Current implementation and handover
 
+## Finish plan (10 November 2026)
+
+Scope is [DECISIONS.md](../DECISIONS.md). Tick a phase here when it lands.
+
+- [x] **Phase 0, clear the decks:** merge done-visible, one-page rules.
+- [x] **Phase 1, open it up:** no locked worlds; each world's toy is there on arrival; gold places optional (`f2a1457`, branch `finish/open-explore`, not on `main`). Known gap: with all five worlds in one shot the home map is cramped (Saturn overlaps Earth, worlds are tiny on a phone). Do the paged map next, before merging to `main`. Also open: the first Earth visit still queues a second spoken line.
+- [ ] **Phase 3a, paged map (pulled forward):** paged neighbourhood map (`src/map/`), moons orbit their parent.
+- [ ] **Phase 2, the two missing lessons:** Moon torch (reflected light and phases); fly away from the Sun until it is one star among many; a sunrise-from-the-house view in the bedtime spin.
+- [ ] **Phase 3b, cheap worlds:** light world template (texture, three places, arrival fact), piloted on Jupiter.
+- [ ] **Phase 4, fill in:** Mercury and Venus; Io, Europa, Uranus, Neptune, Titan; Pluto and Makemake.
+- [ ] **Phase 5, ship:** one ElevenLabs narration pass, phone performance, stranger-proof first run, credits, keyboard/TV-remote check.
+
 ## Done, shown — 23 October 2026
 
 State audit 11 and 22. A finished visit's journal page leads with the trip: a sun "3 found!"
@@ -120,7 +132,7 @@ press (decision history, 17 October). Unit tests pass; browser results are in PR
 
 ## Wave 0 checkpoint: 15 October 2026
 
-Work follows [the expansion handover](handover-2026-10-15-expansion.md) under
+Work follows [the expansion handover](archive/handover-2026-10-15-expansion.md) under
 [DECISIONS.md](../DECISIONS.md). Wave 0 is done: experiments removed (tag `pre-freeze` marks
 `91f27fa`), old handovers and reviews in `docs/archive/`, `mission.singleSet` lets a new world
 carry exactly three places, and [content/worlds.md](../content/worlds.md) holds all twelve
