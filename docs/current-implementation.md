@@ -12,7 +12,11 @@ Scope is [DECISIONS.md](../DECISIONS.md). Tick a phase here when it lands.
   - Paging: big arrows at the screen edges (sky; sun when carrying the hint), swipe, Left/Right keys, page dots; a 0.6 s glide, a cut under reduced motion. The map owns the camera only while it is up.
   - Hint order Earth, Moon, Mars, Sun, Saturn. Off the page the arrow carries the pointer, the heading says "Tap the arrow for X" and the nudge is the recorded "You can tap the arrow". The first Earth visit no longer queues "You can turn Earth" behind its welcome.
   - Still open: the Moon orbits Earth, but a moon orbiting another parent (Io, Europa, Titan) arrives with those worlds.
-- [ ] **Phase 2, the two missing lessons:** Moon torch (reflected light and phases); fly away from the Sun until it is one star among many; a sunrise-from-the-house view in the bedtime spin.
+- [x] **Phase 2, the three lessons** (branch `finish/lessons`):
+  - Moonlight (`moonLight.ts`, `moonPhase.ts`): drag the Moon round Earth, a round "From Earth" window shows its phase, the Sun is a switch; Sun off, the Moon goes dark. It takes Day & night's cell on the Moon's row (never ringed; Jump stays the Moon's next step). The Moon's timed day turn is now unreachable there; Mars and Saturn keep it.
+  - Far away (`sunStar.ts`, `starDistance.ts`): hold Fly away from the Sun, size is 1/distance on a log scale (about 9 s), past Earth and Neptune to a ringed dot among twinkling stars that bloom when tapped. Reduced motion cuts between milestones. On the Sun's row on arrival; Space map is ringed once played.
+  - Sunrise from the house: a "From the house" window in the bedtime spin, driven by the house hour (`sunInSky`, `skyColours`, `bedtimeLayout` in `daySpin.ts`).
+  - New lines are script-only (`toy-moonlight`, `toy-sun`, `moonlight-on/off`, `sunstar-earth/neptune/far`); screenshots in `design/lessons/`. Open: child playtest; record the lines in the ElevenLabs pass.
 - [ ] **Phase 3b, cheap worlds:** light world template (texture, three places, arrival fact), piloted on Jupiter.
 - [ ] **Phase 4, fill in:** Mercury and Venus; Io, Europa, Uranus, Neptune, Titan; Pluto and Makemake.
 - [ ] **Phase 5, ship:** one ElevenLabs narration pass, phone performance, stranger-proof first run, credits, keyboard/TV-remote check.

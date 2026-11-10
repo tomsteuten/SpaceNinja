@@ -20,6 +20,8 @@
   --crayon-teal: #57c1b4;
   --crayon-bubble: #f49ac1;
   --crayon-lime: #b9dc4f;
+  --crayon-moon: #c5cdd9;
+  --crayon-star: #7f8ae6;
   --hand: 'Patrick Hand', 'Comic Sans MS', cursive;
   --read: Andika, var(--font);
   --line: 3px solid var(--ink-line);
@@ -50,6 +52,9 @@
 .visit-actions > .btn.jump-btn { background:var(--crayon-sun); }
 .visit-actions > .btn.bath-btn { background:var(--crayon-bubble); }
 .visit-actions > .btn.rover-btn { background:var(--crayon-lime); }
+.visit-actions > .btn.moonlight-btn { background:var(--crayon-moon); }
+.visit-actions > .btn.sun-star-btn { background:var(--crayon-star); }
+.visit-actions > .btn.moonlight-btn .icon,.visit-actions > .btn.sun-star-btn .icon { width:30px; height:30px; }
 .visit-actions .find-places-btn { background:var(--crayon-sun); color:var(--ink-line); }
 .visit-actions .find-places-btn .icon { color:var(--ink-line); }
 .visit-actions .journal-btn,.ui > .journal-btn { background:var(--crayon-tomato); color:var(--ink-line); border:var(--line); box-shadow:var(--lift); }

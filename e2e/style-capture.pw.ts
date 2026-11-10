@@ -1,5 +1,5 @@
 // Full-resolution captures of every child-facing screen for visual review: home map, Moon
-// visit, postcard, jump toy, Earth hunt, Words card, day/night, journal, Saturn bath, Mars rover, hunt arrow, finale
+// visit, postcard, jump toy, Moonlight, Earth hunt, Words card, day/night, journal, Saturn bath, Mars rover, hunt arrow, finale
 // and grown-ups panel.
 // Skipped unless STYLE_OUT is set: STYLE_OUT=design/<folder> npx playwright test e2e/style-capture.pw.ts --project=phone
 import { expect, test, type Page } from '@playwright/test';
@@ -90,6 +90,21 @@ for (const [name, viewport] of [
       await page.locator('.moon-jump__jump').click();
       await page.waitForTimeout(1700);
       await shot(page, '3-jump');
+      await page.getByRole('button', { name: 'Back to the Moon', exact: true }).click();
+
+      // Moonlight took Day & night's cell: a crescent, the full Moon, and the Sun switched off.
+      await page.locator('.moonlight-btn').click();
+      const light = page.locator('.moon-light');
+      await expect(light).toBeVisible();
+      await page.waitForTimeout(500);
+      await shot(page, '18-moonlight-crescent');
+      for (let i = 0; i < 3; i++) await light.locator('.moon-light__move').click();
+      await expect(light).toHaveAttribute('data-phase', 'Full Moon');
+      await page.waitForTimeout(300);
+      await shot(page, '19-moonlight-full');
+      await light.getByRole('button', { name: 'Sun off' }).click();
+      await page.waitForTimeout(300);
+      await shot(page, '20-moonlight-sun-off');
     });
 
     test(`earth ${name}`, async ({ page }) => {
@@ -112,6 +127,12 @@ for (const [name, viewport] of [
       for (let i = 0; i < 2; i++) { await toy.getByRole('button', { name: 'Turn Earth' }).click(); await page.waitForTimeout(800); }
       await page.waitForTimeout(1500);
       await shot(page, '6-day-night');
+      // On through the night to sunrise and midday: the From the house window follows the clock.
+      for (const [file, presses] of [['6b-sunrise', 3], ['6c-midday', 2]] as const) {
+        for (let i = 0; i < presses; i++) { await toy.getByRole('button', { name: 'Turn Earth' }).click(); await page.waitForTimeout(800); }
+        await page.waitForTimeout(600);
+        await shot(page, file);
+      }
       await toy.getByRole('button', { name: 'Back to Earth' }).click();
       await expect(toy).toHaveCount(0);
 
@@ -167,6 +188,26 @@ for (const [name, viewport] of [
       await expect(rover).toHaveAttribute('data-phase', 'restock', { timeout: 60000 });
       await page.waitForTimeout(1000);
       await shot(page, '17-mars-rover-three-samples');
+    });
+
+    test(`sun far away ${name}`, async ({ page }) => {
+      await start(page);
+      await fly(page, 'Sun');
+      await expect(page.locator('.sun-star-btn')).toBeVisible();
+      await page.waitForTimeout(2000);
+      await shot(page, '21-sun-visit');
+      await page.locator('.sun-star-btn').click();
+      const toy = page.locator('.sun-star');
+      await expect(toy).toBeVisible();
+      await page.waitForTimeout(800);
+      await shot(page, '22-far-away-start');
+      const flyAway = toy.getByRole('button', { name: /^Fly away from the Sun/ });
+      for (const [i, id] of ['earth', 'neptune', 'far'].entries()) {
+        await flyAway.click();
+        await expect(toy).toHaveAttribute('data-milestone', id);
+        await page.waitForTimeout(400);
+        await shot(page, `${23 + i}-far-away-${id}`);
+      }
     });
 
     test(`finale ${name}`, async ({ page }) => {

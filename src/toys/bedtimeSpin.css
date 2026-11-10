@@ -12,11 +12,18 @@
 .bedtime-spin__turn .world-orb,.bedtime-spin__back .world-orb { width:38px; height:38px; border:2px solid var(--ink-line,#2b2118); }
 .bedtime-spin__back:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
 .bedtime-spin__turn:active { transform:translateX(-50%) translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line,#2b2118); }
+/* "From the house": the sky outside, in a round window with a label beside or under it. */
+.bedtime-spin__window { position:absolute; box-sizing:border-box; overflow:hidden; border:4px solid var(--paper,#f8f0dd); border-radius:50%; background:#070a18; box-shadow:5px 5px 0 #000a; pointer-events:none; }
+.bedtime-spin__window canvas { display:block; width:100%; height:100%; }
+.bedtime-spin__window-tag { position:absolute; display:flex; align-items:center; gap:6px; box-sizing:border-box; width:160px; justify-content:center; padding:4px 12px 4px 8px; background:var(--paper,#f8f0dd); color:var(--ink-line,#2b2118); border:3px solid var(--ink-line,#2b2118); border-radius:14px; box-shadow:3px 3px 0 var(--ink-line,#2b2118); font:400 20px/1 var(--hand,cursive); white-space:nowrap; transform:rotate(1deg); pointer-events:none; }
+.bedtime-spin__window-tag .icon { width:28px; height:26px; color:var(--ink-line,#2b2118); }
+.bedtime-spin button:focus-visible { outline:4px solid #fff; outline-offset:4px; }
 @media (max-width:520px) {
   .bedtime-spin__turn { min-width:170px; height:72px; font-size:24px; }
   .bedtime-spin__back { height:72px; padding:0 10px; }
   .bedtime-spin__back .world-orb { display:none; }
   .bedtime-spin__caption { font-size:21px; }
+  .bedtime-spin__window-tag { font-size:18px; padding:3px 10px 3px 6px; }
 }
 @media (max-height:480px) {
   .bedtime-spin__turn,.bedtime-spin__back { height:62px; }

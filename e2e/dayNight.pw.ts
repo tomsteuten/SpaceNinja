@@ -1,9 +1,11 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { showWorld } from './fixtures';
 
 /*
  * The 3D day turn: the camera swings side-on, the world turns once with the teaching Sun
  * beside it, and the camera is handed back. Earth uses its bedtime spin toy instead
- * (earth-day.pw.ts); the Moon and Mars still use this.
+ * (earth-day.pw.ts) and the Moon its Moonlight toy (moon-light.pw.ts); Mars and Saturn still
+ * use this.
  */
 
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
@@ -45,9 +47,10 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   });
   await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
-  await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
+  await showWorld(page, 'Mars');
+  await page.getByRole('button', { name: 'Fly to Mars', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
-  // Day & night joins the Moon's row once a place is found or the toy played (quiet-arrival.pw.ts).
+  // Day & night joins Mars's row once a place is found or the toy played (quiet-arrival.pw.ts).
   for (let i = 0; i < 3; i++) {
     let target = (await snapshot(page)).targets.find((t: any) => t.visible);
     if (!target) {
@@ -61,15 +64,15 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
     await page.getByRole('button', { name: 'Close the photo', exact: true }).click();
     await expect(page.locator('.photo-view')).toBeHidden();
   }
-  await page.getByRole('button', { name: 'Jump on the Moon', exact: true }).click();
-  await page.getByRole('button', { name: 'Back to the Moon', exact: true }).click();
+  await page.getByRole('button', { name: 'Drive the Mars rover', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to Mars', exact: true }).click();
   // Measure the row once the newly arrived buttons have finished popping in.
   await expect(page.locator('.visit-actions .is-appearing')).toHaveCount(0);
   const activity = page.locator('.spin-btn');
   await expect(activity).toHaveText('Day & night');
   expect((await snapshot(page)).dayTurning).toBe(false);
   await assertControlsFit(page);
-  await screenshot(page, info, 'moon-contextual-controls');
+  await screenshot(page, info, 'mars-contextual-controls');
 
   // Keyboard activation and explicit stop also work during the initial camera swing.
   const before = await snapshot(page);
@@ -81,8 +84,8 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await snapshot(page)).dayTurning).toBe(false);
   await expect.poll(async () => (await snapshot(page)).cameraReturning).toBe(false);
-  // The Moon's surface drifts slowly on its own, so the exact one-turn guarantee lives in
-  // DayTurn.test.ts; here the places and the hunt come back unchanged.
+  // The exact one-turn guarantee lives in DayTurn.test.ts; here the places and the hunt come
+  // back unchanged.
   const stoppedFrame = (await snapshot(page)).frame;
   await expect.poll(async () => (await snapshot(page)).frame).toBeGreaterThan(stoppedFrame);
   const after = await snapshot(page);
@@ -99,7 +102,7 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
   const controlsWithWords = await page.locator('.visit-actions').boundingBox();
   expect(controlsWithWords!.x).toBeCloseTo(controlsBeforeWords!.x, 1);
   expect(controlsWithWords!.y).toBeCloseTo(controlsBeforeWords!.y, 1);
-  await screenshot(page, info, 'moon-day-night-words');
+  await screenshot(page, info, 'mars-day-night-words');
   await page.waitForTimeout(650);
   await page.getByRole('button', { name: 'Close the words', exact: true }).click();
 
@@ -117,7 +120,7 @@ test('day/night is optional, discoverable, stoppable and returns camera ownershi
 
   // Returning home interrupts a turn without leaving a second camera owner behind.
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Fly to Moon', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Fly to Mars', exact: true })).toBeVisible();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('idle');
   expect((await snapshot(page)).dayTurning).toBe(false);
   expect((await snapshot(page)).cameraReturning).toBe(false);

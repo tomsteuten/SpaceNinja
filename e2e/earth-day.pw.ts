@@ -1,13 +1,14 @@
 import { test, expect } from './fixtures';
 import type { Page } from '@playwright/test';
+import { bedtimeLayout } from '../src/toys/daySpin';
 
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 
 /** Earth's centre and radius in the bedtime spin, matching its layout(). */
 async function spinGeometry(page: Page) {
   const box = (await page.locator('.bedtime-spin__canvas').boundingBox())!;
-  const r = Math.min(box.width * 0.36, box.height * 0.3, 260);
-  return { cx: box.x + box.width * 0.56, cy: box.y + box.height * 0.44, r };
+  const { earth } = bedtimeLayout(box.width, box.height);
+  return { cx: box.x + earth.cx, cy: box.y + earth.cy, r: earth.r };
 }
 
 /** Drags round Earth's centre through `degrees` (negative = counter-clockwise on screen). */
@@ -42,6 +43,10 @@ test('first Earth visit: Turn Earth opens the bedtime spin; night then morning, 
   await expect(toy).toBeVisible();
   await expect(toy).toHaveAttribute('data-part', 'day');
   const startHour = Number(await toy.getAttribute('data-hour'));
+  // At the start (mid-afternoon) the window has the Sun up and on its way to the west (right) edge.
+  const house = toy.getByRole('img', { name: /^From the house/ });
+  await expect(house).toHaveAttribute('data-sun', 'up');
+  expect(Number(await house.getAttribute('data-sun-x'))).toBeGreaterThan(0.3);
 
   // Clockwise is backwards for Earth seen from above the North Pole: nothing happens.
   await dragAround(page, 90, 60);
@@ -50,6 +55,8 @@ test('first Earth visit: Turn Earth opens the bedtime spin; night then morning, 
   await dragAround(page, 90, -75);
   await expect.poll(async () => Number(await toy.getAttribute('data-hour'))).toBeGreaterThan(startHour + 3);
   await expect(toy).toHaveAttribute('data-part', 'night');
+  // The From the house window shows the same night: the Sun is down and the sky is dark.
+  await expect(toy.locator('.bedtime-spin__window')).toHaveAttribute('data-sun', 'down');
 
   // The big button carries on through the night to morning. No places are found yet, so
   // Space map is not ringed and morning does not send the child away to the Moon: it says
@@ -101,6 +108,12 @@ test('a later Earth visit: Day & night opens the spin, a full turn is a day, and
   await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
     .some(entry => entry.name.includes('earth.jpg')))).toBe(true);
 
+  // The window never covers the controls (the house, clock and Earth are kept clear by bedtimeLayout).
+  const frame = (await toy.locator('.bedtime-spin__window').boundingBox())!;
+  for (const name of ['Turn Earth', 'Back to Earth']) {
+    const b = (await toy.getByRole('button', { name }).boundingBox())!;
+    expect(frame.x + frame.width <= b.x || b.x + b.width <= frame.x || frame.y + frame.height <= b.y || b.y + b.height <= frame.y, `window vs ${name}`).toBe(true);
+  }
   await page.keyboard.press('Escape');
   await expect(toy).toHaveCount(0);
   // The 3D Earth was left alone while the toy was open.

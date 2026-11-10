@@ -6,6 +6,11 @@
  * bedtime, then it comes round into the morning. A clock shows the hours passing and a
  * counter the days: one turn, one day, 24 hours.
  *
+ * A round "From the house" window shows the same moment as the house sees it, looking south:
+ * the Sun rises at the left (east) edge at six, climbs overhead at noon, sets at the right
+ * (west) edge at six in the evening, and the sky is dark with stars at night, all driven by
+ * the one house hour so it stays in step with the spinning Earth and the clock.
+ *
  * The Earth is real: the game's own Blue Marble and city-lights maps, reprojected once into
  * the view from above the pole. A self-contained overlay like the Moon jump; it owns nothing
  * in the 3D scene.
@@ -14,7 +19,8 @@ import './bedtimeSpin.css';
 import { worldPicture } from '../ui/pictures';
 import { createIcon } from '../ui/icons';
 import {
-  dragTurn, daysPassed, hourAt, houseAngle, isNight, partOfDay, turnForHour, type PartOfDay,
+  bedtimeLayout, dragTurn, daylight, daysPassed, hourAt, houseAngle, isNight, partOfDay, skyColours,
+  starAlpha, sunInSky, turnForHour, type BedtimeLayout, type PartOfDay,
 } from './daySpin';
 
 export interface BedtimeSpin {
@@ -41,6 +47,14 @@ const BUTTON_TURN = TAU / 8;
 const BUTTON_SPEED = BUTTON_TURN / 0.5;
 const PROJECTED_SIZE = 512;
 
+/** What the window shows, for anyone who cannot see it. */
+const WINDOW_LABELS: Record<PartOfDay, string> = {
+  day: 'From the house: the Sun is up in the sky',
+  evening: 'From the house: the Sun is setting',
+  night: 'From the house: a dark sky with stars',
+  morning: 'From the house: the Sun is rising',
+};
+
 const CAPTIONS: Record<PartOfDay, string> = {
   day: 'Daytime at your house',
   evening: 'The Sun is setting',
@@ -55,12 +69,13 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, te
   return node;
 }
 
-function seededStars(count: number): [number, number, number][] {
-  let s = 11;
+function seededStars(count: number, seed = 11): [number, number, number][] {
+  let s = seed;
   const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   return Array.from({ length: count }, () => [rand(), rand(), 0.4 + rand() * 1.2]);
 }
 const STARS = seededStars(90);
+const WINDOW_STARS = seededStars(40, 77);
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -146,9 +161,20 @@ export function createBedtimeSpin(host: HTMLElement, options: BedtimeSpinOptions
   turnButton.type = 'button';
   turnButton.append(worldPicture('earth'), el('span', '', 'Turn Earth'));
 
-  root.append(canvas, caption, days, back, turnButton);
+  // "From the house": the sky outside, a round window with its own small canvas.
+  const windowFrame = el('div', 'bedtime-spin__window');
+  windowFrame.setAttribute('role', 'img');
+  const windowCanvas = el('canvas', '');
+  windowFrame.append(windowCanvas);
+  const windowTag = el('div', 'bedtime-spin__window-tag');
+  windowTag.setAttribute('aria-hidden', 'true');
+  windowTag.append(createIcon('house'), el('span', '', 'From the house'));
+
+  root.append(canvas, caption, days, windowFrame, windowTag, back, turnButton);
 
   const ctx = canvas.getContext('2d')!;
+  const wctx = windowCanvas.getContext('2d')!;
+  let L: BedtimeLayout = bedtimeLayout(360, 740);
   let open = false;
   let frame = 0;
   let last = 0;
@@ -168,8 +194,7 @@ export function createBedtimeSpin(host: HTMLElement, options: BedtimeSpinOptions
   let lastMove = 0;
 
   function layout() {
-    const r = Math.min(width * 0.36, height * 0.3, 260);
-    return { cx: width * 0.56, cy: height * 0.44, r };
+    return L.earth;
   }
 
   function resize() {
@@ -178,6 +203,15 @@ export function createBedtimeSpin(host: HTMLElement, options: BedtimeSpinOptions
     height = root.clientHeight;
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
+    L = bedtimeLayout(width, height);
+    const { window: win, tag } = L;
+    windowFrame.style.left = `${win.cx - win.d / 2}px`;
+    windowFrame.style.top = `${win.cy - win.d / 2}px`;
+    windowFrame.style.width = windowFrame.style.height = `${win.d}px`;
+    windowTag.style.left = `${tag.left}px`;
+    windowTag.style.top = `${tag.top}px`;
+    const inner = Math.max(1, Math.round(windowFrame.clientWidth));
+    windowCanvas.width = windowCanvas.height = Math.round(inner * dpr);
   }
 
   function advance(by: number) {
@@ -196,6 +230,11 @@ export function createBedtimeSpin(host: HTMLElement, options: BedtimeSpinOptions
     days.classList.toggle('is-hidden', n === 0);
     root.dataset.part = part;
     root.dataset.hour = hour.toFixed(2);
+    const sun = sunInSky(hour);
+    windowFrame.dataset.sun = sun.above ? 'up' : 'down';
+    windowFrame.dataset.sunX = sun.x.toFixed(2);
+    windowFrame.dataset.sunHeight = sun.y.toFixed(2);
+    windowFrame.setAttribute('aria-label', WINDOW_LABELS[part]);
     root.dataset.days = String(n);
   }
 
@@ -279,6 +318,82 @@ export function createBedtimeSpin(host: HTMLElement, options: BedtimeSpinOptions
       ctx.fillText('z', size * 0.65, -size * 1.15);
     }
     ctx.restore();
+  }
+
+  const rgb = (c: readonly number[]) => `rgb(${Math.round(c[0]!)},${Math.round(c[1]!)},${Math.round(c[2]!)})`;
+
+  /** The sky outside the house, looking south: east on the left, west on the right. */
+  function drawWindow(hour: number) {
+    const size = windowCanvas.width / dpr;
+    if (size < 2) return;
+    wctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const horizon = size * 0.76;
+    const sky = skyColours(hour);
+    const gradient = wctx.createLinearGradient(0, 0, 0, horizon);
+    gradient.addColorStop(0, rgb(sky.top));
+    gradient.addColorStop(1, rgb(sky.low));
+    wctx.fillStyle = gradient;
+    wctx.fillRect(0, 0, size, size);
+    const stars = starAlpha(hour);
+    if (stars > 0) {
+      wctx.fillStyle = '#ffffff';
+      for (const [sx, sy, sr] of WINDOW_STARS) {
+        wctx.globalAlpha = stars * (0.5 + sr * 0.25);
+        wctx.fillRect(sx * size, sy * horizon * 0.95, sr + 0.4, sr + 0.4);
+      }
+      wctx.globalAlpha = 1;
+    }
+    // The Sun climbs the sky from the east (left) edge to the west (right) edge, and goes
+    // down behind the ground; the hill is drawn over its lower part.
+    const sun = sunInSky(hour);
+    if (sun.y > -0.3) {
+      const sx = size * 0.5 + sun.x * size * 0.37;
+      const sy = horizon - sun.y * horizon * 0.78;
+      const r = size * 0.1;
+      const glow = wctx.createRadialGradient(sx, sy, r * 0.3, sx, sy, r * 3.2);
+      glow.addColorStop(0, '#fff3c0cc');
+      glow.addColorStop(0.35, '#ffd25a66');
+      glow.addColorStop(1, '#ffb34200');
+      wctx.fillStyle = glow;
+      wctx.beginPath();
+      wctx.arc(sx, sy, r * 3.2, 0, TAU);
+      wctx.fill();
+      wctx.fillStyle = '#f2b632';
+      wctx.strokeStyle = '#2b2118';
+      wctx.lineWidth = Math.max(2, size * 0.014);
+      wctx.beginPath();
+      wctx.arc(sx, sy, r, 0, TAU);
+      wctx.fill();
+      wctx.stroke();
+    }
+    // The ground, lit by day and dark at night, with a couple of trees for scale.
+    const lit = daylight(hour);
+    const ground = (a: number, b: number) => `rgb(${Math.round(a * lit + 14 * (1 - lit))},${Math.round(b * lit + 24 * (1 - lit))},${Math.round(35 * lit + 30 * (1 - lit))})`;
+    wctx.fillStyle = ground(106, 174);
+    wctx.beginPath();
+    wctx.moveTo(0, horizon + size * 0.06);
+    wctx.quadraticCurveTo(size * 0.3, horizon - size * 0.06, size * 0.5, horizon + size * 0.03);
+    wctx.quadraticCurveTo(size * 0.78, horizon + size * 0.09, size, horizon + size * 0.05);
+    wctx.lineTo(size, size);
+    wctx.lineTo(0, size);
+    wctx.closePath();
+    wctx.fill();
+    wctx.strokeStyle = '#2b2118';
+    wctx.lineWidth = Math.max(2, size * 0.014);
+    wctx.stroke();
+    for (const [tx, ty, ts] of [[0.2, 0.8, 1], [0.78, 0.84, 0.8]] as const) {
+      const x = size * tx;
+      const y = size * ty;
+      const t = size * 0.07 * ts;
+      wctx.fillStyle = ground(70, 130);
+      wctx.beginPath();
+      wctx.moveTo(x - t * 0.8, y);
+      wctx.lineTo(x, y - t * 2.2);
+      wctx.lineTo(x + t * 0.8, y);
+      wctx.closePath();
+      wctx.fill();
+      wctx.stroke();
+    }
   }
 
   function drawClock(x: number, y: number, radius: number, hour: number) {
@@ -383,8 +498,8 @@ export function createBedtimeSpin(host: HTMLElement, options: BedtimeSpinOptions
 
     const hour = hourAt(turn);
     drawHouse(cx, cy, r, isNight(hour));
-    const clockR = Math.max(34, Math.min(56, r * 0.3));
-    drawClock(width - clockR - 18, clockR + 18, clockR, hour);
+    drawClock(L.clock.x, L.clock.y, L.clock.r, hour);
+    drawWindow(hour);
   }
 
   function loop(now: number) {

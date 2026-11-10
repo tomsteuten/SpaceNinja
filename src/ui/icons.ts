@@ -58,6 +58,20 @@ const ICONS = {
   rover:
     '<path d="M4 12.5h13v3.5H4z"/><path d="M15 12.5V7.5M12.5 5h5.5v2.5h-5.5z"/><path d="M7 12.5 6 10h4"/>' +
     '<circle cx="5.5" cy="19" r="2"/><circle cx="10.5" cy="19" r="2"/><circle cx="15.5" cy="19" r="2"/>',
+  /** Moonlight: a crescent Moon with a ray of sunlight arriving from the left. */
+  moonlight:
+    '<path d="M17.5 4.5a8 8 0 1 0 2 11.5 6.4 6.4 0 0 1-2-11.5Z"/>' +
+    '<path d="M2.5 8.5h4M2 13h5M3.5 17.5h4" stroke-dasharray="1 3.2"/>',
+  /** Far away: the Sun getting smaller, big to small to a dot, along a line. */
+  farAway:
+    '<circle cx="6.5" cy="12" r="4.6"/><circle cx="15" cy="12" r="2.4"/><circle cx="20.5" cy="12" r="1"/>',
+  /** A looking eye, for the "from Earth" window. */
+  eye:
+    '<path d="M2.5 12c2.6-4.6 6-6.8 9.5-6.8s6.9 2.2 9.5 6.8c-2.6 4.6-6 6.8-9.5 6.8S5.1 16.6 2.5 12Z"/>' +
+    '<circle cx="12" cy="12" r="3"/>',
+  /** A little house, for the "from the house" window. */
+  house:
+    '<path d="M4 11.5 12 4.5l8 7M6 10v9.5h12V10"/><path d="M10 19.5v-5h4v5"/>',
   /** Done: a crayon tick, for a world the child has already been to. */
   tick: '<path d="m5 12.5 4.5 4.5L19 6.5"/>',
   /** The map's "go here next": a fat arrow pointing down at the card. */
