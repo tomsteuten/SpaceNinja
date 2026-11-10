@@ -19,6 +19,8 @@ async function arriveAtSun(page: Page) {
 }
 
 test('Sun: Far away is on the row at arrival, flies out past Earth and Neptune to a star among stars', async ({ page }) => {
+  // Stepping by milestone is the reduced-motion behaviour; with motion on a tap is a short hop.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await arriveAtSun(page);
   const ui = page.locator('#ui');
   const button = page.getByRole('button', { name: 'Far away: fly away from the Sun', exact: true });
@@ -102,6 +104,8 @@ test('Sun: holding Fly away flies and releasing stops, with motion on; the toy s
   await page.waitForTimeout(1500);
   await page.mouse.up();
   await expect(toy).toHaveAttribute('data-flying', 'no');
+  // Let the eased picture settle on where the flight stopped (slow frames lag behind it).
+  await page.waitForTimeout(800);
   const stopped = Number(await toy.getAttribute('data-progress'));
   expect(stopped).toBeGreaterThan(0.1);
   expect(stopped).toBeLessThan(0.5);
