@@ -32,7 +32,17 @@ not understandable and the icons look amateurish, worse on a phone. Order of wor
   assert staging or old layouts.
 - [ ] **Owner's children play it**; then roll the screen out to Mars, Saturn and the Sun.
 
-Sun "Far away" and the bedtime-spin sunrise window have not had owner feedback yet.
+- [ ] **Redo the controls of the Sun's "Far away" toy** (`src/toys/sunStar.ts`). The owner,
+  an adult, found the toy but could not work out how to use it: "Fly back" and "Fly away"
+  are not intuitive, a tap only hops a tiny step (it needs a nine-second hold, which nobody
+  guesses), and the slider and its Earth/Neptune labels sit on top of the Sun and read as
+  decoration. Mock it first. Direction: one obvious action with no hold (for example one big
+  rocket button that starts the flight and keeps going by itself, tap again to stop, with the
+  same button turning round to fly home at the far end), or the child drags the rocket
+  itself away from the Sun. Keep the honest 1/distance shrinking and the three milestones;
+  keep the strip clear of the Sun.
+
+The bedtime-spin sunrise window has not had owner feedback yet.
 
 - [x] **Phase 0, clear the decks:** merge done-visible, one-page rules.
 - [x] **Phase 1, open it up:** no locked worlds; each world's toy is there on arrival; gold places optional (`f2a1457`, branch `finish/open-explore`, not on `main`). Known gap: with all five worlds in one shot the home map is cramped (Saturn overlaps Earth, worlds are tiny on a phone). Do the paged map next, before merging to `main`. Also open: the first Earth visit still queues a second spoken line.
