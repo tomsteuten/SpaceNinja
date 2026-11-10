@@ -4,6 +4,36 @@
 
 Scope is [DECISIONS.md](../DECISIONS.md). Tick a phase here when it lands.
 
+### Next up: the visit screen (11 November 2026) — do this before Phase 3b
+
+The owner played the live game (`5b829bb`): the crayon style can stay, but the visit screen is
+not understandable and the icons look amateurish, worse on a phone. Order of work:
+
+- [ ] **Mock the visit screen** (Moon, phone portrait and landscape), two or three options as
+  pictures for the owner to pick. Fixed layout on every world: the world in the middle with
+  its gold places; the world's toys as one or two big illustrated cards, there from arrival;
+  Space map always in the same corner; Listen and Journal small. No staged pop-ins, no
+  first-Earth special flow, no "Words" box in the heading. Check what the yellow arrow and
+  hand at the left edge of a visit are for, and whether a five-year-old needs them.
+- [ ] **Replace the line-glyph icons** (`src/ui/icons.ts`: the Jump stick figure, Moonlight,
+  Listen, Journal, Space map) with one consistent illustrated set. Candidates: Fluent Emoji
+  flat (MIT) or OpenMoji (CC BY-SA), or the Icons8 plugin if the owner installed it. Credit
+  the set on the credits page.
+- [ ] **Redo Moonlight as a simpler toy.** The lesson is "the Moon is bright because it
+  reflects sunlight", not phases. One big Moon; the child drags the Sun around it and the lit
+  side follows; the Sun switch turns it dark. The current top-down diagram is physically
+  right (the half facing the Sun is always lit; the Moon is full when Earth is between it and
+  the Sun, and Earth's shadow only reaches it in an eclipse because the orbit is tilted about
+  5 degrees) but it reads as "Earth blocks the light", so it teaches the wrong thing.
+  `moonPhase.ts` can stay for a later phases toy.
+- [ ] **Rebuild the visit row cleanly** rather than patching `setVisitStage` in
+  `src/ui/ui.ts` again; keep the 3D scene, content and toy physics. Moon and Earth first.
+- [ ] **Cut the browser suite to a smoke set** (DECISIONS.md, "Tests"); delete specs that
+  assert staging or old layouts.
+- [ ] **Owner's children play it**; then roll the screen out to Mars, Saturn and the Sun.
+
+Sun "Far away" and the bedtime-spin sunrise window have not had owner feedback yet.
+
 - [x] **Phase 0, clear the decks:** merge done-visible, one-page rules.
 - [x] **Phase 1, open it up:** no locked worlds; each world's toy is there on arrival; gold places optional (`f2a1457`, branch `finish/open-explore`, not on `main`). Known gap: with all five worlds in one shot the home map is cramped (Saturn overlaps Earth, worlds are tiny on a phone). Do the paged map next, before merging to `main`. Also open: the first Earth visit still queues a second spoken line.
 - [x] **Phase 3a, paged map (pulled forward):** paged neighbourhood map (`src/map/`), moons orbit their parent.
