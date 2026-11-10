@@ -175,8 +175,8 @@ export function createMoonLight(host: HTMLElement, options: MoonLightOptions = {
     const short = height <= 480;
     const controlsTop = height - 18 - (short ? 62 : width <= 520 ? 72 : 76);
     if (wide) {
-      const moonR = clamp(height * 0.055, 16, 24);
-      const earthR = clamp(height * 0.085, 24, 38);
+      const moonR = clamp(height * 0.065, 18, 28);
+      const earthR = clamp(height * 0.105, 28, 46);
       const path = clamp((controlsTop - 70) / 2 - moonR - 4, 60, 150);
       const cx = width * 0.42;
       const cy = clamp(70 + moonR + path, 70, controlsTop - path - moonR - 6);

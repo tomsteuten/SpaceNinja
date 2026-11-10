@@ -127,6 +127,12 @@ for (const [name, viewport] of [
       for (let i = 0; i < 2; i++) { await toy.getByRole('button', { name: 'Turn Earth' }).click(); await page.waitForTimeout(800); }
       await page.waitForTimeout(1500);
       await shot(page, '6-day-night');
+      // On through the night to sunrise and midday: the From the house window follows the clock.
+      for (const [file, presses] of [['6b-sunrise', 3], ['6c-midday', 2]] as const) {
+        for (let i = 0; i < presses; i++) { await toy.getByRole('button', { name: 'Turn Earth' }).click(); await page.waitForTimeout(800); }
+        await page.waitForTimeout(600);
+        await shot(page, file);
+      }
       await toy.getByRole('button', { name: 'Back to Earth' }).click();
       await expect(toy).toHaveCount(0);
 
