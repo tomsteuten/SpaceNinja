@@ -116,6 +116,7 @@ test('Sun: holding Fly away flies and releasing stops, with motion on; the toy s
   await page.setViewportSize({ width: viewport.height, height: viewport.width });
   await expect(toy).toBeVisible();
   const size = page.viewportSize()!;
+  await expect.poll(async () => { const b = (await toy.getByRole('button', { name: /^Back to the Sun/ }).boundingBox())!; return b.y + b.height; }).toBeLessThanOrEqual(size.height);
   for (const name of [/^Fly away from the Sun/, /^Fly back/, /^Back to the Sun/]) {
     const b = (await toy.getByRole('button', { name }).boundingBox())!;
     expect(b.x).toBeGreaterThanOrEqual(0);

@@ -79,8 +79,11 @@ test('Moon: Moonlight survives a turn of the phone and the back button returns f
   const viewport = page.viewportSize()!;
   await page.setViewportSize({ width: viewport.height, height: viewport.width });
   await expect(toy).toBeVisible();
-  const frame = (await toy.locator('.moon-light__window').boundingBox())!;
   const size = page.viewportSize()!;
+  // The window is placed by the toy's resize handler; wait for it to land in the new shape.
+  const windowBox = async () => (await toy.locator('.moon-light__window').boundingBox())!;
+  await expect.poll(async () => { const b = await windowBox(); return b.y + b.height; }).toBeLessThanOrEqual(size.height);
+  const frame = await windowBox();
   expect(frame.x).toBeGreaterThanOrEqual(0);
   expect(frame.x + frame.width).toBeLessThanOrEqual(size.width);
   expect(frame.y + frame.height).toBeLessThanOrEqual(size.height);
