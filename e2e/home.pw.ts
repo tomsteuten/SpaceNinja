@@ -12,7 +12,7 @@ type Box = { x: number; y: number; width: number; height: number };
 async function expectPageFramed(page: Page, controls: Locator[]) {
   const viewport = page.viewportSize()!;
   const s = await snapshot(page);
-  const worlds = Object.entries(s.mapScreen) as [string, { x: number; y: number; radius: number }][];
+  const worlds = Object.entries(s.mapScreen) as [string, { x: number; y: number; radius: number; rim: [number, number][] }][];
   expect(worlds.map(([id]) => id).sort()).toEqual([...s.mapBodyIds].sort());
   const boxes: Box[] = [];
   for (const control of controls) {
@@ -20,15 +20,23 @@ async function expectPageFramed(page: Page, controls: Locator[]) {
   }
   for (const [id, body] of worlds) {
     expect(body.radius * 2, `${id} is clearly visible`).toBeGreaterThan(20);
-    expect(body.x - body.radius, `${id} left edge`).toBeGreaterThanOrEqual(0);
-    expect(body.x + body.radius, `${id} right edge`).toBeLessThanOrEqual(viewport.width);
-    expect(body.y - body.radius, `${id} top edge`).toBeGreaterThanOrEqual(0);
-    expect(body.y + body.radius, `${id} bottom edge`).toBeLessThanOrEqual(viewport.height);
+    // The silhouette as drawn: the sphere, plus the edge of any rings (an ellipse when tilted).
+    const xs = [body.x - body.radius, body.x + body.radius, ...body.rim.map(([x]) => x)];
+    const ys = [body.y - body.radius, body.y + body.radius, ...body.rim.map(([, y]) => y)];
+    expect(Math.min(...xs), `${id} left edge`).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...xs), `${id} right edge`).toBeLessThanOrEqual(viewport.width);
+    expect(Math.min(...ys), `${id} top edge`).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...ys), `${id} bottom edge`).toBeLessThanOrEqual(viewport.height);
     for (const box of boxes) {
-      // The nearest point of the control to the world's centre is outside its silhouette.
+      // The nearest point of the control to the world's centre is outside its sphere,
+      // and no point of a ring's edge lies under the control.
       const nx = Math.max(box.x, Math.min(body.x, box.x + box.width));
       const ny = Math.max(box.y, Math.min(body.y, box.y + box.height));
       expect(Math.hypot(nx - body.x, ny - body.y), `${id} clear of a control`).toBeGreaterThan(body.radius * 0.9);
+      for (const [x, y] of body.rim) {
+        const under = x > box.x && x < box.x + box.width && y > box.y && y < box.y + box.height;
+        expect(under, `${id} rings clear of a control`).toBe(false);
+      }
     }
   }
   worlds.forEach(([a, one], i) => worlds.slice(i + 1).forEach(([b, other]) => {

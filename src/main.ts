@@ -1196,7 +1196,14 @@ async function main() {
         // against exactly the worlds it draws.
         mapScreen: Object.fromEntries((map.active ? map.pageWorlds : []).map((id) => {
           const body = world.bodies[id];
-          return [id, screenCircle(body.getWorldPosition(new THREE.Vector3()), body.viewRadius ?? body.radius)];
+          const at = body.getWorldPosition(new THREE.Vector3());
+          // `radius` is the sphere; `rim` is the ring edge as drawn. Tilted rings are an
+          // ellipse, so a circle of the ring radius would overstate what is on screen.
+          const rim = world.mapFootprint(id, false).outline.map((point) => {
+            const p = point.clone().project(camera);
+            return [(p.x + 1) * innerWidth / 2, (1 - p.y) * innerHeight / 2];
+          });
+          return [id, { ...screenCircle(at, body.radius), rim }];
         })),
         teachingSun: (() => {
           const cue = world.teachingSun.group;
