@@ -38,11 +38,8 @@ import { createTeachingSun, type TeachingSun } from './TeachingSun';
 export const BODY_IDS = ['sun', 'earth', 'moon', 'mars', 'saturn'] as const;
 export type BodyId = typeof BODY_IDS[number];
 
-/** Long enough to read as a reveal, short enough not to hold up the next choice. */
-export const WORLD_REVEAL_DURATION = 0.9;
-
 /**
- * A visiting world stays solid while the other earned worlds remain as quiet context.
+ * A visiting world stays solid while the other worlds remain as quiet context.
  * Low enough that a close Moon cannot cover a target; non-zero so the solar system does
  * not disappear the moment a child arrives somewhere.
  */
@@ -50,12 +47,6 @@ export const WORLD_CONTEXT_OPACITY = 0.18;
 
 export function worldFocusOpacity(id: BodyId, focused: BodyId | null): number {
   return focused === null || id === focused ? 1 : WORLD_CONTEXT_OPACITY;
-}
-
-/** Exported because the endpoints and clamp are the parts a silent frame-rate bug breaks. */
-export function worldRevealEase(progress: number): number {
-  const t = THREE.MathUtils.clamp(progress, 0, 1);
-  return t * t * (3 - 2 * t);
 }
 
 export interface CelestialBody {
@@ -109,23 +100,19 @@ export interface World {
   teachingSun: TeachingSun;
   bodies: Record<BodyId, CelestialBody>;
   /**
-   * The tap targets for the bodies currently on screen. Hidden bodies drop out of it, so a
-   * world that has not been revealed yet cannot be selected through where it would have been.
+   * The tap targets for the bodies currently on screen. A body hidden with `setShown` drops
+   * out of it, so it cannot be selected through where it would have been.
    */
   hitMeshes: THREE.Mesh[];
   /**
-   * Draw only these bodies; hide the rest (and drop their tap targets). A hidden body keeps
-   * orbiting — this is visibility, not a freeze — so revealing it later does not teleport it.
-   * The caller drives this from progress; the world holds no opinion about who has been where.
+   * Draw only these bodies; hide the rest (and drop their tap targets). The Space map
+   * (src/map) shows one page of worlds at a time; everything is shown again for a journey.
+   * Nothing is locked: a hidden world is simply on another page.
    */
-  /**
-   * Show exactly these worlds. Newly shown worlds can arrive as a short, non-blocking
-   * reveal; returns their ids so the interface can announce the same event.
-   */
-  setRevealed(ids: Iterable<BodyId>, animate?: boolean): BodyId[];
+  setShown(ids: Iterable<BodyId>): void;
   /**
    * Keep one visited world solid and fade the others to context. Null restores the map.
-   * Visibility and hit-target reveal rules are unchanged.
+   * Visibility and hit targets are unchanged.
    */
   setFocus(id: BodyId | null): void;
   /** Ring the world the map points at; `pulse` false (reduced motion) holds it still. */
@@ -134,6 +121,20 @@ export interface World {
   readonly selected: BodyId | null;
   /** 0 freezes the Moon mid-orbit so the flight has a stationary destination. */
   setOrbitSpeedScale(scale: number): void;
+  /** How far an orbiting world has gone round its orbit, or null for one that does not orbit. */
+  orbitPhase(id: BodyId): number | null;
+  /**
+   * Put an orbiting world at an angle along its own orbit. The Space map poses each page this
+   * way while orbits are paused; the scene graph is unchanged, so the Moon stays tidally
+   * locked and every surface keeps its tilt and coordinates.
+   */
+  setOrbitPhase(id: BodyId, phase: number): void;
+  /**
+   * What the map must fit for a world: a sphere round its centre (with `hinted`, wide enough
+   * for the breathing hint ring it wears when it is suggested), the points round the rim of
+   * any rings, in world space, and how far its rings reach from the centre.
+   */
+  mapFootprint(id: BodyId, hinted: boolean): { radius: number; reach: number; outline: THREE.Vector3[] };
   update(dt: number, elapsed: number, camera: THREE.Camera): void;
   /**
    * Back to the opening state for "explore again". Orbits are deliberately *not* wound
@@ -622,7 +623,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   earthAxis.rotation.z = worldGeometry('earth').axialTilt ?? 0;
   earthAxis.add(earthMesh);
   const atmosphere = createAtmosphere(EARTH_RADIUS, segments);
-  const earthRing = createSelectionRing(ringTexture, EARTH_RADIUS * 3.1);
+  const earthRing = createSelectionRing(ringTexture, EARTH_RADIUS * 2.8);
   const earthHit = createHitMesh(EARTH_RADIUS * 1.4);
   earthHit.userData.bodyId = 'earth';
   earthAnchor.add(earthAxis, atmosphere, earthRing, earthHit);
@@ -712,19 +713,23 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
   /*
    * Extending a body used to require keeping independent roots, hit meshes and selection
-   * rings in step. A registration keeps the visual, input and reveal ownership together.
+   * rings in step. A registration keeps the visual, input and visibility ownership together.
    * Earth is the one hand-built body (paired maps, night lights, atmosphere, the origin);
    * every orbiting world comes from the catalogue through one builder.
    */
   const registrations = {} as Record<BodyId, WorldRegistration>;
+  // The Sun can be the suggested world too, so it wears the same crayon ring, round its glow.
+  const sunRingScale = SUN_RADIUS * 2.9;
+  const sunRing = createSelectionRing(ringTexture, sunRingScale);
+  sunAnchor.add(sunRing);
   registrations.sun = {
-    root: sunAnchor, hitMeshes: [sunHit],
+    root: sunAnchor, hitMeshes: [sunHit], selectionRing: sunRing, selectionScale: sunRingScale,
   };
   registrations.earth = {
     root: earthAnchor,
     hitMeshes: [earthHit],
     selectionRing: earthRing,
-    selectionScale: EARTH_RADIUS * 3.1,
+    selectionScale: EARTH_RADIUS * 2.8,
   };
   for (const body of orbiting.values()) {
     registrations[body.id] = {
@@ -754,15 +759,14 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   }
 
   /*
-   * Reveal-gating. Each body's root group is toggled, and its tap targets go in and out of the
-   * hit list with it, so an unrevealed world is neither drawn nor tappable. Earth sits under
+   * Visibility. Each body's root group is toggled, and its tap targets go in and out of the
+   * hit list with it, so a hidden world is neither drawn nor tappable. Earth sits under
    * earthAnchor; the orbiting bodies each hang off their own `tilt` group.
    */
   const roots = Object.fromEntries(BODY_IDS.map((id) => [id, registrations[id].root])) as Record<BodyId, THREE.Object3D>;
   const bodyHits = Object.fromEntries(BODY_IDS.map((id) => [id, registrations[id].hitMeshes])) as Record<BodyId, THREE.Mesh[]>;
-  // Everything on screen until told otherwise, so nothing that does not call setRevealed
-  // (tests, and any future caller) sees a change in behaviour.
-  const revealed = new Set<BodyId>(BODY_IDS);
+  // Everything on screen: the game never hides a world.
+  const shown = new Set<BodyId>(BODY_IDS);
 
   interface MaterialRestingState {
     material: THREE.Material;
@@ -770,12 +774,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     transparent: boolean;
   }
 
-  interface RevealVisual {
-    scale: THREE.Vector3;
-    materials: MaterialRestingState[];
-  }
-
-  const revealVisuals = {} as Record<BodyId, RevealVisual>;
+  const restingMaterials = {} as Record<BodyId, MaterialRestingState[]>;
   for (const id of BODY_IDS) {
     const materials = new Set<THREE.Material>();
     roots[id].traverse((object) => {
@@ -784,22 +783,18 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       if (Array.isArray(assigned)) assigned.forEach((material) => materials.add(material));
       else if (assigned) materials.add(assigned);
     });
-    revealVisuals[id] = {
-      scale: roots[id].scale.clone(),
-      materials: [...materials].map((material) => ({
-        material,
-        opacity: material.opacity,
-        transparent: material.transparent,
-      })),
-    };
+    restingMaterials[id] = [...materials].map((material) => ({
+      material,
+      opacity: material.opacity,
+      transparent: material.transparent,
+    }));
   }
 
-  const revealing = new Map<BodyId, number>();
   let focused: BodyId | null = null;
 
-  function applyOpacity(id: BodyId, revealOpacity = 1) {
-    const amount = revealOpacity * worldFocusOpacity(id, focused);
-    for (const resting of revealVisuals[id].materials) {
+  function applyOpacity(id: BodyId) {
+    const amount = worldFocusOpacity(id, focused);
+    for (const resting of restingMaterials[id]) {
       const transparent = resting.transparent || amount < 1;
       const transparencyChanged = resting.material.transparent !== transparent;
       resting.material.opacity = resting.opacity * amount;
@@ -808,44 +803,18 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     }
   }
 
-  function finishReveal(id: BodyId) {
-    const visual = revealVisuals[id];
-    roots[id].scale.copy(visual.scale);
-    applyOpacity(id);
-    revealing.delete(id);
-  }
-
-  function beginReveal(id: BodyId) {
-    const visual = revealVisuals[id];
-    roots[id].scale.copy(visual.scale).multiplyScalar(0.86);
-    applyOpacity(id, 0);
-    revealing.set(id, 0);
-  }
-
-  function setRevealed(ids: Iterable<BodyId>, animate = false): BodyId[] {
+  function setShown(ids: Iterable<BodyId>) {
     const next = new Set<BodyId>(ids);
-    const newlyRevealed = [...next].filter((id) => !revealed.has(id));
+    shown.clear();
     for (const id of BODY_IDS) {
-      if (!next.has(id)) {
-        finishReveal(id);
-        roots[id].visible = false;
-        continue;
-      }
-      roots[id].visible = true;
-      if (newlyRevealed.includes(id) && animate) beginReveal(id);
-      else if (!revealing.has(id)) finishReveal(id);
+      roots[id].visible = next.has(id);
+      if (next.has(id)) shown.add(id);
     }
-    revealed.clear();
-    for (const id of next) revealed.add(id);
-    return newlyRevealed;
   }
 
   function setFocus(id: BodyId | null) {
     focused = id;
-    for (const bodyId of BODY_IDS) {
-      const progress = revealing.get(bodyId);
-      applyOpacity(bodyId, progress === undefined ? 1 : worldRevealEase(progress));
-    }
+    for (const bodyId of BODY_IDS) applyOpacity(bodyId);
   }
 
   return {
@@ -853,13 +822,9 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     teachingSun,
     bodies,
     get hitMeshes() {
-      return BODY_IDS
-        // A half-visible planet is an announcement, not yet a target. Waiting until the
-        // fade lands prevents a quick tap passing through the small visual into a huge hit.
-        .filter((id) => revealed.has(id) && !revealing.has(id))
-        .flatMap((id) => bodyHits[id]);
+      return BODY_IDS.filter((id) => shown.has(id)).flatMap((id) => bodyHits[id]);
     },
-    setRevealed,
+    setShown,
     setFocus,
     setSelected,
     get selected() {
@@ -870,14 +835,42 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
       orbitSpeedScale = scale;
     },
 
+    orbitPhase(id: BodyId) {
+      return orbiting.get(id)?.orbit.rotation.y ?? null;
+    },
+
+    setOrbitPhase(id: BodyId, phase: number) {
+      const body = orbiting.get(id);
+      if (!body) return;
+      body.orbit.rotation.y = phase;
+      body.tilt.updateMatrixWorld(true);
+    },
+
+    mapFootprint(id: BodyId, hinted: boolean) {
+      const body = bodies[id];
+      const rings = orbiting.get(id)?.ringMesh ?? null;
+      // A ringed world's rings are fitted by their rim; the sphere is the planet itself.
+      const sphere = rings ? body.radius : body.viewRadius ?? body.radius;
+      const scale = registrations[id].selectionScale;
+      // The hint ring sprite is `scale` across, drawn out to 0.97 of that, and breathes by 9%.
+      const radius = hinted && scale !== undefined ? Math.max(sphere, (scale / 2) * 0.97 * 1.09) : sphere;
+      const outline: THREE.Vector3[] = [];
+      if (rings) {
+        const outer = (rings.geometry as THREE.RingGeometry).parameters.outerRadius;
+        rings.updateWorldMatrix(true, false);
+        for (let i = 0; i < 32; i++) {
+          const angle = (i / 32) * Math.PI * 2;
+          outline.push(rings.localToWorld(new THREE.Vector3(Math.cos(angle) * outer, Math.sin(angle) * outer, 0)));
+        }
+      }
+      return { radius, reach: Math.max(radius, body.viewRadius ?? body.radius), outline };
+    },
+
     reset() {
       teachingSun.hide();
       orbitSpeedScale = 1;
-      // The map is full-strength again before any newly earned world is revealed on it.
+      // The map is full-strength again.
       focused = null;
-      // A reset may interrupt a reveal (for example, the adult clears progress). Restore
-      // every material before the next setRevealed call decides what remains on screen.
-      for (const id of [...revealing.keys()]) finishReveal(id);
       for (const id of BODY_IDS) applyOpacity(id);
       // A backstop, not the normal path: whoever called holdSurface releases it, and the
       // mission does. This is here because a hold that outlives its owner leaves a planet
@@ -889,16 +882,6 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
     },
 
     update(dt: number, elapsed: number, camera: THREE.Camera) {
-      for (const [id, previous] of [...revealing]) {
-        const progress = Math.min(1, previous + dt / WORLD_REVEAL_DURATION);
-        const eased = worldRevealEase(progress);
-        const visual = revealVisuals[id];
-        roots[id].scale.copy(visual.scale).multiplyScalar(0.86 + eased * 0.14);
-        applyOpacity(id, eased);
-        if (progress >= 1) finishReveal(id);
-        else revealing.set(id, progress);
-      }
-
       // A held body subtracts its orbit back out, so the surface stays put in the world
       // while the body itself keeps travelling. Earth has no orbit to subtract.
       const earthHold = holds.earth;

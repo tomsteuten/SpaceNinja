@@ -60,3 +60,18 @@ export async function settlePanel(page: Page) {
 export async function settleMapReturn(page: Page) {
   await expect.poll(() => page.evaluate(() => (window as any).spaceNinjaSnapshot().mapReturnGuarded)).toBe(false);
 }
+
+/**
+ * The Space map shows one neighbourhood per page (src/map/model.ts): Sun; Earth, Moon and
+ * Mars; Saturn. Turn the pages with the big arrows, as a child would, until the world's card
+ * is on screen. A no-op when it already is.
+ */
+export async function showWorld(page: Page, world: string) {
+  await settleMapReturn(page);
+  const card = page.getByRole('button', { name: `Fly to ${world}`, exact: true });
+  const previous = page.getByRole('button', { name: /^Previous worlds/ });
+  const next = page.getByRole('button', { name: /^Next worlds/ });
+  for (let turn = 0; turn < 8 && !(await card.isVisible()) && (await previous.isVisible()); turn++) await previous.click();
+  for (let turn = 0; turn < 8 && !(await card.isVisible()) && (await next.isVisible()); turn++) await next.click();
+  await expect(card).toBeVisible();
+}

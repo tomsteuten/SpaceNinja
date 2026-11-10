@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test';
-import { test, expect, attachShot, settlePanel, settleMapReturn } from './fixtures';
+import { test, expect, attachShot, settlePanel, showWorld } from './fixtures';
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 async function launch(page: Page, world: string) {
-  await settleMapReturn(page);
+  // Turn the Space map to the world's page (its neighbourhood) if it is not already showing.
+  await showWorld(page, world);
   await page.getByRole('button', {name:`Fly to ${world}`,exact:true}).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
   await expect.poll(async () => (await snapshot(page)).draws).toBeGreaterThan(0);
@@ -54,9 +55,10 @@ async function keepExploring(page: Page) {
   await page.getByRole('button',{name:'Keep exploring'}).click();
   await expect(page.locator('.photo-view')).toBeHidden();
 }
-async function home(page: Page) {
+/** Space map from a visit lands on the visited world's own page. */
+async function home(page: Page, world: string) {
   await page.getByRole('button',{name:'Back to the space map',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Fly to Moon',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:`Fly to ${world}`,exact:true})).toBeVisible();
 }
 test('rendered discoveries, drag, media, return, repeat and outer-world arrivals', async ({page}, info) => {
   await page.goto('/');
@@ -137,7 +139,7 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   await page.getByRole('button',{name:'Back to the Moon',exact:true}).click();
   await page.getByRole('button',{name:'Open your discovery journal'}).click();
   await expect(page.locator('.collection-progress')).toContainText('3/6');
-  const tiles=page.locator('.sticker-grid button');
+  const tiles=page.locator('.journal-panel button.sticker');
   let photoFound=false;
   for(let i=0; i<await tiles.count(); i++) {
     await tiles.nth(i).click();
@@ -182,18 +184,19 @@ test('rendered discoveries, drag, media, return, repeat and outer-world arrivals
   }
   expect(photoFound,'The deterministic smoke visit must exercise a real photo').toBe(true);
   await page.getByRole('button',{name:'Close',exact:true}).click();
-  await home(page);
+  await home(page,'Moon');
   await launch(page,'Moon');
   expect((await snapshot(page)).ids.some((id:string)=>!firstIds.includes(id))).toBe(true);
-  await home(page);
-  await launch(page,'Mars'); await home(page);
+  await home(page,'Moon');
+  await launch(page,'Mars'); await home(page,'Mars');
   await launch(page,'Saturn');
   await attachShot(page, 'saturn-arrival', info);
-  await home(page);
+  await home(page,'Saturn');
+  expect((await snapshot(page)).mapBodyIds).toEqual(['saturn']);
   await launch(page,'Earth');
   await page.setViewportSize({width:768,height:1024});
   await expect.poll(async () => (await snapshot(page)).bodyScreenRadius).toBeGreaterThan(110);
   await attachShot(page, 'earth-after-resize', info);
-  await home(page);
+  await home(page,'Earth');
 
 });

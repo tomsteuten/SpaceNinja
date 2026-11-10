@@ -1,9 +1,9 @@
 /**
- * Geometry for Earth and the orbiting catalogue worlds, in reveal order.
+ * Geometry for Earth and the orbiting catalogue worlds, in journey order.
  *
- * Owns sizes, orbits, spins, rings, surface specifications and derived map framing.
+ * Owns sizes, orbits, spins, rings and surface specifications.
  * Bodies.ts builds orbiting worlds through its shared builder; Earth keeps its paired-map
- * builder. Facts, places and reveal prerequisites remain in DESTINATIONS in config.ts.
+ * builder. Facts and places remain in DESTINATIONS in config.ts.
  * The Sun observation destination has separate geometry and presentation. Adding a world
  * also requires the dependencies listed in docs/worlds-roadmap.md, including BODY_IDS.
  *
@@ -80,9 +80,6 @@ export interface WorldGeometry {
    */
   surface?: WorldSurface;
 }
-
-/** Breathing room added to the outermost reach when the camera frames a set of worlds. */
-export const FRAMING_MARGIN = 0.18;
 
 const earth: WorldGeometry = {
   id: 'earth',
@@ -161,7 +158,7 @@ const saturn: WorldGeometry = {
   },
 };
 
-/** In the order they are earned: the home world first, then each world as it is revealed. */
+/** In journey order: the home world first, then outwards. The map suggests worlds in this order. */
 export const WORLDS: readonly WorldGeometry[] = [earth, moon, mars, saturn];
 
 export const WORLD_IDS: readonly string[] = WORLDS.map((world) => world.id);
@@ -190,28 +187,4 @@ export function worldGeometry(id: string): WorldGeometry {
 /** How far from the body's centre the shot has to reach to show all of it. */
 export function viewRadius(world: WorldGeometry): number {
   return world.rings ? world.radius * world.rings.outer : world.radius;
-}
-
-/** How far from the scene centre the world's furthest visible edge can get. */
-export function reach(world: WorldGeometry): number {
-  return (world.orbit?.radius ?? 0) + viewRadius(world);
-}
-
-/**
- * How much of the scene the opening shot tries to fit, given which worlds are drawn.
- *
- * The furthest reach among the revealed worlds, plus a margin. This replaces the three
- * hand-named tiers (Moon, Mars, Saturn) with the rule they were all instances of, so the
- * shot widens exactly when a new world is revealed and never for one that is hidden. The
- * cost is the same as it always was: fitting an outer world shrinks the inner ones, which is
- * why worlds are revealed one at a time rather than all at once. Ids the catalogue does not
- * know are ignored, so stale saved progress cannot break framing.
- */
-export function framingRadiusFor(revealedIds: readonly string[]): number {
-  let furthest = 0;
-  for (const id of revealedIds) {
-    const world = BY_ID.get(id);
-    if (world) furthest = Math.max(furthest, reach(world));
-  }
-  return furthest + FRAMING_MARGIN;
 }

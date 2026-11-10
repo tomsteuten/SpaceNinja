@@ -86,23 +86,33 @@ test('Earth discoveries lead into a world page, story, photo, and back to explor
     }
   }
   await expect(page.locator('.journal-panel')).toBeVisible();
-  await expect(page.locator('.journal-page-caption')).toHaveText('Earth · 3 of 6 places found');
-  await expect(page.locator('.journal-visit-hint')).toContainText('Visit Earth again');
-  await expect(page.locator('.sticker-grid > *')).toHaveCount(6);
-  await expect(page.locator('.sticker-grid button')).toHaveCount(3);
-  await expect(page.locator('.sticker--empty')).toHaveCount(3);
+  // A finished visit leads with its trip: "3 found!" over this visit's three snapshots, the
+  // places left as a "Next time" strip, the world chips underneath (state audit 11).
+  const trip = page.getByRole('region', { name: 'Found on this trip' });
+  await expect(trip).toBeVisible();
+  await expect(trip.locator('.journal-trip__badge')).toHaveText('3found!');
+  await expect(trip.locator('button.sticker')).toHaveCount(3);
+  await expect(trip.locator('.journal-trip__tick')).toHaveCount(3);
+  await expect(page.getByRole('img', { name: '3 more places to find' })).toBeVisible();
+  await expect(page.locator('.sticker--empty')).toHaveCount(0);
+  const order = await page.evaluate(() => ['.journal-trip', '.journal-next', '.collection-progress']
+    .map(selector => document.querySelector(selector)!.getBoundingClientRect().top));
+  expect(order, 'Trip, then next time, then the world chips').toEqual([...order].sort((a, b) => a - b));
   await fits(page, '.journal-panel > .panel-return');
   await attachShot(page, 'earth-journal-page', info);
   await page.getByRole('button', { name: 'Moon: 0 of 6 places found', exact: true }).click();
-  await expect(page.locator('.sticker-grid button')).toHaveCount(0);
-  await expect(page.locator('.sticker--empty')).toHaveCount(6);
+  // Another world's page is no trip: it reads as before, with all six places as next time.
+  await expect(trip).toBeHidden();
+  await expect(page.locator('.journal-page-caption')).toHaveText('Moon · 0 of 6 places found');
+  await expect(page.locator('.journal-panel button.sticker')).toHaveCount(0);
+  await expect(page.getByRole('img', { name: '6 more places to find' })).toBeVisible();
   await expect(page.locator('.collection-progress__world[aria-pressed="true"]')).toBeFocused();
   await page.getByRole('button', { name: 'Earth: 3 of 6 places found', exact: true }).click();
-  const tile = page.locator('.sticker-grid button').first();
+  const tile = trip.locator('button.sticker').first();
   const label = await tile.getAttribute('aria-label');
   await tile.click();
   await expect(page.locator('.journal-back')).toBeFocused();
-  await expect(page.locator('.sticker-grid')).toBeHidden();
+  await expect(trip).toBeHidden();
   await expect(page.locator('.journal-detail')).not.toBeEmpty();
   await expect(page.getByRole('button', { name: 'Read this discovery out loud' })).toBeHidden();
   await fits(page, '.journal-panel > .panel-return');
@@ -118,14 +128,22 @@ test('Earth discoveries lead into a world page, story, photo, and back to explor
   await page.keyboard.press('Escape');
   await expect(page.locator('.journal-panel')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Open your discovery journal', exact: true })).toBeFocused();
-  await expect(page.locator('.world-heading__caption')).toContainText('Space map');
+  // Earth's toy is its Day & night spin, not played yet this visit: it is the one ringed
+  // next step, and the heading says so.
+  await expect(page.locator('.world-heading__caption')).toHaveText('Three found! Now turn Earth.');
   await expect(page.locator('.ui')).toHaveClass(/has-seen-journal/);
-  // Earth's bedtime spin opens and closes over a finished visit without changing what it says next.
+  await expect(page.locator('.ui')).toHaveClass(/is-toy-next/);
+  await expect(page.locator('.spin-btn')).toHaveCSS('outline-style', 'solid');
+  expect((await snapshot(page)).mapInvite).toBe(false);
+  // Played: Space map becomes the one ringed step, and stays so after the toy closes.
   await page.getByRole('button', { name: /^Day and night on Earth/ }).click();
   await expect(page.locator('.bedtime-spin')).toBeVisible();
   await page.getByRole('button', { name: 'Back to Earth', exact: true }).click();
   await expect(page.locator('.bedtime-spin')).toHaveCount(0);
   await expect(page.locator('.world-heading__caption')).toContainText('Space map');
+  expect((await snapshot(page)).mapInvite).toBe(true);
+  await expect(page.locator('.ui')).not.toHaveClass(/is-toy-next/);
+  await expect(page.locator('.spin-btn')).toHaveCSS('outline-style', 'none');
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('idle');
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem('spaceninja.progress.v1')!))).discoveries).toHaveLength(3);

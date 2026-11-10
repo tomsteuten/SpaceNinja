@@ -1,58 +1,104 @@
-.has-neighborhood-map.is-home > .destination-bar,.has-neighborhood-map.is-home > .hint { display:none; }
-.neighborhood-map { position:absolute; inset:0; pointer-events:none; }
-.neighborhood-map[hidden],.neighborhood-map [hidden] { display:none!important; }
-.map-heading { position:absolute; top:max(24px,env(safe-area-inset-top)); left:max(24px,env(safe-area-inset-left)); right:94px; }
-.map-eyebrow { display:block; color:#96b6cd; font:700 11px/1.5 var(--font); letter-spacing:.2em; }
-.map-heading h1 { margin:5px 0 8px; color:#f6f1df; font:700 clamp(24px,4vw,36px)/1.1 var(--font); }
-.map-instruction { margin:0; color:#bdd5e6; font:500 16px/1.4 var(--font); max-width:32em; }
-.map-tray { position:absolute; bottom:max(18px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(620px,calc(100% - 24px)); padding:10px; display:grid; grid-template-columns:56px minmax(0,1fr) 56px; gap:8px; border:1px solid #7193ab55; border-radius:27px; background:linear-gradient(145deg,#20374beb,#101e32f2); box-shadow:0 12px 36px #0006; pointer-events:auto; }
-.map-destinations { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
-.map-destinations[data-count="1"] { grid-template-columns:1fr; }
-.map-destinations[data-count="2"] { grid-template-columns:repeat(2,minmax(0,1fr)); }
-.map-tray button { border:1px solid #7798b170; border-radius:18px; color:#eff3ee; background:linear-gradient(#34506b,#21374e); font:700 15px/1.2 var(--font); cursor:pointer; min-height:76px; min-width:56px; box-shadow:inset 0 1px #d8efff22,0 3px #070e1d80; }
-.map-tray button:active { transform:translateY(2px); filter:brightness(1.15); }
-.map-tray button:focus-visible,.map-preview:focus-visible { outline:3px solid #ffdb85; outline-offset:3px; }
-.map-tray button:hover { filter:brightness(1.1); }
-.map-page { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:2px; padding:4px 1px; }
-.map-page-label { font-size:11px; line-height:1.2; max-width:100%; }
-.map-chevron { font:400 37px/.8 var(--font); color:#b9deed; }
-.map-destination { position:relative; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; padding:6px 2px; }
-.map-destination .world-orb,.map-destination .map-fixture-orb { width:32px; height:32px; flex-shrink:0; }
-.map-destination[data-availability="ready"] { border-color:#badde999; }
-.map-destination[data-destination="earth"][data-availability="ready"] { background:linear-gradient(#ffe8b1,#eac778); color:#203349; border-color:#fff0c6; }
-.map-destination:not([data-availability="ready"]) { background:repeating-linear-gradient(135deg,#1a2b3f,#1a2b3f 8px,#213449 8px,#213449 10px); color:#b7c6ce; border-style:dashed; }
-.map-destination > .icon-slot { position:absolute; top:5px; right:5px; width:13px; height:13px; }
-.map-destination > .icon-slot .icon { width:13px; height:13px; }
-.map-fixture-orb { display:block; border-radius:50%; border:1px dashed #e6f1f080; background:radial-gradient(circle at 30% 25%,var(--orb-color),#1d2c3d 90%); opacity:.65; box-shadow:inset -8px -5px 14px #060d2399; }
-.map-tray-foot { grid-column:1/-1; display:flex; align-items:center; justify-content:center; gap:14px; min-height:10px; }
-.map-position { display:flex; gap:7px; }
-.map-position span { width:5px; height:5px; background:#7591a66b; border-radius:50%; }
-.map-position .is-current { width:17px; border-radius:4px; background:#f1d08a; }
-.map-tray .map-more-moons { min-height:56px; padding:8px 12px; font-size:14px; }
-.map-preview { position:absolute; left:50%; top:45%; transform:translate(-50%,-50%); display:flex; align-items:center; flex-direction:column; gap:22px; background:none; border:none; padding:18px; color:#b9cad7; pointer-events:none; }
-.map-preview > .map-fixture-orb,.map-preview > .world-orb { width:clamp(120px,24vw,210px); height:clamp(120px,24vw,210px); outline:1px dashed #abc2d13b; outline-offset:18px; }
-.map-preview-label { display:flex; align-items:center; gap:8px; font:600 16px var(--font); }
-.map-preview-label .icon { width:18px; height:18px; }
-@media(max-width:360px) {
-  .map-destinations { grid-column:1/-1; grid-row:2; }
-  .map-page { min-height:56px!important; flex-direction:row; }
-  .map-page--next { grid-column:3; }
-  .map-tray-foot { grid-column:2; grid-row:1; }
-  .map-position { gap:3px; }
-  .map-tray-foot:has(.map-more-moons:not([hidden])) { grid-column:1/-1; grid-row:3; }
+/*
+ * The Space map's controls, in the storybook-crayons style (src/ui/storybook.css): paper
+ * cards, one per world on the page, and two big page arrows in the Space map's sky crayon.
+ * The arrow that leads to the suggested world turns sun, like every next-world arrow.
+ *
+ * Portrait has height to spare and no width, so the arrows sit low at the screen edges just
+ * above the cards, with the page dots between them. Landscape is the other way round: the
+ * arrows stand at mid-height at the edges and the dots go to the top centre.
+ */
+.space-map { position:absolute; inset:0; pointer-events:none; }
+.space-map[hidden],.space-map [hidden] { display:none!important; }
+
+.map-cards {
+  --card-height:100px;
+  position:absolute; bottom:var(--pad-bottom); left:50%; transform:translateX(-50%);
+  width:min(560px,calc(100% - var(--pad-left) - var(--pad-right)));
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:0 4px 4px 0;
+  pointer-events:auto;
 }
-@media(max-height:480px) and (min-width:600px) {
-  .map-heading { top:16px; left:22px; }
-  .map-heading h1 { font-size:24px; margin:2px 0 4px; }
-  .map-eyebrow { font-size:10px; }
-  .map-instruction { font-size:14px; }
-  .map-tray { bottom:10px; padding:7px 9px; gap:6px; width:min(590px,calc(100% - 150px)); }
-  .map-tray button { min-height:64px; }
-  .map-destination { flex-direction:row; gap:7px; }
-  .map-destination .world-orb,.map-destination .map-fixture-orb { width:26px; height:26px; }
-  .map-tray-foot:has(.map-more-moons:not([hidden])) { position:absolute; left:calc(100% + 8px); bottom:0; }
-  .map-tray-foot:has(.map-more-moons:not([hidden])) .map-position { display:none; }
-  .map-tray .map-more-moons { width:65px; min-height:64px; font-size:12px; }
-  .map-preview { top:46%; gap:14px; }
-  .map-preview > .map-fixture-orb,.map-preview > .world-orb { width:90px; height:90px; outline-offset:10px; }
+.map-cards[data-count="1"] { width:min(190px,calc(100% - var(--pad-left) - var(--pad-right))); grid-template-columns:1fr; }
+.map-cards[data-count="2"] { width:min(380px,calc(100% - var(--pad-left) - var(--pad-right))); grid-template-columns:repeat(2,minmax(0,1fr)); }
+
+.map-card {
+  position:relative; min-width:0; height:var(--card-height); padding:6px 4px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:16px;
+  box-shadow:var(--lift); font:400 24px/1 var(--hand); letter-spacing:0; cursor:pointer;
+  transition:filter .15s;
+}
+.map-card:hover { filter:brightness(1.05); }
+.map-card:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.map-card .world-orb { width:44px; height:44px; flex-shrink:0; border:2px solid var(--ink-line); }
+.map-card .world-orb--saturn::after { border-color:var(--ink-line); border-width:3px; }
+/* The suggested world glows like a gold place and gets the visit row's paper ring. */
+.map-card.is-suggested { background:#ffe08a; outline:4px solid var(--paper); outline-offset:3px; }
+.map-card:focus-visible,.map-arrow:focus-visible { outline:4px solid var(--crayon-sky); outline-offset:3px; }
+.map-card.is-suggested:focus-visible,.map-arrow.is-suggested:focus-visible { outline-color:var(--ink-line); }
+
+/* Been there: a grass tick in the corner. Every place found: a sun star instead. */
+.map-card__done {
+  position:absolute; left:-8px; top:-8px; width:28px; height:28px; display:grid; place-items:center;
+  background:var(--crayon-grass); border:2px solid var(--ink-line); border-radius:50%; transform:rotate(-8deg);
+}
+.map-card__done .icon { width:18px; height:18px; color:var(--ink-line); stroke-width:3.4; }
+.map-card.is-full .map-card__done { background:none; border:none; border-radius:0; width:38px; height:38px; left:-13px; top:-13px; filter:drop-shadow(2px 2px 0 var(--ink-line)); }
+.map-card.is-full .map-card__done .icon { display:none; }
+/* Visited with places left: the journal's dots, sun for found, white for still to find. */
+.map-card__pips { display:flex; gap:3px; }
+.map-card__pips > span { width:11px; height:11px; border-radius:50%; background:#fff; border:1.5px solid var(--ink-line); }
+.map-card__pips > .is-found { background:var(--crayon-sun); }
+.map-card:has(.map-card__pips) { gap:3px; }
+.map-card:has(.map-card__pips) .world-orb { width:36px; height:36px; }
+
+.map-arrow {
+  position:absolute; width:62px; height:64px; padding:0;
+  display:flex; align-items:center; justify-content:center; gap:2px;
+  background:var(--crayon-sky); color:var(--ink-line); border:var(--line); border-radius:18px;
+  box-shadow:var(--lift); cursor:pointer; pointer-events:auto;
+}
+.map-arrow--previous { left:var(--pad-left); }
+.map-arrow--next { right:var(--pad-right); flex-direction:row-reverse; }
+.map-arrow:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
+.map-arrow__chevron { width:26px; height:32px; flex-shrink:0; }
+.map-arrow__chevron path { fill:var(--paper); stroke:var(--ink-line); stroke-width:3; stroke-linejoin:round; }
+.map-arrow__world .world-orb { display:block; width:22px; height:22px; border:2px solid var(--ink-line); box-shadow:none; }
+.map-arrow__world .world-orb--saturn::after { border-color:var(--ink-line); border-width:2px; }
+/* Carrying the hint: the sun crayon of every next-world arrow, and the same paper ring. */
+.map-arrow.is-suggested { background:var(--crayon-sun); outline:4px solid var(--paper); outline-offset:3px; }
+
+.map-pointer {
+  position:absolute; left:50%; bottom:calc(100% - 12px); z-index:2; width:34px; height:38px; margin-left:-17px;
+  pointer-events:none; animation:map-pointer-bounce .9s ease-in-out infinite;
+}
+.map-pointer .icon { width:100%; height:100%; display:block; }
+.map-pointer path { fill:var(--crayon-sun); stroke:var(--ink-line); stroke-width:1.7; }
+@keyframes map-pointer-bounce { 0%,100% { translate:0 -6px; } 50% { translate:0 3px; } }
+
+.map-dots { position:absolute; left:50%; transform:translateX(-50%); display:flex; gap:8px; padding:6px 10px; background:var(--paper); border:2px solid var(--ink-line); border-radius:12px; }
+.map-dots > span { width:10px; height:10px; border-radius:50%; background:#fff; border:2px solid var(--ink-line); }
+.map-dots > .is-current { width:24px; border-radius:6px; background:var(--crayon-sky); }
+
+/* Portrait: arrows low at the edges above the cards, the dots between them. */
+@media (orientation:portrait) {
+  .map-arrow { bottom:calc(var(--pad-bottom) + var(--card-row, 104px) + 14px); width:76px; height:62px; }
+  .map-dots { bottom:calc(var(--pad-bottom) + var(--card-row, 104px) + 32px); }
+}
+/* Landscape: arrows at mid-height, the dots at the top centre between heading and journal. */
+@media (orientation:landscape) {
+  .map-arrow,.map-arrow--next { top:50%; margin-top:-48px; width:64px; height:96px; flex-direction:column; }
+  .map-dots { top:calc(var(--pad-top) + 4px); }
+}
+@media (orientation:landscape) and (max-height:480px) {
+  .map-cards { --card-height:70px; width:min(520px,calc(100% - var(--pad-left) - var(--pad-right) - 160px)); }
+  .map-card { flex-direction:row; gap:10px; font-size:23px; }
+  .map-card .world-orb { width:38px; height:38px; }
+  .map-card:has(.map-card__pips) { flex-direction:column; gap:2px; font-size:20px; }
+  .map-card:has(.map-card__pips) .world-orb { width:24px; height:24px; }
+  .map-card__pips > span { width:9px; height:9px; }
+  .map-arrow { height:88px; margin-top:-44px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .map-pointer { animation:none; translate:0 -6px; }
+  .map-card { transition:none; }
 }

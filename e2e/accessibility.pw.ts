@@ -55,3 +55,59 @@ test('grown-ups panel and journal keep keyboard focus with a clear escape route'
   await expect(page.getByRole('button', { name: 'Open your discovery journal' })).toBeFocused();
   await attachShot(page, 'keyboard-dialogs', info);
 });
+
+test('the Space map works from a keyboard or TV remote: Tab order, Left/Right pages, Enter flies', async ({ page }) => {
+  const snapshot = () => page.evaluate(() => (window as any).spaceNinjaSnapshot());
+  await page.addInitScript(() => localStorage.setItem('spaceninja.grownups.v1', 'yes'));
+  await page.goto('/?fast');
+  await expect(page.locator('.space-map')).toBeVisible();
+  const previous = page.getByRole('button', { name: 'Previous worlds: Sun', exact: true });
+  const next = page.getByRole('button', { name: 'Next worlds: Saturn', exact: true });
+  const fly = (world: string) => page.getByRole('button', { name: `Fly to ${world}`, exact: true });
+  const journal = page.getByRole('button', { name: 'Open your discovery journal' });
+
+  // Tab order: previous arrow, the page's cards, next arrow, journal.
+  await previous.focus();
+  for (const expected of [fly('Earth'), fly('Moon'), fly('Mars'), next, journal]) {
+    await page.keyboard.press('Tab');
+    await expect(expected).toBeFocused();
+  }
+  await page.keyboard.press('Shift+Tab');
+  await expect(next).toBeFocused();
+
+  // Enter on an arrow turns the page; at the end the arrow goes and focus stays on the map.
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await snapshot()).mapPage).toBe(2);
+  await expect(fly('Saturn')).toBeFocused();
+  // Left and Right turn pages from anywhere on the map.
+  await page.keyboard.press('ArrowLeft');
+  await expect.poll(async () => (await snapshot()).mapPage).toBe(1);
+  await expect(fly('Earth')).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect.poll(async () => (await snapshot()).mapPage).toBe(0);
+  await page.keyboard.press('ArrowLeft');
+  expect((await snapshot()).mapPage).toBe(0);
+  await expect(fly('Sun')).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => (await snapshot()).mapPage).toBe(1);
+
+  // An open journal owns the keys: Left/Right do not turn the page behind it.
+  await journal.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog', { name: 'My Discoveries' })).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  expect((await snapshot()).mapPage).toBe(1);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'My Discoveries' })).toBeHidden();
+  // The dialog hands focus back on the next animation frame; let it land first.
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  await expect(journal).toBeFocused();
+
+  // Back along the row from the journal, and Space on a card flies there.
+  for (const expected of [next, fly('Mars'), fly('Moon')]) {
+    await page.keyboard.press('Shift+Tab');
+    await expect(expected).toBeFocused();
+  }
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await snapshot()).phase).not.toBe('idle');
+});

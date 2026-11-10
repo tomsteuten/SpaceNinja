@@ -20,7 +20,7 @@ async function visitAndReturn(page: Page, world: string) {
   await page.waitForTimeout(800);
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase, { timeout: 200000 }).toBe('idle');
-  await expect(page.locator('.destination-bar')).toBeVisible();
+  await expect(page.locator('.space-map')).toBeVisible();
 }
 
 for (const [name, viewport] of [
@@ -41,31 +41,16 @@ for (const [name, viewport] of [
     await page.waitForTimeout(2500);
     await shot('1-first-map');
 
-    // Clicked in the page so the shot lands inside the 2.6 s answer on a slow software renderer.
-    await page.evaluate(() => (document.querySelector('[data-destination="saturn"]') as HTMLElement).click());
-    await shot('2-locked-tap');
-    await page.waitForTimeout(3000);
-
+    // The locked-tap and unlock shots are retired: nothing is locked (DECISIONS.md).
     await visitAndReturn(page, 'Earth');
     await page.waitForTimeout(2500);
     await shot('3-map-after-earth');
 
-    // Software rendering is too slow to catch the unlock mid-way by waiting: hold every CSS
-    // animation from the start, seek the pop to 0.42 s for the shot, then let it run on.
-    await page.addStyleTag({ content: '*,*::before,*::after { animation-play-state:paused!important; }' });
     await visitAndReturn(page, 'Moon');
-    await page.locator('.destination-choice.is-new').waitFor({ timeout: 60000 });
-    await page.evaluate(() => {
-      document.querySelectorAll('style').forEach(s => s.textContent?.includes('animation-play-state:paused') && s.remove());
-      document.getAnimations().forEach(a => { a.pause(); a.currentTime = 420; });
-    });
-    await shot('4-mars-unlocking');
-    await page.evaluate(() => document.getAnimations().forEach(a => a.play()));
     await page.waitForTimeout(2500);
     await shot('5-map-after-moon');
 
     await visitAndReturn(page, 'Mars');
-    await page.locator('.destination-choice.is-new').waitFor({ timeout: 60000 });
     await page.waitForTimeout(3000);
     await shot('6-map-after-mars');
   });

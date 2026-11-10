@@ -93,16 +93,6 @@ export interface OrbitInput {
    * the mission prompt rather than hiding behind them — see `framingHalfAngle`.
    */
   frame(radius: number, immediate?: boolean, inset?: number): void;
-  /**
-   * Where reset() plus this target and framing would leave the camera, computed without moving
-   * anything. The animated return eases to this and restart() then lands on it exactly, so the
-   * hand-back is invisible; both go through the same framing maths so they cannot drift apart.
-   */
-  restingPose(
-    target: THREE.Vector3,
-    radius: number,
-    inset?: number,
-  ): { position: THREE.Vector3; look: THREE.Vector3 };
   /** Re-derive orbit angles from the camera's actual transform. Call after a cutscene. */
   syncFromCamera(): void;
   /** Move the viewpoint around the focus without rotating the world or its sunlight. */
@@ -323,19 +313,6 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       const half = framingHalfAngle(camera.fov, camera.aspect, inset);
       desiredRadius = clampRadius(radius / Math.sin(half));
       if (immediate) spherical.radius = desiredRadius;
-    },
-
-    restingPose(target: THREE.Vector3, radius: number, inset = 0) {
-      const half = framingHalfAngle(camera.fov, camera.aspect, inset);
-      // The opening angles, with only the distance re-derived — exactly what reset() restores
-      // (spherical.copy(openingSpherical)) and frame() then overrides.
-      const resting = new THREE.Spherical(
-        clampRadius(radius / Math.sin(half)),
-        openingSpherical.phi,
-        openingSpherical.theta,
-      );
-      const position = new THREE.Vector3().setFromSpherical(resting).add(target);
-      return { position, look: target.clone() };
     },
 
     syncFromCamera() {

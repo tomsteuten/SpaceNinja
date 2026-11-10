@@ -1,26 +1,29 @@
-import { test, expect } from './fixtures';
+import { test, expect, showWorld } from './fixtures';
 import type { Page } from '@playwright/test';
 
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 
 /*
- * Saturn's toy is the bath. Like Jump on the Moon, the places come first and the toy appears
- * as the next step after three finds; inside, the rocky worlds sink and only Saturn floats.
+ * Saturn's toy is the bath. Like Jump on the Moon it is in the row from arrival, and after three
+ * finds it is the ringed next step if it has not been played; inside, the rocky worlds sink
+ * and only Saturn floats.
  */
-test('Saturn: the bath is the next step after three finds, and floats only Saturn', async ({ page }) => {
+test('Saturn: the bath is there on arrival, ringed after three finds, and floats only Saturn', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('spaceninja.sound.v1', 'off');
     localStorage.setItem('spaceninja.progress.v1', JSON.stringify({ visited: ['earth', 'moon', 'mars'], discoveries: [], stickers: [] }));
   });
   await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
+  await showWorld(page, 'Saturn');
   await page.getByRole('button', { name: 'Fly to Saturn', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
 
-  // The bath waits for the places.
+  // Nothing held back: the bath is there from arrival; the journal joins after a find.
   const bathButton = page.locator('.bath-btn');
   await expect(page.locator('.home-btn')).toBeVisible();
-  await expect(bathButton).toBeHidden();
+  await expect(bathButton).toBeVisible();
+  await expect(page.locator('.visit-actions .journal-btn')).toBeHidden();
 
   for (let i = 0; i < 3; i++) {
     let target = (await snapshot(page)).targets.find((t: any) => t.visible);
@@ -40,8 +43,8 @@ test('Saturn: the bath is the next step after three finds, and floats only Satur
   const ui = page.locator('#ui');
   await expect(ui).toHaveClass(/is-toy-next/);
   await expect(page.locator('.world-heading__caption')).toHaveText('Three found! Now try the bath.');
-  await expect(bathButton).toBeVisible();
-  await expect(page.locator('.visit-actions .journal-btn')).toBeHidden();
+  await expect(bathButton).toHaveCSS('outline-style', 'solid');
+  await expect(page.locator('.visit-actions .journal-btn')).toBeVisible();
 
   // Drop all four worlds in, and only Saturn stays on top.
   await page.getByRole('button', { name: 'Saturn bath time', exact: true }).click();

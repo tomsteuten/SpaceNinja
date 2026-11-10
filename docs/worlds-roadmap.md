@@ -90,5 +90,5 @@ when expansion is requested; pilot one world before generalizing more systems.
 
 New worlds wait for the toys plan ([`docs/toys.md`](toys.md)): a world is added together with
 its toy, and only after a child has played the toys for the current five. The page and order
-ideas in `content/worlds.md` and the old [expansion handover](handover-2026-10-15-expansion.md)
+ideas in `content/worlds.md` and the old [expansion handover](archive/handover-2026-10-15-expansion.md)
 remain a reference, not a schedule.

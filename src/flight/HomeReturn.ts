@@ -35,6 +35,8 @@ export interface HomeReturnOptions {
   currentFocus(): THREE.Vector3;
   /** Fired once the pull-back has landed; the caller does the actual teardown (restart) here. */
   onArrive(): void;
+  /** The eased progress each frame, 0 → 1, for anything that should land with the camera. */
+  onProgress?(t: number): void;
 }
 
 export interface HomeReturn {
@@ -94,6 +96,7 @@ export function createHomeReturn(options: HomeReturnOptions): HomeReturn {
       camera.position.lerpVectors(startCamera, endCamera, t);
       look.lerpVectors(startLook, endLook, t);
       camera.lookAt(look);
+      options.onProgress?.(t);
 
       if (progress < 1) return;
       active = false;
