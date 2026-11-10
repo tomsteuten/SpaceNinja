@@ -1,67 +1,62 @@
 import { describe, expect, it } from 'vitest';
+import { DESTINATIONS } from '../config';
 import { BODY_IDS } from '../scene/Bodies';
-import { availability, childNeighborhoods, companionPages, createMapModel, NEIGHBORHOODS, pageIndex, visiblePlaces } from './model';
-describe('map browsing without progress', () => {
-  it('starts near home and wraps both ways', () => {
-    const map = createMapModel();
-    expect(map.neighborhood.id).toBe('earth');
-    map.move(1); expect(map.neighborhood.id).toBe('mars');
-    map.move(-1); expect(map.neighborhood.id).toBe('earth');
-    expect(pageIndex(0,-1)).toBe(NEIGHBORHOODS.length-1);
-    expect(pageIndex(NEIGHBORHOODS.length-1,1)).toBe(0);
-  });
-  it('exposes all five real destinations and cannot make a fixture playable', () => {
-    const real = NEIGHBORHOODS.flatMap(n => n.places.flatMap(p => p.body ? [p.body] : []));
-    expect(real.sort()).toEqual(['earth','mars','moon','saturn','sun']);
-    for (const n of NEIGHBORHOODS) for (const p of n.places) {
-      expect(availability(p)).toBe(p.body ? 'ready' : 'unbuilt');
+import { childPages, hintDirection, homePage, MAP_PAGES, pageOf, stepPage, suggestionOrder } from './model';
+
+const pages = childPages(BODY_IDS);
+
+describe('the Space map pages', () => {
+  it('puts every built destination on exactly one page', () => {
+    const built = new Set<string>([...BODY_IDS, ...Object.keys(DESTINATIONS)]);
+    for (const id of built) {
+      expect(MAP_PAGES.filter((page) => page.includes(id)), id).toHaveLength(1);
+      expect(pages.flat().filter((shown) => shown === id), id).toHaveLength(1);
     }
-    // Nothing is locked: a built world is ready whatever has been visited.
-    const mars = NEIGHBORHOODS.find(n => n.id === 'mars')!.places[0]!;
-    expect(availability(mars)).toBe('ready');
   });
-  it('fits all companions in three controls while retaining the parent', () => {
-    for (const n of NEIGHBORHOODS) {
-      const reached = new Set<string>();
-      for (let i=0;i<companionPages(n);i++) {
-        const places = visiblePlaces(n,i);
-        expect(places.length).toBeLessThanOrEqual(3);
-        expect(places[0]).toBe(n.places[0]);
-        places.forEach(p => reached.add(p.id));
-      }
-      expect([...reached].sort()).toEqual(n.places.map(p => p.id).sort());
-    }
-    const map = createMapModel(); map.move(2); map.moreMoons();
-    expect(map.places.map(p => p.id)).toEqual(['jupiter','ganymede','callisto']);
-    map.move(1); expect(map.companionPage).toBe(0);
+
+  it('lists the finished game outward from the Sun, with no world twice', () => {
+    const all = MAP_PAGES.flat();
+    expect(new Set(all).size).toBe(all.length);
+    expect(all).toHaveLength(15);
+    expect(MAP_PAGES[0]![0]).toBe('sun');
+  });
+
+  it('never shows a child an unbuilt world or an empty page', () => {
+    expect(pages).toEqual([['sun'], ['earth', 'moon', 'mars'], ['saturn']]);
+    for (const page of pages) for (const id of page) expect(BODY_IDS).toContain(id);
+  });
+
+  it('keeps a page once any of its worlds is built, and only that world', () => {
+    expect(childPages(['titan', 'earth'])).toEqual([['earth'], ['titan']]);
+    expect(childPages([])).toEqual([]);
+  });
+
+  it('opens on home and pages without wrapping', () => {
+    expect(pages[homePage(pages)]).toContain('earth');
+    expect(stepPage(0, -1, 3)).toBe(0);
+    expect(stepPage(2, 1, 3)).toBe(2);
+    expect(stepPage(1, 1, 3)).toBe(2);
+    expect(stepPage(1, -1, 3)).toBe(0);
+    expect(pageOf(pages, 'saturn')).toBe(2);
+    expect(pageOf(pages, 'jupiter')).toBe(-1);
   });
 });
-describe('neighborhoods as the map\'s source of membership', () => {
-  it('places every scene body in exactly one neighborhood, so a new world cannot be left off the map', () => {
-    const placed = NEIGHBORHOODS.flatMap(n => n.places.flatMap(p => p.body ? [p.body] : []));
-    expect([...placed].sort()).toEqual([...BODY_IDS].sort());
-    for (const n of NEIGHBORHOODS) for (const id of n.scene) {
-      expect(n.places.some(p => p.body === id)).toBe(true);
-    }
+
+describe('the gentle hint across pages', () => {
+  it('suggests home\'s neighbourhood first, then outward from the Sun', () => {
+    expect(suggestionOrder(pages)).toEqual(['earth', 'moon', 'mars', 'sun', 'saturn']);
+    expect(suggestionOrder(childPages([...BODY_IDS, 'jupiter', 'mercury']))).toEqual(
+      ['earth', 'moon', 'mars', 'sun', 'mercury', 'jupiter', 'saturn']);
   });
-  it('never shows a child an unbuilt world or an empty page', () => {
-    const shown = childNeighborhoods();
-    expect(shown.map(n => n.id)).toEqual(['earth','mars','saturn']);
-    for (const n of shown) {
-      expect(n.places.length).toBeGreaterThan(0);
-      for (const p of n.places) expect(availability(p)).toBe('ready');
-    }
-    const saturn = shown.find(n => n.id === 'saturn')!;
-    expect(saturn.places.map(p => p.id)).toEqual(['saturn']);
-    expect(saturn.title).toBe('Saturn');
-    expect(shown.find(n => n.id === 'earth')!.title).toBe('Earth & Moon');
-  });
-  it('keeps a neighborhood once any of its places is built, led by that place', () => {
-    const shown = childNeighborhoods([{ id:'jupiter', title:'Jupiter & moons', scene:['moon'], places:[
-      { id:'jupiter', label:'Jupiter', color:'#000' }, { id:'europa', label:'Europa', color:'#000', body:'moon' },
-    ] }]);
-    expect(shown).toHaveLength(1);
-    expect(shown[0]!.places.map(p => p.id)).toEqual(['europa']);
-    expect(shown[0]!.title).toBe('Europa');
+
+  it('points at the card on this page, or the arrow towards another page', () => {
+    const home = homePage(pages);
+    expect(hintDirection(pages, home, 'moon')).toBe(0);
+    expect(hintDirection(pages, home, 'sun')).toBe(-1);
+    expect(hintDirection(pages, home, 'saturn')).toBe(1);
+    expect(hintDirection(pages, 0, 'saturn')).toBe(1);
+    expect(hintDirection(pages, 2, 'earth')).toBe(-1);
+    expect(hintDirection(pages, home, null)).toBeNull();
+    expect(hintDirection(pages, home, 'jupiter')).toBeNull();
   });
 });

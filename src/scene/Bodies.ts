@@ -105,11 +105,9 @@ export interface World {
    */
   hitMeshes: THREE.Mesh[];
   /**
-   * Draw only these bodies; hide the rest (and drop their tap targets). Every body is shown
-   * unless told otherwise, and the game never tells it otherwise: nothing is locked, so every
-   * world is on the map from the first second. This is a plain visibility capability for the
-   * neighborhood-map study (src/map), which pages between groups of worlds. A hidden body
-   * keeps orbiting, so showing it again does not teleport it.
+   * Draw only these bodies; hide the rest (and drop their tap targets). The Space map
+   * (src/map) shows one page of worlds at a time; everything is shown again for a journey.
+   * Nothing is locked: a hidden world is simply on another page.
    */
   setShown(ids: Iterable<BodyId>): void;
   /**
@@ -123,6 +121,20 @@ export interface World {
   readonly selected: BodyId | null;
   /** 0 freezes the Moon mid-orbit so the flight has a stationary destination. */
   setOrbitSpeedScale(scale: number): void;
+  /** How far an orbiting world has gone round its orbit, or null for one that does not orbit. */
+  orbitPhase(id: BodyId): number | null;
+  /**
+   * Put an orbiting world at an angle along its own orbit. The Space map poses each page this
+   * way while orbits are paused; the scene graph is unchanged, so the Moon stays tidally
+   * locked and every surface keeps its tilt and coordinates.
+   */
+  setOrbitPhase(id: BodyId, phase: number): void;
+  /**
+   * What the map must fit for a world: a sphere round its centre (with `hinted`, wide enough
+   * for the breathing hint ring it wears when it is suggested), the points round the rim of
+   * any rings, in world space, and how far its rings reach from the centre.
+   */
+  mapFootprint(id: BodyId, hinted: boolean): { radius: number; reach: number; outline: THREE.Vector3[] };
   update(dt: number, elapsed: number, camera: THREE.Camera): void;
   /**
    * Back to the opening state for "explore again". Orbits are deliberately *not* wound
@@ -611,7 +623,7 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
   earthAxis.rotation.z = worldGeometry('earth').axialTilt ?? 0;
   earthAxis.add(earthMesh);
   const atmosphere = createAtmosphere(EARTH_RADIUS, segments);
-  const earthRing = createSelectionRing(ringTexture, EARTH_RADIUS * 3.1);
+  const earthRing = createSelectionRing(ringTexture, EARTH_RADIUS * 2.8);
   const earthHit = createHitMesh(EARTH_RADIUS * 1.4);
   earthHit.userData.bodyId = 'earth';
   earthAnchor.add(earthAxis, atmosphere, earthRing, earthHit);
@@ -706,14 +718,18 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
    * every orbiting world comes from the catalogue through one builder.
    */
   const registrations = {} as Record<BodyId, WorldRegistration>;
+  // The Sun can be the suggested world too, so it wears the same crayon ring, round its glow.
+  const sunRingScale = SUN_RADIUS * 2.9;
+  const sunRing = createSelectionRing(ringTexture, sunRingScale);
+  sunAnchor.add(sunRing);
   registrations.sun = {
-    root: sunAnchor, hitMeshes: [sunHit],
+    root: sunAnchor, hitMeshes: [sunHit], selectionRing: sunRing, selectionScale: sunRingScale,
   };
   registrations.earth = {
     root: earthAnchor,
     hitMeshes: [earthHit],
     selectionRing: earthRing,
-    selectionScale: EARTH_RADIUS * 3.1,
+    selectionScale: EARTH_RADIUS * 2.8,
   };
   for (const body of orbiting.values()) {
     registrations[body.id] = {
@@ -817,6 +833,37 @@ export async function createWorld(quality: QualitySettings): Promise<World> {
 
     setOrbitSpeedScale(scale: number) {
       orbitSpeedScale = scale;
+    },
+
+    orbitPhase(id: BodyId) {
+      return orbiting.get(id)?.orbit.rotation.y ?? null;
+    },
+
+    setOrbitPhase(id: BodyId, phase: number) {
+      const body = orbiting.get(id);
+      if (!body) return;
+      body.orbit.rotation.y = phase;
+      body.tilt.updateMatrixWorld(true);
+    },
+
+    mapFootprint(id: BodyId, hinted: boolean) {
+      const body = bodies[id];
+      const rings = orbiting.get(id)?.ringMesh ?? null;
+      // A ringed world's rings are fitted by their rim; the sphere is the planet itself.
+      const sphere = rings ? body.radius : body.viewRadius ?? body.radius;
+      const scale = registrations[id].selectionScale;
+      // The hint ring sprite is `scale` across, drawn out to 0.97 of that, and breathes by 9%.
+      const radius = hinted && scale !== undefined ? Math.max(sphere, (scale / 2) * 0.97 * 1.09) : sphere;
+      const outline: THREE.Vector3[] = [];
+      if (rings) {
+        const outer = (rings.geometry as THREE.RingGeometry).parameters.outerRadius;
+        rings.updateWorldMatrix(true, false);
+        for (let i = 0; i < 32; i++) {
+          const angle = (i / 32) * Math.PI * 2;
+          outline.push(rings.localToWorld(new THREE.Vector3(Math.cos(angle) * outer, Math.sin(angle) * outer, 0)));
+        }
+      }
+      return { radius, reach: Math.max(radius, body.viewRadius ?? body.radius), outline };
     },
 
     reset() {

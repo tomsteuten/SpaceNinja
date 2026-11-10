@@ -1,8 +1,8 @@
 import { worldPicture, discoveryPicture } from './pictures';
 import { worldCollections } from '../state/replay';
 /**
- * The adventure interface: destination tray, contextual actions, deliberate reading, the
- * mission HUD and the discovery journal.
+ * The adventure interface: the map heading, contextual actions, deliberate reading, the
+ * mission HUD and the discovery journal. The Space map's own controls live in src/map.
  *
  * Kept deliberately sparse — for this age group, one clear thing to press at a time.
  */
@@ -28,20 +28,6 @@ import { createSaturnBath } from '../toys/saturnBath';
 import { createMarsRover } from '../toys/marsRover';
 import type { PartOfDay } from '../toys/daySpin';
 
-export interface DestinationChoice {
-  id: string;
-  label: string;
-  emoji: string;
-  /** Been there: the card wears a tick, so a pre-reader can see what is finished. */
-  done?: boolean;
-  /**
-   * Places found and carried, for a world with places. A visited card shows them as the
-   * journal's dots, so "more to find" is a picture; all found swaps the tick for a sun star.
-   */
-  found?: number;
-  total?: number;
-}
-
 export interface GameUI {
   /** A reward, journal, celebration or transcript currently has the child's attention. */
   readonly activityCovered: boolean;
@@ -55,8 +41,10 @@ export interface GameUI {
   readonly mapReturnGuarded: boolean;
   /** A short line at the top, optionally led by one of the interface's own icons. */
   setHint(text: string | null, icon?: IconName): void;
-  /** Large, stable alternatives to tapping small moving worlds in the canvas. */
-  showDestinations(choices: readonly DestinationChoice[], suggestedId?: string | null): void;
+  /** The Space map is up (src/map draws its own controls; this is the heading and journal). */
+  setHome(home: boolean): void;
+  /** Lowest edge of the heading and journal button at the top, in client pixels. */
+  headingBottom(): number;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
   /** With a `worldId`, the card's title is led by a small picture of that world. */
@@ -188,8 +176,6 @@ export interface GameUI {
 export interface UIOptions {
   root: HTMLElement;
   narrator: Narrator;
-  /** One tap, one journey: this launches the flight, it does not select anything. */
-  onChooseDestination(id: string): void;
   onExploreAgain(): void;
   /** The "turn this world through a day" button. Only offered where config has one. */
   onSpin(): void;
@@ -229,7 +215,6 @@ export function createUI(options: UIOptions): GameUI {
   const {
     root,
     narrator,
-    onChooseDestination,
     onExploreAgain,
     onSpin,
     onStopSpin,
@@ -256,80 +241,6 @@ export function createUI(options: UIOptions): GameUI {
 
   const hint = el('p', 'hint');
   root.append(hint);
-
-  /*
-   * The moving 3D bodies remain tappable, but are no longer the only way to choose. In the
-   * widest map the inner worlds are necessarily tiny, and a generous invisible sphere does
-   * not help a child understand which speck it belongs to. These stable, word-and-picture
-   * controls are large enough for a finger and preserve the scene as scenery rather than
-   * asking it to carry the whole navigation system.
-   */
-  const destinationBar = el('nav', 'destination-bar is-hidden');
-  destinationBar.setAttribute('aria-label', 'Choose a world');
-  root.append(destinationBar);
-
-  /*
-   * Show, don't tell (playtest 2): a spoken suggestion and the Tap pill were not enough for a
-   * child who cannot read. One bouncing arrow sits on the card the map suggests. It is the
-   * same object wherever the map points, so it moves, never multiplies. A suggestion only:
-   * every card flies there.
-   */
-  const destinationPointer = el('span', 'destination-choice__pointer');
-  destinationPointer.setAttribute('aria-hidden', 'true');
-  destinationPointer.append(createIcon('pointer'));
-
-  function placePointer(id: string | null) {
-    for (const card of destinationBar.querySelectorAll('.is-pointed')) card.classList.remove('is-pointed');
-    const card = id ? destinationBar.querySelector(`[data-destination="${id}"]`) : null;
-    if (!card) {
-      destinationPointer.remove();
-      return;
-    }
-    card.classList.add('is-pointed');
-    card.append(destinationPointer);
-  }
-
-  function showDestinations(choices: readonly DestinationChoice[], suggestedId: string | null = null) {
-    root.classList.toggle('is-home', choices.length > 0);
-    destinationBar.replaceChildren();
-    destinationBar.style.setProperty('--destination-count', String(choices.length));
-    for (const choice of choices) {
-      const button = el('button', 'destination-choice') as HTMLButtonElement;
-      button.type = 'button';
-      // "Fly to", not "Choose": one press on this button is the whole journey now, and the
-      // label a screen reader speaks should say what the press actually does.
-      button.setAttribute('aria-label', `Fly to ${choice.label}`);
-      // A suggestion, not a selection — nothing is ever in a chosen-but-not-acted-on state
-      // any more. It marks the world the map is pointing at, alongside the
-      // parked ship's nose.
-      button.classList.toggle('is-suggested', choice.id === suggestedId);
-      const orb = worldPicture(choice.id);
-      button.append(orb, el('span', 'destination-choice__label', choice.label));
-      if (choice.done) {
-        const tick = createIcon('tick');
-        tick.classList.add('destination-choice__done');
-        button.append(tick);
-        button.classList.add('is-done');
-        // Once every world is visited the arrow sends the child back to one, so a finished
-        // visit must not look like a brand-new world (state audit 22): the card carries the
-        // journal's dots, sun for found and white for still to find.
-        const total = choice.total ?? 0;
-        const found = Math.min(choice.found ?? 0, total);
-        button.classList.toggle('is-full', total > 0 && found === total);
-        if (total > 0 && found < total) {
-          const pips = el('span', 'destination-choice__pips');
-          pips.setAttribute('aria-hidden', 'true');
-          for (let i = 0; i < total; i++) pips.append(el('span', i < found ? 'is-found' : ''));
-          button.querySelector('.destination-choice__label')!.after(pips);
-        }
-      }
-      button.dataset.destination = choice.id;
-      button.addEventListener('click', () => onChooseDestination(choice.id));
-      destinationBar.append(button);
-    }
-    destinationBar.classList.toggle('is-hidden', choices.length === 0);
-    placePointer(suggestedId);
-  }
 
   /* --- mission HUD --------------------------------------------------------- */
 
@@ -1384,7 +1295,16 @@ export function createUI(options: UIOptions): GameUI {
         factOpen || moonJump.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen || marsRover.isOpen;
     },
     setHint,
-    showDestinations,
+
+    setHome(home: boolean) {
+      root.classList.toggle('is-home', home);
+    },
+
+    headingBottom() {
+      const shown = [journalButton, ...(hint.textContent ? [hint] : [])]
+        .filter((node) => !node.classList.contains('is-hidden'));
+      return Math.max(0, ...shown.map((node) => node.getBoundingClientRect().bottom));
+    },
 
     enterFlight() {
       setFactOpen(false);
@@ -1396,7 +1316,6 @@ export function createUI(options: UIOptions): GameUI {
       findPlacesButton.classList.add('is-hidden');
       worldHeading.classList.add('is-hidden');
       listenButton.classList.add('is-hidden');
-      destinationBar.classList.add('is-hidden');
       // This can be an outbound flight or Fly Home. In the latter case the old mission
       // rings and instruction otherwise hover over the receding solar-system map.
       missionHud.classList.add('is-hidden');
@@ -1433,7 +1352,6 @@ export function createUI(options: UIOptions): GameUI {
       // While places remain the heading is just the world's name (storybook.css).
       root.classList.toggle('is-hunting', Boolean(DESTINATIONS[worldId]?.mission));
       setHint(null);
-      destinationBar.classList.add('is-hidden');
       setHomeAvailable(true);
       showFact(fact, label, cueId);
       const spin = DESTINATIONS[worldId]?.spin;
@@ -1790,8 +1708,6 @@ export function createUI(options: UIOptions): GameUI {
         // Or the animation will not replay the next time the node is shown.
         node.classList.remove('fade-in');
       }
-      destinationBar.classList.add('is-hidden');
-      destinationBar.replaceChildren();
       missionHud.classList.remove('fade-in-centred');
       dock.classList.remove('is-hidden');
     },

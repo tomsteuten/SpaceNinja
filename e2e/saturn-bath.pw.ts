@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, showWorld } from './fixtures';
 import type { Page } from '@playwright/test';
 
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
@@ -15,6 +15,7 @@ test('Saturn: the bath is there on arrival, ringed after three finds, and floats
   });
   await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
+  await showWorld(page, 'Saturn');
   await page.getByRole('button', { name: 'Fly to Saturn', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
 

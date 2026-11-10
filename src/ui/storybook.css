@@ -73,62 +73,7 @@
 .spin-sun { border-color:var(--ink-line); }
 .spin-arrow { color:var(--ink-line); }
 
-/* --- Home map destination bar: paper cards, one per world ------------------------ */
-
-.destination-bar { background:transparent; box-shadow:none; padding:0 4px 4px 0; gap:10px; }
-.destination-choice {
-  background:var(--paper); color:var(--ink-line); border:var(--line); border-radius:16px;
-  box-shadow:var(--lift); font:400 21px/1 var(--hand); letter-spacing:0;
-}
-.destination-choice:hover { filter:brightness(1.05); }
-.destination-choice:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line); }
-.destination-choice .world-orb { border:2px solid var(--ink-line); }
-.destination-choice .world-orb--saturn::after { border-color:var(--ink-line); border-width:3px; }
-/* The suggested world glows like a gold place and gets the same paper ring as the visit row's next step. */
-.destination-choice.is-suggested {
-  background:#ffe08a; color:var(--ink-line); border:var(--line); box-shadow:var(--lift);
-  outline:4px solid var(--paper); outline-offset:3px;
-}
-.destination-choice:focus-visible { outline:4px solid var(--crayon-sky); outline-offset:3px; }
-
-/*
- * What next, shown rather than said (playtest 2). Been there: a grass tick in the corner.
- * A suggestion: one fat sun arrow bouncing on the card (the hunt arrow's crayon). Every card
- * flies there whatever the arrow says.
- */
-.destination-choice__done {
-  position:absolute; left:-7px; top:-7px; width:26px; height:26px; display:grid; place-items:center;
-  background:var(--crayon-grass); border:2px solid var(--ink-line); border-radius:50%; transform:rotate(-8deg);
-}
-.destination-choice__done .icon { width:17px; height:17px; color:var(--ink-line); stroke-width:3.4; }
-/* Visited with places left: the journal's dots, sun for found, white for still to find (state audit 22). */
-.destination-choice__pips { display:flex; gap:3px; }
-.destination-choice__pips > span { width:10px; height:10px; border-radius:50%; background:#fff; border:1.5px solid var(--ink-line); }
-.destination-choice__pips > .is-found { background:var(--crayon-sun); }
-/* Every place found: the tick becomes a sun star (drawn by the clipped ::before with the journal chip's). */
-.destination-choice.is-full .destination-choice__done { background:none; border:none; border-radius:0; width:36px; height:36px; left:-12px; top:-12px; filter:drop-shadow(2px 2px 0 var(--ink-line)); }
-.destination-choice.is-full .destination-choice__done .icon { display:none; }
-/* Owner review: dots a five-year-old can see on a phone; a smaller world keeps the 76 px card. */
-@media(max-width:599px) {
-  .destination-choice:has(.destination-choice__pips) { gap:2px; }
-  .destination-choice:has(.destination-choice__pips) .world-orb { width:26px; height:26px; }
-  .destination-choice__pips > span { width:11px; height:11px; }
-}
-@media(min-width:600px) and (max-height:480px) {
-  .destination-choice:has(.destination-choice__pips) { gap:1px; }
-  .destination-choice:has(.destination-choice__pips) .world-orb { width:22px; height:22px; }
-  .destination-choice__pips > span { width:9px; height:9px; }
-}
-.destination-choice__pointer {
-  position:absolute; left:50%; bottom:calc(100% - 12px); z-index:2; width:34px; height:38px; margin-left:-17px;
-  pointer-events:none; animation:pointer-bounce .9s ease-in-out infinite;
-}
-.destination-choice__pointer .icon { width:100%; height:100%; display:block; }
-.destination-choice__pointer path { fill:var(--crayon-sun); stroke:var(--ink-line); stroke-width:1.7; }
-@keyframes pointer-bounce { 0%,100% { translate:0 -6px; } 50% { translate:0 3px; } }
-@media(prefers-reduced-motion:reduce) {
-  .destination-choice__pointer { animation:none; translate:0 -6px; }
-}
+/* The Space map's cards and page arrows are styled in src/map/map.css. */
 
 /* --- World heading: a paper label on the sky --------------------------------- */
 
@@ -299,7 +244,7 @@
 .journal-next__slots .icon { width:32px; height:32px; color:#b08a3c; }
 /* A whole world found: the chip's count becomes a sun star. */
 .collection-progress__world.is-full > span:nth-child(2) { position:relative; font-size:0; width:32px; height:32px; filter:drop-shadow(2px 2px 0 var(--ink-line)); }
-.collection-progress__world.is-full > span:nth-child(2)::before,.destination-choice.is-full .destination-choice__done::before {
+.collection-progress__world.is-full > span:nth-child(2)::before,.map-card.is-full .map-card__done::before {
   content:''; position:absolute; inset:0; background:var(--crayon-sun);
   clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
 }

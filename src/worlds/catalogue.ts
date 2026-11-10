@@ -1,7 +1,7 @@
 /**
  * Geometry for Earth and the orbiting catalogue worlds, in journey order.
  *
- * Owns sizes, orbits, spins, rings, surface specifications and derived map framing.
+ * Owns sizes, orbits, spins, rings and surface specifications.
  * Bodies.ts builds orbiting worlds through its shared builder; Earth keeps its paired-map
  * builder. Facts and places remain in DESTINATIONS in config.ts.
  * The Sun observation destination has separate geometry and presentation. Adding a world
@@ -80,9 +80,6 @@ export interface WorldGeometry {
    */
   surface?: WorldSurface;
 }
-
-/** Breathing room added to the outermost reach when the camera frames a set of worlds. */
-export const FRAMING_MARGIN = 0.18;
 
 const earth: WorldGeometry = {
   id: 'earth',
@@ -190,26 +187,4 @@ export function worldGeometry(id: string): WorldGeometry {
 /** How far from the body's centre the shot has to reach to show all of it. */
 export function viewRadius(world: WorldGeometry): number {
   return world.rings ? world.radius * world.rings.outer : world.radius;
-}
-
-/** How far from the scene centre the world's furthest visible edge can get. */
-export function reach(world: WorldGeometry): number {
-  return (world.orbit?.radius ?? 0) + viewRadius(world);
-}
-
-/**
- * How much of the scene the opening shot tries to fit, given which worlds are drawn.
- *
- * The furthest reach among the drawn worlds, plus a margin: the shot fits exactly the worlds
- * on screen. Fitting an outer world shrinks the inner ones; that is the cost of drawing every
- * world from the first second. Ids the catalogue does not know (the Sun, which sits far off
- * the map, or a stale id) are ignored, so they cannot break framing.
- */
-export function framingRadiusFor(drawnIds: readonly string[]): number {
-  let furthest = 0;
-  for (const id of drawnIds) {
-    const world = BY_ID.get(id);
-    if (world) furthest = Math.max(furthest, reach(world));
-  }
-  return furthest + FRAMING_MARGIN;
 }

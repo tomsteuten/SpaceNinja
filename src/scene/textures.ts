@@ -829,11 +829,13 @@ export function makeRingTexture(size = 256): THREE.CanvasTexture {
   const [el, ctx] = canvas2d(size, size);
   const half = size / 2;
   const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
+  // A thin line near the edge: on the paged map a world is large on screen, and a broad band
+  // read as a halo round it rather than a crayon ring.
   grad.addColorStop(0, 'rgba(255,214,150,0)');
-  grad.addColorStop(0.74, 'rgba(255,214,150,0)');
-  grad.addColorStop(0.83, 'rgba(255,226,176,0.95)');
-  grad.addColorStop(0.9, 'rgba(255,206,140,0.5)');
-  grad.addColorStop(1, 'rgba(255,190,120,0)');
+  grad.addColorStop(0.8, 'rgba(255,214,150,0)');
+  grad.addColorStop(0.86, 'rgba(255,226,176,0.95)');
+  grad.addColorStop(0.91, 'rgba(255,206,140,0.5)');
+  grad.addColorStop(0.97, 'rgba(255,190,120,0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
   const texture = new THREE.CanvasTexture(el);

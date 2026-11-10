@@ -16,20 +16,17 @@ import './ui/adventure.css';
 import './ui/storybook.css';
 import { adventureViewOffset } from './ui/viewport';
 import * as THREE from 'three';
-import {
-  DESTINATIONS,
-  SUN_DIRECTION,
-  framingRadiusFor,
-} from './config';
+import { DESTINATIONS, SUN_DIRECTION } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
 import { WebGLUnavailableError, createStage } from './scene/Stage';
 import { createSky } from './scene/Starfield';
-import { BODY_IDS, createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
+import { createWorld, type BodyId, type CelestialBody } from './scene/Bodies';
 import { createSpaceship } from './scene/Spaceship';
 import { createEngineTrail } from './scene/EngineTrail';
 import { createDayTurn } from './scene/DayTurn';
 import { TEACHING_SUN_RADIUS } from './scene/dayTurnFraming';
 import { createOrbitInput } from './controls/OrbitInput';
+import { createSpaceMap } from './map';
 import { createFlightSequence } from './flight/FlightSequence';
 import { createHomeReturn } from './flight/HomeReturn';
 import {
@@ -97,48 +94,6 @@ async function main() {
   const trail = createEngineTrail(stage.quality.tier === 'low' ? 24 : 46);
   scene.add(trail.group);
 
-  /**
-   * Every world is drawn and tappable from the first second: nothing is locked (DECISIONS.md),
-   * so the scene never hides a body and the map frames all of them.
-   */
-  const MAP_WORLDS: readonly BodyId[] = BODY_IDS;
-
-  /** The shot fits exactly the worlds that are drawn, so framing and drawing cannot drift apart. */
-  function framingRadius(): number {
-    return framingRadiusFor(MAP_WORLDS);
-  }
-
-  /**
-   * How much of the vertical frame the interface reserves, so the map is fitted into the band
-   * between the top mission prompt and the bottom dock rather than the whole canvas — see
-   * `framingHalfAngle` and OrbitInput.frame. Without it a tall phone crops the widest tier,
-   * Saturn's rings most of all, behind the controls, which reads as the destination sitting
-   * too close and too low. Portrait reserves the most because the dock there is a full-width
-   * stack; landscape lays it into a thin bottom band, so less is taken. Reasoned defaults, to
-   * be watched on the real tablet like the framing tiers themselves.
-   */
-  function framingInset(): number {
-    return camera.aspect < 1 ? 0.3 : 0.16;
-  }
-
-  /** Every world gets a button, and every button flies there. */
-  function mapChoices() {
-    const progress = loadProgress();
-    const visited = progress.visited;
-    const pages = new Map(worldCollections(progress.discoveries).map(page => [page.id, page]));
-    return BODY_IDS.map((id) => ({
-      id,
-      // The full scene name is "The Moon"; a four-choice phone bar has room for the
-      // identity, not the article. Keeping this derivation here avoids duplicate copy.
-      label: world.bodies[id].label.replace(/^The /, ''),
-      emoji: DESTINATIONS[id]?.emoji ?? '✨',
-      // Been there: a tick, so a pre-reader can see what is done. It opens nothing.
-      done: visited.includes(id),
-      found: pages.get(id)?.found,
-      total: pages.get(id)?.total,
-    }));
-  }
-
   const controls = createOrbitInput({
     camera,
     element: canvas,
@@ -147,7 +102,6 @@ async function main() {
   });
   controls.setFocusRadius(world.bodies.earth.radius);
   controls.setTarget(new THREE.Vector3(), true);
-  controls.frame(framingRadius(), true, framingInset());
 
   const narrator = createNarrator();
   const sfx = createSfx();
@@ -189,7 +143,6 @@ async function main() {
   const ui = createUI({
     root: uiRoot,
     narrator,
-    onChooseDestination: (id) => launch(id as BodyId),
     onExploreAgain: () => {
       // A Fly Home during a day turn: stop the turn first so it is not still writing the
       // camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
@@ -197,15 +150,15 @@ async function main() {
       huntViewTurn = null;
       dayTurn.reset();
       sfx.reset();
-      // Ease the camera out to the map first; restart() runs when the pull-back lands. Under
-      // reduced motion start() declines and this cuts straight home, exactly as it always did.
+      // The visit's controls go first, so the map's page is framed for its own layout.
+      ui.enterFlight();
+      // Ease the camera out to the map first; restart() runs when the pull-back lands, on the
+      // world's own page. Under reduced motion start() declines and this cuts straight home.
+      map.openAt(follow);
       if (homeReturn.start()) {
-        // Bring the wider solar-system context back as the camera leaves the destination.
-        // Keeping the visit focus until restart() made every other world pop in only after
-        // the pull-back had already landed.
+        // Bring the page's worlds back to full strength as the camera leaves the destination.
         world.setFocus(null);
         ship.setContextDimmed(false);
-        ui.enterFlight();
       } else restart();
     },
     onGrownups: () => grownups.show(),
@@ -391,6 +344,9 @@ async function main() {
       // Supported Day & night is visible on settled arrival for every mission world.
       // Earth's first-visit invitation can pulse and speak, but the child starts the turn.
       earthDayNightPrompt = destination.id === 'earth' && firstVisit;
+      // The first Earth visit's choice is on screen and pulsing from the start; its spoken
+      // invitation would only queue behind the welcome, so the welcome is the one line.
+      if (earthDayNightPrompt) spinInvited = true;
       if (destination.id === 'earth') {
         ui.setEarthWelcome(earthDayNightPrompt);
         mission.setPresentation(!earthDayNightPrompt);
@@ -408,13 +364,11 @@ async function main() {
     camera,
     controls,
     reducedMotion,
-    restingPose: () =>
-      controls.restingPose(
-        world.bodies.earth.getWorldPosition(homeFocus),
-        framingRadius(),
-        framingInset(),
-      ),
+    // The map's pose for the visited world's page, with its worlds sliding into place as the
+    // camera goes, so restart() lands on exactly this picture.
+    restingPose: () => map.beginReturn(follow),
     currentFocus: () => world.bodies[follow].getWorldPosition(homeFocus),
+    onProgress: (t) => map.blendReturn(t),
     onArrive: () => restart(),
   });
 
@@ -690,6 +644,8 @@ async function main() {
     const discoveries = buildMission(id)?.definition.discoveries;
     const aim = discoveries ? facingLatitude(discoveries) : undefined;
     if (!flight.start(destination, aim)) return;
+    // The map lets go of the camera and draws every world again for the journey.
+    map.hide();
     huntGuidance = null;
     // The first reliable user gesture of the session, and the last one before the ship
     // arrives somewhere with sounds to make. Mobile browsers start an AudioContext
@@ -802,23 +758,23 @@ async function main() {
   window.addEventListener('pointerdown', onAnyPress, true);
 
   /**
-   * The one world the map is pointing at: the first unvisited world in journey order (Earth,
-   * the Moon, Mars, Saturn). When everywhere has been visited an incomplete collection becomes
-   * the invitation; once every place has been found, the map stops suggesting anything. Only
-   * ever a hint: every world can be flown to at any time.
+   * The one world the map is pointing at: the first unvisited world in the map's hint order
+   * (Earth, the Moon, Mars, the Sun, Saturn). When everywhere has been visited an incomplete
+   * collection becomes the invitation; once every place has been found, the map stops
+   * suggesting anything. Only ever a hint: every world can be flown to at any time.
    */
   function suggestedDestination(): BodyId | null {
-    return nextWorld(loadProgress(), MAP_WORLDS) as BodyId | null;
+    return nextWorld(loadProgress(), map.order) as BodyId | null;
   }
 
   /**
-   * The gold card, its pointer, the ring round the world in the scene and the parked ship's
-   * nose share one suggestion (playtest 2: a spoken "Mars is ready" alone was not enough).
-   * The ring is a thin crayon line, not the broad halo that once overwhelmed the Moon.
+   * The gold card (or, when the world is on another page, the arrow towards it), its pointer,
+   * the ring round the world in the scene and the parked ship's nose share one suggestion
+   * (playtest 2: a spoken "Mars is ready" alone was not enough).
    */
   function applySuggestion() {
     suggested = suggestedDestination();
-    ui.showDestinations(mapChoices(), suggested);
+    map.setSuggestion(suggested);
     world.setSelected(suggested, !reducedMotion);
     // A fresh suggestion is a fresh set of map nudges: the cue ids name this world, so the old
     // "given" flags no longer apply, and the idle clock starts again.
@@ -833,36 +789,82 @@ async function main() {
    */
   function announceMap(viaFlyHome: boolean) {
     const visited = loadProgress().visited;
+    // "Tap it" is only true while the suggested world is on the page being shown.
     const cue =
       visited.length === 0
         ? 'home-earth'
         : viaFlyHome
           ? 'fly-home'
-          : suggested
+          : suggested && map.hint === 0
             ? `home-${suggested}`
             : 'home-any';
     ui.speakGuide(cueText(cue), cue);
   }
 
-  function showOpeningHints() {
+  /** The heading says what the hint shows: the world's card here, or the arrow towards it. */
+  function showMapHeading() {
     const next = suggested;
     if (!next) {
       ui.setHint('Tap a world to fly there', 'rocket');
       return;
     }
-    const label = world.bodies[next].label.replace(/^The /, '');
+    const label = shortLabel(next);
     const revisit = loadProgress().visited.includes(next);
-    ui.setHint(revisit ? 'More to find · Tap ' + label : 'Tap ' + label,
-      // Going back for more: the gold place the child hunts there, not the journal.
-      revisit ? 'target' : 'rocket');
+    // Going back for more: the gold place the child hunts there, not the journal.
+    const icon = revisit ? 'target' : 'rocket';
+    if (map.hint !== 0) ui.setHint(`Tap the arrow for ${label}`, icon);
+    else ui.setHint(revisit ? 'More to find · Tap ' + label : 'Tap ' + label, icon);
   }
+
+  /** "Moon", not "The Moon": a card has room for the identity, not the article. */
+  function shortLabel(id: BodyId): string {
+    return world.bodies[id].label.replace(/^The /, '');
+  }
+
+  /*
+   * The Space map: one neighbourhood per page. It owns the camera only while it is up, between
+   * a landed return and the next launch, and never pages while a flight or return runs.
+   */
+  const map = createSpaceMap({
+    root: uiRoot,
+    canvas,
+    camera,
+    world,
+    controls,
+    ship: ship.group,
+    reducedMotion,
+    covered: () => ui.activityCovered || grownups.open,
+    describe: (id) => {
+      const progress = loadProgress();
+      const collection = worldCollections(progress.discoveries).find((page) => page.id === id);
+      return {
+        id,
+        label: shortLabel(id),
+        // Been there: a tick, so a pre-reader can see what is done. It opens nothing.
+        done: progress.visited.includes(id),
+        found: collection?.found,
+        total: collection?.total,
+      };
+    },
+    launch: (id) => launch(id),
+    tap: (x, y) => handleTap(x, y),
+    onPage: () => {
+      showMapHeading();
+      mapIdle = 0;
+    },
+    headingBottom: () => ui.headingBottom(),
+  });
 
   // Whatever was chosen last time, applied before anything can make a noise.
   const soundOn = loadSoundOn();
   sfx.setMuted(!soundOn);
   ui.setSoundOn(soundOn);
   applySuggestion();
-  showOpeningHints();
+  // A new session opens where the hint points (a new save: home's page, Earth).
+  map.openAt(suggested);
+  ui.setHome(true);
+  showMapHeading();
+  map.show();
   // The map's opening line. Only when no splash is covering the map: with the grown-ups screen
   // up, this is deferred to the "Start playing" press (onStart above), so it never talks over
   // the splash. Without a splash (a later load, storage remembered), there has been no gesture
@@ -911,13 +913,17 @@ async function main() {
     controls.reset();
     controls.setFocusRadius(world.bodies.earth.radius);
     controls.setTarget(world.bodies.earth.getWorldPosition(focusPosition), true);
-    controls.frame(framingRadius(), true, framingInset());
 
     follow = 'earth';
 
     ui.reset();
     applySuggestion();
-    showOpeningHints();
+    // Back on the visited world's page (remembered for the session); a progress reset is a
+    // new save, which opens on home's page.
+    if (loadProgress().visited.length === 0) map.openAt(null);
+    ui.setHome(true);
+    showMapHeading();
+    map.show(true);
     // Landing back at the map: a Fly Home says so, a progress reset (visited now empty) gets
     // the first-run welcome.
     announceMap(true);
@@ -1046,7 +1052,8 @@ async function main() {
       } else if (inviting && spinInvited) {
         // 8s after the invitation, still inviting and nothing pressed: one short "the little
         // globe" and then silence. The clock resets on any press, the flag does not.
-        spinIdle += dt;
+        // Counted only in silence, so the follow-up never queues behind a line being read.
+        if (!narrator.speaking) spinIdle += dt;
         const nudge = dueNudge(spinIdle, singleNudge('spin-nudge'), arrivalNudgesGiven);
         if (nudge) {
           arrivalNudgesGiven.add(nudge);
@@ -1063,12 +1070,16 @@ async function main() {
        * nag. `activeMission` is null only between arriving home and the next launch, which is
        * exactly the map.
        */
-      const atMap = activeMission === null && cameraOurs && flight.phase === 'idle';
+      const atMap = activeMission === null && cameraOurs && flight.phase === 'idle' && map.active;
       if (atMap && suggested) {
         mapIdle += dt;
+        // "Tap Saturn" is only true on Saturn's page. Elsewhere the page arrow carries the
+        // hint, and the existing "You can tap the arrow" pair says exactly that.
         const nudge = dueNudge(
           mapIdle,
-          shorteningPair(`home-nudge-${suggested}`, `home-nudge-short-${suggested}`),
+          map.hint === 0
+            ? shorteningPair(`home-nudge-${suggested}`, `home-nudge-short-${suggested}`)
+            : shorteningPair('hunt-nudge', 'hunt-nudge-short'),
           mapNudgesGiven,
         );
         if (nudge) {
@@ -1116,7 +1127,15 @@ async function main() {
     // control for it so the two are not both writing the camera on the same frame.
     homeReturn.update(dt);
 
-    if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
+    if (map.active) {
+      // The map owns the camera while it is up: its page glide, and a fresh pose and framing
+      // when the device rotates.
+      if (camera.aspect !== lastAspect) {
+        lastAspect = camera.aspect;
+        map.resize();
+      }
+      map.update(dt);
+    } else if (flight.phase !== 'flying' && !homeReturn.active && !cameraReturn && !dayTurn.active) {
       // Rotating the device changes how much fits on screen, so recompose the shot.
       // Deliberately overrides any manual zoom: a rotated view that cuts off the
       // destination is worse than losing the zoom level.
@@ -1124,16 +1143,10 @@ async function main() {
         lastAspect = camera.aspect;
         const body = world.bodies[follow];
         // viewRadius so a rotation while at Saturn reframes the whole ring system, not the
-        // sphere alone; it falls back to the plain radius for every other body. The same
-        // interface inset keeps the subject out from under the dock as it does on the map.
-        controls.frame(
-          // Match the arrival composition after rotation. The old 2.6 multiplier treated
-          // frame()'s subject radius like a camera distance and shrank Saturn to a thumbnail
-          // in phone landscape; 1.4 is the same breathing room arrivalDistance authors.
-          flight.phase === 'idle' ? framingRadius() : (body.viewRadius ?? body.radius) * 1.4,
-          false,
-          framingInset(),
-        );
+        // sphere alone; it falls back to the plain radius for every other body. Match the
+        // arrival composition after rotation: 1.4 is the breathing room arrivalDistance
+        // authors. The inset keeps the subject out from under the dock.
+        controls.frame((body.viewRadius ?? body.radius) * 1.4, false, camera.aspect < 1 ? 0.3 : 0.16);
       }
       controls.setTarget(world.bodies[follow].getWorldPosition(focusPosition));
       controls.update(dt);
@@ -1167,6 +1180,9 @@ async function main() {
       return {
         phase: flight.phase,
         mapBodyIds: [...new Set(world.hitMeshes.map(mesh => mesh.userData.bodyId))],
+        mapPage: map.active ? map.page : null,
+        mapPageCount: map.pageCount,
+        mapHint: map.active ? map.hint : null,
         world: follow,
         draws: stage.renderer.info.render.calls,
         frame: stage.renderer.info.render.frame,
@@ -1176,9 +1192,9 @@ async function main() {
         dayTurning: dayTurn.active,
         earthWelcome: earthDayNightPrompt,
         bodyScreen: screenCircle(center, world.bodies[follow].viewRadius ?? world.bodies[follow].radius),
-        // Every drawn world's silhouette on screen, so the map's framing can be checked
+        // The page's worlds' silhouettes on screen, so the map's framing can be checked
         // against exactly the worlds it draws.
-        mapScreen: Object.fromEntries(MAP_WORLDS.map((id) => {
+        mapScreen: Object.fromEntries((map.active ? map.pageWorlds : []).map((id) => {
           const body = world.bodies[id];
           return [id, screenCircle(body.getWorldPosition(new THREE.Vector3()), body.viewRadius ?? body.radius)];
         })),
@@ -1216,11 +1232,13 @@ async function main() {
       narrator.stop();
       sfx.reset();
       controls.cancelGesture();
+      map.suspend();
     },
     reset: resetAdventure,
     dispose,
     fail: (error) => {
       dayTurn.reset();
+      map.suspend();
       ui.dismissToys();
       fail('Space Ninja stopped', error, true);
     },
@@ -1233,6 +1251,7 @@ async function main() {
     window.removeEventListener('pointerdown', onAnyPress, true);
     coach.dispose();
     canvas.removeEventListener('pointerup', onDayTurnSkipTap);
+    map.dispose();
     controls.dispose();
     ui.dispose();
     grownups.dispose();

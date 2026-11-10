@@ -6,7 +6,12 @@ Scope is [DECISIONS.md](../DECISIONS.md). Tick a phase here when it lands.
 
 - [x] **Phase 0, clear the decks:** merge done-visible, one-page rules.
 - [x] **Phase 1, open it up:** no locked worlds; each world's toy is there on arrival; gold places optional (`f2a1457`, branch `finish/open-explore`, not on `main`). Known gap: with all five worlds in one shot the home map is cramped (Saturn overlaps Earth, worlds are tiny on a phone). Do the paged map next, before merging to `main`. Also open: the first Earth visit still queues a second spoken line.
-- [ ] **Phase 3a, paged map (pulled forward):** paged neighbourhood map (`src/map/`), moons orbit their parent.
+- [x] **Phase 3a, paged map (pulled forward):** paged neighbourhood map (`src/map/`), moons orbit their parent.
+  - Pages are data (`MAP_PAGES` in `src/map/model.ts`, outward from the Sun); a child sees built worlds only: Sun; Earth, Moon, Mars; Saturn. Opens on the hinted world's page; a return lands on the visited world's page.
+  - Each page is a posed shot (`src/map/framing.ts`): orbits pause on the map, companions turn along their own orbits into a zigzag, a ringed world turns to a three-quarter ring tilt, the ship waits beside Earth, and the camera fits exact silhouettes between heading, arrows and cards. A return slides the worlds into place with the pull-back.
+  - Paging: big arrows at the screen edges (sky; sun when carrying the hint), swipe, Left/Right keys, page dots; a 0.6 s glide, a cut under reduced motion. The map owns the camera only while it is up.
+  - Hint order Earth, Moon, Mars, Sun, Saturn. Off the page the arrow carries the pointer, the heading says "Tap the arrow for X" and the nudge is the recorded "You can tap the arrow". The first Earth visit no longer queues "You can turn Earth" behind its welcome.
+  - Still open: the Moon orbits Earth, but a moon orbiting another parent (Io, Europa, Titan) arrives with those worlds.
 - [ ] **Phase 2, the two missing lessons:** Moon torch (reflected light and phases); fly away from the Sun until it is one star among many; a sunrise-from-the-house view in the bedtime spin.
 - [ ] **Phase 3b, cheap worlds:** light world template (texture, three places, arrival fact), piloted on Jupiter.
 - [ ] **Phase 4, fill in:** Mercury and Venus; Io, Europa, Uranus, Neptune, Titan; Pluto and Makemake.

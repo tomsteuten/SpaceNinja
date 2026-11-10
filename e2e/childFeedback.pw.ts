@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { settleMapReturn } from './fixtures';
+import { settleMapReturn, showWorld } from './fixtures';
 
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 async function shot(page: Page, info: TestInfo, name: string) {
@@ -42,10 +42,12 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
   });
   await page.goto('/?fast');
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Fly to Sun', exact: true })).toBeVisible();
-  for (let index = 0; index < 5; index++) {
-    await fits(page, `.destination-choice:nth-child(${index + 1})`);
+  await expect(page.getByRole('button', { name: 'Fly to Moon', exact: true })).toBeVisible();
+  for (let index = 0; index < 3; index++) {
+    await fits(page, `.map-card:nth-child(${index + 1})`);
   }
+  await fits(page, '.map-arrow--previous');
+  await fits(page, '.map-arrow--next');
   await shot(page, info, 'space-map');
 
   await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();
@@ -105,7 +107,7 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
   await expect.poll(async () => (await snapshot(page)).phase).toBe('idle');
 
   // New non-hunt destinations use the normal flight, camera controls and home return.
-  await settleMapReturn(page);
+  await showWorld(page, 'Sun');
   await page.getByRole('button', { name: 'Fly to Sun', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).world).toBe('sun');
   await expect.poll(async () => (await snapshot(page)).phase).toBe('arrived');
@@ -140,7 +142,8 @@ test('picture exits close discoveries, return to the map and allow a Sun visit',
   const progress = await page.evaluate(() => JSON.parse(localStorage.getItem('spaceninja.progress.v1')!));
   expect(progress.visited).toContain('sun');
   expect(progress.discoveries).toHaveLength(1);
-  await settleMapReturn(page);
+  // Back on the Sun's page; Earth is one page turn away.
+  await showWorld(page, 'Earth');
   await page.getByRole('button', { name: 'Fly to Earth', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).world).toBe('earth');
   await page.getByRole('button', { name: 'Find places', exact: true }).click();

@@ -1,52 +1,71 @@
-import type { BodyId } from '../scene/Bodies';
-
-export interface MapPlace { id: string; label: string; body?: BodyId; color: string }
-export interface Neighborhood { id: string; title: string; places: readonly MapPlace[]; scene: readonly BodyId[] }
-const p = (id: string, label: string, color: string, body?: BodyId): MapPlace => ({ id, label, color, body });
-/** Presentation fixtures only: these IDs never enter the catalogue or progress. */
-export const NEIGHBORHOODS: readonly Neighborhood[] = [
-  { id:'mercury', title:'Mercury', scene:[], places:[p('mercury','Mercury','#aaa59c')] },
-  { id:'venus', title:'Venus', scene:[], places:[p('venus','Venus','#dfb983')] },
-  { id:'earth', title:'Earth & Moon', scene:['earth','moon'], places:[p('earth','Earth','#6daac4','earth'),p('moon','Moon','#bfc3c8','moon'),p('sun','Sun','#ffd279','sun')] },
-  { id:'mars', title:'Mars', scene:['mars'], places:[p('mars','Mars','#cf9478','mars')] },
-  { id:'jupiter', title:'Jupiter & moons', scene:[], places:[p('jupiter','Jupiter','#d4b18e'),p('io','Io','#dcce83'),p('europa','Europa','#d5c8ae'),p('ganymede','Ganymede','#aca69a'),p('callisto','Callisto','#8e8a84')] },
-  { id:'saturn', title:'Saturn & Titan', scene:['saturn'], places:[p('saturn','Saturn','#d9c396','saturn'),p('titan','Titan','#d4a45f')] },
-  { id:'uranus', title:'Uranus', scene:[], places:[p('uranus','Uranus','#a3d6d9')] },
-  { id:'neptune', title:'Neptune', scene:[], places:[p('neptune','Neptune','#729dcc')] },
-  { id:'dwarfs', title:'Small worlds', scene:[], places:[p('pluto','Pluto','#c7aaa0'),p('ceres','Ceres','#a5a2a1'),p('eris','Eris','#d2d2cc')] },
-];
 /**
- * The neighborhoods a child may see: unbuilt places removed, and any neighborhood left with
- * nothing playable dropped. A future world appears here only once it has a real body, so
- * "coming later" fixtures stay in the study and never become a child's dead end.
+ * The Space map's pages: neighbourhoods ordered outward from the Sun, left to right.
+ *
+ * This list is the one place a world joins the map. It names every destination in the
+ * finished game (DECISIONS.md), built or not; a child only ever sees the built ones, and a
+ * page with nothing built on it does not exist for them. Adding a world later is adding its
+ * id here, once it has a body in the scene.
  */
-export function childNeighborhoods(all: readonly Neighborhood[] = NEIGHBORHOODS): Neighborhood[] {
-  return all.flatMap(n => {
-    const places = n.places.filter(place => place.body);
-    if (!places.length) return [];
-    // A title naming a removed fixture ("Saturn & Titan") would promise something absent.
-    return [places.length === n.places.length ? n : { ...n, title: places[0]!.label, places }];
-  });
+export const MAP_PAGES: readonly (readonly string[])[] = [
+  ['sun', 'mercury', 'venus'],
+  ['earth', 'moon', 'mars'],
+  ['jupiter', 'io', 'europa'],
+  ['saturn', 'titan'],
+  ['uranus', 'neptune'],
+  ['pluto', 'makemake'],
+];
+
+/** Home: a new save opens on this world's page, and the gentle hint starts from it. */
+export const HOME_WORLD = 'earth';
+
+/** The pages a child sees: unbuilt worlds removed, and any page left empty dropped. */
+export function childPages<T extends string>(
+  built: readonly T[],
+  pages: readonly (readonly string[])[] = MAP_PAGES,
+): T[][] {
+  const known = new Set<string>(built);
+  return pages
+    .map((page) => page.filter((id): id is T => known.has(id)))
+    .filter((page) => page.length > 0);
 }
-/** Nothing is locked: a place with a built body is ready to fly to, anything else is a fixture. */
-export function availability(place: MapPlace): 'ready' | 'unbuilt' {
-  return place.body ? 'ready' : 'unbuilt';
+
+/** The page a world is on, or -1 when it is not on any. */
+export function pageOf(pages: readonly (readonly string[])[], id: string): number {
+  return pages.findIndex((page) => page.includes(id));
 }
-export function pageIndex(index: number, step: number, count = NEIGHBORHOODS.length): number {
-  return ((index + step) % count + count) % count;
+
+/** Where a new save opens: home's page (or the first page if home were ever missing). */
+export function homePage(pages: readonly (readonly string[])[]): number {
+  return Math.max(0, pageOf(pages, HOME_WORLD));
 }
-export function companionPages(n: Neighborhood): number { return Math.max(1, Math.ceil((n.places.length - 1) / 2)); }
-export function visiblePlaces(n: Neighborhood, page: number): readonly MapPlace[] {
-  return [n.places[0]!, ...n.places.slice(1 + page * 2, 3 + page * 2)];
+
+/** One step left or right. The map does not wrap: the Sun's side and the far side are ends. */
+export function stepPage(current: number, step: number, count: number): number {
+  return Math.min(count - 1, Math.max(0, current + step));
 }
-export function createMapModel() {
-  let index = NEIGHBORHOODS.findIndex(n => n.id === 'earth'), companions = 0;
-  return {
-    get index() { return index; },
-    get neighborhood() { return NEIGHBORHOODS[index]!; },
-    get companionPage() { return companions; },
-    get places() { return visiblePlaces(NEIGHBORHOODS[index]!, companions); },
-    move(step: number) { index = pageIndex(index, step); companions = 0; },
-    moreMoons() { companions = pageIndex(companions, 1, companionPages(NEIGHBORHOODS[index]!)); },
-  };
+
+/**
+ * The order the hint suggests worlds in: the home neighbourhood first (Earth, the Moon,
+ * Mars), then every other page outward from the Sun. Derived from the page list, so a new
+ * world is suggested in its place without a second list to keep in step.
+ */
+export function suggestionOrder<T extends string>(pages: readonly (readonly T[])[]): T[] {
+  const home = homePage(pages);
+  return [...(pages[home] ?? []), ...pages.flatMap((page, index) => (index === home ? [] : page))];
+}
+
+/**
+ * Where the suggested world is from the page being shown: 0 when it is on this page (its
+ * card and ring carry the hint), -1 or 1 when the previous or next arrow should carry it,
+ * null when nothing is suggested or the world is on no page.
+ */
+export function hintDirection(
+  pages: readonly (readonly string[])[],
+  current: number,
+  suggested: string | null,
+): -1 | 0 | 1 | null {
+  if (!suggested) return null;
+  const page = pageOf(pages, suggested);
+  if (page < 0) return null;
+  return page === current ? 0 : page < current ? -1 : 1;
 }

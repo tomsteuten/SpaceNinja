@@ -1,16 +1,16 @@
 /* Tactile spacecraft controls. Geometry lives here, not in theme overrides. */
 :root { --control-panel:#233852; --control-edge:#6b8ba7; --control-blue:#a6dce8; --control-gold:#f4cf7c; --control-ink:#22354b; --control-radius:22px; }
-.dock,.destination-bar { position:absolute; bottom:var(--pad-bottom); left:50%; transform:translateX(-50%); width:min(460px,calc(100% - var(--pad-left) - var(--pad-right))); }
-.visit-actions,.destination-bar { display:grid; gap:9px; padding:8px; border:0; border-radius:28px; background:#0b1424a6; box-shadow:0 10px 28px #0003; }
+.dock { position:absolute; bottom:var(--pad-bottom); left:50%; transform:translateX(-50%); width:min(460px,calc(100% - var(--pad-left) - var(--pad-right))); }
+.visit-actions { display:grid; gap:9px; padding:8px; border:0; border-radius:28px; background:#0b1424a6; box-shadow:0 10px 28px #0003; }
 .visit-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .visit-actions.has-activity { grid-template-columns:repeat(4,minmax(0,1fr)); }
 .visit-actions.has-toy { grid-template-columns:repeat(4,minmax(0,1fr)); }
 .visit-actions.has-activity.has-toy { grid-template-columns:repeat(5,minmax(0,1fr)); }
 .visit-actions > .btn.jump-btn { background:linear-gradient(#ffd877,#f0b03e); border-color:#fff3c4; color:#3a2608; }
 .visit-actions > .btn.jump-btn .icon,.visit-actions > .btn.bath-btn .icon,.visit-actions > .btn.rover-btn .icon { width:30px; height:30px; color:#3a2608; }
-.visit-actions > .btn,.destination-choice { position:relative; inset:auto; min-width:0; width:100%; height:76px; min-height:76px; padding:6px 3px; border:2px solid #bcd7e555; border-radius:var(--control-radius); background:linear-gradient(#304c69,#223852); color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 2px #ffffff20,0 4px 0 #0b1528,0 6px 12px #0003; font:700 15px/1.15 var(--font); transition:filter .15s,box-shadow .15s; }
-.visit-actions > .btn:hover,.destination-choice:hover { filter:brightness(1.08); }
-.visit-actions > .btn:active,.destination-choice:active { transform:translateY(3px); box-shadow:inset 0 1px #ffffff20,0 1px 0 #0b1528; }
+.visit-actions > .btn { position:relative; inset:auto; min-width:0; width:100%; height:76px; min-height:76px; padding:6px 3px; border:2px solid #bcd7e555; border-radius:var(--control-radius); background:linear-gradient(#304c69,#223852); color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 2px #ffffff20,0 4px 0 #0b1528,0 6px 12px #0003; font:700 15px/1.15 var(--font); transition:filter .15s,box-shadow .15s; }
+.visit-actions > .btn:hover { filter:brightness(1.08); }
+.visit-actions > .btn:active { transform:translateY(3px); box-shadow:inset 0 1px #ffffff20,0 1px 0 #0b1528; }
 .visit-actions .control-label,.home-btn > span:last-child { white-space:nowrap; line-height:19px; letter-spacing:-.2px; }
 .visit-actions .icon-slot { display:flex; width:44px; height:38px; align-items:center; justify-content:center; color:var(--control-blue); }
 .visit-actions .icon { width:44px; height:38px; }
@@ -42,7 +42,7 @@
 .spin-btn.is-busy .spin-arrow,.spin-btn.is-busy .spin-globe__night,.spin-btn.is-busy .spin-sun { display:none; }
 .spin-btn.is-inviting:not(.is-busy) .spin-picture { animation:turn-invitation 2.4s ease-in-out 3; }
 @keyframes turn-invitation { 0%,100% { transform:rotate(0); } 35% { transform:rotate(-12deg); } 65% { transform:rotate(12deg); } }
-@media(prefers-reduced-motion:reduce) { .spin-btn.is-inviting:not(.is-busy) .spin-picture,.day-gesture .icon { animation:none; } .spin-btn.is-inviting:not(.is-busy) { outline:2px solid #fff0c4; outline-offset:2px; } .visit-actions > .btn,.destination-choice { transition:none; } }
+@media(prefers-reduced-motion:reduce) { .spin-btn.is-inviting:not(.is-busy) .spin-picture,.day-gesture .icon { animation:none; } .spin-btn.is-inviting:not(.is-busy) { outline:2px solid #fff0c4; outline-offset:2px; } .visit-actions > .btn { transition:none; } }
 .world-orb { display:inline-block; flex:none; width:38px; height:38px; border-radius:50%; background-position:center; background-size:auto 100%; box-shadow:inset -8px -3px 10px #0008,inset 2px 1px 3px #ffffff38; border:1px solid #ffffff26; }
 .world-orb--sun { border-color:#fff0b8; background:radial-gradient(circle at 35% 30%,#fff3b7,#ffd466 65%,#f4ac3c); box-shadow:0 0 14px #ffc35c38; }
 .world-orb--saturn { position:relative; }
@@ -70,10 +70,6 @@
 .journal-btn > .icon-slot .icon { width:33px; height:36px; }
 .ui > .journal-btn .journal-label { display:none; }
 .journal-btn[data-new]::after { content:''; position:absolute; right:4px; top:4px; width:9px; height:9px; border-radius:50%; background:var(--control-gold); }
-.destination-bar { width:min(620px,calc(100% - var(--pad-left) - var(--pad-right))); grid-template-columns:repeat(var(--destination-count,5),minmax(0,1fr)); }
-.destination-choice { height:91px; }
-.destination-choice.is-suggested { background:linear-gradient(#ffe6a5,#f4cf7c); color:var(--control-ink); border-color:#fff0c3; box-shadow:inset 0 2px #fff7dd,0 4px 0 #9b713e,0 6px 12px #0003; }
-.destination-choice:focus-visible { outline:3px solid var(--control-blue); outline-offset:3px; }
 
 /* Reading, collection and photographs share a contained panel and pictured exit. */
 .panel-shade,.photo-view { position:absolute; inset:0; z-index:50; background:#060a16ed; display:flex; align-items:center; justify-content:center; padding:24px; pointer-events:auto; }
@@ -156,11 +152,6 @@
   .slot { width:10px; height:10px; }
   .day-legend { font-size:13px; padding:9px 10px; gap:8px; }
   .is-day-active .world-heading { max-width:calc(100% - var(--pad-left) - 150px); }
-  .destination-bar { grid-template-columns:repeat(6,minmax(0,1fr)); }
-  .destination-choice { grid-column:span 2; height:76px; }
-  .destination-choice:nth-child(4) { grid-column:2/span 2; }
-  .destination-choice:nth-child(5) { grid-column:4/span 2; }
-  .destination-choice .world-orb { width:30px; height:30px; }
   .journal-btn { width:56px; height:56px; min-height:56px; }
   .hint { font-size:18px; }
   .panel-shade,.photo-view { padding:16px; }
@@ -184,9 +175,6 @@
   .world-heading strong { font-size:19px; }
   .world-heading__caption { font-size:13px; max-width:240px; }
   .world-heading .world-orb { width:32px; height:32px; }
-  .destination-bar { width:min(550px,calc(100% - var(--pad-left) - var(--pad-right))); }
-  .destination-choice { height:67px; min-height:67px; }
-  .destination-choice .world-orb { width:28px; height:28px; }
   .journal-btn { width:54px; height:54px; min-height:54px; }
   .panel-shade,.photo-view { padding:12px; }
   .fact-card,.journal-panel,.photo-view__panel { width:min(720px,100%); padding:16px; gap:10px; }

@@ -8,7 +8,8 @@ type Box = { x: number; y: number; width: number; height: number };
 /**
  * A destination whose button lies clear of the old Space map button (plus the guard's 12px
  * tolerance), so tapping it straight away is a different, deliberate choice. Which one that
- * is depends on the layout: on short landscape the Sun sits under the old button.
+ * is depends on the layout: the return lands on the visited world's page (Earth's, here),
+ * whose first card can sit under the old button.
  */
 async function destinationClearOf(page: Page, home: Box, worlds: string[]): Promise<string> {
   for (const world of worlds) {
@@ -45,7 +46,9 @@ test('repeated Space map taps cannot launch the destination underneath the old b
   // Exact 1000ms/1200ms boundaries are covered by mapReturnGuard.test.ts.
   await page.mouse.dblclick(moonHome.x + moonHome.width / 2, moonHome.y + moonHome.height / 2, { delay: 500 });
   await expect.poll(async () => (await snapshot()).phase).toBe('idle');
-  const next = await destinationClearOf(page, moonHome, ['Sun', 'Mars', 'Earth']);
+  // Back on the Moon's page: Earth, the Moon and Mars.
+  expect((await snapshot()).mapBodyIds).toEqual(['earth', 'moon', 'mars']);
+  const next = await destinationClearOf(page, moonHome, ['Mars', 'Earth']);
   await page.getByRole('button', { name: `Fly to ${next}`, exact: true }).tap();
   await expect.poll(async () => (await snapshot()).phase).toBe('arrived');
   const nextHome = (await page.getByRole('button', { name: 'Back to the space map', exact: true }).boundingBox())!;

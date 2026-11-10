@@ -1,21 +1,15 @@
 /**
- * The catalogue replaces three hand-named framing tiers and a set of named geometry
- * constants. These pin the derived values to what the game shipped with, so the refactor is
- * provably a no-op for the four existing worlds, and pin the rule so a fifth world is framed
- * by the same logic rather than a fourth tier.
+ * The catalogue replaces a set of named geometry constants. These pin the derived values to
+ * what the game shipped with.
  */
 
 import { describe, expect, it } from 'vitest';
-import { MAP_FRAMING_RADIUS } from '../config';
 import { BODY_IDS } from '../scene/Bodies';
 import { SHIP_DECAL_IDS } from '../scene/shipDecals';
 import { FINALE_STICKER, STICKERS } from '../state/progress';
 import {
-  FRAMING_MARGIN,
   WORLDS,
   WORLD_IDS,
-  framingRadiusFor,
-  reach,
   shortLabel,
   stickerIdFor,
   viewRadius,
@@ -41,20 +35,6 @@ describe('world catalogue', () => {
     const saturn = worldGeometry('saturn');
     expect(viewRadius(saturn)).toBeCloseTo(1.5 * 2.3);
     expect(viewRadius(worldGeometry('mars'))).toBe(0.53);
-    expect(reach(saturn)).toBeCloseTo(6.6 + 3.45);
-  });
-
-  it('frames the home map out to Saturn\'s outer ring, since every world is drawn', () => {
-    expect(MAP_FRAMING_RADIUS).toBeCloseTo(10.23);
-    expect(framingRadiusFor(BODY_IDS)).toBeCloseTo(MAP_FRAMING_RADIUS);
-  });
-
-  it('widens only for worlds that are drawn, and ignores ids it does not know', () => {
-    expect(framingRadiusFor(['earth', 'moon'])).toBeCloseTo(2.95);
-    expect(framingRadiusFor(['earth', 'moon', 'mars'])).toBeCloseTo(5.71);
-    expect(framingRadiusFor(['earth', 'moon', 'saturn'])).toBeCloseTo(MAP_FRAMING_RADIUS);
-    expect(framingRadiusFor(['earth', 'moon', 'vulcan'])).toBeCloseTo(2.95);
-    expect(framingRadiusFor([])).toBe(FRAMING_MARGIN);
   });
 
   it('drives the stickers and the ship badges', () => {

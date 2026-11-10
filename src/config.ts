@@ -11,7 +11,7 @@
 
 import * as THREE from 'three';
 
-import { FRAMING_MARGIN, framingRadiusFor, worldGeometry } from './worlds/catalogue';
+import { worldGeometry } from './worlds/catalogue';
 
 /*
  * Geometry lives in the world catalogue (src/worlds/catalogue.ts), one entry per world, with
@@ -83,29 +83,11 @@ export const FLIGHT_FOV_PUNCH = 9;
 export const CAMERA_NEAR = 0.05;
 export const CAMERA_FAR = 800;
 
-/**
- * The home map's framing, as the catalogue derives it: the furthest reach among the worlds
- * that are drawn, which is every world from the first second (nothing is locked, see
- * DECISIONS.md). It used to come in three tiers that widened as each outer world was earned;
- * with every world drawn there is one shot, out to Saturn's outer ring.
- *
- * That shot is the one that costs the most: a far body can only be framed for tapping on a
- * narrow portrait phone by pulling right back, which shrinks Earth, the Moon and Mars to
- * specks. The destination bar is the stable way to choose a small world, so the scene can
- * stay scenery; it is the composition to watch on the real tablet.
- *
- * main.ts frames the map with `framingRadiusFor` over the ids it draws, so framing and
- * drawing cannot drift apart; this constant is the same rule applied to every world.
- */
-export const MAP_FRAMING_RADIUS = framingRadiusFor(['earth', 'moon', 'mars', 'saturn']);
-export { FRAMING_MARGIN, framingRadiusFor };
 export const MIN_ORBIT_DISTANCE = 0.6;
 /**
- * Raised from 20 so MAP_FRAMING_RADIUS fits on the narrowest phone in portrait, where the
- * horizontal field of view is only about 34 degrees — the previous 20 was set for a shot
- * that reached Mars and cannot reach Saturn's orbit. The cost is that a child can
- * now pinch any scene out this far too; the inner scenes already allowed zooming a body down
- * to a speck, so this extends an existing property rather than introducing a new one.
+ * How far a child can pinch out on a visit. It was raised from 20 when the home map was one
+ * wide shot framed through the orbit controls; the paged map (src/map) poses its own camera
+ * now, and the visit keeps the range it has been played with.
  */
 export const MAX_ORBIT_DISTANCE = 36;
 

@@ -6,6 +6,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { DESTINATIONS, DISCOVERIES } from '../src/config';
+import { showWorld } from './fixtures';
 
 const OUT = process.env.STYLE_OUT ?? '';
 test.skip(!OUT, 'Set STYLE_OUT to capture.');
@@ -23,6 +24,8 @@ async function start(page: Page, query = '/?fast', progress?: object, sound = 'o
 
 async function fly(page: Page, world: string) {
   await page.getByRole('button', { name: 'Start playing', exact: true }).click();
+  // The map opens on the hinted world's page; turn to this world's page if it is elsewhere.
+  await showWorld(page, world);
   await page.getByRole('button', { name: `Fly to ${world}`, exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase, { timeout: 200000 }).toBe('arrived');
 }
@@ -61,7 +64,7 @@ for (const [name, viewport] of [
     test(`moon ${name}`, async ({ page }) => {
       await start(page);
       await page.getByRole('button', { name: 'Start playing', exact: true }).click();
-      await expect(page.locator('.destination-bar')).toBeVisible();
+      await expect(page.locator('.space-map')).toBeVisible();
       await page.waitForTimeout(1500);
       await shot(page, '0-home');
       await page.getByRole('button', { name: 'Fly to Moon', exact: true }).click();

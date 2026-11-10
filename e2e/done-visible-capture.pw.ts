@@ -92,7 +92,7 @@ for (const [name, viewport] of [
       test.setTimeout(300000);
       mkdirSync(OUT, { recursive: true });
       await start(page, {
-        visited: ['earth', 'moon', 'mars', 'saturn'], stickers: [],
+        visited: ['sun', 'earth', 'moon', 'mars', 'saturn'], stickers: [],
         discoveries: [...all('earth'), ...all('moon').slice(0, 3), ...all('mars').slice(0, 3), ...all('saturn').slice(0, 3)],
       });
       await shot(page, '3-map-all-visited');

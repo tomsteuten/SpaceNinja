@@ -20,7 +20,7 @@ async function visitAndReturn(page: Page, world: string) {
   await page.waitForTimeout(800);
   await page.getByRole('button', { name: 'Back to the space map', exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).phase, { timeout: 200000 }).toBe('idle');
-  await expect(page.locator('.destination-bar')).toBeVisible();
+  await expect(page.locator('.space-map')).toBeVisible();
 }
 
 for (const [name, viewport] of [
