@@ -184,6 +184,26 @@ for (const [name, viewport] of [
       await shot(page, '17-mars-rover-three-samples');
     });
 
+    test(`sun far away ${name}`, async ({ page }) => {
+      await start(page);
+      await fly(page, 'Sun');
+      await expect(page.locator('.sun-star-btn')).toBeVisible();
+      await page.waitForTimeout(2000);
+      await shot(page, '21-sun-visit');
+      await page.locator('.sun-star-btn').click();
+      const toy = page.locator('.sun-star');
+      await expect(toy).toBeVisible();
+      await page.waitForTimeout(800);
+      await shot(page, '22-far-away-start');
+      const flyAway = toy.getByRole('button', { name: /^Fly away from the Sun/ });
+      for (const [i, id] of ['earth', 'neptune', 'far'].entries()) {
+        await flyAway.click();
+        await expect(toy).toHaveAttribute('data-milestone', id);
+        await page.waitForTimeout(400);
+        await shot(page, `${23 + i}-far-away-${id}`);
+      }
+    });
+
     test(`finale ${name}`, async ({ page }) => {
       // Everything found but one Moon place, so this visit finishes the whole game.
       const moon = DESTINATIONS.moon!.mission!.discoveries.map((d) => d.id);

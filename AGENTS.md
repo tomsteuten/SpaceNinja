@@ -115,7 +115,7 @@ src/worlds/      world catalogue (docs/worlds-roadmap.md)
 src/scene/       renderer, worlds, ship, sky, textures, day turn
 src/controls/ flight/ audio/   orbit input, cinematics and home return, narration and sound
 src/mission/     discovery selection and collection
-src/toys/        hands-on toys (Moon jump, Earth bedtime spin, Saturn bath, Mars rover)
+src/toys/        hands-on toys (Moon jump and Moonlight, Earth bedtime spin, Sun Far away, Saturn bath, Mars rover)
 src/ui/          DOM interface, styles, grown-ups panel, photos
 src/state/       progress, replay, settings
 content/ design/ e2e/ docs/    world data, unshipped reference, Playwright, plan and ideas

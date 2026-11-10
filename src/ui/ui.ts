@@ -27,6 +27,7 @@ import { createBedtimeSpin } from '../toys/bedtimeSpin';
 import { createSaturnBath } from '../toys/saturnBath';
 import { createMarsRover } from '../toys/marsRover';
 import { createMoonLight } from '../toys/moonLight';
+import { createSunStar } from '../toys/sunStar';
 import type { PartOfDay } from '../toys/daySpin';
 
 export interface GameUI {
@@ -552,7 +553,8 @@ export function createUI(options: UIOptions): GameUI {
     root.classList.remove('is-toy-next');
     // Played after the finds: Space map is the one ringed way on, and Journal joins unringed.
     // Played before them: nothing is ringed. The places are still there, never required.
-    if (root.classList.contains('is-complete')) {
+    // A world with no places to find (the Sun) has nothing left to finish: its toy is the visit.
+    if (root.classList.contains('is-complete') || !DESTINATIONS[visitWorldId]?.mission) {
       root.classList.add('is-map-next');
       if (!spinBusy) headingCaption.textContent = completeVisitHint();
     }
@@ -585,6 +587,16 @@ export function createUI(options: UIOptions): GameUI {
   roverButton.append(createIcon('rover'), el('span', 'control-label', 'Rover'));
   roverButton.setAttribute('aria-label', 'Drive the Mars rover');
   roverButton.addEventListener('click', () => openToy(() => marsRover.open()));
+  // The Sun's toy: fly away from it until it is one star among the others.
+  const sunStar = createSunStar(root, {
+    onClose: () => sunStarButton.focus(),
+    onSay: (cueId, text) => speakToyLine(cueId, text),
+  });
+  const sunStarButton = el('button', 'btn toy-btn sun-star-btn is-hidden');
+  sunStarButton.type = 'button';
+  sunStarButton.append(createIcon('farAway'), el('span', 'control-label', 'Far away'));
+  sunStarButton.setAttribute('aria-label', 'Far away: fly away from the Sun');
+  sunStarButton.addEventListener('click', () => openToy(() => sunStar.open()));
   // The Moon's second toy, Moonlight (the Moon shines with the Sun's light). It takes the
   // place of Day & night in the Moon's row, joins the same way (after a first find or the
   // toy), and is never the ringed next step: Jump keeps that. So it is not a `toy-btn`, and
@@ -610,7 +622,7 @@ export function createUI(options: UIOptions): GameUI {
   // The toy sits straight after Listen, so on arrival the three shown controls are side by
   // side and the ones that join later (Day & night, then Journal at the end) fill in to the
   // right. Earth's toy is its Day & night button, so its row reads the same way.
-  visitActions.append(homeButton, listenButton, jumpButton, bathButton, roverButton, moonlightButton, spinButton, findPlacesButton);
+  visitActions.append(homeButton, listenButton, jumpButton, bathButton, roverButton, sunStarButton, moonlightButton, spinButton, findPlacesButton);
   dock.append(visitActions);
   root.append(dock);
 
@@ -946,6 +958,7 @@ export function createUI(options: UIOptions): GameUI {
     if (visitWorldId === 'moon') return jumpButton;
     if (visitWorldId === 'saturn') return bathButton;
     if (visitWorldId === 'mars') return roverButton;
+    if (visitWorldId === 'sun') return sunStarButton;
     if (visitWorldId === 'earth' && DESTINATIONS.earth?.spin) return spinButton;
     return null;
   }
@@ -1316,7 +1329,7 @@ export function createUI(options: UIOptions): GameUI {
 
     get activityCovered() {
       return journalOpen || photoViewer.isOpen || Boolean(awardCard || finale) ||
-        factOpen || moonJump.isOpen || moonLight.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen || marsRover.isOpen;
+        factOpen || moonJump.isOpen || moonLight.isOpen || sunStar.isOpen || bedtimeSpin.isOpen || saturnBath.isOpen || marsRover.isOpen;
     },
     setHint,
 
@@ -1346,6 +1359,7 @@ export function createUI(options: UIOptions): GameUI {
       spinButton.classList.add('is-hidden');
       moonJump.close();
       moonLight.dismiss();
+      sunStar.dismiss();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
       marsRover.dismiss();
@@ -1353,6 +1367,7 @@ export function createUI(options: UIOptions): GameUI {
       bathButton.classList.add('is-hidden');
       roverButton.classList.add('is-hidden');
       moonlightButton.classList.add('is-hidden');
+      sunStarButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       setVisitStage('open', false);
       factCard.classList.add('is-hidden');
@@ -1386,7 +1401,8 @@ export function createUI(options: UIOptions): GameUI {
       bathButton.classList.toggle('is-hidden', worldId !== 'saturn');
       roverButton.classList.toggle('is-hidden', worldId !== 'mars');
       moonlightButton.classList.toggle('is-hidden', worldId !== 'moon');
-      visitActions.classList.toggle('has-toy', worldId === 'moon' || worldId === 'saturn' || worldId === 'mars');
+      sunStarButton.classList.toggle('is-hidden', worldId !== 'sun');
+      visitActions.classList.toggle('has-toy', worldId === 'moon' || worldId === 'saturn' || worldId === 'mars' || worldId === 'sun');
       // Space map, Listen and the toy; Journal joins once the child has done something.
       setVisitStage(DESTINATIONS[worldId]?.mission ? 'arrival' : 'open', false);
     },
@@ -1579,6 +1595,7 @@ export function createUI(options: UIOptions): GameUI {
     dismissToys() {
       moonJump.close();
       moonLight.dismiss();
+      sunStar.dismiss();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
       marsRover.dismiss();
@@ -1700,6 +1717,7 @@ export function createUI(options: UIOptions): GameUI {
       spinButton.classList.add('is-hidden');
       moonJump.close();
       moonLight.dismiss();
+      sunStar.dismiss();
       bedtimeSpin.dismiss();
       saturnBath.dismiss();
       marsRover.dismiss();
@@ -1707,6 +1725,7 @@ export function createUI(options: UIOptions): GameUI {
       bathButton.classList.add('is-hidden');
       roverButton.classList.add('is-hidden');
       moonlightButton.classList.add('is-hidden');
+      sunStarButton.classList.add('is-hidden');
       visitActions.classList.remove('has-toy');
       setVisitStage('open', false);
       spinBusy = false;
