@@ -131,7 +131,11 @@ test('Moon: Moonlight is sunlight bounced, and no Sun means no moonlight', async
   }).toBe(true);
   expectClear(await boxes(toy), turned);
   await page.setViewportSize(viewport);
-  await expect.poll(async () => (await boxes(toy)).length).toBeGreaterThan(5);
+  // Wait for the re-layout after turning back before measuring.
+  await expect.poll(async () => {
+    const all = await boxes(toy);
+    return all.length > 5 && all.every(b => b.x + b.w <= viewport.width + 0.5 && b.y + b.h <= viewport.height + 0.5);
+  }).toBe(true);
   expectClear(await boxes(toy), viewport);
 
   // Back closes it and hands focus back to the opening button.
