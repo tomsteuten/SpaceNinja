@@ -4,6 +4,8 @@ import {
   NUDGE_SHORT_DELAY_SECONDS,
   dueNudge,
   shorteningPair,
+  SPIN_INVITE_DELAY,
+  shouldInviteSpin,
   singleNudge,
 } from './nudge';
 
@@ -55,5 +57,19 @@ describe('singleNudge', () => {
     expect(dueNudge(NUDGE_DELAY_SECONDS - 0.01, steps, new Set())).toBeNull();
     expect(dueNudge(NUDGE_DELAY_SECONDS, steps, new Set())).toBe('spin-nudge');
     expect(dueNudge(NUDGE_DELAY_SECONDS, steps, new Set(['spin-nudge']))).toBeNull();
+  });
+});
+
+describe('shouldInviteSpin', () => {
+  const base = { idleFor: 10, spinOffered: true, spinBusy: false, spinTried: false, spinIsPrimary: true };
+  it('invites on the world whose toy it is, after a quiet spell', () => {
+    expect(shouldInviteSpin(base)).toBe(true);
+    expect(shouldInviteSpin({ ...base, idleFor: SPIN_INVITE_DELAY - 1 })).toBe(false);
+  });
+  it('never elsewhere, once tried, while turning or where there is no card', () => {
+    expect(shouldInviteSpin({ ...base, spinIsPrimary: false })).toBe(false);
+    expect(shouldInviteSpin({ ...base, spinTried: true })).toBe(false);
+    expect(shouldInviteSpin({ ...base, spinBusy: true })).toBe(false);
+    expect(shouldInviteSpin({ ...base, spinOffered: false })).toBe(false);
   });
 });

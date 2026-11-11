@@ -20,13 +20,22 @@ list replaces Phases 3b to 5 below. In order:
   the photo away. Reuse the photos, lat/long, recorded discovery lines and the existing
   turn-to-place camera move. Optional small quiet dots on the globe that open the same photo;
   drop them if they clutter. Mock the card and the photo-showing state first (Moon, portrait
-  and landscape), owner picks. Then delete the progress, journal and sticker code that
+  and landscape), owner picks. **Owner picked B, the big photo** (11 November 2026,
+  `design/places/places-B.png`): the photo fills the top of the play area (beside the world in
+  landscape) with its name, the world shrinks below and turns to the spot, a big green arrow on
+  the photo (and the Places card) goes to the next place. Not chosen: A pinned photo, C photo
+  strip. The quiet dots are not built.
+  Built on `finish/places-and-worlds` (not merged, awaiting the owner's look): hunt, counter,
+  journal, stickers, postcard, finale, ship decals and the coach hand removed; `src/places/`
+  turns the world (surface yaw plus a partial camera tilt) and marks the place; the photo and
+  card are in `src/ui/ui.ts` / `visit.css`, framed from `placePhotoRect` in `viewport.ts`.
+  Grown-ups panel: hold Listen two seconds. Pictures: `design/places/built/`. Then delete the progress, journal and sticker code that
   nothing uses, and trim the smoke spec.
 - [ ] **2. Leftovers from the shelf build.** Day & night on Mars and Saturn was never run in
   the new playfield (may sit under the landscape shelf). Owner has not yet judged the
   first-draft cards for Mars, Saturn and the Sun, Listen opening the words panel, or the
-  parked ship overlapping the Moon in portrait. Toy overlays leave the visit buttons
-  reachable by keyboard behind them.
+  parked ship overlapping the Moon in portrait. Fixed: toy overlays no longer leave the visit
+  buttons reachable by keyboard behind them (the visit screen is inert while a toy is open).
 - [ ] **3. Narration, early.** Rewrite `narration-script.json` for the new shape: one arrival
   line per world, one line when each toy opens, the place lines; delete hunt lines ("tap the
   arrow", "one more is hiding", success-after-three). Owner reads the script, approves the

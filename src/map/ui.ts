@@ -7,14 +7,8 @@ import './map.css';
 export interface MapChoice {
   id: string;
   label: string;
-  /** Been there: the card wears a tick, so a pre-reader can see what is finished. */
+  /** Been there: the card wears a tick, so a pre-reader can see where they have been. */
   done?: boolean;
-  /**
-   * Places found and carried, for a world with places. A visited card shows them as the
-   * journal's dots, so "more to find" is a picture; all found swaps the tick for a sun star.
-   */
-  found?: number;
-  total?: number;
 }
 
 /** Everything the page's controls show, rendered in one go. */
@@ -53,8 +47,7 @@ function chevron(direction: -1 | 1): SVGSVGElement {
 
 /**
  * The Space map's controls: the current page's cards, the two big page arrows at the screen
- * edges and the page dots. DOM order is the Tab order (previous arrow, cards, next arrow),
- * and the section is placed before the journal button, which follows it.
+ * edges and the page dots. DOM order is the Tab order (previous arrow, cards, next arrow).
  */
 export function createMapUI(root: HTMLElement, options: {
   choose(id: string): void;
@@ -104,17 +97,6 @@ export function createMapUI(root: HTMLElement, options: {
       tick.classList.add('map-card__done');
       button.append(tick);
       button.classList.add('is-done');
-      // A finished visit must not look like a brand-new world (state audit 22): the card
-      // carries the journal's dots, sun for found and white for still to find.
-      const total = choice.total ?? 0;
-      const found = Math.min(choice.found ?? 0, total);
-      button.classList.toggle('is-full', total > 0 && found === total);
-      if (total > 0 && found < total) {
-        const pips = el('span', 'map-card__pips');
-        pips.setAttribute('aria-hidden', 'true');
-        for (let i = 0; i < total; i++) pips.append(el('span', i < found ? 'is-found' : ''));
-        label.after(pips);
-      }
     }
     button.addEventListener('click', () => options.choose(choice.id));
     return button;
@@ -159,7 +141,7 @@ export function createMapUI(root: HTMLElement, options: {
       section.hidden = !visible;
     },
     /**
-     * The clear part of the screen the worlds may use: below the heading and the journal,
+     * The clear part of the screen the worlds may use: below the heading,
      * above the dots and cards, and inside the arrows' columns (reserved even on an end page,
      * so the worlds stay centred where the arrows would be).
      */

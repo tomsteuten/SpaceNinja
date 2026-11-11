@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Places card mocks</title>
+<!-- Static picture mocks, not game code. View through the dev server:
+     http://localhost:5173/design/places/mocks.html  (render.mjs turns each sheet into a PNG).
+     Phones are drawn at 390x844 and 844x390. Control pictures: Fluent Emoji flat (Microsoft, MIT),
+     in ../visit-screen/icons. Place photos: public/assets/discoveries (see its README.txt). -->
+<style>
+@font-face { font-family: 'Patrick Hand'; src: url('/node_modules/@fontsource/patrick-hand/files/patrick-hand-latin-400-normal.woff2') format('woff2'); }
+:root {
+  --paper:#f8f0dd; --paper-deep:#efe4cc; --ink:#2b2118;
+  --sky:#5bb8e8; --grape:#b195ec; --grass:#74c27a; --sun:#f2b632; --tomato:#f07a62;
+  --moon:#c5cdd9; --star:#7f8ae6;
+  --line:3px solid var(--ink); --lift:4px 4px 0 var(--ink);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:#23252d; font-family:'Patrick Hand', cursive; color:var(--ink); }
+.sheet { display:inline-flex; flex-direction:column; gap:14px; padding:22px; background:#23252d; margin-bottom:30px; }
+.sheet h2 { margin:0; color:#fff; font-size:30px; font-weight:400; }
+.sheet h2 small { color:#b9bdca; font-size:20px; margin-left:10px; }
+.row { display:flex; gap:22px; align-items:flex-start; }
+figure { margin:0; }
+figcaption { color:#d8dbe6; font-size:19px; margin-top:6px; }
+figure:has(.ph.p) { width:390px; } figure:has(.ph.l) { width:844px; }
+.note { color:#d8dbe6; font-size:20px; max-width:1660px; line-height:1.35; }
+.note b { color:#ffd98a; font-weight:400; }
+.ph { position:relative; overflow:hidden; border-radius:20px; outline:3px solid #000;
+  background:radial-gradient(120% 80% at 30% 20%, #1c1a4a 0%, #0a0b22 55%, #05060f 100%); }
+.ph.p { width:390px; height:844px; } .ph.l { width:844px; height:390px; }
+.stars { position:absolute; left:0; top:0; width:1px; height:1px; border-radius:50%; }
+.abs { position:absolute; }
+canvas.ball { position:absolute; border-radius:50%; }
+.btn { position:absolute; display:flex; align-items:center; justify-content:center; gap:6px;
+  border:var(--line); box-shadow:var(--lift); border-radius:16px; background:var(--paper); font-size:20px; }
+.chip { position:absolute; display:flex; align-items:center; gap:8px; padding:5px 12px 5px 6px;
+  background:var(--paper); border:var(--line); box-shadow:var(--lift); border-radius:14px; font-size:22px; transform:rotate(-1.5deg); white-space:nowrap; }
+.chip canvas { position:static; }
+.drawer { position:absolute; background:var(--paper); border:var(--line); }
+.toy { position:absolute; display:flex; flex-direction:column; padding:6px 6px 2px; border:var(--line); box-shadow:var(--lift); border-radius:18px; }
+.toy svg { flex:1; width:100%; min-height:0; border:2.5px solid var(--ink); border-radius:12px; display:block; background:#0a0b22; }
+.toy span { text-align:center; font-size:22px; line-height:1.2; }
+.toy.jump { background:var(--sun); } .toy.light { background:var(--moon); } .toy.places { background:var(--tomato); }
+.toy.on { box-shadow:var(--lift), 0 0 0 5px #fff3c4, 0 0 22px 8px rgba(255,213,100,.75); }
+.badge { position:absolute; width:46px; height:46px; border-radius:50%; background:var(--grass); border:var(--line);
+  box-shadow:3px 3px 0 var(--ink); display:flex; align-items:center; justify-content:center; }
+/* the quiet place mark: small, white, not a gold target */
+.spot { position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; background:#fff;
+  border:3px solid var(--ink); box-shadow:0 0 0 5px rgba(255,255,255,.35), 0 0 16px 6px rgba(255,255,255,.35); }
+.dot { position:absolute; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; background:rgba(255,255,255,.85);
+  border:2px solid var(--ink); }
+.polaroid { position:absolute; background:#fffdf6; border:var(--line); box-shadow:var(--lift); border-radius:8px; padding:10px 10px 0; }
+.polaroid img.photo { display:block; width:100%; aspect-ratio:1; object-fit:cover; border:2.5px solid var(--ink); border-radius:4px; }
+.polaroid .name { display:flex; align-items:center; justify-content:center; gap:8px; font-size:25px; height:44px; white-space:nowrap; }
+.wide { position:absolute; background:#fffdf6; border:var(--line); box-shadow:var(--lift); border-radius:14px; padding:8px; }
+.wide img.photo { display:block; width:100%; object-fit:cover; border:2.5px solid var(--ink); border-radius:8px; }
+.wide .name { display:flex; align-items:center; justify-content:center; gap:8px; font-size:26px; height:42px; white-space:nowrap; }
+.thumbp { position:absolute; border:var(--line); box-shadow:var(--lift); border-radius:12px; background:#fffdf6; padding:5px; }
+.thumbp img { display:block; width:100%; height:100%; object-fit:cover; border-radius:7px; border:2px solid var(--ink); }
+.thumbp.sel { box-shadow:var(--lift), 0 0 0 5px #fff3c4, 0 0 22px 8px rgba(255,213,100,.7); }
+.thumbp .tag { position:absolute; left:-4px; bottom:-14px; transform:rotate(-1.5deg); background:var(--paper);
+  border:var(--line); border-radius:12px; padding:1px 10px; font-size:21px; white-space:nowrap; box-shadow:3px 3px 0 var(--ink); }
+.hand { position:absolute; filter:drop-shadow(2px 3px 0 #2b2118); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="pic-jump" viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice">
+      <rect width="120" height="84" fill="#0a0b22"/>
+      <g fill="#fff"><circle cx="14" cy="12" r="1.2"/><circle cx="98" cy="9" r="1.4"/><circle cx="106" cy="38" r="1"/><circle cx="24" cy="40" r="1"/><circle cx="84" cy="24" r="1"/></g>
+      <ellipse cx="60" cy="100" rx="95" ry="34" fill="#aeb4bf" stroke="#2b2118" stroke-width="2.5"/>
+      <ellipse cx="28" cy="76" rx="9" ry="3" fill="#8c929e"/><ellipse cx="96" cy="74" rx="7" ry="2.5" fill="#8c929e"/>
+      <ellipse cx="60" cy="73" rx="13" ry="3.5" fill="#6d727d"/>
+      <path d="M44 62 q16 9 32 0" fill="none" stroke="#f2b632" stroke-width="3" stroke-linecap="round"/>
+      <path d="M48 54 q12 7 24 0" fill="none" stroke="#f2b632" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+      <image href="../visit-screen/icons/astronaut.svg" x="38" y="3" width="44" height="44"/>
+    </symbol>
+    <symbol id="pic-light" viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice">
+      <rect width="120" height="84" fill="#0a0b22"/>
+      <g fill="#fff"><circle cx="60" cy="10" r="1.2"/><circle cx="108" cy="12" r="1.2"/><circle cx="52" cy="74" r="1"/><circle cx="10" cy="72" r="1"/></g>
+      <g stroke="#ffd564" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="1 7">
+        <path d="M46 34 L70 38"/><path d="M48 44 L70 44"/><path d="M46 54 L70 50"/></g>
+      <image href="../visit-screen/icons/sun.svg" x="4" y="22" width="42" height="42"/>
+      <circle cx="92" cy="44" r="21" fill="#3a3d49" stroke="#2b2118" stroke-width="2.5"/>
+      <path d="M92 23 a21 21 0 0 0 0 42 z" fill="#f1f1ea" stroke="#2b2118" stroke-width="2.5"/>
+      <circle cx="82" cy="38" r="3.5" fill="#cfd0c8"/><circle cx="86" cy="52" r="2.5" fill="#cfd0c8"/>
+    </symbol>
+    <!-- Places: two little photos of the world's places with a camera in front -->
+    <symbol id="pic-places" viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice">
+      <rect width="120" height="84" fill="#0a0b22"/>
+      <g fill="#fff"><circle cx="10" cy="10" r="1.2"/><circle cx="112" cy="70" r="1.2"/><circle cx="8" cy="64" r="1"/></g>
+      <g transform="rotate(-9 38 34)"><rect x="14" y="8" width="44" height="50" rx="3" fill="#fffdf6" stroke="#2b2118" stroke-width="2.5"/>
+        <image href="/assets/discoveries/thumbs/moon-tycho.jpg" x="18" y="12" width="36" height="36" preserveAspectRatio="xMidYMid slice"/></g>
+      <g transform="rotate(8 80 32)"><rect x="58" y="6" width="44" height="50" rx="3" fill="#fffdf6" stroke="#2b2118" stroke-width="2.5"/>
+        <image href="/assets/discoveries/thumbs/moon-tranquility.jpg" x="62" y="10" width="36" height="36" preserveAspectRatio="xMidYMid slice"/></g>
+      <image href="../visit-screen/icons/camera.svg" x="36" y="34" width="50" height="50"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= ARRIVAL ================= -->
+<section class="sheet" id="places-arrive">
+  <h2>Moon visit, on arrival <small>Hunt gone: no gold rings, no counter, no Journal. A third card, Places, joins Jump and Moonlight on the shelf.</small></h2>
+  <div class="row">
+    <figure><div class="ph p" data-stars="1" data-opt="arrive"></div><figcaption>Portrait · plain globe</figcaption></figure>
+    <figure><div class="ph p" data-stars="1" data-opt="arrive" data-dots="1"></div><figcaption>Portrait · with the optional quiet dots (a tap opens that place's photo)</figcaption></figure>
+    <figure><div class="ph l" data-stars="2" data-opt="arrive"></div><figcaption>Landscape · the shelf on the right now holds three cards</figcaption></figure>
+  </div>
+  <p class="note">The same on every option below. The ship that parks over the Moon in portrait is left out here; it is a separate leftover.</p>
+</section>
+
+<!-- ================= OPTION A ================= -->
+<section class="sheet" id="places-A">
+  <h2>Places · Option A <small>Pinned photo: the photo hangs beside the globe on a string to the spot. Tap Places again for the next place.</small></h2>
+  <div class="row">
+    <figure><div class="ph p" data-stars="3" data-opt="A" data-place="0"></div><figcaption>1 · Tap Places: the Moon turns, the photo is pinned to the spot, its line is spoken</figcaption></figure>
+    <figure><div class="ph p" data-stars="3" data-opt="A" data-place="1"></div><figcaption>2 · Tap Places again (green arrow on the card): the next place</figcaption></figure>
+    <figure><div class="ph l" data-stars="4" data-opt="A" data-place="0"></div><figcaption>Landscape · photo to the right of the globe</figcaption></figure>
+  </div>
+  <p class="note"><b>Next:</b> the Places card itself; while a photo is up it wears a green arrow. After the sixth place it starts again. <b>Put away:</b> spin the Moon or tap anywhere off the photo. The photo is small enough that the Moon stays the main thing.</p>
+</section>
+
+<!-- ================= OPTION B ================= -->
+<section class="sheet" id="places-B">
+  <h2>Places · Option B <small>Big photo: the photo takes the top of the screen, the Moon shrinks below it. A big arrow on the photo goes to the next place.</small></h2>
+  <div class="row">
+    <figure><div class="ph p" data-stars="5" data-opt="B" data-place="0"></div><figcaption>1 · Tap Places: big photo on top, the Moon turned below it</figcaption></figure>
+    <figure><div class="ph p" data-stars="5" data-opt="B" data-place="1"></div><figcaption>2 · Tap the arrow on the photo (or Places again): the next place</figcaption></figure>
+    <figure><div class="ph l" data-stars="6" data-opt="B" data-place="0"></div><figcaption>Landscape · photo beside the Moon, arrow on its corner</figcaption></figure>
+  </div>
+  <p class="note"><b>Next:</b> the big green arrow sits on the photo, where the eye already is; the Places card does the same. <b>Put away:</b> spin the Moon or tap the space around it; the Moon grows back. The photo is the star; the Moon is smaller while it is up.</p>
+</section>
+
+<!-- ================= OPTION C ================= -->
+<section class="sheet" id="places-C">
+  <h2>Places · Option C <small>Photo strip: Places lays out all the photos in a row above the shelf. Tap any photo; the Moon turns to it.</small></h2>
+  <div class="row">
+    <figure><div class="ph p" data-stars="7" data-opt="C" data-place="0"></div><figcaption>1 · Tap Places: the strip of photos opens; the first is chosen and spoken</figcaption></figure>
+    <figure><div class="ph p" data-stars="7" data-opt="C" data-place="1"></div><figcaption>2 · Tap another photo (or swipe the strip): the Moon turns to it</figcaption></figure>
+    <figure><div class="ph l" data-stars="8" data-opt="C" data-place="0"></div><figcaption>Landscape · the strip runs under the Moon</figcaption></figure>
+  </div>
+  <p class="note"><b>Next:</b> the child picks by picture, in any order; tapping Places again also steps along. <b>Put away:</b> spin the Moon or tap Places once more; the strip folds away. Shows every place at once, so it is the busiest of the three.</p>
+</section>
+
+<script>
+const ICONS = '../visit-screen/icons/';
+const PLACES = [
+  { id: 'moon-tranquility', name: 'The First Footprints', lat: 0.67, lon: 23.47 },
+  { id: 'moon-tycho', name: 'The Bright Crater', lat: -43.3, lon: -11.4 },
+  { id: 'moon-procellarum', name: 'The Ocean of Storms', lat: 18.4, lon: -57.4 },
+  { id: 'moon-crisium', name: 'The Egg-Shaped Sea', lat: 17, lon: 59.1 },
+  { id: 'moon-orientale', name: 'The Bullseye', lat: -19.4, lon: -92.8 },
+  { id: 'moon-farside', name: 'The Hidden Side', lat: -20.4, lon: 129.1 },
+];
+const D2R = Math.PI / 180;
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+function rng(seed) { let s = seed * 9301 + 49297; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; };
+
+/** Orthographic textured ball, turned so (lat0, lon0) faces the viewer, lit from `light` (view space). */
+function drawBall(canvas, tex, light, ambient, lat0, lon0) {
+  const css = parseFloat(canvas.style.width);
+  const N = canvas.width = canvas.height = Math.round(css * 2);
+  const ctx = canvas.getContext('2d'), out = ctx.createImageData(N, N);
+  const len = Math.hypot(...light), L = light.map((v) => v / len);
+  const c = Math.cos(lat0 * D2R), s = Math.sin(lat0 * D2R);
+  for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
+    const x = (px + 0.5) / N * 2 - 1, y = 1 - (py + 0.5) / N * 2, r2 = x * x + y * y;
+    if (r2 > 1) continue;
+    const z = Math.sqrt(1 - r2);
+    const y2 = y * c + z * s, z2 = -y * s + z * c;
+    let lon = Math.atan2(x, z2) + lon0 * D2R; lon = ((lon + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+    const lat = Math.asin(Math.max(-1, Math.min(1, y2)));
+    const u = Math.min(tex.w - 1, Math.floor((0.5 + lon / (2 * Math.PI)) * tex.w));
+    const v = Math.min(tex.h - 1, Math.floor((0.5 - lat / Math.PI) * tex.h));
+    const ti = (v * tex.w + u) * 4, oi = (py * N + px) * 4;
+    const d = x * L[0] + y * L[1] + z * L[2];
+    const lit = Math.max(0, Math.min(1, d * 6 + 0.5));
+    const k = ambient + (1 - ambient) * lit * (0.75 + 0.25 * Math.max(0, d));
+    out.data[oi] = tex.d[ti] * k * tex.gain; out.data[oi + 1] = tex.d[ti + 1] * k * tex.gain; out.data[oi + 2] = tex.d[ti + 2] * k * tex.gain;
+    out.data[oi + 3] = r2 > 0.985 ? 255 * (1 - r2) / 0.015 : 255;
+  }
+  ctx.putImageData(out, 0, 0);
+}
+/** Where (lat, lon) lands on a ball centred (cx, cy), radius R, turned to (lat0, lon0); null if behind. */
+function project(lat, lon, lat0, lon0, cx, cy, R) {
+  const cl = Math.cos(lat * D2R), dl = (lon - lon0) * D2R;
+  const x = cl * Math.sin(dl), y2 = Math.sin(lat * D2R), z2 = cl * Math.cos(dl);
+  const c = Math.cos(lat0 * D2R), s = Math.sin(lat0 * D2R);
+  const y = y2 * c - z2 * s, z = y2 * s + z2 * c;
+  return z > 0.15 ? [cx + x * R, cy - y * R] : null;
+}
+async function texture(src, gain) {
+  const img = await loadImg(src); const c = document.createElement('canvas'); c.width = 2048; c.height = 1024;
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
+  return { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data, gain };
+}
+function stars(ph) {
+  const r = rng(+ph.dataset.stars), w = ph.clientWidth, h = ph.clientHeight, s = [];
+  for (let i = 0; i < 120; i++) s.push(`${(r() * w) | 0}px ${(r() * h) | 0}px 0 ${r() < 0.12 ? 1 : 0}px rgba(255,255,255,${(0.25 + r() * 0.7).toFixed(2)})`);
+  ph.prepend(el(`<div class="stars" style="box-shadow:${s.join(',')}"></div>`));
+}
+
+const globe = (ph, cx, cy, D, lat0, lon0) => {
+  const b = el(`<canvas class="ball" style="left:${cx - D / 2}px;top:${cy - D / 2}px;width:${D}px;height:${D}px"></canvas>`);
+  b.dataset.lat = lat0; b.dataset.lon = lon0; ph.append(b);
+};
+const NEXT = (w) => `<svg width="${w}" height="${w}" viewBox="0 0 40 40"><path d="M7 20 H30 M20 9 L31 20 L20 31" fill="none" stroke="#2b2118" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 20 H30 M20 9 L31 20 L20 31" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SPEAK = (w) => `<img src="${ICONS}speaker.svg" width="${w}">`;
+
+/** Space map, name chip, Listen, and the shelf with Jump, Moonlight and Places. */
+function chrome(ph, land, placesOn, badge) {
+  ph.append(el(`<div class="btn" style="left:12px;top:12px;width:78px;height:78px;background:var(--sky)"><img src="${ICONS}planet.svg" width="56"></div>`));
+  ph.append(el(`<div class="chip" style="left:102px;top:30px"><canvas class="ball mini" style="position:static;width:30px;height:30px"></canvas>The Moon</div>`));
+  const listen = land ? 'left:12px;bottom:14px' : 'right:12px;top:12px';
+  ph.append(el(`<div class="btn" style="${listen};width:46px;height:46px;background:var(--grape)"><img src="${ICONS}speaker.svg" width="30"></div>`));
+  const cards = [['jump', 'Jump', 'pic-jump'], ['light', 'Moonlight', 'pic-light'], ['places', 'Places', 'pic-places']];
+  if (!land) {
+    ph.append(el(`<div class="drawer" style="left:-3px;right:-3px;bottom:-3px;height:188px;border-radius:26px 26px 0 0"></div>`));
+    cards.forEach(([k, t, pic], i) => ph.append(el(`<div class="toy ${k} ${k === 'places' && placesOn ? 'on' : ''}" style="left:${14 + i * 124}px;bottom:16px;width:114px;height:150px;transform:rotate(${[-1.5, 1, -1][i]}deg)"><svg><use href="#${pic}"/></svg><span>${t}</span></div>`)));
+    if (badge) ph.append(el(`<div class="badge" style="left:${14 + 2 * 124 + 80}px;bottom:${16 + 150 - 34}px">${NEXT(30)}</div>`));
+  } else {
+    ph.append(el(`<div class="drawer" style="right:-3px;top:-3px;bottom:-3px;width:216px;border-radius:26px 0 0 26px"></div>`));
+    cards.forEach(([k, t, pic], i) => ph.append(el(`<div class="toy ${k} ${k === 'places' && placesOn ? 'on' : ''}" style="right:18px;top:${11 + i * 124}px;width:178px;height:114px;transform:rotate(${[-1.2, 1, -1][i]}deg)"><svg><use href="#${pic}"/></svg><span>${t}</span></div>`)));
+    if (badge) ph.append(el(`<div class="badge" style="right:4px;top:${11 + 2 * 124 - 10}px">${NEXT(30)}</div>`));
+  }
+}
+
+function build(ph) {
+  const land = ph.classList.contains('l'), opt = ph.dataset.opt, P = PLACES[+(ph.dataset.place || 0)];
+  if (opt === 'arrive') {
+    const [cx, cy, D] = land ? [315, 205, 270] : [195, 365, 290];
+    globe(ph, cx, cy, D, 0, 0);
+    if (ph.dataset.dots) for (const q of PLACES) { const p = project(q.lat, q.lon, 0, 0, cx, cy, D / 2); if (p) ph.append(el(`<div class="dot" style="left:${p[0]}px;top:${p[1]}px"></div>`)); }
+    chrome(ph, land, false, false);
+    return;
+  }
+  // the world turns so the place faces you (nudged up a little, so it is not dead centre)
+  const lat0 = P.lat - 10, lon0 = P.lon;
+  const spotOn = (cx, cy, D) => { const p = project(P.lat, P.lon, lat0, lon0, cx, cy, D / 2); ph.append(el(`<div class="spot" style="left:${p[0]}px;top:${p[1]}px"></div>`)); return p; };
+  if (opt === 'A') {
+    const [cx, cy, D] = land ? [185, 220, 250] : [150, 475, 250];
+    globe(ph, cx, cy, D, lat0, lon0);
+    const [pl, pt, pw, rot] = land ? [352, 34, 230, 2] : [158, 104, 216, 2.5];
+    const p = project(P.lat, P.lon, lat0, lon0, cx, cy, D / 2);
+    const ax = pl + 26, ay = pt + pw + 34;
+    ph.append(el(`<svg class="abs" style="left:0;top:0;width:100%;height:100%"><path d="M${p[0]} ${p[1]} Q${(p[0] + ax) / 2 + 10} ${Math.max(p[1], ay) + 30} ${ax} ${ay}" fill="none" stroke="#fff" stroke-width="3.5" stroke-dasharray="2 8" stroke-linecap="round"/></svg>`));
+    spotOn(cx, cy, D);
+    ph.append(el(`<div class="polaroid" style="left:${pl}px;top:${pt}px;width:${pw}px;transform:rotate(${rot}deg)"><img class="photo" src="/assets/discoveries/${P.id}.jpg"><div class="name">${P.name}${SPEAK(24)}</div></div>`));
+    ph.append(el(`<div class="abs" style="left:${ax - 9}px;top:${ay - 16}px;width:18px;height:18px;border-radius:50%;background:var(--tomato);border:3px solid var(--ink)"></div>`));
+    chrome(ph, land, true, true);
+  } else if (opt === 'B') {
+    if (!land) {
+      ph.append(el(`<div class="wide" style="left:14px;right:14px;top:104px"><img class="photo" style="height:250px" src="/assets/discoveries/${P.id}.jpg"><div class="name">${P.name}${SPEAK(26)}</div></div>`));
+      const [cx, cy, D] = [195, 540, 200];
+      globe(ph, cx, cy, D, lat0, lon0); spotOn(cx, cy, D);
+      ph.append(el(`<div class="btn" style="right:22px;top:300px;width:82px;height:82px;border-radius:50%;background:var(--grass)">${NEXT(54)}</div>`));
+    } else {
+      const [cx, cy, D] = [175, 225, 230];
+      globe(ph, cx, cy, D, lat0, lon0); spotOn(cx, cy, D);
+      ph.append(el(`<div class="wide" style="left:318px;top:22px;width:290px"><img class="photo" style="height:280px" src="/assets/discoveries/${P.id}.jpg"><div class="name">${P.name}${SPEAK(26)}</div></div>`));
+      ph.append(el(`<div class="btn" style="left:548px;top:240px;width:76px;height:76px;border-radius:50%;background:var(--grass)">${NEXT(50)}</div>`));
+    }
+    chrome(ph, land, true, false);
+  } else if (opt === 'C') {
+    const sel = +(ph.dataset.place || 0);
+    const [cx, cy, D] = land ? [345, 132, 200] : [195, 285, 250];
+    globe(ph, cx, cy, D, lat0, lon0); spotOn(cx, cy, D);
+    const big = land ? 118 : 132, small = land ? 78 : 80, gap = 12;
+    const midX = land ? 345 : 195, midY = land ? 312 : 528;
+    const clip = el(`<div class="abs" style="${land ? 'left:68px;width:548px' : 'left:0;width:390px'};top:${midY - big / 2 - 12}px;height:${big + 40}px;overflow:hidden"></div>`);
+    const off = land ? 68 : 0, top0 = 12;
+    // lay out left and right from the chosen photo
+    // the strip starts at its left end; the chosen photo is simply bigger
+    const xs = [off + 14]; for (let i = 1; i < PLACES.length; i++) xs[i] = xs[i - 1] + (i - 1 === sel ? big : small) + gap;
+    PLACES.forEach((q, i) => {
+      const w = i === sel ? big : small, y = top0 + (big - w) / 2;
+      clip.append(el(`<div class="thumbp ${i === sel ? 'sel' : ''}" style="left:${xs[i] - off}px;top:${y}px;width:${w}px;height:${w}px"><img src="/assets/discoveries/${q.id}.jpg">${i === sel ? `<div class="tag">${q.name}</div>` : ''}</div>`));
+    });
+    ph.append(clip);
+    if (sel === 1) ph.append(el(`<img class="hand" src="${ICONS}hand.svg" width="58" style="left:${xs[sel] + big - 34}px;top:${midY - big / 2 + 6}px;transform:rotate(-14deg)">`));
+    chrome(ph, land, true, false);
+  }
+}
+
+(async () => {
+  await document.fonts.load("20px 'Patrick Hand'");
+  const moon = await texture('/assets/moon.jpg', 1.25);
+  document.querySelectorAll('.ph').forEach(stars);
+  document.querySelectorAll('.ph').forEach(build);
+  const imgs = [...document.images].map((i) => i.complete ? null : new Promise((r) => { i.onload = r; i.onerror = r; }));
+  document.querySelectorAll('canvas.ball').forEach((c) => drawBall(c, moon, [-0.35, 0.3, 0.9], 0.1, +(c.dataset.lat || 0), +(c.dataset.lon || 0)));
+  await Promise.all(imgs);
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

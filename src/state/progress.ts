@@ -1,68 +1,18 @@
 /**
- * Discovery-journal persistence.
+ * What survives between sessions: the worlds the ship has arrived at, for the map's "been
+ * there" tick and its one gentle suggestion. Nothing is found, counted or collected
+ * (DECISIONS.md, 11 Nov 2026: no hunt), so this is the whole record.
  *
- * localStorage throws outright in some private-browsing modes, so every access is
- * guarded: losing progress must never break the game.
+ * localStorage throws outright in some private-browsing modes, so every access is guarded:
+ * losing progress must never break the game. Saves written by earlier builds also carry
+ * `discoveries` and `stickers`; they are ignored, and dropped at the next write.
  */
-
-import { DESTINATIONS } from '../config';
-import { WORLDS, shortLabel } from '../worlds/catalogue';
 
 const STORAGE_KEY = 'spaceninja.progress.v1';
 
-export interface StickerDefinition {
-  id: string;
-  emoji: string;
-  label: string;
-}
-
-/**
- * The last one, for finding every place on every world. The title of the game is the
- * thing a child becomes by finishing it — which is also why it is one sticker rather
- * than another "explorer": it is not another world, it is all of them.
- */
-const FINALE: StickerDefinition = { id: 'space-ninja', emoji: '🥷', label: 'Space Ninja' };
-
-/** One "<World> Explorer" sticker per world in the catalogue, then the finale. */
-export const STICKERS: Record<string, StickerDefinition> = Object.fromEntries([
-  ...WORLDS.map((world) => {
-    const id = DESTINATIONS[world.id]!.mission!.stickerId;
-    return [id, { id, emoji: DESTINATIONS[world.id]!.emoji, label: `${shortLabel(world)} Explorer` }];
-  }),
-  [FINALE.id, FINALE],
-]);
-
-/** The sticker that finishing the whole game earns. */
-export const FINALE_STICKER = FINALE.id;
-
 export interface Progress {
-  /**
-   * Places found, by discovery id, in the order they were found. This is what the
-   * journal shows: a list of things the child went and looked at, rather than a count of
-   * how many times they finished a tapping game.
-   */
-  discoveries: string[];
-  /** Collections finished. */
-  stickers: string[];
-  /**
-   * Bodies the ship has actually arrived at.
-   *
-   * Kept apart from stickers because "where you have been" and "what you finished" are
-   * different facts, and the game needs the first one on its own: the map ticks a world and
-   * moves its suggestion on once it has been *visited*, whether or not anything was found.
-   * Nothing is locked, so a visit opens nothing; the field is kept for saved progress.
-   */
+  /** Bodies the ship has actually arrived at, in the order first reached. */
   visited: string[];
-}
-
-/**
- * A fresh blank record every time. Deliberately a function rather than a shared constant:
- * callers push onto these arrays, and a spread of a constant copies the object but not
- * the arrays inside it — so one award would have quietly appended to the blank for the
- * rest of the session.
- */
-function empty(): Progress {
-  return { discoveries: [], stickers: [], visited: [] };
 }
 
 /** Anything that is not an array of strings is treated as absent rather than trusted. */
@@ -74,19 +24,12 @@ function stringList(value: unknown): string[] {
 function read(): Progress {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return empty();
+    if (!raw) return { visited: [] };
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return empty();
-    const record = parsed as Partial<Progress>;
-    return {
-      // Absent in saves written before there was anything to discover, and in saves
-      // written before visits were tracked. Both simply mean "none yet".
-      discoveries: stringList(record.discoveries),
-      stickers: stringList(record.stickers),
-      visited: stringList(record.visited),
-    };
+    if (typeof parsed !== 'object' || parsed === null) return { visited: [] };
+    return { visited: stringList((parsed as Partial<Progress>).visited) };
   } catch {
-    return empty();
+    return { visited: [] };
   }
 }
 
@@ -104,9 +47,8 @@ export function loadProgress(): Progress {
 
 /**
  * Start the adventure over without touching device choices such as sound or the grown-ups
- * greeting. Clearing all site data would also throw away the offline shell, which turns a
- * small testing/parental action into a reinstall; the progress record is deliberately one
- * key so this can be precise. Returns false only when storage itself is unavailable.
+ * greeting: the progress record is one key so this can be precise. Returns false only when
+ * storage itself is unavailable.
  */
 export function resetProgress(): boolean {
   try {
@@ -117,38 +59,6 @@ export function resetProgress(): boolean {
   }
 }
 
-/** Returns true only the first time a sticker is earned, so the celebration fires once. */
-export function awardSticker(id: string): boolean {
-  const progress = read();
-  if (progress.stickers.includes(id)) return false;
-  progress.stickers.push(id);
-  write(progress);
-  return true;
-}
-
-/** Records a find. Returns true the first time this place is found, so it lands once. */
-export function recordDiscovery(id: string): boolean {
-  const progress = read();
-  if (progress.discoveries.includes(id)) return false;
-  progress.discoveries.push(id);
-  write(progress);
-  return true;
-}
-
-/**
- * Whether every place in the game has been found.
- *
- * Takes the list of ids rather than importing config, so it can be pinned in a test
- * without a scene: `all` is `Object.keys(DISCOVERIES)` in the game. Extra ids in the save
- * — a place retired between releases — count for nothing, and order does not matter.
- * Finding the last place completes the whole game, and it used to get exactly the same
- * celebration as finding the third.
- */
-export function foundEverything(found: readonly string[], all: readonly string[]): boolean {
-  if (all.length === 0) return false;
-  return all.every((id) => found.includes(id));
-}
-
 /** Records an arrival. Returns true the first time this body is reached. */
 export function markVisited(id: string): boolean {
   const progress = read();
@@ -156,4 +66,14 @@ export function markVisited(id: string): boolean {
   progress.visited.push(id);
   write(progress);
   return true;
+}
+
+/**
+ * The one gentle hint on the map: the first unvisited world in hint order (`available` is
+ * given in that order: Earth, the Moon, Mars, the Sun, Saturn, from src/map/model.ts). Once
+ * everywhere has been visited it suggests nothing. Only ever a suggestion: every world can be
+ * flown to at any time.
+ */
+export function nextWorld(progress: Progress, available: readonly string[]): string | null {
+  return available.find((id) => !progress.visited.includes(id)) ?? null;
 }

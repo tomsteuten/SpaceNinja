@@ -3,8 +3,7 @@
  * toy shelf and the top buttons (owner's pick B, `design/visit-screen/visit-B.png`).
  *
  * The numbers mirror `src/ui/visit.css`; change them together. Portrait keeps the Space map
- * button, the Listen/Journal column and the found counter out of the band the world sits in,
- * and the shelf along the bottom. Landscape has the shelf down the right side; the corner
+ * button and Listen out of the band the world sits in, and the shelf along the bottom. Landscape has the shelf down the right side; the corner
  * buttons on the left sit outside the world's round silhouette, so only a little is kept at
  * the top for the name chip.
  */
@@ -37,19 +36,43 @@ export function shelfDepth(width: number, height: number): number {
   return isLandscape(width, height) ? card.width + 40 : card.height + 34;
 }
 
-/** Portrait: the top buttons' band (Space map 76 px, Listen and Journal 50 px each, gaps). */
-const PORTRAIT_TOP = 128;
-/** Portrait: the found counter sits this far above the shelf, and is this tall. */
-const PORTRAIT_COUNTER = 42;
+/** Portrait: the top buttons' band (Space map 78 px at 12 px from the top, and a gap). */
+const PORTRAIT_TOP = 100;
 /** Landscape: a little kept clear at the top for the name chip. */
 const LANDSCAPE_TOP = 16;
+/** Gap kept between the place photo and the world. */
+const PHOTO_GAP = 12;
 
-export function visitPlayfield(width: number, height: number): Playfield {
+/**
+ * Where the place photo sits (owner's pick B, design/places/places-B.png): across the top of
+ * the play area under the Space map in portrait, beside the world left of the shelf in
+ * landscape. The photo itself (`image`) is the panel less its paper border and name strip.
+ * ui.ts places the panel from this, so the camera and the photo cannot disagree.
+ */
+export function placePhotoRect(width: number, height: number): Playfield & { image: number } {
+  /** Paper padding and border round the photo, and the name strip under it. */
+  const frame = 64;
+  if (isLandscape(width, height)) {
+    const shelf = shelfDepth(width, height);
+    const panel = Math.round(Math.min(360, Math.max(220, width * 0.34)));
+    const image = Math.max(80, Math.min(panel - 16, height - 32 - frame));
+    const right = width - shelf - 14;
+    const top = Math.round((height - image - frame) / 2);
+    return { left: right - panel, right, top, bottom: top + image + frame, image };
+  }
+  const image = Math.round(Math.min(300, Math.max(140, height * 0.3)));
+  const top = 104;
+  return { left: 14, right: width - 14, top, bottom: top + image + frame, image };
+}
+
+export function visitPlayfield(width: number, height: number, photo = false): Playfield {
   const shelf = shelfDepth(width, height);
   if (isLandscape(width, height)) {
-    return { left: 0, top: LANDSCAPE_TOP, right: Math.max(1, width - shelf), bottom: height };
+    const right = photo ? placePhotoRect(width, height).left - PHOTO_GAP : width - shelf;
+    return { left: 0, top: LANDSCAPE_TOP, right: Math.max(1, right), bottom: height };
   }
-  return { left: 0, top: PORTRAIT_TOP, right: width, bottom: Math.max(PORTRAIT_TOP + 1, height - shelf - PORTRAIT_COUNTER) };
+  const top = photo ? placePhotoRect(width, height).bottom + PHOTO_GAP : PORTRAIT_TOP;
+  return { left: 0, top, right: width, bottom: Math.max(top + 1, height - shelf - 12) };
 }
 
 /**
@@ -66,8 +89,8 @@ export interface PlayfieldView {
 
 export const FULL_VIEW: PlayfieldView = { offsetX: 0, offsetY: 0, width: 1, height: 1 };
 
-export function playfieldView(width: number, height: number): PlayfieldView {
-  const field = visitPlayfield(width, height);
+export function playfieldView(width: number, height: number, photo = false): PlayfieldView {
+  const field = visitPlayfield(width, height, photo);
   return {
     offsetX: width / 2 - (field.left + field.right) / 2,
     offsetY: height / 2 - (field.top + field.bottom) / 2,

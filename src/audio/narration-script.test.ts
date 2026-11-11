@@ -25,9 +25,9 @@ function cuesByBody(): Record<string, string[]> {
       bodyId,
       [
         `arrival-${bodyId}`,
-        ...(destination.mission ? [
+        ...(destination.places ? [
           `find-${bodyId}`,
-          ...destination.mission.discoveries.map(discovery => `discovery-${discovery.id}`),
+          ...destination.places.map(discovery => `discovery-${discovery.id}`),
           `hunt-${bodyId}`,
           `success-${bodyId}`,
         ] : []),
@@ -104,7 +104,7 @@ describe('narration script', () => {
   it('keeps arrival welcomes distinct from the hunt instruction', () => {
     for (const bodyId of Object.keys(DESTINATIONS)) {
       expect(script.cues[`arrival-${bodyId}`]).not.toMatch(/\b(?:tap|target)\b/i);
-      if (DESTINATIONS[bodyId]?.mission) {
+      if (DESTINATIONS[bodyId]?.places) {
         expect(script.cues[`find-${bodyId}`]).toMatch(/\btap\b.*\bgold\b|\bgold\b.*\btap\b/i);
       }
     }
@@ -148,7 +148,7 @@ describe('narration script', () => {
      * require every discovery or every cue for a world to be recorded.
      */
     for (const bodyId of Object.keys(DESTINATIONS)) {
-      const framing = [`arrival-${bodyId}`, ...(DESTINATIONS[bodyId]?.mission ? [`find-${bodyId}`] : [])];
+      const framing = [`arrival-${bodyId}`, ...(DESTINATIONS[bodyId]?.places ? [`find-${bodyId}`] : [])];
       const have = framing.filter((cue) => recorded.has(cue));
       expect(
         have.length === 0 || have.length === framing.length,

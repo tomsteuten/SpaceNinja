@@ -33,7 +33,7 @@ export interface SpaceMapOptions {
   tap(clientX: number, clientY: number): void;
   /** The page changed, so the heading should say what the hint now says. */
   onPage(): void;
-  /** Where the heading and journal end at the top of the screen, in client pixels. */
+  /** Where the heading ends at the top of the screen, in client pixels. */
   headingBottom(): number;
 }
 

@@ -2,10 +2,10 @@
  * The visit screen: the toy shelf (owner's pick B, design/visit-screen/visit-B.png).
  *
  * Everything is in place from arrival and never moves. Portrait: Space map top left with the
- * world's name chip beside it, Listen and Journal in a small column top right, the found
- * counter under the world, and a paper shelf of big toy cards along the bottom. Landscape:
- * the shelf runs down the right side, Listen and Journal sit bottom left and the counter top
- * right of the playfield. The camera keeps the world clear of all of it; the sizes below are
+ * world's name chip beside it, Listen small top right, and a paper shelf of big picture cards
+ * along the bottom (the world's toys, then Places). Landscape: the shelf runs down the right
+ * side and Listen sits bottom left. The place photo (owner's pick B) comes up only when the
+ * child taps Places; ui.ts positions it from viewport.ts. The camera keeps the world clear of all of it; the sizes below are
  * mirrored in src/ui/viewport.ts, so change the two together.
  *
  * Loaded last, after storybook.css. Crayons are the variables at the top of storybook.css.
@@ -21,15 +21,15 @@
 
 /* --- buttons: paper crayon tiles with an ink outline and a flat offset shadow ------------ */
 
-.visit .visit-btn,.visit .journal-btn {
+.visit .visit-btn {
   display:flex; align-items:center; justify-content:center; margin:0; padding:0; min-height:0;
   color:var(--ink-line); border:var(--line); border-radius:16px; box-shadow:var(--lift);
   font:400 20px var(--hand); cursor:pointer; transition:none;
 }
-.visit .visit-btn:active,.visit .journal-btn:active,.visit .toy-card:active {
+.visit .visit-btn:active,.visit .toy-card:active,.visit .place-photo__next:active {
   transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line);
 }
-.visit .visit-btn:focus-visible,.visit .journal-btn:focus-visible,.visit .toy-card:focus-visible {
+.visit .visit-btn:focus-visible,.visit .toy-card:focus-visible,.visit .place-photo button:focus-visible {
   outline:4px dashed #fff; outline-offset:4px;
 }
 .visit .picture { display:block; pointer-events:none; }
@@ -52,28 +52,39 @@
 .visit .visit-chip .world-orb { width:30px; height:30px; border:2px solid var(--ink-line); box-shadow:none; }
 .visit .visit-chip__name { overflow:hidden; text-overflow:ellipsis; font:400 22px/1.15 var(--hand); letter-spacing:0; }
 
-/* Listen (grape) and Journal (tomato): small, fixed. */
-.visit .visit-small,.visit .journal-btn { width:var(--small); height:var(--small); }
-.visit .visit-small .picture,.visit .journal-btn .picture { width:32px; height:32px; }
+/* Listen (grape): small, fixed. Hold it two seconds for the grown-ups panel. */
+.visit .visit-small { width:var(--small); height:var(--small); }
+.visit .visit-small .picture { width:32px; height:32px; }
 .visit .listen-btn,.visit .listen-btn:hover { background:var(--crayon-grape); }
-.visit .journal-btn,.visit .journal-btn:hover { background:var(--crayon-tomato); }
-.visit .journal-btn .journal-label { display:none; }
 .visit .listen-btn { right:calc(var(--edge) + var(--safe-r)); top:calc(var(--edge) + var(--safe-t)); }
-.visit .journal-btn { right:calc(var(--edge) + var(--safe-r)); top:calc(var(--edge) + var(--safe-t) + var(--small) + 8px); left:auto; bottom:auto; }
-/* The Space map's own journal button carries the same book. */
-.ui > .journal-btn .picture { width:38px; height:38px; }
 
-/* --- found counter: three gold rings, filled as places are found --------------------------- */
+/* --- the place photo (owner's pick B, design/places/places-B.png) ------------------------- */
 
-.visit .visit-found {
-  left:0; right:0; bottom:calc(var(--shelf) + var(--safe-b) + 14px);
-  display:flex; justify-content:center; gap:8px; pointer-events:none;
+.visit .place-photo {
+  margin:0; padding:8px 8px 0; background:#fffdf6; border:var(--line); border-radius:14px; box-shadow:var(--lift);
+  pointer-events:auto; --photo-h:240px;
 }
-.visit .found-ring {
-  display:block; width:20px; height:20px; border-radius:50%; border:3.5px solid var(--crayon-sun);
-  background:transparent; box-shadow:0 0 0 1.5px #0007;
+.visit .place-photo.is-hidden { display:none; }
+.visit .place-photo__picture {
+  display:block; width:100%; height:var(--photo-h); margin:0; padding:0; border:2.5px solid var(--ink-line);
+  border-radius:8px; overflow:hidden; background:#0a0b22; cursor:pointer; min-height:0; box-shadow:none;
 }
-.visit .found-ring.is-filled { background:var(--crayon-sun); box-shadow:0 0 0 1.5px var(--ink-line),0 0 10px 2px #f2b63299; }
+.visit .place-photo__picture img { display:block; width:100%; height:100%; object-fit:cover; }
+.visit .place-photo.is-no-photo .place-photo__picture img { visibility:hidden; }
+.visit .place-photo__name {
+  display:flex; align-items:center; justify-content:center; gap:8px; height:42px; padding:0 8px;
+  color:var(--ink-line); font:400 24px/1.1 var(--hand); white-space:nowrap; overflow:hidden;
+}
+.visit .place-photo__name span { overflow:hidden; text-overflow:ellipsis; }
+.visit .place-photo__name .picture { width:24px; height:24px; flex:none; }
+/* The big green arrow on the photo's bottom corner (clear of the name): the next place. */
+.visit .place-photo__next {
+  position:absolute; right:14px; bottom:54px; width:78px; height:78px; margin:0; padding:0; min-height:0;
+  display:flex; align-items:center; justify-content:center; border-radius:50%;
+  background:var(--crayon-grass); border:var(--line); box-shadow:var(--lift); cursor:pointer;
+}
+.visit .place-photo__next svg { width:50px; height:50px; }
+.visit .place-photo__next:hover { background:var(--crayon-grass); filter:brightness(1.05); }
 
 /* --- the toy shelf ----------------------------------------------------------------------- */
 
@@ -91,6 +102,12 @@
 .visit .toy-card:nth-child(1) { left:calc(14px + var(--safe-l)); transform:rotate(-1.5deg); }
 .visit .toy-card:nth-child(2) { right:calc(14px + var(--safe-r)); transform:rotate(1.5deg); }
 .visit .toy-shelf[data-cards="1"] .toy-card { left:calc(50% - var(--card-w) / 2); }
+/* Three cards (a world's two toys and Places): narrower, evenly across the shelf. */
+.visit .toy-shelf[data-cards="3"] { --card-w:min(168px,calc((100vw - 48px - var(--safe-l) - var(--safe-r)) / 3)); }
+.visit .toy-shelf[data-cards="3"] .toy-card { width:var(--card-w); font-size:22px; }
+.visit .toy-shelf[data-cards="3"] .toy-card:nth-child(1) { left:calc(14px + var(--safe-l)); }
+.visit .toy-shelf[data-cards="3"] .toy-card:nth-child(2) { left:calc(50% - var(--card-w) / 2); right:auto; transform:rotate(1deg); }
+.visit .toy-shelf[data-cards="3"] .toy-card:nth-child(3) { left:auto; right:calc(14px + var(--safe-r)); transform:rotate(-1deg); }
 .visit .toy-card:active { transform:translate(3px,3px); }
 .toy-card__picture {
   position:relative; flex:1; min-height:0; display:block; overflow:hidden;
@@ -107,6 +124,9 @@
 .visit .toy-card--rover,.visit .toy-card--rover:hover { background:var(--crayon-lime); }
 .visit .toy-card--bath,.visit .toy-card--bath:hover { background:var(--crayon-bubble); }
 .visit .toy-card--far,.visit .toy-card--far:hover { background:var(--crayon-star); }
+.visit .toy-card--places,.visit .toy-card--places:hover { background:var(--crayon-tomato); }
+/* Places while its photo is up: lit, so the card and the photo read as one thing. */
+.visit .toy-card--places.is-on { box-shadow:var(--lift),0 0 0 5px #fff3c4,0 0 22px 8px #ffd564bf; }
 
 /* Day & night while the world turns: the same card, now a Stop. */
 .visit .spin-btn.is-busy .toy-card__picture::after {
@@ -117,8 +137,7 @@
 .visit .spin-btn.is-inviting:not(.is-busy) .toy-card__picture { animation:card-invite 2.4s ease-in-out 3; }
 @keyframes card-invite { 0%,100% { transform:rotate(0); } 35% { transform:rotate(-3deg); } 65% { transform:rotate(3deg); } }
 
-/* The one ringed next step after the finds: the world's toy, then Space map. */
-.is-toy-next .visit .toy-card.is-main-toy,
+/* The one ringed next step once the world's toy has been played: Space map. */
 .is-map-next .visit .visit-map { outline:4px solid var(--paper); outline-offset:3px; }
 
 /* The day/night legend while a world turns, under the way back. */
@@ -127,11 +146,10 @@
 /* --- landscape: the shelf down the right side ------------------------------------------ */
 
 @media (orientation:landscape) {
+  .visit .place-photo__name { font-size:21px; }
   .ui > .visit { --card-w:176px; --card-h:min(162px,calc((100vh - 36px) / 2)); --shelf:calc(var(--card-w) + 40px); }
   .visit .listen-btn { left:calc(var(--edge) + var(--safe-l)); right:auto; top:auto; bottom:calc(14px + var(--safe-b)); }
-  .visit .journal-btn { left:calc(var(--edge) + var(--safe-l) + var(--small) + 10px); right:auto; top:auto; bottom:calc(14px + var(--safe-b)); }
   .visit .visit-chip { max-width:calc(100% - var(--shelf) - var(--map) - 200px); }
-  .visit .visit-found { left:auto; right:calc(var(--shelf) + var(--safe-r) + 18px); top:calc(24px + var(--safe-t)); bottom:auto; }
   .visit .toy-shelf {
     left:auto; top:-3px; right:-3px; bottom:-3px; width:calc(var(--shelf) + var(--safe-r) + 3px); height:auto;
     border-radius:26px 0 0 26px; box-shadow:-6px 0 18px #0005;
@@ -140,16 +158,26 @@
   .visit .toy-card:nth-child(1) { left:auto; top:12px; transform:rotate(-1.2deg); }
   .visit .toy-card:nth-child(2) { right:calc(18px + var(--safe-r)); top:auto; bottom:12px; transform:rotate(1.2deg); }
   .visit .toy-shelf[data-cards="1"] .toy-card { left:auto; top:calc(50% - var(--card-h) / 2); }
+  /* Three cards stacked down the shelf, shorter. */
+  .visit .toy-shelf[data-cards="3"] { --card-w:var(--shelf-card-w,176px); --card-h:calc((100vh - 44px - var(--safe-t) - var(--safe-b)) / 3); }
+  .visit .toy-shelf[data-cards="3"] .toy-card { width:var(--card-w); height:var(--card-h); font-size:22px; line-height:1.15; }
+  .visit .toy-shelf[data-cards="3"] .toy-card:nth-child(1) { left:auto; right:calc(18px + var(--safe-r)); top:calc(12px + var(--safe-t)); bottom:auto; }
+  .visit .toy-shelf[data-cards="3"] .toy-card:nth-child(2) { left:auto; right:calc(18px + var(--safe-r)); top:calc(50% - var(--card-h) / 2); bottom:auto; }
+  .visit .toy-shelf[data-cards="3"] .toy-card:nth-child(3) { left:auto; right:calc(18px + var(--safe-r)); top:auto; bottom:calc(12px + var(--safe-b)); }
 }
 @media (orientation:landscape) and (min-width:900px) and (min-height:600px) {
   .ui > .visit { --card-w:210px; --card-h:190px; }
   .visit .toy-card { font-size:28px; }
+  .visit .toy-shelf[data-cards="3"] { --shelf-card-w:210px; }
 }
 @media (orientation:portrait) and (min-width:600px) and (min-height:900px) {
   .ui > .visit { --card-w:210px; --card-h:180px; }
   .visit .toy-card { font-size:28px; }
   .visit .toy-card:nth-child(1) { left:calc(50% - var(--card-w) - 12px); }
   .visit .toy-card:nth-child(2) { right:calc(50% - var(--card-w) - 12px); }
+  .visit .toy-shelf[data-cards="3"] { --card-w:180px; }
+  .visit .toy-shelf[data-cards="3"] .toy-card:nth-child(1) { left:calc(50% - var(--card-w) * 1.5 - 16px); }
+  .visit .toy-shelf[data-cards="3"] .toy-card:nth-child(3) { right:calc(50% - var(--card-w) * 1.5 - 16px); }
 }
 
 @media (prefers-reduced-motion:reduce) {
@@ -157,10 +185,8 @@
   .visit .spin-btn.is-inviting:not(.is-busy) { outline:4px solid var(--paper); outline-offset:3px; }
 }
 
-/* --- the same pictures elsewhere: reading panel, journal, postcard, Moon jump ---------------- */
+/* --- the same pictures elsewhere: reading panel, Moon jump ---------------------------------- */
 
-.narrate-btn .picture,.photo-view__journal .picture { width:30px; height:30px; }
-.photo-view__saved .picture { width:22px; height:22px; }
-.panel-return .picture,.photo-view__return-world .picture { width:30px; height:30px; }
+.narrate-btn .picture { width:30px; height:30px; }
+.panel-return .picture { width:30px; height:30px; }
 .ui .moon-jump__jump .picture { width:44px; height:44px; }
-@media(min-width:600px) and (max-height:480px) { .photo-view__journal .picture { width:24px; height:24px; } }

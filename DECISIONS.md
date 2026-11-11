@@ -71,3 +71,10 @@ gamified: nothing is locked, nothing is scored, nothing has to be done in order.
   was too much and his children skip the finds. The hunt is removed; places become a Places
   card the child asks for; the ten new worlds are museum-style with no toy; narration is
   recorded early rather than last. Free flight around a world was considered and rejected.
+- 2026-11-11 (Places built): owner picked option B, the big photo (`design/places/places-B.png`):
+  the photo across the top of the play area (beside the world in landscape), a big green
+  arrow on it for the next place. The optional quiet dots on the globe are not built. With
+  the journal gone, the grown-ups panel is opened by holding a visit's Listen button for two
+  seconds (or `?grownups`). The camera tilts only part way to a far-north or far-south place,
+  which then sits off-centre on the lit face, because tilting all the way showed the night
+  side.
