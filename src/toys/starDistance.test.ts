@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  JOURNEY_SECONDS, MILESTONES, NEAREST_STARS_AU, NEPTUNE_AU, START_AU, TRACK_STOPS, angularDiameterDeg,
+  JOURNEY_SECONDS, MILESTONES, NEAREST_STARS_AU, NEPTUNE_AU, START_AU, TRACK_STOPS, displayRadius, angularDiameterDeg,
   apparentRadius, distanceAt, drawnSun, glowStrength, milestoneNear, nearestStop, nextStop, progressAt, progressFromTrack, trackFromProgress, travel,
 } from './starDistance';
 
@@ -115,5 +115,21 @@ describe('far away from the Sun', () => {
     expect(nearestStop(0.5)).toBe('neptune');
     expect(nearestStop(0.9)).toBe('far');
     expect(nearestStop(1)).toBe('far');
+  });
+
+  it('draws the Sun readably: about 12.5 px at Earth, 6 at Neptune, a bright dot at the end, always shrinking', () => {
+    const [earth, neptune] = MILESTONES;
+    for (const start of [90, 164, 240]) {
+      expect(displayRadius(0, start)).toBeCloseTo(start);
+      expect(displayRadius(earth!.progress, start)).toBeCloseTo(12.5, 1);
+      expect(displayRadius(neptune!.progress, start)).toBeCloseTo(6, 1);
+      expect(displayRadius(1, start)).toBeGreaterThanOrEqual(3);
+      let last = Infinity;
+      for (let p = 0; p <= 1.0001; p += 0.01) {
+        const r = displayRadius(p, start);
+        expect(r).toBeLessThan(last);
+        last = r;
+      }
+    }
   });
 });

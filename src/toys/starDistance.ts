@@ -59,6 +59,31 @@ export function angularDiameterDeg(distanceAu: number): number {
   return (2 * Math.atan(SUN_RADIUS_AU / distanceAu) * 180) / Math.PI;
 }
 
+/** Drawn radii (px) at Earth, Neptune and the far end: a Sun a small child can still see. */
+export const DISPLAY_EARTH_PX = 12.5;
+export const DISPLAY_NEPTUNE_PX = 6;
+export const DISPLAY_FAR_PX = 3.4;
+
+/**
+ * The Sun's radius on screen for a given journey progress: the honest 1 / distance size at the
+ * start, then a display curve through the sizes above (straight on a log scale between them,
+ * so it keeps shrinking all the way and never vanishes). The model above stays the truth; this
+ * is only how big the picture is drawn.
+ */
+export function displayRadius(progress: number, startRadius: number): number {
+  const stops = [0, ...MILESTONES.map(m => m.progress)];
+  const sizes = [startRadius, DISPLAY_EARTH_PX, DISPLAY_NEPTUNE_PX, DISPLAY_FAR_PX];
+  const p = Math.min(1, Math.max(0, progress));
+  for (let i = 1; i < stops.length; i++) {
+    if (p <= stops[i]! || i === stops.length - 1) {
+      const k = (p - stops[i - 1]!) / (stops[i]! - stops[i - 1]!);
+      const from = Math.min(sizes[i - 1]!, Math.max(sizes[i]!, sizes[i - 1]!));
+      return Math.exp(Math.log(from) + k * (Math.log(sizes[i]!) - Math.log(from)));
+    }
+  }
+  return DISPLAY_FAR_PX;
+}
+
 /**
  * How the Sun is drawn once it is smaller than anything can be drawn: a dot of at least
  * `minRadius`, a little fainter the smaller the real Sun would be, like any star.

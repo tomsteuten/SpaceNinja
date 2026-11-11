@@ -21,7 +21,7 @@ import handUrl from '../pictures/hand.svg';
 import sunUrl from '../pictures/sun.svg';
 import glowstarUrl from '../pictures/glowstar.svg';
 import {
-  MILESTONES, TRACK_STOPS, apparentRadius, distanceAt, drawnSun, glowStrength, nearestStop,
+  MILESTONES, TRACK_STOPS, displayRadius, glowStrength, nearestStop,
   progressFromTrack, type StopId,
 } from './starDistance';
 
@@ -209,7 +209,7 @@ export function createSunStar(host: HTMLElement, options: SunStarOptions = {}): 
   /** The decorative rocket sits clear of the Sun, lower right, edging up as the Sun shrinks. */
   function placeRocket() {
     const { sy, r0, wide, ship } = lay;
-    const real = apparentRadius(distanceAt(progress), r0);
+    const real = displayRadius(progress, r0);
     const reach = clamp(real * 1.2 + ship * 0.4, 110, r0 * 1.2 + ship * 0.4);
     const x = wide ? width * 0.8 : Math.min(width - ship * 0.9, width * 0.72);
     const y = wide ? sy - 20 : Math.min(sy + reach, lay.bandTop - ship * 0.9);
@@ -307,13 +307,16 @@ export function createSunStar(host: HTMLElement, options: SunStarOptions = {}): 
       const tw = still ? 0.85 : 0.65 + 0.35 * Math.sin(clock * s.speed + s.phase);
       const bloom = blooms.find(b => b.star === i);
       const k = bloom ? (still ? 1 : Math.sin(Math.min(1, bloom.age / BLOOM_SECONDS) * Math.PI)) : 0;
-      const r = s.size * (1 + tw * 0.4) + k * 15;
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 3 + 6);
-      glow.addColorStop(0, `rgba(255,248,214,${(0.5 + 0.4 * k) * alpha * tw})`);
+      // Crisp bright points with a small glow; a little twinkle in brightness, not in size.
+      const core = 1.1 + s.size * 0.5;
+      const r = core + k * 15;
+      const glowR = r * 2.1 + 2;
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+      glow.addColorStop(0, `rgba(255,248,214,${(0.45 + 0.4 * k) * alpha * tw})`);
       glow.addColorStop(1, 'rgba(255,230,150,0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(x, y, r * 3 + 6, 0, TAU);
+      ctx.arc(x, y, glowR, 0, TAU);
       ctx.fill();
       ctx.globalAlpha = alpha;
       if (k > 0.05) {
@@ -326,9 +329,9 @@ export function createSunStar(host: HTMLElement, options: SunStarOptions = {}): 
         ctx.fill();
         ctx.stroke();
       } else {
-        ctx.fillStyle = '#fffbea';
+        ctx.fillStyle = `rgba(255,251,234,${0.75 + 0.25 * tw})`;
         ctx.beginPath();
-        ctx.arc(x, y, r * 0.6, 0, TAU);
+        ctx.arc(x, y, r, 0, TAU);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -336,11 +339,10 @@ export function createSunStar(host: HTMLElement, options: SunStarOptions = {}): 
   }
 
   function drawSun() {
-    const distance = distanceAt(progress);
     const strength = Math.max(0.55, glowStrength(progress));
     const { sx, sy } = lay;
-    const real = apparentRadius(distance, lay.r0);
-    const { radius, alpha } = drawnSun(real, 3.2);
+    const radius = displayRadius(progress, lay.r0);
+    const alpha = 1;
     root.dataset.sunRadius = radius.toFixed(1);
     root.dataset.sunY = sy.toFixed(1);
     // The glow spills well beyond the disc close up, and shrinks to a glimmer far away.
@@ -358,7 +360,7 @@ export function createSunStar(host: HTMLElement, options: SunStarOptions = {}): 
     body.addColorStop(0, '#fff7cc');
     body.addColorStop(0.55, '#ffd45e');
     body.addColorStop(1, '#f4a42c');
-    ctx.fillStyle = radius > 4 ? body : '#fff3c0';
+    ctx.fillStyle = progress >= FAR_AT ? '#ffe7a0' : body;
     ctx.beginPath();
     ctx.arc(sx, sy, radius, 0, TAU);
     ctx.fill();
