@@ -16,6 +16,12 @@ gamified: nothing is locked, nothing is scored, nothing has to be done in order.
    - The Sun is a star like the others in the sky, just much closer.
 3. **Open exploring with gentle hints.** Every world can be visited from the first second.
    The game may suggest one next thing (a ring, an arrow); it never blocks.
+   - **No hunt.** Nothing to find, count or collect: no target rings, counter, journal or
+     stickers. A world's notable places are shown by a "Places" card on the toy shelf that
+     the child taps: the world turns to a place, the real photo appears and its line is
+     spoken; tap again for the next. Nothing pops up unasked and nothing blocks.
+   - **Toys only for the three ideas** (plus those already built). The other worlds are
+     museum-style: a real globe to spin, its name and one spoken fact.
 4. **Android phones first.** It must also work on tablets and laptops, and stay usable with a
    keyboard or TV remote (arrow keys and Enter), to a standard that could be shared publicly.
 
@@ -29,10 +35,11 @@ gamified: nothing is locked, nothing is scored, nothing has to be done in order.
 7. **Storybook crayons style** (`src/ui/storybook.css`).
 8. **A toy only where it earns its place.** A new world needs a real texture, three places and
    an arrival fact. It gets a hands-on toy only if the toy is cheap and teaches one idea.
-9. **Narration: script now, recording later.** New lines are written into
+9. **Narration: script first, then one recording pass, early.** New lines are written into
    `src/audio/narration-script.json` and shown as words. No placeholder audio is generated.
-   One ElevenLabs Emma recording pass happens at the end, when the owner approves the spend.
-   Existing recordings keep playing.
+   One ElevenLabs Emma recording pass happens once the hunt is removed and the script is
+   rewritten, when the owner has read it and approved the spend: a child who cannot read
+   needs the voice, so it does not wait for the end. Existing recordings keep playing.
 
 ## How work is done
 
@@ -60,3 +67,7 @@ gamified: nothing is locked, nothing is scored, nothing has to be done in order.
   find confused adults, the Moonlight diagram misled, and the line-glyph icons looked
   amateurish on a phone. "The assistant judges appearance itself" is replaced by mock first;
   adding worlds waits until the visit screen is right.
+- 2026-11-11 (later): after the owner played the toy shelf live. Finds plus toys plus leaving
+  was too much and his children skip the finds. The hunt is removed; places become a Places
+  card the child asks for; the ten new worlds are museum-style with no toy; narration is
+  recorded early rather than last. Free flight around a world was considered and rejected.

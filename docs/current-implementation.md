@@ -4,7 +4,46 @@
 
 Scope is [DECISIONS.md](../DECISIONS.md). Tick a phase here when it lands.
 
-### Next up: the visit screen (11 November 2026) — do this before Phase 3b
+### The road to finished (11 November 2026, after the owner played `5851c56` live)
+
+The toy shelf, bounce Moonlight and drag-the-rocket Far away are live. Owner's verdict:
+better, not fully intuitive; discoveries plus toys plus leaving was too much, and his children
+skip the finds. Decided (DECISIONS.md, 2026-11-11 second entry): the hunt goes, places become
+a card the child asks for, new worlds are museum-style, narration is recorded early. This
+list replaces Phases 3b to 5 below. In order:
+
+- [ ] **1. Remove the hunt, add the Places card** (Moon, Earth, Mars, Saturn). Remove the
+  gold target rings, the found counter, "3 found", the journal and its button, stickers and
+  the postcard flow. Add one "Places" card to the toy shelf (camera picture, tomato): a tap
+  turns the world itself to a place, shows the real photo with its name and speaks its line;
+  another tap goes to the next place, cycling; spinning the globe or tapping elsewhere puts
+  the photo away. Reuse the photos, lat/long, recorded discovery lines and the existing
+  turn-to-place camera move. Optional small quiet dots on the globe that open the same photo;
+  drop them if they clutter. Mock the card and the photo-showing state first (Moon, portrait
+  and landscape), owner picks. Then delete the progress, journal and sticker code that
+  nothing uses, and trim the smoke spec.
+- [ ] **2. Leftovers from the shelf build.** Day & night on Mars and Saturn was never run in
+  the new playfield (may sit under the landscape shelf). Owner has not yet judged the
+  first-draft cards for Mars, Saturn and the Sun, Listen opening the words panel, or the
+  parked ship overlapping the Moon in portrait. Toy overlays leave the visit buttons
+  reachable by keyboard behind them.
+- [ ] **3. Narration, early.** Rewrite `narration-script.json` for the new shape: one arrival
+  line per world, one line when each toy opens, the place lines; delete hunt lines ("tap the
+  arrow", "one more is hiding", success-after-three). Owner reads the script, approves the
+  spend, then one ElevenLabs Emma pass (`npm run narration:generate`). This is the main fix
+  for "an adult has to explain".
+- [ ] **4. World template, piloted on Jupiter.** A museum world is: real texture, a globe the
+  child can spin, name chip, Space map, Listen, one spoken arrival fact, and a Places card
+  only where real photos exist. No toy. Get Jupiter right, owner looks.
+- [ ] **5. The other nine worlds** from the template: Mercury, Venus, Io, Europa, Titan,
+  Uranus, Neptune, Pluto, Makemake (artist's impression, labelled). Cheap model, in parallel.
+- [ ] **6. Ship.** Real Android phone performance, first run for a stranger, credits (Fluent
+  Emoji, photo sources), keyboard / TV remote pass, README.
+
+Models: design choices and mocks stay with the main model; removal, the Places card and the
+template suit Opus; individual worlds and script drafting suit Sonnet.
+
+### Done: the visit screen (11 November 2026)
 
 The owner played the live game (`5b829bb`): the crayon style can stay, but the visit screen is
 not understandable and the icons look amateurish, worse on a phone. Order of work:
