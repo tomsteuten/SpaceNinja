@@ -28,12 +28,18 @@ npm run narration:generate          # ElevenLabs (needs ELEVENLABS_API_KEY; --fo
 
 - Every commit: `npm run typecheck && npm test`.
 - UI, gameplay, camera or layout change: run only the affected Playwright file(s) with
-  `--project=phone`, e.g. `npx playwright test e2e/earth-day.pw.ts --project=phone`.
+  `--project=phone`, e.g. `npx playwright test e2e/visit-shelf.pw.ts --project=phone`. New or
+  changed specs run on all three projects (`phone`, `tablet`, `short-landscape`).
+- The browser suite is a smoke set while the design moves (DECISIONS.md "Tests"): boot,
+  lifecycle, offline, map keyboard (`accessibility`), the visit screen (`visit-shelf`), and the
+  Moonlight and Far away toys.
 - Never the full browser suite locally; CI runs it on every pushed branch (15-20 minutes).
 - A failing browser test: rerun it alone once before diagnosing (load causes false timeouts).
 - Playtest builds accept `?fast` for short flights; a normal build ignores it.
-- Judge appearance from real screenshots: `STYLE_OUT=design/<folder> npx playwright test
-  e2e/style-capture.pw.ts --project=phone` (full resolution; suite screenshots are half-size).
+- Judge appearance from real screenshots: `VISIT_SHOTS=design/visit-screen/built npx playwright
+  test e2e/visit-shelf.pw.ts -g pictures --project=phone --project=short-landscape` (full
+  resolution; suite screenshots are half-size). `VISIT_SHOTS_OTHERS=<folder>` adds Mars, Saturn
+  and the Sun; `STYLE_OUT=<folder>` with `e2e/paged-map-capture.pw.ts` pictures the map.
 - Before screenshots: a temporary `git worktree` plus `npm ci`. Never junction or symlink
   `node_modules` into it: `git worktree remove` follows the link and deletes the real one.
 
@@ -91,16 +97,23 @@ approves the final recording pass.
 "Storybook crayons" (`src/ui/storybook.css`, loaded after `adventure.css`; Patrick Hand and
 Andika bundled via `@fontsource`): paper, ink outlines, flat offset shadows, tilted photo
 snapshots. One crayon colour per control everywhere, so a pre-reader can say "the yellow one".
-New controls take a variable from the top of `storybook.css`; add them here.
+New controls take a variable from the top of `storybook.css`; add them here. Control pictures
+are Fluent Emoji flat (Microsoft, MIT) in `src/pictures/`, kept byte for byte; toy cards
+compose them (`src/ui/visitPictures.ts`).
+
+The visit screen is the toy shelf (owner's pick, `design/visit-screen/visit-B.png`;
+`src/ui/visit.css`): everything is on screen from arrival and never moves. `src/ui/viewport.ts`
+mirrors its sizes for the camera's playfield; change the two together.
 
 | Control | Crayon |
 | --- | --- |
-| Space map, Keep exploring (any way back) | sky |
-| Listen, panel replay | grape |
-| Day & night and its state; done tick on map cards and journal snapshots | grass |
-| Jump, Find places, Start playing, Hooray!, hunt/next-world arrows; found dots, "3 found!", world star | sun |
-| Turn Earth (teal), Bath/Plop! (bubble), Rover (lime), Moonlight/Move Moon (moon, silver), Far away (star, indigo) | per toy |
-| Journal, All places, open journal page | tomato |
+| Space map (big, top left), Keep exploring (any way back) | sky |
+| Listen (small), panel replay | grape |
+| Day & night card (Mars, Saturn) and its Stop state; done tick on map cards and journal snapshots | grass |
+| Jump card, Start playing, Hooray!, next-world arrows; found rings, "3 found!", world star | sun |
+| Turn Earth card (teal), Bath card/Plop! (bubble), Rover card (lime), Moonlight card/Move Moon (moon, silver), Far away card (star, indigo) | per toy |
+| Journal (small), All places, open journal page | tomato |
+| Toy shelf, name chip, panels | paper |
 
 ## Architecture map
 
@@ -116,7 +129,8 @@ src/scene/       renderer, worlds, ship, sky, textures, day turn
 src/controls/ flight/ audio/   orbit input, cinematics and home return, narration and sound
 src/mission/     discovery selection and collection
 src/toys/        hands-on toys (Moon jump and Moonlight, Earth bedtime spin, Sun Far away, Saturn bath, Mars rover)
-src/ui/          DOM interface, styles, grown-ups panel, photos
+src/ui/          DOM interface, visit screen (toy shelf), styles, grown-ups panel, photos
+src/pictures/    Fluent Emoji flat control pictures (MIT, byte for byte)
 src/state/       progress, replay, settings
 content/ design/ e2e/ docs/    world data, unshipped reference, Playwright, plan and ideas
 ```

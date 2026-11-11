@@ -160,6 +160,11 @@ per-cue exception are recorded in `provenance.json` and
 grown-ups screen. The local fallback uses [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M),
 whose weights are [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
+**Control pictures** in `src/pictures/` (Space map, Listen, Journal and the toy cards) are
+[Fluent Emoji](https://github.com/microsoft/fluentui-emoji) flat, by Microsoft, MIT licence
+(`src/pictures/LICENSE-fluent-emoji.txt`), unmodified; the toy cards compose them with simple
+shapes and the worlds' own textures.
+
 The Sun's surface map is a generated illustration, credited in `public/assets/README.txt`.
 The spaceship and scene geometry use Three.js primitives and runtime effects.
 

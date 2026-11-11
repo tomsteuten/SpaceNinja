@@ -14,7 +14,8 @@ import './ui/ui.css';
 import './ui/theme.css';
 import './ui/adventure.css';
 import './ui/storybook.css';
-import { adventureViewOffset } from './ui/viewport';
+import './ui/visit.css';
+import { FULL_VIEW, playfieldView } from './ui/viewport';
 import * as THREE from 'three';
 import { DESTINATIONS, SUN_DIRECTION } from './config';
 import { detectQuality, prefersReducedMotion } from './scene/quality';
@@ -147,7 +148,6 @@ async function main() {
       // A Fly Home during a day turn: stop the turn first so it is not still writing the
       // camera as the pull-back takes it. dayTurn.reset() is a no-op otherwise.
       cameraReturn = null;
-      huntViewTurn = null;
       dayTurn.reset();
       sfx.reset();
       // The visit's controls go first, so the map's page is framed for its own layout.
@@ -165,17 +165,6 @@ async function main() {
     // The whole game finished. Played when the overlay lands, not when the last world
     // completes, or it would run under the world's own chime.
     onFinale: () => sfx.fanfare(),
-    onTurnToHidden: () => {
-      // Only while the arrow is genuinely on screen: the camera is the child's, the hunt is
-      // live and the last place is round the back. A late press on a fading arrow does
-      // nothing, which is the right nothing.
-      const hint = activeMission?.remainingHint();
-      if (!hint || hint.visible || !cameraIsOurs()) return;
-      // Move around the surface without changing its sunlight. In particular, finding
-      // Earth's night side must not turn that place into daytime.
-      const axis = new THREE.Vector3(0, 1, 0).transformDirection(world.bodies[follow].surface.matrixWorld);
-      huntViewTurn = { axis, direction: hint.turn, t: 0, applied: 0 };
-    },
     onSpin: () => {
       if (dayTurn.active) {
         if (follow === 'earth') dayTurn.skip();
@@ -184,14 +173,6 @@ async function main() {
       startDayTurn();
     },
     onStopSpin: () => dayTurn.skip(),
-    onFindPlaces: () => {
-      earthDayNightPrompt = false;
-      spinTried = true; // A deliberate choice to explore needs no repeated lesson invitation.
-      ui.setEarthWelcome(false);
-      ui.setSpinAttention(false);
-      activeMission?.setPresentation(true);
-      beginGuidedHunt(true);
-    },
     // The house's night and morning get the same spoken feedback the old 3D activity gave.
     // "You can fly to the Moon next" only while it is true and agrees with the screen: the
     // Moon is still unvisited and Space map is the ringed next step (the places are found).
@@ -221,12 +202,7 @@ async function main() {
    * back of the planet. The 3D scene is left alone while it is open.
    */
   function startBedtime() {
-    huntViewTurn = null;
     controls.cancelGesture();
-    earthDayNightPrompt = false;
-    ui.setEarthWelcome(false);
-    ui.setHint(null);
-    ui.setHuntArrow(null);
     coach.clear();
     spinTried = true;
     bedtimeNight = false;
@@ -247,7 +223,6 @@ async function main() {
       startBedtime();
       return;
     }
-    huntViewTurn = null;
     controls.cancelGesture();
     // A replay pressed during the hand-back must not create two camera owners. Keep the
     // original return destination; the new turn starts from the current interpolated pose.
@@ -304,6 +279,8 @@ async function main() {
     // The engine, from the same two numbers the exhaust and the widening view are drawn
     // from. The context was created by the press that started this flight.
     onThrottle: (throttle, cruise) => sfx.thruster(throttle, cruise),
+    // The arrival is composed in the visit screen's clear playfield, clear of the toy shelf.
+    playfield: () => playfieldView(innerWidth, innerHeight),
     onArrive: (destination) => {
       follow = destination.id;
       suggested = null;
@@ -312,8 +289,6 @@ async function main() {
       // Each visit gets its nudges afresh; the clock for the spin follow-up starts here too.
       arrivalNudgesGiven.clear();
       spinIdle = 0;
-      // Read before the visit is recorded: a first visit is one that has not been.
-      const firstVisit = !loadProgress().visited.includes(destination.id);
       // Recorded for the map's tick and its suggestion; it opens nothing, since nothing is
       // locked. The sticker is still the collection's, and is still awarded by finishing it.
       markVisited(destination.id);
@@ -326,31 +301,17 @@ async function main() {
 
       const config = DESTINATIONS[destination.id];
       if (!config) return;
-      // The welcome never takes the camera automatically. Earth's first invitation
-      // offers a lesson or direct exploration; other arrivals show places at once.
-      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji, destination.id);
-
       // The departure chose this visit already, so the camera and targets share one set.
       const mission = missions[destination.id];
-      if (!mission) {
-        ui.showSpin(null);
-        return;
-      }
+      // The welcome never takes the camera automatically. Every control of the visit, the
+      // world's toys and its found counter included, is on screen from here (visit-B).
+      ui.showArrival(`arrival-${destination.id}`, destination.label, config.fact, config.emoji, destination.id,
+        mission?.definition.discoveries.length ?? 0);
+      if (!mission) return;
       activeMission = mission;
-      // Prepare the real places. Earth's first invitation temporarily sets them aside
-      // so its two choices don't compete with another set of tap targets.
+      // The real places are on the world from arrival, on every world (Earth included).
       mission.start();
       revealHunt();
-      // Supported Day & night is visible on settled arrival for every mission world.
-      // Earth's first-visit invitation can pulse and speak, but the child starts the turn.
-      earthDayNightPrompt = destination.id === 'earth' && firstVisit;
-      // The first Earth visit's choice is on screen and pulsing from the start; its spoken
-      // invitation would only queue behind the welcome, so the welcome is the one line.
-      if (earthDayNightPrompt) spinInvited = true;
-      if (destination.id === 'earth') {
-        ui.setEarthWelcome(earthDayNightPrompt);
-        mission.setPresentation(!earthDayNightPrompt);
-      }
     },
   });
 
@@ -423,10 +384,6 @@ async function main() {
         // hunt line would talk over it, so it waits for the last one instead — and when
         // it is the last one, the success line is already about to say the same thing.
         ui.showDiscovery(discovery, true, !isNew);
-        // Only the hidden one left: name the gesture now that the child needs it.
-        if (found === total - 1) {
-          ui.setMissionCaption(definition.huntLine, `hunt-${body.id}`);
-        }
       },
       onComplete: () => {
         sfx.success();
@@ -495,13 +452,11 @@ async function main() {
 
   /* --- the hunt ------------------------------------------------------------ */
 
-  const HUNT_INVITE_HINT_DELAY = 5;
   const HUNT_GUIDANCE_AUTO_START = 12;
   let huntGuidance:
     | {
       world: BodyId;
       elapsed: number;
-      inviteShown: boolean;
       active: boolean;
     }
     | null = null;
@@ -539,9 +494,7 @@ async function main() {
     if (!config?.mission || !mission) return;
     huntGuidance.active = true;
     ui.setHint(null);
-    ui.beginMission(config.mission.instruction, mission.definition.discoveries.length, `find-${follow}`, speak);
-    // Refresh the supported activity label; revealHunt already made it visible on arrival.
-    if (follow !== 'earth') ui.showSpin(config.spin?.label ?? null, config.spin?.tint);
+    ui.beginMission(config.mission.instruction, `find-${follow}`, speak);
   }
 
   function revealHunt() {
@@ -550,15 +503,7 @@ async function main() {
     mission.reveal();
     // A short roam-first beat keeps arrivals calmer: the world and targets are already live,
     // while explicit score/counter language enters only after interaction or a short pause.
-    huntGuidance = { world: follow, elapsed: 0, inviteShown: false, active: false };
-    if (follow === 'earth') {
-      ui.showSpin('Day and night on Earth', DESTINATIONS.earth?.spin?.tint);
-      ui.setHint(null);
-    } else {
-      const spin = DESTINATIONS[follow]?.spin;
-      ui.showSpin(spin?.label ?? null, spin?.tint);
-      ui.setHint('Tap a gold place', 'target');
-    }
+    huntGuidance = { world: follow, elapsed: 0, active: false };
   }
 
   /*
@@ -587,14 +532,6 @@ async function main() {
     pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-
-    if (earthDayNightPrompt) {
-      const earth = raycaster.intersectObjects(world.hitMeshes, false)
-        .some(hit => hit.object.userData.bodyId === 'earth');
-      if (earth) startDayTurn();
-      else ui.showTapEcho(clientX, clientY);
-      return;
-    }
 
     if (activeMission?.active) {
       // Collectibles float well inside the body's own (deliberately generous) hit sphere,
@@ -684,16 +621,8 @@ async function main() {
   const returnRotation = new THREE.Quaternion();
   let cameraReturn: { from: THREE.Vector3; rotation: THREE.Quaternion; t: number } | null = null;
 
-  // The hunt arrow orbits the camera by a quarter turn. Surface orientation and
-  // illumination stay fixed; ordinary dragging can add to the viewpoint change.
   /** The spoken invitation to turn the world has been given this visit. */
   let spinInvited = false;
-  /** First Earth offers Turn Earth or Find places, with Space map always available. */
-  let earthDayNightPrompt = false;
-
-  const QUARTER_TURN = Math.PI / 2;
-  const HUNT_VIEW_TURN_MS = 700;
-  let huntViewTurn: { axis: THREE.Vector3; direction: -1 | 1; t: number; applied: number } | null = null;
 
   function cameraIsOurs(): boolean {
     return flight.phase !== 'flying' && !dayTurn.active && !homeReturn.active && !cameraReturn;
@@ -729,16 +658,6 @@ async function main() {
   let spinIdle = 0;
   let mapIdle = 0;
 
-  /** The hunt arrow button's centre in the canvas's NDC, the unit the coach places hands in. */
-  function arrowInCanvas(): { x: number; y: number } | null {
-    const centre = ui.huntArrowCentre();
-    if (!centre) return null;
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((centre.x - rect.left) / rect.width) * 2 - 1,
-      y: -(((centre.y - rect.top) / rect.height) * 2 - 1),
-    };
-  }
   /*
    * Any press at all, anywhere, is the child doing something — a tap on a target, a drag, a
    * pinch, a dock button. Listened for on the window in the capture phase rather than wired
@@ -882,9 +801,7 @@ async function main() {
    */
   function resetAdventure() {
     cameraReturn = null;
-    huntViewTurn = null;
     spinInvited = false;
-    earthDayNightPrompt = false;
     huntGuidance = null;
     coach.clear();
     idleFor = 0;
@@ -934,47 +851,31 @@ async function main() {
   let booted = false;
   let lastAspect = camera.aspect;
 
-  let viewOffset = 0;
+  const viewOffset = { x: 0, y: 0 };
+  const easeOffset = (from: number, to: number, dt: number) => {
+    const next = THREE.MathUtils.damp(from, to, 8, dt);
+    return Math.abs(next - to) < 0.05 ? to : next;
+  };
   stage.onFrame((dt, elapsed) => {
-    // Off-center projection reserves the row without changing camera ownership or
-    // translating the canvas. Projection, marker picking and screenshots stay in sync.
-    const desiredOffset = adventureViewOffset(innerWidth, innerHeight,
-      flight.phase !== 'idle' && !homeReturn.active, dayTurn.active);
-    const nextOffset = THREE.MathUtils.damp(viewOffset, desiredOffset, 8, dt);
-    viewOffset = Math.abs(nextOffset - desiredOffset) < 0.05 ? desiredOffset : nextOffset;
-    stage.setVerticalViewOffset(viewOffset);
+    // Off-centre projection puts the world in the visit screen's clear playfield, clear of
+    // the toy shelf and the top buttons, without changing camera ownership or translating
+    // the canvas. Projection, marker picking and screenshots stay in sync.
+    const visiting = flight.phase !== 'idle' && !homeReturn.active;
+    const desired = visiting ? playfieldView(innerWidth, innerHeight) : FULL_VIEW;
+    viewOffset.x = easeOffset(viewOffset.x, desired.offsetX, dt);
+    viewOffset.y = easeOffset(viewOffset.y, desired.offsetY, dt);
+    stage.setViewOffset(viewOffset.x, viewOffset.y);
     sky.update(dt);
     world.update(dt, elapsed, camera);
     trail.update(dt);
     activeMission?.update(dt, elapsed);
     dayTurn.update(dt);
 
-    if (huntViewTurn) {
-      huntViewTurn.t = reducedMotion ? 1 : Math.min(1, huntViewTurn.t + (dt * 1000) / HUNT_VIEW_TURN_MS);
-      const eased = 1 - Math.pow(1 - huntViewTurn.t, 3);
-      const total = QUARTER_TURN * eased;
-      controls.orbitAround(huntViewTurn.axis, -huntViewTurn.direction * (total - huntViewTurn.applied));
-      huntViewTurn.applied = total;
-      if (huntViewTurn.t >= 1) huntViewTurn = null;
-    }
-
-    /*
-     * Point at the last place, while it is round the back.
-     *
-     * Driven per frame rather than fired once, because the whole point is that it goes
-     * away the moment the child has dragged far enough to see the thing — which is a
-     * property of where the camera is now, not of an event. Nothing to point at during a
-     * flight or a day turn, when the camera is not theirs to move.
-     */
     const cameraOurs = cameraIsOurs();
     // Paused while a toy or panel covers the world: the "find the places" line must not
     // start over a child who is busy jumping on the Moon.
-    if (cameraOurs && !earthDayNightPrompt && !ui.activityCovered && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
+    if (cameraOurs && !ui.activityCovered && activeMission?.active && huntGuidance && huntGuidance.world === follow && !huntGuidance.active) {
       huntGuidance.elapsed += dt;
-      if (!huntGuidance.inviteShown && huntGuidance.elapsed >= HUNT_INVITE_HINT_DELAY) {
-        huntGuidance.inviteShown = true;
-        ui.setHint('Tap a gold place');
-      }
       if (huntGuidance.elapsed >= HUNT_GUIDANCE_AUTO_START) beginGuidedHunt(true);
     }
 
@@ -982,16 +883,13 @@ async function main() {
       Boolean(activeMission?.active) &&
       huntGuidance?.active === true &&
       huntGuidance.world === follow;
+    // The last place round the back: the idle hand shows the sideways drag that brings it
+    // round (the yellow hunt arrow is gone, owner's call 11 Nov 2026).
     const hint = cameraOurs && huntGuidanceActive ? (activeMission?.remainingHint() ?? null) : null;
     const hiddenSide = hint && !hint.visible ? hint.side : null;
-    ui.setHuntArrow(hiddenSide);
-    if (hint) {
-      ui.setHint(hint.visible ? 'One more! Tap the gold place.' : 'One more! Tap the arrow.');
-    }
 
     /*
-     * And the hand, on the same terms as the arrow: only while the camera is the child's to
-     * move. Idle time accumulates only then too, so a seven-second flight does not arrive
+     * The hand, only while the camera is the child's to move. Idle time accumulates only then too, so a seven-second flight does not arrive
      * with the coach already convinced nobody is playing. It accumulates from arrival, not
      * from the guided hunt, so the day/night invitation on Earth can come during the calm
      * first beat; the hand itself still waits for the guided hunt.
@@ -1000,8 +898,6 @@ async function main() {
       idleFor += dt;
       const spin = DESTINATIONS[follow]?.spin;
       const inviting =
-        // First Earth visit: invite from arrival (until a turn runs), not after an idle wait.
-        (earthDayNightPrompt && !dayTurn.active) ||
         shouldInviteSpin({
           idleFor,
           huntComplete: activeMission.collected >= activeMission.definition.discoveries.length,
@@ -1019,21 +915,17 @@ async function main() {
         huntActive: huntGuidanceActive && !inviting,
         target,
         hiddenSide,
-        arrow: hiddenSide === null ? null : arrowInCanvas(),
       });
       /*
-       * The spoken find/hunt nudges, once the guided hunt is live: 8s and 16s idle name the
-       * gesture that fits right now — the arrow when the last place is round the back, else a
-       * gold place in view. The visual hand shows it too; these speak it for a child not
-       * watching. Each level once per visit, spoken alongside the hand.
+       * The spoken find nudges, once the guided hunt is live: 8s and 16s idle name a gold
+       * place in view. The visual hand shows it too; these speak it for a child not watching.
+       * Each level once per visit. The last place round the back has the hand's drag alone:
+       * the recorded hunt lines still say "tap the arrow", and the arrow is gone.
        */
       if (huntGuidanceActive && !inviting) {
-        const nudge =
-          hiddenSide !== null
-            ? dueNudge(idleFor, shorteningPair('hunt-nudge', 'hunt-nudge-short'), arrivalNudgesGiven)
-            : target
-              ? dueNudge(idleFor, shorteningPair('find-nudge', 'find-nudge-short'), arrivalNudgesGiven)
-              : null;
+        const nudge = target
+          ? dueNudge(idleFor, shorteningPair('find-nudge', 'find-nudge-short'), arrivalNudgesGiven)
+          : null;
         if (nudge) {
           arrivalNudgesGiven.add(nudge);
           ui.speakGuide(cueText(nudge), nudge);
@@ -1145,8 +1037,9 @@ async function main() {
         // viewRadius so a rotation while at Saturn reframes the whole ring system, not the
         // sphere alone; it falls back to the plain radius for every other body. Match the
         // arrival composition after rotation: 1.4 is the breathing room arrivalDistance
-        // authors. The inset keeps the subject out from under the dock.
-        controls.frame((body.viewRadius ?? body.radius) * 1.4, false, camera.aspect < 1 ? 0.3 : 0.16);
+        // authors, fitted into the visit screen's clear playfield (ui/viewport.ts).
+        const field = playfieldView(innerWidth, innerHeight);
+        controls.frame((body.viewRadius ?? body.radius) * 1.4, false, 1 - field.height, 1 - field.width);
       }
       controls.setTarget(world.bodies[follow].getWorldPosition(focusPosition));
       controls.update(dt);
@@ -1190,7 +1083,6 @@ async function main() {
         guidedHunt: huntGuidance?.active ?? false,
         cameraReturning: Boolean(cameraReturn),
         dayTurning: dayTurn.active,
-        earthWelcome: earthDayNightPrompt,
         bodyScreen: screenCircle(center, world.bodies[follow].viewRadius ?? world.bodies[follow].radius),
         // The page's worlds' silhouettes on screen, so the map's framing can be checked
         // against exactly the worlds it draws.

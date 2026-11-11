@@ -42,6 +42,14 @@ not understandable and the icons look amateurish, worse on a phone. Order of wor
   `src/ui/ui.ts` again; keep the 3D scene, content and toy physics. Moon and Earth first.
 - [ ] **Cut the browser suite to a smoke set** (DECISIONS.md, "Tests"); delete specs that
   assert staging or old layouts.
+
+  Built, awaiting the owner's look (not ticked): the toy shelf on every world
+  (`src/ui/visit.css`, `src/ui/visitPictures.ts`, playfield framing in `src/ui/viewport.ts`),
+  Fluent Emoji pictures in `src/pictures/`, staging, first-Earth welcome and hunt arrow
+  removed, suite cut to boot, lifecycle, offline, map keyboard, `visit-shelf` and the two toy
+  specs. Pictures: `design/visit-screen/built/`. Open: the recorded hunt lines ("You can tap
+  the arrow") are no longer spoken on a visit and need rewording; Listen now opens the words
+  as it reads them (the heading's Words box is gone).
 - [ ] **Owner's children play it**; then roll the screen out to Mars, Saturn and the Sun.
 
 - [ ] **Redo the controls of the Sun's "Far away" toy** (`src/toys/sunStar.ts`). The owner,

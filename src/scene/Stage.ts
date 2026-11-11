@@ -21,8 +21,11 @@ export interface Stage {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   quality: QualitySettings;
-  /** Shift the projection in pixels using the renderer's applied viewport. */
-  setVerticalViewOffset(offset: number): void;
+  /**
+   * Shift the projection in pixels using the renderer's applied viewport: positive `x` moves
+   * the picture left, positive `y` moves it up (the visit screen's playfield, ui/viewport.ts).
+   */
+  setViewOffset(x: number, y: number): void;
   onFrame(callback: FrameCallback): void;
   /**
    * A frame failed or the graphics context was lost. The loop is stopped permanently;
@@ -94,7 +97,7 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
   let disposed = false;
   let viewportWidth = 1;
   let viewportHeight = 1;
-  let verticalViewOffset: number | null = null;
+  let viewOffset: { x: number; y: number } | null = null;
 
   function applySize() {
     resizeHandle = 0;
@@ -108,8 +111,8 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
     camera.aspect = aspect;
     // Portrait phones are narrow; widening the vertical FOV keeps the scene in frame.
     camera.fov = fovForAspect(aspect);
-    if (verticalViewOffset === null) camera.updateProjectionMatrix();
-    else camera.setViewOffset(width, height, 0, verticalViewOffset, width, height);
+    if (viewOffset === null) camera.updateProjectionMatrix();
+    else camera.setViewOffset(width, height, viewOffset.x, viewOffset.y, width, height);
 
     const pixelRatio = Math.min(window.devicePixelRatio || 1, quality.maxPixelRatio);
     renderer.setPixelRatio(pixelRatio);
@@ -239,12 +242,12 @@ export function createStage(canvas: HTMLCanvasElement, initial: QualitySettings)
       return quality;
     },
 
-    setVerticalViewOffset(offset: number) {
-      if (verticalViewOffset === offset) return;
-      verticalViewOffset = offset;
+    setViewOffset(x: number, y: number) {
+      if (viewOffset && viewOffset.x === x && viewOffset.y === y) return;
+      viewOffset = { x, y };
       // setViewOffset also writes camera.aspect. Use only the applied size: reading
       // innerWidth here could expose a new aspect with the old FOV before resize runs.
-      camera.setViewOffset(viewportWidth, viewportHeight, 0, offset, viewportWidth, viewportHeight);
+      camera.setViewOffset(viewportWidth, viewportHeight, x, y, viewportWidth, viewportHeight);
     },
 
     onFrame(callback: FrameCallback) {

@@ -1,0 +1,166 @@
+/*
+ * The visit screen: the toy shelf (owner's pick B, design/visit-screen/visit-B.png).
+ *
+ * Everything is in place from arrival and never moves. Portrait: Space map top left with the
+ * world's name chip beside it, Listen and Journal in a small column top right, the found
+ * counter under the world, and a paper shelf of big toy cards along the bottom. Landscape:
+ * the shelf runs down the right side, Listen and Journal sit bottom left and the counter top
+ * right of the playfield. The camera keeps the world clear of all of it; the sizes below are
+ * mirrored in src/ui/viewport.ts, so change the two together.
+ *
+ * Loaded last, after storybook.css. Crayons are the variables at the top of storybook.css.
+ */
+
+.ui > .visit { position:absolute; inset:0; pointer-events:none;
+  --edge:12px; --map:78px; --small:50px; --card-w:168px; --card-h:150px; --shelf:calc(var(--card-h) + 34px);
+  --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+.visit > * { position:absolute; }
+.visit > button { pointer-events:auto; }
+
+/* --- buttons: paper crayon tiles with an ink outline and a flat offset shadow ------------ */
+
+.visit .visit-btn,.visit .journal-btn {
+  display:flex; align-items:center; justify-content:center; margin:0; padding:0; min-height:0;
+  color:var(--ink-line); border:var(--line); border-radius:16px; box-shadow:var(--lift);
+  font:400 20px var(--hand); cursor:pointer; transition:none;
+}
+.visit .visit-btn:active,.visit .journal-btn:active,.visit .toy-card:active {
+  transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink-line);
+}
+.visit .visit-btn:focus-visible,.visit .journal-btn:focus-visible,.visit .toy-card:focus-visible {
+  outline:4px dashed #fff; outline-offset:4px;
+}
+.visit .picture { display:block; pointer-events:none; }
+
+/* Space map: big, sky, the ringed planet. Always the way back, always this corner. */
+.visit .visit-map {
+  left:calc(var(--edge) + var(--safe-l)); top:calc(var(--edge) + var(--safe-t));
+  width:var(--map); height:var(--map); background:var(--crayon-sky);
+}
+.visit .visit-map .picture { width:56px; height:56px; }
+.visit .visit-map:hover { background:var(--crayon-sky); filter:brightness(1.05); }
+
+/* The world's name and its picture, on a paper chip beside the way back. */
+.visit .visit-chip {
+  left:calc(var(--edge) + var(--safe-l) + var(--map) + 12px); top:calc(var(--edge) + var(--safe-t) + 17px);
+  display:flex; align-items:center; gap:8px; max-width:calc(100% - var(--map) - var(--small) - 64px);
+  padding:5px 12px 5px 6px; background:var(--paper); color:var(--ink-line); border:var(--line);
+  border-radius:14px; box-shadow:var(--lift); transform:rotate(-1.5deg); pointer-events:none; white-space:nowrap;
+}
+.visit .visit-chip .world-orb { width:30px; height:30px; border:2px solid var(--ink-line); box-shadow:none; }
+.visit .visit-chip__name { overflow:hidden; text-overflow:ellipsis; font:400 22px/1.15 var(--hand); letter-spacing:0; }
+
+/* Listen (grape) and Journal (tomato): small, fixed. */
+.visit .visit-small,.visit .journal-btn { width:var(--small); height:var(--small); }
+.visit .visit-small .picture,.visit .journal-btn .picture { width:32px; height:32px; }
+.visit .listen-btn,.visit .listen-btn:hover { background:var(--crayon-grape); }
+.visit .journal-btn,.visit .journal-btn:hover { background:var(--crayon-tomato); }
+.visit .journal-btn .journal-label { display:none; }
+.visit .listen-btn { right:calc(var(--edge) + var(--safe-r)); top:calc(var(--edge) + var(--safe-t)); }
+.visit .journal-btn { right:calc(var(--edge) + var(--safe-r)); top:calc(var(--edge) + var(--safe-t) + var(--small) + 8px); left:auto; bottom:auto; }
+/* The Space map's own journal button carries the same book. */
+.ui > .journal-btn .picture { width:38px; height:38px; }
+
+/* --- found counter: three gold rings, filled as places are found --------------------------- */
+
+.visit .visit-found {
+  left:0; right:0; bottom:calc(var(--shelf) + var(--safe-b) + 14px);
+  display:flex; justify-content:center; gap:8px; pointer-events:none;
+}
+.visit .found-ring {
+  display:block; width:20px; height:20px; border-radius:50%; border:3.5px solid var(--crayon-sun);
+  background:transparent; box-shadow:0 0 0 1.5px #0007;
+}
+.visit .found-ring.is-filled { background:var(--crayon-sun); box-shadow:0 0 0 1.5px var(--ink-line),0 0 10px 2px #f2b63299; }
+
+/* --- the toy shelf ----------------------------------------------------------------------- */
+
+.visit .toy-shelf {
+  left:-3px; right:-3px; bottom:-3px; height:calc(var(--shelf) + var(--safe-b) + 3px);
+  background:var(--paper); border:var(--line); border-radius:26px 26px 0 0;
+  box-shadow:0 -6px 18px #0005; pointer-events:auto;
+}
+.visit .toy-card {
+  position:absolute; bottom:calc(16px + var(--safe-b));
+  display:flex; flex-direction:column; width:var(--card-w); height:var(--card-h); margin:0;
+  padding:6px 6px 2px; color:var(--ink-line); border:var(--line); border-radius:18px; box-shadow:var(--lift);
+  font:400 25px/1.25 var(--hand); cursor:pointer;
+}
+.visit .toy-card:nth-child(1) { left:calc(14px + var(--safe-l)); transform:rotate(-1.5deg); }
+.visit .toy-card:nth-child(2) { right:calc(14px + var(--safe-r)); transform:rotate(1.5deg); }
+.visit .toy-shelf[data-cards="1"] .toy-card { left:calc(50% - var(--card-w) / 2); }
+.visit .toy-card:active { transform:translate(3px,3px); }
+.toy-card__picture {
+  position:relative; flex:1; min-height:0; display:block; overflow:hidden;
+  border:2.5px solid var(--ink-line); border-radius:12px; background:#0a0b22;
+}
+.toy-card__picture > svg { display:block; width:100%; height:100%; }
+.toy-card__label { display:block; text-align:center; white-space:nowrap; }
+
+/* One crayon per card, the same everywhere (AGENTS.md). */
+.visit .toy-card--jump,.visit .toy-card--jump:hover { background:var(--crayon-sun); }
+.visit .toy-card--moonlight,.visit .toy-card--moonlight:hover { background:var(--crayon-moon); }
+.visit .toy-card--turn-earth,.visit .toy-card--turn-earth:hover { background:var(--crayon-teal); }
+.visit .toy-card--day-night,.visit .toy-card--day-night:hover { background:var(--crayon-grass); }
+.visit .toy-card--rover,.visit .toy-card--rover:hover { background:var(--crayon-lime); }
+.visit .toy-card--bath,.visit .toy-card--bath:hover { background:var(--crayon-bubble); }
+.visit .toy-card--far,.visit .toy-card--far:hover { background:var(--crayon-star); }
+
+/* Day & night while the world turns: the same card, now a Stop. */
+.visit .spin-btn.is-busy .toy-card__picture::after {
+  content:''; position:absolute; left:50%; top:50%; width:34px; height:34px; margin:-17px 0 0 -17px;
+  background:var(--crayon-tomato); border:3px solid var(--ink-line); border-radius:7px;
+}
+/* Asking to be noticed: the picture rocks a little (a still ring under reduced motion). */
+.visit .spin-btn.is-inviting:not(.is-busy) .toy-card__picture { animation:card-invite 2.4s ease-in-out 3; }
+@keyframes card-invite { 0%,100% { transform:rotate(0); } 35% { transform:rotate(-3deg); } 65% { transform:rotate(3deg); } }
+
+/* The one ringed next step after the finds: the world's toy, then Space map. */
+.is-toy-next .visit .toy-card.is-main-toy,
+.is-map-next .visit .visit-map { outline:4px solid var(--paper); outline-offset:3px; }
+
+/* The day/night legend while a world turns, under the way back. */
+.ui > .day-legend { top:calc(var(--pad-top) + 92px); left:12px; right:auto; }
+
+/* --- landscape: the shelf down the right side ------------------------------------------ */
+
+@media (orientation:landscape) {
+  .ui > .visit { --card-w:176px; --card-h:min(162px,calc((100vh - 36px) / 2)); --shelf:calc(var(--card-w) + 40px); }
+  .visit .listen-btn { left:calc(var(--edge) + var(--safe-l)); right:auto; top:auto; bottom:calc(14px + var(--safe-b)); }
+  .visit .journal-btn { left:calc(var(--edge) + var(--safe-l) + var(--small) + 10px); right:auto; top:auto; bottom:calc(14px + var(--safe-b)); }
+  .visit .visit-chip { max-width:calc(100% - var(--shelf) - var(--map) - 200px); }
+  .visit .visit-found { left:auto; right:calc(var(--shelf) + var(--safe-r) + 18px); top:calc(24px + var(--safe-t)); bottom:auto; }
+  .visit .toy-shelf {
+    left:auto; top:-3px; right:-3px; bottom:-3px; width:calc(var(--shelf) + var(--safe-r) + 3px); height:auto;
+    border-radius:26px 0 0 26px; box-shadow:-6px 0 18px #0005;
+  }
+  .visit .toy-card { left:auto; right:calc(18px + var(--safe-r)); bottom:auto; font-size:24px; }
+  .visit .toy-card:nth-child(1) { left:auto; top:12px; transform:rotate(-1.2deg); }
+  .visit .toy-card:nth-child(2) { right:calc(18px + var(--safe-r)); top:auto; bottom:12px; transform:rotate(1.2deg); }
+  .visit .toy-shelf[data-cards="1"] .toy-card { left:auto; top:calc(50% - var(--card-h) / 2); }
+}
+@media (orientation:landscape) and (min-width:900px) and (min-height:600px) {
+  .ui > .visit { --card-w:210px; --card-h:190px; }
+  .visit .toy-card { font-size:28px; }
+}
+@media (orientation:portrait) and (min-width:600px) and (min-height:900px) {
+  .ui > .visit { --card-w:210px; --card-h:180px; }
+  .visit .toy-card { font-size:28px; }
+  .visit .toy-card:nth-child(1) { left:calc(50% - var(--card-w) - 12px); }
+  .visit .toy-card:nth-child(2) { right:calc(50% - var(--card-w) - 12px); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .visit .spin-btn.is-inviting:not(.is-busy) .toy-card__picture { animation:none; }
+  .visit .spin-btn.is-inviting:not(.is-busy) { outline:4px solid var(--paper); outline-offset:3px; }
+}
+
+/* --- the same pictures elsewhere: reading panel, journal, postcard, Moon jump ---------------- */
+
+.narrate-btn .picture,.photo-view__journal .picture { width:30px; height:30px; }
+.photo-view__saved .picture { width:22px; height:22px; }
+.panel-return .picture,.photo-view__return-world .picture { width:30px; height:30px; }
+.ui .moon-jump__jump .picture { width:44px; height:44px; }
+@media(min-width:600px) and (max-height:480px) { .photo-view__journal .picture { width:24px; height:24px; } }

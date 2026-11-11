@@ -1,66 +1,11 @@
 /* Tactile spacecraft controls. Geometry lives here, not in theme overrides. */
 :root { --control-panel:#233852; --control-edge:#6b8ba7; --control-blue:#a6dce8; --control-gold:#f4cf7c; --control-ink:#22354b; --control-radius:22px; }
-.dock { position:absolute; bottom:var(--pad-bottom); left:50%; transform:translateX(-50%); width:min(460px,calc(100% - var(--pad-left) - var(--pad-right))); }
-.visit-actions { display:grid; gap:9px; padding:8px; border:0; border-radius:28px; background:#0b1424a6; box-shadow:0 10px 28px #0003; }
-.visit-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
-.visit-actions.has-activity { grid-template-columns:repeat(4,minmax(0,1fr)); }
-.visit-actions.has-toy { grid-template-columns:repeat(4,minmax(0,1fr)); }
-.visit-actions.has-activity.has-toy { grid-template-columns:repeat(5,minmax(0,1fr)); }
-.visit-actions > .btn.jump-btn { background:linear-gradient(#ffd877,#f0b03e); border-color:#fff3c4; color:#3a2608; }
-.visit-actions > .btn.jump-btn .icon,.visit-actions > .btn.bath-btn .icon,.visit-actions > .btn.rover-btn .icon { width:30px; height:30px; color:#3a2608; }
-.visit-actions > .btn { position:relative; inset:auto; min-width:0; width:100%; height:76px; min-height:76px; padding:6px 3px; border:2px solid #bcd7e555; border-radius:var(--control-radius); background:linear-gradient(#304c69,#223852); color:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:inset 0 2px #ffffff20,0 4px 0 #0b1528,0 6px 12px #0003; font:700 15px/1.15 var(--font); transition:filter .15s,box-shadow .15s; }
-.visit-actions > .btn:hover { filter:brightness(1.08); }
-.visit-actions > .btn:active { transform:translateY(3px); box-shadow:inset 0 1px #ffffff20,0 1px 0 #0b1528; }
-.visit-actions .control-label,.home-btn > span:last-child { white-space:nowrap; line-height:19px; letter-spacing:-.2px; }
-.visit-actions .icon-slot { display:flex; width:44px; height:38px; align-items:center; justify-content:center; color:var(--control-blue); }
-.visit-actions .icon { width:44px; height:38px; }
-.visit-actions .journal-btn .icon { width:32px; }
-.visit-actions .home-btn { background:linear-gradient(#315d72,#23465b); border-color:#9ed9dc; }
-.visit-actions .listen-btn { background:linear-gradient(#354e71,#293d5c); }
-.visit-actions .journal-btn { background:linear-gradient(#4c4a70,#373655); border-color:#b8b9dd88; }
-.is-earth-welcome .spin-btn,.spin-btn.is-busy,.visit-actions .turn-earth-btn,.is-map-next .visit-actions .home-btn { background:linear-gradient(#ffe6a5,#f4cf7c); border-color:#fff0c3; color:var(--control-ink); box-shadow:inset 0 2px #fff7dd,0 4px 0 #9b713e,0 6px 12px #0003; }
-.is-earth .visit-actions .spin-btn:hover,.visit-actions .spin-btn.is-busy:hover { filter:brightness(1.04); }
-.visit-actions .find-places-btn { border-color:#e5c783; color:#ffe7a2; }
-.visit-actions .find-places-btn .icon { color:#ffe7a2; }
-.is-earth-welcome .visit-actions { grid-template-columns:1fr 1.5fr 1fr; }
-.is-earth-welcome .listen-btn,.is-earth-welcome .journal-btn,.is-hands-on .visit-actions .journal-btn { display:none; }
-.is-earth-welcome .world-words { visibility:hidden; }
-.is-earth-welcome .spin-picture { transform:scale(1.2); }
-/* After the spot's night and morning on the first visit, the gold moves to Space map: one invitation at a time. */
-.is-map-next .visit-actions .turn-earth-btn { background:linear-gradient(#315d72,#23465b); border-color:#9ed9dc; color:var(--ink); box-shadow:inset 0 2px #ffffff20,0 4px 0 #0b1528; }
-/* Gold marks the first lesson, then the journal after the visit's three finds. */
-.is-complete:not(.is-hands-on) .visit-actions .spin-btn { background:var(--control-panel); border-color:var(--control-edge); color:var(--ink); }
-.is-map-next .visit-actions .home-btn .icon-slot { color:#35516a; }
-.spin-picture { width:46px; height:38px; position:relative; display:flex; justify-content:flex-end; padding-top:2px; }
-.spin-sun { position:absolute; left:1px; top:2px; width:13px; height:13px; background:#ffcc4e; border:2px solid #a87936; border-radius:50%; box-shadow:0 0 0 3px #ffdd7926; }
-.spin-globe { display:block; position:relative; width:27px; height:27px; overflow:hidden; border-radius:50%; background:var(--world,#739bb3); background-size:auto 100%; background-position:center; border:2px solid #d3e8ed; }
-.spin-globe__night { position:absolute; top:0; bottom:0; right:0; width:50%; background:#14243dcc; }
-.spin-globe.is-turning .spin-globe__night { transform:translateX(calc(sin(var(--turn,0) * 6.283rad) * 50%)); }
-.spin-arrow { position:absolute; bottom:-2px; left:13px; width:31px; height:18px; color:#355f78; }
-.spin-arrow .icon { width:31px; height:18px; }
-.spin-btn.is-busy .spin-globe { width:23px; height:23px; margin-top:5px; border-radius:4px; background:currentColor; border:0; }
-.spin-btn.is-busy .spin-arrow,.spin-btn.is-busy .spin-globe__night,.spin-btn.is-busy .spin-sun { display:none; }
-.spin-btn.is-inviting:not(.is-busy) .spin-picture { animation:turn-invitation 2.4s ease-in-out 3; }
-@keyframes turn-invitation { 0%,100% { transform:rotate(0); } 35% { transform:rotate(-12deg); } 65% { transform:rotate(12deg); } }
-@media(prefers-reduced-motion:reduce) { .spin-btn.is-inviting:not(.is-busy) .spin-picture,.day-gesture .icon { animation:none; } .spin-btn.is-inviting:not(.is-busy) { outline:2px solid #fff0c4; outline-offset:2px; } .visit-actions > .btn { transition:none; } }
 .world-orb { display:inline-block; flex:none; width:38px; height:38px; border-radius:50%; background-position:center; background-size:auto 100%; box-shadow:inset -8px -3px 10px #0008,inset 2px 1px 3px #ffffff38; border:1px solid #ffffff26; }
 .world-orb--sun { border-color:#fff0b8; background:radial-gradient(circle at 35% 30%,#fff3b7,#ffd466 65%,#f4ac3c); box-shadow:0 0 14px #ffc35c38; }
 .world-orb--saturn { position:relative; }
 .world-orb--saturn::after { content:''; position:absolute; left:-20%; top:35%; width:140%; height:30%; border:4px solid #d7c693; border-radius:50%; transform:rotate(-25deg); }
-.world-heading { position:absolute; top:var(--pad-top); left:var(--pad-left); display:flex; align-items:flex-start; gap:12px; max-width:calc(100% - var(--pad-left) - 128px); text-shadow:0 2px 8px #000; pointer-events:none; }
-.world-heading > .world-orb { margin-top:3px; }
-.world-heading strong { display:block; font-size:23px; font-weight:650; letter-spacing:-.4px; }
-.world-heading__caption { display:block; margin-top:3px; font-size:15px; line-height:1.3; color:var(--ink-soft); max-width:300px; }
-.world-words { pointer-events:auto; margin-top:8px; padding:7px 12px; min-height:44px; border:1px solid #7aa5bb77; border-radius:14px; color:#c6e6eb; background:#15263dd9; font:650 13px var(--font); cursor:pointer; }
-.world-words:focus-visible { outline:3px solid var(--control-gold); outline-offset:3px; }
-.mission-hud,.day-legend { position:absolute; top:var(--pad-top); right:var(--pad-right); pointer-events:none; }
-.mission-hud.fade-in-centred { animation:none; }
-.slot-row,.day-legend { display:flex; align-items:center; gap:9px; padding:14px 16px; border:1px solid #41506c; border-radius:28px; background:#101b2ad9; }
-.slot { width:12px; height:12px; border:2px solid var(--control-gold); border-radius:50%; }
-.slot.is-filled { background:var(--control-gold); }
-.slot.is-filled::after { content:'✓'; position:absolute; inset:-5px; color:#233c53; font-size:13px; font-weight:900; text-align:center; }
-.slot { position:relative; }
-.slot-icon,.mission-caption { display:none; }
+.day-legend { position:absolute; top:var(--pad-top); right:var(--pad-right); pointer-events:none; }
+.day-legend { display:flex; align-items:center; gap:9px; padding:14px 16px; border:1px solid #41506c; border-radius:28px; background:#101b2ad9; }
 .day-legend { gap:14px; padding:10px 15px; font-size:15px; }
 .day-legend span::before { content:''; display:inline-block; width:12px; height:12px; margin-right:5px; border-radius:50%; background:#ffe8a7; }
 .day-legend .night-key::before { background:#647699; }
@@ -142,16 +87,7 @@
 .finale__badge .discovery-picture { width:100%; height:100%; object-fit:cover; border-radius:50%; }
 
 @media(max-width:599px) {
-  .visit-actions { padding:6px; gap:6px; border-radius:21px; }
-  .visit-actions > .btn { height:72px; min-height:72px; border-radius:19px; font-size:14px; }
-  .world-heading { gap:10px; max-width:calc(100% - var(--pad-left) - 104px); }
-  .world-heading strong { font-size:21px; }
-  .world-heading__caption { font-size:14px; }
-  .world-heading .world-orb { width:32px; height:32px; }
-  .slot-row { gap:7px; padding:12px; }
-  .slot { width:10px; height:10px; }
   .day-legend { font-size:13px; padding:9px 10px; gap:8px; }
-  .is-day-active .world-heading { max-width:calc(100% - var(--pad-left) - 150px); }
   .journal-btn { width:56px; height:56px; min-height:56px; }
   .hint { font-size:18px; }
   .panel-shade,.photo-view { padding:16px; }
@@ -168,13 +104,6 @@
 }
 @media(min-width:600px) and (max-height:480px) {
   :root { --pad-top:max(12px,env(safe-area-inset-top)); --pad-bottom:max(12px,env(safe-area-inset-bottom)); }
-  .dock { width:min(424px,calc(100% - var(--pad-left) - var(--pad-right))); }
-  .visit-actions { padding:6px; border-radius:19px; }
-  .visit-actions > .btn { height:64px; min-height:64px; gap:3px; font-size:14px; border-radius:18px; }
-  .visit-actions .icon-slot,.visit-actions .icon { height:30px; }
-  .world-heading strong { font-size:19px; }
-  .world-heading__caption { font-size:13px; max-width:240px; }
-  .world-heading .world-orb { width:32px; height:32px; }
   .journal-btn { width:54px; height:54px; min-height:54px; }
   .panel-shade,.photo-view { padding:12px; }
   .fact-card,.journal-panel,.photo-view__panel { width:min(720px,100%); padding:16px; gap:10px; }
@@ -205,7 +134,4 @@
 }
 @media(max-width:359px) {
   .photo-view__actions:has(.photo-view__journal:not(.is-hidden)) > button { min-height:80px; padding:6px; font-size:14px; }
-  .visit-actions > .btn { gap:3px; padding:4px 2px; }
-  .visit-actions .control-label,.home-btn > span:last-child { white-space:normal; line-height:14px; }
-  .visit-actions .icon-slot,.visit-actions .icon { height:28px; }
 }

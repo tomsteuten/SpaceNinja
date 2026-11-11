@@ -65,6 +65,12 @@ export interface FlightOptions {
    */
   onThrottle?(throttle: number, cruise: number): void;
   onArrive(destination: CelestialBody): void;
+  /**
+   * The share of the frame (0..1 each way) the visit screen leaves clear for the world, around
+   * the optical centre (ui/viewport.ts). The arrival is composed inside it, ship included, so
+   * neither lands under the toy shelf. Whole frame when absent.
+   */
+  playfield?(): { width: number; height: number };
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -162,14 +168,22 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     camera.updateProjectionMatrix();
   }
 
-  /** Half-angle of the tighter of the two fields of view. Portrait phones are horizontal. */
-  function halfFovs(): { vertical: number; horizontal: number } {
-    const vertical = THREE.MathUtils.degToRad(camera.fov) / 2;
-    return { vertical, horizontal: Math.atan(Math.tan(vertical) * camera.aspect) };
+  /**
+   * Half-angles of the field of view. `clear` narrows them to the visit screen's playfield,
+   * which is what the arrival is composed in; the chase during the flight uses the whole frame.
+   */
+  function halfFovs(clear = true): { vertical: number; horizontal: number } {
+    const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+    const field = clear && options.playfield ? options.playfield() : { width: 1, height: 1 };
+    return {
+      vertical: Math.atan(tan * field.height),
+      horizontal: Math.atan(tan * camera.aspect * field.width),
+    };
   }
 
-  function halfFov(): number {
-    const { vertical, horizontal } = halfFovs();
+  /** Half-angle of the tighter of the two fields of view. Portrait phones are horizontal. */
+  function halfFov(clear = true): number {
+    const { vertical, horizontal } = halfFovs(clear);
     return Math.min(vertical, horizontal);
   }
 
@@ -353,7 +367,7 @@ export function createFlightSequence(options: FlightOptions): FlightSequence {
     // Chase offsets are authored against a landscape field of view. Scaling them by how
     // much narrower this viewport is keeps the ship the same size on screen in portrait,
     // instead of filling the frame or wandering out of it.
-    chaseScale = THREE.MathUtils.clamp(LANDSCAPE_SIN_HALF_FOV / Math.sin(halfFov()), 1, 2.2);
+    chaseScale = THREE.MathUtils.clamp(LANDSCAPE_SIN_HALF_FOV / Math.sin(halfFov(false)), 1, 2.2);
 
     startCamera.copy(camera.position);
     // The controller looks at its target, so the current view direction starts there.
