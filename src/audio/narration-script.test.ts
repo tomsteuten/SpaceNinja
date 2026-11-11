@@ -69,6 +69,7 @@ const SCREEN_CUES = [
   'toy-sun',
   'moonlight-on',
   'moonlight-off',
+  'sunstar-start',
   'sunstar-earth',
   'sunstar-neptune',
   'sunstar-far',
@@ -119,7 +120,8 @@ describe('narration script', () => {
     );
     expect(invitations.length).toBeGreaterThan(0);
     for (const id of invitations) {
-      expect(script.cues[id], id).toMatch(/\byou can\b/i);
+      // The owner's wording for the Sun's toy is the plain instruction "Drag the rocket ...".
+      if (id !== 'toy-sun') expect(script.cues[id], id).toMatch(/\byou can\b/i);
       expect(words(script.cues[id]!), id).toBeLessThanOrEqual(8);
     }
     expect(script.cues['home-first']).not.toMatch(/\bmust\b/i);

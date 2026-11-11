@@ -77,6 +77,46 @@ export function glowStrength(progress: number): number {
   return Math.max(0.2, 1 - 0.8 * Math.min(1, Math.max(0, progress)));
 }
 
+/**
+ * Where the pictures sit along the rocket's track (0 = Sun end, 1 = star end): the track is
+ * drawn with Earth and Neptune evenly spread, not at their true places on the log scale.
+ */
+export const TRACK_STOPS: readonly number[] = [0, 0.3, 0.55, 1];
+const PROGRESS_STOPS = [0, ...MILESTONES.map(m => m.progress)];
+
+function pieceMap(x: number, from: readonly number[], to: readonly number[]): number {
+  const c = Math.min(1, Math.max(0, x));
+  for (let i = 1; i < from.length; i++) {
+    if (c <= from[i]! || i === from.length - 1) {
+      const span = from[i]! - from[i - 1]!;
+      return to[i - 1]! + ((c - from[i - 1]!) / span) * (to[i]! - to[i - 1]!);
+    }
+  }
+  return c;
+}
+
+/** Where the rocket is on its track (0 to 1) to the journey progress behind the Sun's size. */
+export function progressFromTrack(track: number): number {
+  return pieceMap(track, TRACK_STOPS, PROGRESS_STOPS);
+}
+
+/** Journey progress back to the rocket's place on its track. */
+export function trackFromProgress(progress: number): number {
+  return pieceMap(progress, PROGRESS_STOPS, TRACK_STOPS);
+}
+
+export type StopId = 'start' | MilestoneId;
+const STOP_IDS: readonly StopId[] = ['start', 'earth', 'neptune', 'far'];
+
+/** The picture the rocket is nearest on its track: what the words chip talks about. */
+export function nearestStop(track: number): StopId {
+  let best = 0;
+  for (let i = 1; i < TRACK_STOPS.length; i++) {
+    if (Math.abs(TRACK_STOPS[i]! - track) < Math.abs(TRACK_STOPS[best]! - track)) best = i;
+  }
+  return STOP_IDS[best]!;
+}
+
 /** Progress after holding Fly away (direction 1) or Fly back (-1) for `seconds`. */
 export function travel(progress: number, direction: 1 | -1, seconds: number): number {
   return Math.min(1, Math.max(0, progress + (direction * seconds) / JOURNEY_SECONDS));
