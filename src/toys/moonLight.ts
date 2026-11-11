@@ -1,24 +1,19 @@
 /**
- * Moonlight: the Moon is bright because it reflects sunlight. Seen from above, the Sun
- * shines from the left edge, Earth sits in the middle with a tiny child on the side that
- * faces the Moon, and the Moon rides a dashed path round Earth. Whatever the Moon's place,
- * the half facing the Sun is lit and the far half is dark. A round window shows the Moon as
- * the child sees it, so dragging the Moon round (or pressing Move Moon) turns it from a
- * crescent to a half to a full disc and back to nothing, with the lit side on the right
- * way. The Sun is a button with a little switch: switch it off and the Moon, in both views,
- * goes dark, and Earth dims too. No Sun, no moonlight.
+ * Moonlight, the "bounce" picture: the Moon is bright because sunlight bounces off it.
+ * Nothing to drag. A big Sun sits at the left edge, the Moon is lit on the side that faces
+ * it, and Earth's night curve at the bottom carries a little house. Dotted beams flow from
+ * the Sun to the Moon and then down from the Moon to the house, which sits in a soft glow.
+ * One control, a big Sun switch: off, the Sun goes grey, the beams vanish, the Moon goes
+ * dark and the house loses its glow. No Sun, no moonlight.
  *
- * A self-contained overlay like the Moon jump; it owns nothing in the 3D scene. The phase
- * maths is in moonPhase.ts.
+ * A self-contained overlay like the Moon jump; it owns nothing in the 3D scene. The layout
+ * follows the owner's mock (design/visit-screen/moonlight-bounce.png); the beams' dots flow
+ * by a CSS animation that reduced motion turns off, leaving them drawn still.
  */
 import './moonLight.css';
-import { worldPicture } from '../ui/pictures';
-import { createIcon } from '../ui/icons';
 import { cueText } from '../audio/script';
-import {
-  angleDelta, angleFromOffset, litOutline, moonOffset, phaseName, phaseShape, stepAngle, wrapAngle,
-  type PhaseShape,
-} from './moonPhase';
+import sunUrl from '../pictures/sun.svg';
+import houseUrl from '../pictures/house.svg';
 
 export interface MoonLight {
   readonly isOpen: boolean;
@@ -35,15 +30,8 @@ export interface MoonLightOptions {
   onSay?(cueId: string, text: string): void;
 }
 
-const TAU = Math.PI * 2;
-const MAX_STEP = 0.1;
-/** The Moon eases an eighth of the way round in about a third of a second. */
-const GLIDE_SPEED = TAU / 8 / 0.34;
-/** Where the Moon starts: a little after the New Moon, a thin crescent for the first look. */
-const START_ANGLE = TAU / 8;
-const INK = '#2b2118';
-/** Half of the Moon always faces the Sun, which is to the left: lit on the left, dark on the right. */
-const SUN_FACING: Pick<PhaseShape, 'litSign' | 'terminator' | 'fraction'> = { litSign: -1, terminator: 0, fraction: 0.5 };
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {
   const node = document.createElement(tag);
@@ -52,55 +40,100 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, te
   return node;
 }
 
-function seededStars(count: number, seed: number): [number, number, number][] {
-  let s = seed;
-  const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  return Array.from({ length: count }, () => [rand(), rand(), 0.4 + rand() * 1.2]);
+function svgEl<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}) {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [name, value] of Object.entries(attrs)) node.setAttribute(name, String(value));
+  return node;
 }
-const STARS = seededStars(90, 31);
-const WINDOW_STARS = seededStars(26, 5);
 
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
+/* --- pictures: a lit ball drawn from a world's map ---------------------------------- */
+
+interface Texture { w: number; h: number; d: Uint8ClampedArray; gain: number }
+
+function loadTexture(url: string, width: number, gain: number): Promise<Texture | null> {
+  return new Promise(resolve => {
     const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
+    image.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = width;
+        c.height = width / 2;
+        const x = c.getContext('2d')!;
+        x.drawImage(image, 0, 0, c.width, c.height);
+        resolve({ w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data, gain });
+      } catch { resolve(null); }
+    };
+    image.onerror = () => resolve(null);
     image.src = url;
   });
 }
 
-/** A world's face from its map: the middle half of the longitudes, as a ball. */
-function ballFrom(image: HTMLImageElement, size: number): HTMLCanvasElement {
-  const out = document.createElement('canvas');
-  out.width = out.height = size;
-  const ctx = out.getContext('2d')!;
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2, 0, TAU);
-  ctx.clip();
-  const w = image.naturalWidth;
-  const h = image.naturalHeight;
-  ctx.drawImage(image, w * 0.25, 0, w * 0.5, h, 0, 0, size, size);
-  return out;
+type Textures = { moon: Texture | null; earth: Texture | null };
+let textures: Promise<Textures> | null = null;
+function worldTextures(): Promise<Textures> {
+  textures ??= Promise.all([
+    loadTexture('assets/moon.jpg', 1024, 1.25),
+    loadTexture('assets/earth.jpg', 1536, 1.15),
+  ]).then(([moon, earth]) => ({ moon, earth }));
+  return textures;
 }
 
-type Balls = { earth: HTMLCanvasElement | null; moon: HTMLCanvasElement | null };
-let balls: Promise<Balls> | null = null;
-function worldBalls(): Promise<Balls> {
-  balls ??= (async () => {
-    const [earth, moon] = await Promise.all(['earth', 'moon'].map(id =>
-      loadImage(`assets/${id}.jpg`).then(image => ballFrom(image, 256)).catch(() => null)));
-    return { earth: earth ?? null, moon: moon ?? null };
-  })();
-  balls.catch(() => { balls = null; });
-  return balls;
+/** A textured ball seen from the front, lit from `light` (x right, y up, z towards the viewer). */
+function drawBall(canvas: HTMLCanvasElement, size: number, tex: Texture | null,
+  light: [number, number, number], ambient: number) {
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  ctx.clearRect(0, 0, size, size);
+  if (!tex) return;
+  const out = ctx.createImageData(size, size);
+  const len = Math.hypot(...light);
+  const L = light.map(v => v / len) as [number, number, number];
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const x = ((px + 0.5) / size) * 2 - 1;
+      const y = 1 - ((py + 0.5) / size) * 2;
+      const r2 = x * x + y * y;
+      if (r2 > 1) continue;
+      const z = Math.sqrt(1 - r2);
+      const lon = Math.atan2(x, z);
+      const lat = Math.asin(y);
+      const u = Math.min(tex.w - 1, Math.floor((0.5 + lon / (2 * Math.PI)) * tex.w));
+      const v = Math.min(tex.h - 1, Math.floor((0.5 - lat / Math.PI) * tex.h));
+      const ti = (v * tex.w + u) * 4;
+      const oi = (py * size + px) * 4;
+      const d = x * L[0] + y * L[1] + z * L[2];
+      const lit = clamp(d * 6 + 0.5, 0, 1);
+      const k = ambient + (1 - ambient) * lit * (0.75 + 0.25 * Math.max(0, d));
+      out.data[oi] = tex.d[ti]! * k * tex.gain;
+      out.data[oi + 1] = tex.d[ti + 1]! * k * tex.gain;
+      out.data[oi + 2] = tex.d[ti + 2]! * k * tex.gain;
+      out.data[oi + 3] = r2 > 0.985 ? (255 * (1 - r2)) / 0.015 : 255;
+    }
+  }
+  ctx.putImageData(out, 0, 0);
 }
 
+function seededStars(width: number, height: number, count: number): string {
+  let s = 13 * 9301 + 49297;
+  const rand = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+  const shadows: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const x = Math.floor(rand() * width);
+    const y = Math.floor(rand() * height);
+    const spread = rand() < 0.12 ? 1 : 0;
+    shadows.push(`${x}px ${y}px 0 ${spread}px rgba(255,255,255,${(0.25 + rand() * 0.7).toFixed(2)})`);
+  }
+  return shadows.join(',');
+}
+
+/** Where everything stands, in pixels of the overlay. */
 interface Layout {
-  cx: number; cy: number; path: number; earthR: number; moonR: number;
-  /** How far above and below Earth's level the sunbeams spread. */
-  beams: number;
-  sun: { x: number; y: number };
-  win: { cx: number; cy: number; d: number };
+  landscape: boolean;
+  scale: number;
+  sun: { cx: number; cy: number; d: number };
+  moon: { cx: number; cy: number; r: number };
+  earth: { cx: number; cy: number; r: number };
+  house: { cx: number; bottom: number; w: number };
 }
 
 export function createMoonLight(host: HTMLElement, options: MoonLightOptions = {}): MoonLight {
@@ -108,127 +141,173 @@ export function createMoonLight(host: HTMLElement, options: MoonLightOptions = {
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'true');
   root.setAttribute('aria-label', 'Moonlight: why the Moon shines');
-  const canvas = el('canvas', 'moon-light__canvas');
-  canvas.setAttribute('aria-hidden', 'true');
 
+  const stars = el('div', 'moon-light__stars');
+  const sunDisc = el('div', 'moon-light__sun');
+  const earthCanvas = el('canvas', 'moon-light__earth');
+  const moonCanvas = el('canvas', 'moon-light__moon');
+  for (const c of [earthCanvas, moonCanvas]) c.setAttribute('aria-hidden', 'true');
+  const beams = svgEl('svg', { class: 'moon-light__beams', 'aria-hidden': 'true' });
+  const glow = el('div', 'moon-light__glow');
+  const house = el('img', 'moon-light__house');
+  house.alt = '';
+  house.src = houseUrl;
+  house.draggable = false;
   const caption = el('p', 'moon-light__caption');
   caption.setAttribute('aria-live', 'polite');
-
-  const windowFrame = el('div', 'moon-light__window');
-  windowFrame.setAttribute('role', 'img');
-  const windowCanvas = el('canvas', '');
-  windowFrame.append(windowCanvas);
-  const tag = el('div', 'moon-light__tag');
-  tag.append(createIcon('eye'), el('span', '', 'From Earth'));
-  tag.setAttribute('aria-hidden', 'true');
-
-  const sunButton = el('button', 'moon-light__sun');
-  sunButton.type = 'button';
-  const sunDisc = el('span', 'moon-light__sun-disc');
-  sunDisc.append(el('span', 'moon-light__switch'));
-  sunDisc.setAttribute('aria-hidden', 'true');
-  const sunText = el('span', 'moon-light__sun-text');
-  sunText.setAttribute('aria-hidden', 'true');
-  sunButton.append(sunDisc, sunText);
 
   const back = el('button', 'moon-light__back');
   back.type = 'button';
   back.setAttribute('aria-label', 'Back to the Moon');
-  back.append(createIcon('back'), worldPicture('moon'));
+  const backArrow = svgEl('svg', { width: 30, height: 24, viewBox: '0 0 30 24', 'aria-hidden': 'true' });
+  backArrow.append(svgEl('path', {
+    d: 'M12 3 L3 11 L12 19 M3 11 H20 q7 0 7 8', fill: 'none', stroke: '#2b2118',
+    'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+  }));
+  const thumb = el('span', 'moon-light__thumb');
+  thumb.setAttribute('aria-hidden', 'true');
+  thumb.style.backgroundImage = 'url(./assets/moon.jpg)';
+  back.append(backArrow, thumb);
 
-  const moveButton = el('button', 'moon-light__move');
-  moveButton.type = 'button';
-  moveButton.setAttribute('aria-label', 'Move the Moon round Earth');
-  moveButton.append(worldPicture('moon'), el('span', '', 'Move Moon'));
+  const sunSwitch = el('button', 'moon-light__switch');
+  sunSwitch.type = 'button';
+  sunSwitch.setAttribute('role', 'switch');
+  sunSwitch.setAttribute('aria-label', 'Sun');
+  const sunPicture = el('img', '');
+  sunPicture.alt = '';
+  sunPicture.src = sunUrl;
+  sunPicture.draggable = false;
+  const toggle = el('span', 'moon-light__toggle');
+  toggle.setAttribute('aria-hidden', 'true');
+  sunSwitch.append(sunPicture, toggle);
 
-  root.append(canvas, caption, windowFrame, tag, sunButton, back, moveButton);
-
-  const ctx = canvas.getContext('2d')!;
-  const wctx = windowCanvas.getContext('2d')!;
-  const reducedQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
-  const reduced = () => Boolean(reducedQuery?.matches);
+  root.append(stars, sunDisc, earthCanvas, beams, glow, moonCanvas, house, caption, back, sunSwitch);
 
   let open = false;
-  let frame = 0;
-  let last = 0;
-  let clock = 0;
-  let width = 0;
-  let height = 0;
-  let dpr = 1;
-  let lay: Layout | null = null;
-  let dirty = true;
-  let pictures: Balls = { earth: null, moon: null };
-
-  /** The Moon's place now (eased) and where it is heading. */
-  let angle = START_ANGLE;
-  let target = START_ANGLE;
   let sunOn = true;
-  let touched = false;
-  let dragId: number | null = null;
+  let lay: Layout | null = null;
+  let tex: Textures = { moon: null, earth: null };
+  /** Painted balls per state and size, so a flick of the switch costs nothing. */
+  const painted = new Map<string, HTMLCanvasElement>();
 
-  /* --- layout ------------------------------------------------------------- */
+  /* --- layout, from the mock (360x740 portrait, 800x360 landscape) ---------------- */
 
-  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
-  function layout(): Layout {
-    const wide = width > height * 1.15;
-    const short = height <= 480;
-    const controlsTop = height - 18 - (short ? 62 : width <= 520 ? 72 : 76);
-    if (wide) {
-      const moonR = clamp(height * 0.065, 18, 28);
-      const earthR = clamp(height * 0.105, 28, 46);
-      const path = clamp((controlsTop - 70) / 2 - moonR - 4, 60, 150);
-      const cx = width * 0.42;
-      const cy = clamp(70 + moonR + path, 70, controlsTop - path - moonR - 6);
-      const d = clamp(height * 0.58, 120, 240);
-      return {
-        cx, cy, path, earthR, moonR,
-        beams: Math.min((path + moonR) * 1.1, controlsTop - 16 - cy, cy - 28),
-        sun: { x: 54, y: cy },
-        win: { cx: width * 0.79, cy: 22 + d / 2, d },
+  function layout(width: number, height: number): Layout {
+    const landscape = width > height * 1.15;
+    const k = landscape ? Math.min(width / 800, height / 360) : clamp(width / 360, 0.8, 1.5);
+    const s = clamp(k, 1, 1.3);
+    const houseW = Math.round(56 * clamp(k, 1, 1.4));
+    let l: Layout;
+    if (landscape) {
+      const er = 420 * k;
+      l = {
+        landscape, scale: s,
+        sun: { cx: -70 * k, cy: (150 / 360) * height, d: 300 * k },
+        moon: { cx: (455 / 800) * width, cy: (92 / 360) * height, r: 60 * k },
+        earth: { cx: (600 / 800) * width, cy: (250 / 360) * height + er, r: er },
+        house: { cx: (610 / 800) * width, bottom: 0, w: houseW },
+      };
+    } else {
+      const er = 340 * k;
+      l = {
+        landscape, scale: s,
+        sun: { cx: -70 * k, cy: (300 / 740) * height, d: 280 * k },
+        moon: { cx: (262 / 360) * width, cy: (170 / 740) * height, r: 68 * k },
+        earth: { cx: (250 / 360) * width, cy: (560 / 740) * height + er, r: er },
+        house: { cx: (262 / 360) * width, bottom: 0, w: houseW },
       };
     }
-    const moonR = clamp(width * 0.055, 16, 26);
-    const earthR = clamp(width * 0.115, 28, 48);
-    const path = clamp(width * 0.27, 60, 150);
-    // The Sun button takes the left edge (about 100 px); the path never touches it.
-    const cx = Math.max(width * 0.58, 106 + path + moonR);
-    const cy = 112 + path + moonR;
-    const winTop = cy + path + moonR + 18;
-    const d = clamp(Math.min(width * 0.6, controlsTop - 8 - 40 - winTop), 100, 260);
-    return {
-      cx: Math.min(cx, width - path - moonR - 6), cy, path, earthR, moonR,
-      beams: (path + moonR) * 1.1,
-      sun: { x: 54, y: cy },
-      win: { cx: width / 2, cy: winTop + d / 2, d },
+    const surface = () => l.earth.cy - Math.sqrt(Math.max(0, l.earth.r ** 2 - (l.house.cx - l.earth.cx) ** 2));
+    l.house.bottom = surface() + l.house.w * 0.1;
+    // The house must stay clear of the Sun switch (bottom right), so Earth's curve rides up a little if not.
+    const switchW = 170 * s;
+    const switchTop = height - 14 - 92 * s;
+    const overlapsX = l.house.cx + l.house.w / 2 > width - 12 - switchW - 4;
+    if (overlapsX && l.house.bottom > switchTop - 10) {
+      const lift = l.house.bottom - (switchTop - 10);
+      l.earth.cy -= lift;
+      l.house.bottom -= lift;
+    }
+    return l;
+  }
+
+  function place(width: number, height: number) {
+    const L = lay = layout(width, height);
+    root.style.setProperty('--ml-s', String(L.scale));
+    stars.style.boxShadow = seededStars(width, height, 110);
+    const put = (node: HTMLElement, x: number, y: number, w: number, h: number) => {
+      node.style.left = `${x}px`;
+      node.style.top = `${y}px`;
+      node.style.width = `${w}px`;
+      node.style.height = `${h}px`;
     };
+    put(sunDisc, L.sun.cx - L.sun.d / 2, L.sun.cy - L.sun.d / 2, L.sun.d, L.sun.d);
+    put(earthCanvas, L.earth.cx - L.earth.r, L.earth.cy - L.earth.r, L.earth.r * 2, L.earth.r * 2);
+    put(moonCanvas, L.moon.cx - L.moon.r, L.moon.cy - L.moon.r, L.moon.r * 2, L.moon.r * 2);
+    const houseTop = L.house.bottom - L.house.w * 0.9;
+    house.style.left = `${L.house.cx - L.house.w / 2}px`;
+    house.style.top = `${houseTop}px`;
+    house.style.width = house.style.height = `${L.house.w}px`;
+    put(glow, L.house.cx - 70, houseTop - 0.05 * L.house.w, 140, 70);
+    caption.style.left = L.landscape ? 'auto' : '14px';
+    caption.style.right = L.landscape ? '14px' : 'auto';
+    drawBeams(L, houseTop);
+    painted.clear();
+    paintBalls();
   }
 
-  function place() {
-    const L = lay = layout();
-    const { win, sun } = L;
-    windowFrame.style.left = `${win.cx - win.d / 2}px`;
-    windowFrame.style.top = `${win.cy - win.d / 2}px`;
-    windowFrame.style.width = windowFrame.style.height = `${win.d}px`;
-    tag.style.left = `${win.cx}px`;
-    tag.style.top = `${win.cy + win.d / 2 + 10}px`;
-    sunButton.style.left = `${Math.max(4, sun.x - 46)}px`;
-    sunButton.style.top = `${sun.y - 42}px`;
+  function arrow(ax: number, ay: number, bx: number, by: number, color: string, w: number) {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const g = svgEl('g');
+    g.append(
+      svgEl('path', { class: 'flow', d: `M${ax} ${ay} L${bx} ${by}`, stroke: color, 'stroke-width': w }),
+      svgEl('path', {
+        class: 'tip', stroke: color, 'stroke-width': w,
+        d: `M${bx - ux * 14 - uy * 9} ${by - uy * 14 + ux * 9} L${bx} ${by} L${bx - ux * 14 + uy * 9} ${by - uy * 14 - ux * 9}`,
+      }),
+    );
+    return g;
   }
 
-  function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    width = root.clientWidth;
-    height = root.clientHeight;
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    place();
-    const inner = Math.max(1, Math.round(windowFrame.clientWidth));
-    windowCanvas.width = windowCanvas.height = Math.round(inner * dpr);
-    dirty = true;
+  function drawBeams(L: Layout, houseTop: number) {
+    beams.replaceChildren();
+    const k = L.landscape ? L.moon.r / 60 : L.moon.r / 68;
+    const x0 = L.sun.cx + L.sun.d / 2 + 6;
+    for (const o of [-26, 0, 26]) {
+      beams.append(arrow(x0, L.sun.cy - 40 * k + o * 0.6 * k, L.moon.cx - L.moon.r - 12, L.moon.cy + o * k, '#ffd564', 5));
+    }
+    for (const o of [-16, 16]) {
+      beams.append(arrow(L.moon.cx - 14 * k + o * k, L.moon.cy + L.moon.r + 12, L.house.cx + o * 0.6 * k, houseTop - 12, '#fff3c4', 4.5));
+    }
   }
 
-  /* --- state --------------------------------------------------------------- */
+  function ball(canvas: HTMLCanvasElement, kind: 'moon' | 'earth', css: number) {
+    const lit = sunOn;
+    const res = kind === 'moon' ? clamp(window.devicePixelRatio || 1, 1, 2) : 1;
+    const size = Math.max(2, Math.round(css * res));
+    const key = `${kind}|${size}|${lit}|${tex[kind] ? 1 : 0}`;
+    let img = painted.get(key);
+    if (!img) {
+      img = document.createElement('canvas');
+      const light: [number, number, number] = !lit ? [0, 0, -1] : kind === 'moon' ? [-1, -0.1, 0.3] : [-1, -0.35, 0.1];
+      drawBall(img, size, tex[kind], light, kind === 'moon' ? 0.06 : 0.16);
+      painted.set(key, img);
+    }
+    canvas.width = canvas.height = size;
+    canvas.getContext('2d')!.drawImage(img, 0, 0);
+  }
+
+  function paintBalls() {
+    if (!lay) return;
+    ball(moonCanvas, 'moon', lay.moon.r * 2);
+    ball(earthCanvas, 'earth', lay.earth.r * 2);
+  }
+
+  /* --- state -------------------------------------------------------------------- */
 
   function say(cueId: string) {
     const text = cueText(cueId);
@@ -237,289 +316,34 @@ export function createMoonLight(host: HTMLElement, options: MoonLightOptions = {
   }
 
   function sync() {
-    const name = phaseName(target);
-    root.dataset.angle = String(Math.round((wrapAngle(target) * 180) / Math.PI));
-    root.dataset.phase = name;
     root.dataset.sun = sunOn ? 'on' : 'off';
     root.classList.toggle('is-sun-off', !sunOn);
-    const label = sunOn ? 'Sun off' : 'Sun on';
-    sunText.textContent = label;
-    sunButton.setAttribute('aria-label', label);
-    sunButton.setAttribute('aria-pressed', String(!sunOn));
-    windowFrame.setAttribute('aria-label', sunOn
-      ? `From Earth the Moon looks like this: ${name}`
-      : 'From Earth the Moon looks dark, because the Sun is off');
-    dirty = true;
-  }
-
-  function setTarget(next: number, instant: boolean) {
-    target = wrapAngle(next);
-    touched = true;
-    if (instant || reduced()) angle = target;
-    sync();
+    moonCanvas.dataset.lit = String(sunOn);
+    sunSwitch.setAttribute('aria-checked', String(sunOn));
+    beams.style.display = sunOn ? '' : 'none';
+    glow.style.display = sunOn ? '' : 'none';
+    paintBalls();
   }
 
   function toggleSun() {
     sunOn = !sunOn;
-    touched = true;
     say(sunOn ? 'moonlight-on' : 'moonlight-off');
     sync();
   }
 
-  /* --- drawing ------------------------------------------------------------- */
-
-  function drawMoonDisc(c: CanvasRenderingContext2D, x: number, y: number, r: number,
-    shape: Pick<PhaseShape, 'litSign' | 'terminator' | 'fraction'>, lit: boolean) {
-    c.save();
-    c.translate(x, y);
-    c.beginPath();
-    c.arc(0, 0, r, 0, TAU);
-    c.fillStyle = '#1a1e2c';
-    c.fill();
-    c.save();
-    c.clip();
-    // The dark side: the same ground, barely there. Earthshine is far too faint to show.
-    if (pictures.moon) {
-      c.globalAlpha = 0.17;
-      c.drawImage(pictures.moon, -r, -r, r * 2, r * 2);
-      c.globalAlpha = 1;
-    }
-    if (lit && shape.fraction > 0) {
-      const outline = litOutline(shape, 22);
-      c.beginPath();
-      outline.forEach(([px, py], i) => (i ? c.lineTo(px * r, py * r) : c.moveTo(px * r, py * r)));
-      c.closePath();
-      c.save();
-      c.clip();
-      if (pictures.moon) c.drawImage(pictures.moon, -r, -r, r * 2, r * 2);
-      else { c.fillStyle = '#d6d2c8'; c.fillRect(-r, -r, r * 2, r * 2); }
-      c.fillStyle = '#fff8e022';
-      c.fillRect(-r, -r, r * 2, r * 2);
-      c.restore();
-    }
-    c.restore();
-    c.lineWidth = Math.max(1.5, r * 0.05);
-    c.strokeStyle = lit ? '#fff8e066' : '#8f98b455';
-    c.beginPath();
-    c.arc(0, 0, r - c.lineWidth / 2, 0, TAU);
-    c.stroke();
-    c.restore();
+  function resize() {
+    const width = root.clientWidth;
+    const height = root.clientHeight;
+    if (!width || !height) return;
+    place(width, height);
   }
 
-  function drawChild(x: number, y: number, h: number, outward: number) {
-    // Standing on the rim, feet down, head out into space (local -y is "up").
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(outward + Math.PI / 2);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = Math.max(2, h * 0.09);
-    // Legs and arms, waving at the Moon.
-    ctx.beginPath();
-    ctx.moveTo(-h * 0.1, -h * 0.34); ctx.lineTo(-h * 0.13, 0);
-    ctx.moveTo(h * 0.1, -h * 0.34); ctx.lineTo(h * 0.13, 0);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-h * 0.2, -h * 0.64); ctx.lineTo(-h * 0.36, -h * 0.82);
-    ctx.moveTo(h * 0.2, -h * 0.64); ctx.lineTo(h * 0.36, -h * 0.82);
-    ctx.stroke();
-    ctx.fillStyle = '#f07a62';
-    ctx.beginPath();
-    ctx.roundRect(-h * 0.2, -h * 0.7, h * 0.4, h * 0.42, h * 0.1);
-    ctx.fill();
-    ctx.lineWidth = Math.max(1.5, h * 0.06);
-    ctx.stroke();
-    ctx.fillStyle = '#f6cfa6';
-    ctx.beginPath();
-    ctx.arc(0, -h * 0.86, h * 0.17, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawMain(L: Layout) {
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = '#070a18';
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = '#ffffff';
-    for (const [sx, sy, sr] of STARS) {
-      ctx.globalAlpha = 0.45 + sr * 0.25;
-      ctx.fillRect(sx * width, sy * height, sr, sr);
-    }
-    ctx.globalAlpha = 1;
-    const { cx, cy, path, earthR, moonR } = L;
-
-    // Sunlight, all the way across from the left: parallel rays behind everything else.
-    if (sunOn) {
-      const x0 = L.sun.x + 50;
-      const x1 = cx + path + moonR + 16;
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#ffd25a99';
-      ctx.setLineDash([12, 10]);
-      const rows = 7;
-      for (let i = 0; i < rows; i++) {
-        const y = cy + ((i - (rows - 1) / 2) * L.beams * 2) / (rows - 1);
-        ctx.beginPath();
-        ctx.moveTo(x0, y);
-        ctx.lineTo(x1, y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x1 - 9, y - 7); ctx.lineTo(x1, y); ctx.lineTo(x1 - 9, y + 7);
-        ctx.setLineDash([]);
-        ctx.stroke();
-        ctx.setLineDash([12, 10]);
-      }
-      ctx.setLineDash([]);
-    }
-
-    // The Moon's path.
-    ctx.strokeStyle = '#d6def5aa';
-    ctx.lineWidth = 2.5;
-    ctx.setLineDash([3, 9]);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.arc(cx, cy, path, 0, TAU);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Earth: the Sun-facing half is day, the far half is night; with the Sun off, all of it is dark.
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, earthR, 0, TAU);
-    ctx.clip();
-    if (pictures.earth) ctx.drawImage(pictures.earth, cx - earthR, cy - earthR, earthR * 2, earthR * 2);
-    else { ctx.fillStyle = '#2f6aa8'; ctx.fillRect(cx - earthR, cy - earthR, earthR * 2, earthR * 2); }
-    ctx.fillStyle = sunOn ? '#05081ed0' : '#05081ee6';
-    ctx.fillRect(sunOn ? cx : cx - earthR, cy - earthR, sunOn ? earthR : earthR * 2, earthR * 2);
-    ctx.restore();
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(cx, cy, earthR, 0, TAU);
-    ctx.stroke();
-
-    // The Moon and the child who is looking at it.
-    const at = moonOffset(angle, path);
-    const mx = cx + at.x;
-    const my = cy + at.y;
-    const toward = Math.atan2(at.y, at.x);
-    drawChild(cx + Math.cos(toward) * (earthR - 1), cy + Math.sin(toward) * (earthR - 1), earthR * 0.95, toward);
-    if (!touched) {
-      const pulse = reduced() ? 1 : 1 + 0.12 * Math.sin(clock * 3.4);
-      ctx.strokeStyle = '#ffffffcc';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 6]);
-      ctx.beginPath();
-      ctx.arc(mx, my, moonR * 1.55 * pulse, 0, TAU);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    drawMoonDisc(ctx, mx, my, moonR, SUN_FACING, sunOn);
-  }
-
-  function drawWindow() {
-    const size = windowCanvas.width / dpr;
-    if (size < 2) return;
-    wctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    wctx.fillStyle = '#05060f';
-    wctx.fillRect(0, 0, size, size);
-    wctx.fillStyle = '#ffffff';
-    for (const [sx, sy, sr] of WINDOW_STARS) {
-      wctx.globalAlpha = 0.4 + sr * 0.25;
-      wctx.fillRect(sx * size, sy * size, sr, sr);
-    }
-    wctx.globalAlpha = 1;
-    drawMoonDisc(wctx, size / 2, size / 2, size * 0.36, phaseShape(angle), sunOn);
-  }
-
-  function draw() {
-    const L = lay;
-    if (!L) return;
-    drawMain(L);
-    drawWindow();
-  }
-
-  /* --- frame loop ----------------------------------------------------------- */
-
-  function update(dt: number) {
-    clock += dt;
-    if (dragId === null && angle !== target) {
-      const delta = angleDelta(angle, target);
-      const step = GLIDE_SPEED * dt;
-      angle = Math.abs(delta) <= step || reduced() ? target : wrapAngle(angle + Math.sign(delta) * step);
-      dirty = true;
-    }
-    // The first-look ring pulses until the child touches the Moon (still with reduced motion).
-    if (!touched && !reduced()) dirty = true;
-  }
-
-  function loop(now: number) {
-    if (!open) return;
-    const dt = last ? Math.min((now - last) / 1000, MAX_STEP) : 0;
-    last = now;
-    update(dt);
-    if (dirty) {
-      dirty = false;
-      draw();
-    }
-    frame = requestAnimationFrame(loop);
-  }
-
-  /* --- input ----------------------------------------------------------------- */
-
-  function pointerOffset(event: PointerEvent) {
-    const rect = canvas.getBoundingClientRect();
-    const L = lay!;
-    return { dx: event.clientX - rect.left - L.cx, dy: event.clientY - rect.top - L.cy };
-  }
-
-  canvas.addEventListener('pointerdown', event => {
-    if (!lay) return;
-    event.preventDefault();
-    const { dx, dy } = pointerOffset(event);
-    const near = Math.abs(Math.hypot(dx, dy) - lay.path) <= Math.max(48, lay.path * 0.5);
-    if (!near) return;
-    dragId = event.pointerId;
-    canvas.classList.add('is-dragging');
-    canvas.setPointerCapture?.(event.pointerId);
-    setTarget(angleFromOffset(dx, dy), true);
-  });
-  canvas.addEventListener('pointermove', event => {
-    if (event.pointerId !== dragId) return;
-    const { dx, dy } = pointerOffset(event);
-    // Too near Earth's middle the angle swings wildly under a small movement.
-    if (Math.hypot(dx, dy) < lay!.earthR * 0.5) return;
-    setTarget(angleFromOffset(dx, dy), true);
-  });
-  const endDrag = (event: PointerEvent) => {
-    if (event.pointerId !== dragId) return;
-    dragId = null;
-    canvas.classList.remove('is-dragging');
-  };
-  canvas.addEventListener('pointerup', endDrag);
-  canvas.addEventListener('pointercancel', endDrag);
-  canvas.addEventListener('lostpointercapture', endDrag);
-
-  function step(direction: 1 | -1) {
-    // A press while the Moon is still gliding carries on from where it is heading.
-    setTarget(stepAngle(target, direction), false);
-  }
-
-  moveButton.addEventListener('click', () => step(1));
-  sunButton.addEventListener('click', toggleSun);
+  sunSwitch.addEventListener('click', toggleSun);
   back.addEventListener('click', () => api.close());
   root.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
       event.preventDefault();
       api.close();
-    } else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      step(1);
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
-      event.preventDefault();
-      step(-1);
     }
   });
   const onResize = () => { if (open) resize(); };
@@ -530,21 +354,18 @@ export function createMoonLight(host: HTMLElement, options: MoonLightOptions = {
     open() {
       if (open) return;
       open = true;
-      angle = target = START_ANGLE;
       sunOn = true;
-      touched = false;
-      dragId = null;
-      clock = 0;
       host.append(root);
       root.classList.remove('is-hidden');
       caption.textContent = cueText('moonlight-on');
       sync();
       resize();
-      last = 0;
-      frame = requestAnimationFrame(loop);
-      moveButton.focus();
+      sunSwitch.focus();
       options.onSay?.('toy-moonlight', cueText('toy-moonlight'));
-      void worldBalls().then(found => { pictures = found; dirty = true; }).catch(() => {});
+      void worldTextures().then(found => {
+        tex = found;
+        if (open) { painted.clear(); paintBalls(); }
+      }).catch(() => {});
     },
     close() {
       if (!open) return;
@@ -554,9 +375,6 @@ export function createMoonLight(host: HTMLElement, options: MoonLightOptions = {
     dismiss() {
       if (!open) return;
       open = false;
-      cancelAnimationFrame(frame);
-      dragId = null;
-      canvas.classList.remove('is-dragging');
       root.classList.add('is-hidden');
       root.remove();
     },

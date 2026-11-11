@@ -119,7 +119,8 @@ describe('narration script', () => {
     );
     expect(invitations.length).toBeGreaterThan(0);
     for (const id of invitations) {
-      expect(script.cues[id], id).toMatch(/\byou can\b/i);
+      // The owner chose "See how the Moon gets its light." for Moonlight: a look, not a task.
+      if (id !== 'toy-moonlight') expect(script.cues[id], id).toMatch(/\byou can\b/i);
       expect(words(script.cues[id]!), id).toBeLessThanOrEqual(8);
     }
     expect(script.cues['home-first']).not.toMatch(/\bmust\b/i);
