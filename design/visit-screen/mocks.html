@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Visit screen mocks</title>
+<!-- Static picture mocks, not game code. View through the dev server:
+     http://localhost:5173/design/visit-screen/mocks.html  (render.mjs turns each sheet into a PNG).
+     Control pictures: Fluent Emoji flat (Microsoft, MIT), in ./icons. -->
+<style>
+@font-face { font-family: 'Patrick Hand'; src: url('/node_modules/@fontsource/patrick-hand/files/patrick-hand-latin-400-normal.woff2') format('woff2'); }
+:root {
+  --paper:#f8f0dd; --paper-deep:#efe4cc; --ink:#2b2118;
+  --sky:#5bb8e8; --grape:#b195ec; --grass:#74c27a; --sun:#f2b632; --tomato:#f07a62;
+  --moon:#c5cdd9; --star:#7f8ae6;
+  --line:3px solid var(--ink); --lift:4px 4px 0 var(--ink);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:#23252d; font-family:'Patrick Hand', cursive; color:var(--ink); }
+.sheet { display:inline-flex; flex-direction:column; gap:14px; padding:22px; background:#23252d; margin-bottom:30px; }
+.sheet h2 { margin:0; color:#fff; font-size:30px; font-weight:400; }
+.sheet h2 small { color:#b9bdca; font-size:20px; margin-left:10px; }
+.row { display:flex; gap:22px; align-items:flex-start; }
+.col { display:flex; flex-direction:column; gap:22px; }
+figure { margin:0; }
+figcaption { color:#d8dbe6; font-size:19px; margin-top:6px; }
+.ph { position:relative; overflow:hidden; border-radius:20px; outline:3px solid #000;
+  background:radial-gradient(120% 80% at 30% 20%, #1c1a4a 0%, #0a0b22 55%, #05060f 100%); }
+.ph.p { width:360px; height:740px; } .ph.l { width:800px; height:360px; }
+.ph.deep { background:radial-gradient(120% 80% at 30% 20%, #10122a 0%, #06070f 60%, #020308 100%); }
+.stars { position:absolute; left:0; top:0; width:1px; height:1px; border-radius:50%; }
+.abs { position:absolute; }
+canvas.ball { position:absolute; border-radius:50%; }
+.btn { position:absolute; display:flex; align-items:center; justify-content:center; gap:6px;
+  border:var(--line); box-shadow:var(--lift); border-radius:16px; background:var(--paper); font-size:20px; }
+.btn img { display:block; }
+.chip { position:absolute; display:flex; align-items:center; gap:8px; padding:5px 12px 5px 6px;
+  background:var(--paper); border:var(--line); box-shadow:var(--lift); border-radius:14px; font-size:22px; transform:rotate(-1.5deg); white-space:nowrap; }
+.chip .dots { display:flex; gap:4px; margin-left:4px; }
+.chip .dots i { width:12px; height:12px; border-radius:50%; border:2.5px solid #c98f10; background:#fff4cf; }
+.chip canvas { position:static; }
+.cap { position:absolute; padding:6px 14px; background:var(--paper); border:var(--line); box-shadow:var(--lift);
+  border-radius:14px; font-size:21px; transform:rotate(-1.2deg); white-space:nowrap; }
+.toy { position:absolute; display:flex; flex-direction:column; padding:6px 6px 2px; border:var(--line); box-shadow:var(--lift); border-radius:18px; }
+.toy svg { flex:1; width:100%; min-height:0; border:2.5px solid var(--ink); border-radius:12px; display:block; background:#0a0b22; }
+.toy span { text-align:center; font-size:21px; line-height:1.25; }
+.toy.jump { background:var(--sun); } .toy.light { background:var(--moon); }
+.place { position:absolute; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%;
+  border:4px solid #f2b632; box-shadow:0 0 0 2px #2b2118, inset 0 0 0 2px #2b2118, 0 0 12px 3px rgba(242,182,50,.7); }
+.place::after { content:''; position:absolute; inset:7px; border-radius:50%; background:#f2b632; box-shadow:0 0 0 2px #2b2118; }
+.drawer { position:absolute; background:var(--paper); border:var(--line); }
+.sunball { position:absolute; border-radius:50%; border:3px solid var(--ink);
+  background:radial-gradient(circle at 38% 34%, #fff3c4 0%, #ffd564 28%, #f6ae2d 70%, #ef9a1f 100%);
+  box-shadow:0 0 70px 30px rgba(246,174,45,.45); }
+.sundot { position:absolute; border-radius:50%; background:#ffd564; box-shadow:0 0 14px 6px rgba(246,174,45,.6); }
+.ring { position:absolute; border:2.5px dashed rgba(255,255,255,.75); border-radius:50%; }
+.track { position:absolute; height:22px; border:var(--line); border-radius:12px; background:var(--paper-deep); }
+.track .fill { position:absolute; left:0; top:0; bottom:0; border-radius:9px 0 0 9px; background:var(--star); }
+.stn { position:absolute; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; border:var(--line); background:#0a0b22;
+  display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.stn.on { box-shadow:0 0 0 4px var(--sun), 0 0 0 7px var(--ink); }
+.stn canvas { position:static; }
+.thumb { position:absolute; border-radius:50%; border:var(--line); background:#fff; box-shadow:var(--lift);
+  display:flex; align-items:center; justify-content:center; }
+.toggle { width:54px; height:30px; border-radius:16px; border:var(--line); background:var(--grass); position:relative; flex:none; }
+.toggle::after { content:''; position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:var(--ink); }
+.toggle.off { background:#9aa0ad; } .toggle.off::after { right:auto; left:2px; }
+.grey { filter:grayscale(1) brightness(.55); }
+.note { color:#d8dbe6; font-size:19px; max-width:800px; }
+</style>
+</head>
+<body>
+
+<!-- reusable card pictures -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="pic-jump" viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice">
+      <rect width="120" height="84" fill="#0a0b22"/>
+      <g fill="#fff"><circle cx="14" cy="12" r="1.2"/><circle cx="98" cy="9" r="1.4"/><circle cx="106" cy="38" r="1"/><circle cx="24" cy="40" r="1"/><circle cx="84" cy="24" r="1"/></g>
+      <ellipse cx="60" cy="100" rx="95" ry="34" fill="#aeb4bf" stroke="#2b2118" stroke-width="2.5"/>
+      <ellipse cx="28" cy="76" rx="9" ry="3" fill="#8c929e"/><ellipse cx="96" cy="74" rx="7" ry="2.5" fill="#8c929e"/>
+      <ellipse cx="60" cy="73" rx="13" ry="3.5" fill="#6d727d"/>
+      <path d="M44 62 q16 9 32 0" fill="none" stroke="#f2b632" stroke-width="3" stroke-linecap="round"/>
+      <path d="M48 54 q12 7 24 0" fill="none" stroke="#f2b632" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+      <image href="icons/astronaut.svg" x="38" y="3" width="44" height="44"/>
+    </symbol>
+    <symbol id="pic-light" viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice">
+      <rect width="120" height="84" fill="#0a0b22"/>
+      <g fill="#fff"><circle cx="60" cy="10" r="1.2"/><circle cx="108" cy="12" r="1.2"/><circle cx="52" cy="74" r="1"/><circle cx="10" cy="72" r="1"/></g>
+      <g stroke="#ffd564" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="1 7">
+        <path d="M46 34 L70 38"/><path d="M48 44 L70 44"/><path d="M46 54 L70 50"/></g>
+      <image href="icons/sun.svg" x="4" y="22" width="42" height="42"/>
+      <circle cx="92" cy="44" r="21" fill="#3a3d49" stroke="#2b2118" stroke-width="2.5"/>
+      <path d="M92 23 a21 21 0 0 0 0 42 z" fill="#f1f1ea" stroke="#2b2118" stroke-width="2.5"/>
+      <circle cx="82" cy="38" r="3.5" fill="#cfd0c8"/><circle cx="86" cy="52" r="2.5" fill="#cfd0c8"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= VISIT A ================= -->
+<section class="sheet" id="visit-A">
+  <h2>Moon visit · Option A <small>Bottom row: Space map and both toys along the bottom</small></h2>
+  <div class="row">
+    <div class="ph p" data-stars="1">
+      <div class="chip" style="left:12px;top:14px"><canvas class="mini" data-tex="moon" width="60" height="60" style="width:30px;height:30px;border-radius:50%"></canvas>The Moon<span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="btn" style="right:66px;top:12px;width:46px;height:46px;background:var(--grape)"><img src="icons/speaker.svg" width="30"></div>
+      <div class="btn" style="right:12px;top:12px;width:46px;height:46px;background:var(--tomato)"><img src="icons/book.svg" width="30"></div>
+      <canvas class="ball" data-tex="moon" data-light="-0.35,0.3,0.9" style="left:35px;top:170px;width:290px;height:290px"></canvas>
+      <div class="place" style="left:110px;top:270px"></div><div class="place" style="left:250px;top:345px"></div><div class="place" style="left:170px;top:410px"></div>
+      <div class="btn" style="left:10px;bottom:14px;width:84px;height:118px;background:var(--sky);flex-direction:column;gap:0"><img src="icons/planet.svg" width="54"><span>Space map</span></div>
+      <div class="toy jump" style="left:104px;bottom:14px;width:120px;height:118px"><svg><use href="#pic-jump"/></svg><span>Jump</span></div>
+      <div class="toy light" style="left:234px;bottom:14px;width:116px;height:118px"><svg><use href="#pic-light"/></svg><span>Moonlight</span></div>
+    </div>
+    <div class="ph l" data-stars="2">
+      <div class="chip" style="left:12px;top:14px"><canvas class="mini" data-tex="moon" width="60" height="60" style="width:30px;height:30px;border-radius:50%"></canvas>The Moon<span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="btn" style="right:66px;top:12px;width:46px;height:46px;background:var(--grape)"><img src="icons/speaker.svg" width="30"></div>
+      <div class="btn" style="right:12px;top:12px;width:46px;height:46px;background:var(--tomato)"><img src="icons/book.svg" width="30"></div>
+      <canvas class="ball" data-tex="moon" data-light="-0.35,0.3,0.9" style="left:205px;top:40px;width:250px;height:250px"></canvas>
+      <div class="place" style="left:270px;top:125px"></div><div class="place" style="left:392px;top:190px"></div><div class="place" style="left:322px;top:245px"></div>
+      <div class="btn" style="left:12px;bottom:14px;width:92px;height:110px;background:var(--sky);flex-direction:column;gap:0"><img src="icons/planet.svg" width="52"><span>Space map</span></div>
+      <div class="toy jump" style="right:160px;bottom:14px;width:140px;height:118px"><svg><use href="#pic-jump"/></svg><span>Jump</span></div>
+      <div class="toy light" style="right:12px;bottom:14px;width:140px;height:118px"><svg><use href="#pic-light"/></svg><span>Moonlight</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= VISIT B ================= -->
+<section class="sheet" id="visit-B">
+  <h2>Moon visit · Option B <small>Toy shelf: a paper shelf holds the toys; Space map is the top-left "way back"</small></h2>
+  <div class="row">
+    <div class="ph p" data-stars="3">
+      <div class="btn" style="left:12px;top:12px;width:78px;height:78px;background:var(--sky)"><img src="icons/planet.svg" width="56"></div>
+      <div class="chip" style="left:102px;top:30px"><canvas class="mini" data-tex="moon" width="60" height="60" style="width:30px;height:30px;border-radius:50%"></canvas>The Moon</div>
+      <div class="btn" style="right:12px;top:12px;width:46px;height:46px;background:var(--grape)"><img src="icons/speaker.svg" width="30"></div>
+      <div class="btn" style="right:12px;top:68px;width:46px;height:46px;background:var(--tomato)"><img src="icons/book.svg" width="30"></div>
+      <canvas class="ball" data-tex="moon" data-light="-0.35,0.3,0.9" style="left:40px;top:150px;width:280px;height:280px"></canvas>
+      <div class="place" style="left:112px;top:245px"></div><div class="place" style="left:248px;top:320px"></div><div class="place" style="left:172px;top:382px"></div>
+      <div class="abs" style="left:0;right:0;top:470px;display:flex;justify-content:center;gap:7px"><i class="td"></i><i class="td"></i><i class="td"></i></div>
+      <div class="drawer" style="left:-3px;right:-3px;bottom:-3px;height:188px;border-radius:26px 26px 0 0"></div>
+      <div class="toy jump" style="left:14px;bottom:16px;width:160px;height:150px;transform:rotate(-1.5deg)"><svg><use href="#pic-jump"/></svg><span style="font-size:25px">Jump</span></div>
+      <div class="toy light" style="right:14px;bottom:16px;width:160px;height:150px;transform:rotate(1.5deg)"><svg><use href="#pic-light"/></svg><span style="font-size:25px">Moonlight</span></div>
+    </div>
+    <div class="ph l" data-stars="4">
+      <div class="btn" style="left:12px;top:12px;width:78px;height:78px;background:var(--sky)"><img src="icons/planet.svg" width="56"></div>
+      <div class="chip" style="left:102px;top:30px"><canvas class="mini" data-tex="moon" width="60" height="60" style="width:30px;height:30px;border-radius:50%"></canvas>The Moon</div>
+      <div class="btn" style="left:12px;bottom:14px;width:46px;height:46px;background:var(--grape)"><img src="icons/speaker.svg" width="30"></div>
+      <div class="btn" style="left:68px;bottom:14px;width:46px;height:46px;background:var(--tomato)"><img src="icons/book.svg" width="30"></div>
+      <canvas class="ball" data-tex="moon" data-light="-0.35,0.3,0.9" style="left:185px;top:62px;width:270px;height:270px"></canvas>
+      <div class="place" style="left:255px;top:150px"></div><div class="place" style="left:388px;top:225px"></div><div class="place" style="left:312px;top:285px"></div>
+      <div class="abs" style="left:480px;top:24px;display:flex;gap:7px"><i class="td"></i><i class="td"></i><i class="td"></i></div>
+      <div class="drawer" style="right:-3px;top:-3px;bottom:-3px;width:216px;border-radius:26px 0 0 26px"></div>
+      <div class="toy jump" style="right:18px;top:12px;width:176px;height:162px;transform:rotate(-1.2deg)"><svg><use href="#pic-jump"/></svg><span style="font-size:24px">Jump</span></div>
+      <div class="toy light" style="right:18px;bottom:12px;width:176px;height:162px;transform:rotate(1.2deg)"><svg><use href="#pic-light"/></svg><span style="font-size:24px">Moonlight</span></div>
+    </div>
+  </div>
+</section>
+<style>.td{width:16px;height:16px;border-radius:50%;border:3px solid #f2b632;background:transparent;display:block}</style>
+
+<!-- ================= VISIT C ================= -->
+<section class="sheet" id="visit-C">
+  <h2>Moon visit · Option C <small>Side rail: toys down the right edge, same place when the phone turns</small></h2>
+  <div class="row">
+    <div class="ph p" data-stars="5">
+      <div class="chip" style="left:12px;top:14px"><canvas class="mini" data-tex="moon" width="60" height="60" style="width:30px;height:30px;border-radius:50%"></canvas>The Moon<span class="dots"><i></i><i></i><i></i></span></div>
+      <canvas class="ball" data-tex="moon" data-light="-0.35,0.3,0.9" style="left:6px;top:236px;width:222px;height:222px"></canvas>
+      <div class="place" style="left:66px;top:312px"></div><div class="place" style="left:172px;top:370px"></div><div class="place" style="left:110px;top:418px"></div>
+      <div class="toy jump" style="right:8px;top:226px;width:118px;height:114px"><svg><use href="#pic-jump"/></svg><span>Jump</span></div>
+      <div class="toy light" style="right:8px;top:354px;width:118px;height:114px"><svg><use href="#pic-light"/></svg><span>Moonlight</span></div>
+      <div class="btn" style="left:10px;bottom:14px;width:92px;height:104px;background:var(--sky);flex-direction:column;gap:0"><img src="icons/planet.svg" width="50"><span>Space map</span></div>
+      <div class="btn" style="right:66px;bottom:14px;width:46px;height:46px;background:var(--grape)"><img src="icons/speaker.svg" width="30"></div>
+      <div class="btn" style="right:10px;bottom:14px;width:46px;height:46px;background:var(--tomato)"><img src="icons/book.svg" width="30"></div>
+    </div>
+    <div class="ph l" data-stars="6">
+      <div class="chip" style="left:12px;top:14px"><canvas class="mini" data-tex="moon" width="60" height="60" style="width:30px;height:30px;border-radius:50%"></canvas>The Moon<span class="dots"><i></i><i></i><i></i></span></div>
+      <canvas class="ball" data-tex="moon" data-light="-0.35,0.3,0.9" style="left:195px;top:40px;width:280px;height:280px"></canvas>
+      <div class="place" style="left:270px;top:135px"></div><div class="place" style="left:405px;top:210px"></div><div class="place" style="left:328px;top:272px"></div>
+      <div class="toy jump" style="right:10px;top:16px;width:172px;height:156px"><svg><use href="#pic-jump"/></svg><span>Jump</span></div>
+      <div class="toy light" style="right:10px;bottom:16px;width:172px;height:156px"><svg><use href="#pic-light"/></svg><span>Moonlight</span></div>
+      <div class="btn" style="left:12px;bottom:14px;width:92px;height:104px;background:var(--sky);flex-direction:column;gap:0"><img src="icons/planet.svg" width="50"><span>Space map</span></div>
+      <div class="btn" style="right:254px;bottom:14px;width:46px;height:46px;background:var(--grape)"><img src="icons/speaker.svg" width="30"></div>
+      <div class="btn" style="right:198px;bottom:14px;width:46px;height:46px;background:var(--tomato)"><img src="icons/book.svg" width="30"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MOONLIGHT ================= -->
+<section class="sheet" id="moonlight">
+  <h2>Moonlight toy · first try, NOT chosen <small>One big Moon. Drag the Sun round it: the bright side always faces the Sun. The switch turns the Sun off.</small></h2>
+  <div class="row">
+    <figure><div class="ph p deep ml" data-stars="7" data-a="140" data-hand="1"></div><figcaption>1 · Arrive: a hand shows the drag</figcaption></figure>
+    <figure><div class="ph p deep ml" data-stars="7" data-a="-35"></div><figcaption>2 · Sun dragged round: light follows</figcaption></figure>
+    <figure><div class="ph p deep ml" data-stars="7" data-a="-35" data-off="1"></div><figcaption>3 · Sun switched off: Moon goes dark</figcaption></figure>
+  </div>
+  <div class="row">
+    <figure><div class="ph l deep ml" data-stars="8" data-a="200"></div><figcaption>Landscape · Sun on</figcaption></figure>
+  </div>
+  <div class="row">
+    <figure><div class="ph l deep ml" data-stars="8" data-a="200" data-off="1"></div><figcaption>Landscape · Sun off</figcaption></figure>
+  </div>
+</section>
+
+<!-- ================= FAR AWAY A ================= -->
+<section class="sheet" id="faraway-A">
+  <h2>Far away toy · Option A <small>One big rocket button: tap to go, it keeps flying; tap to stop; at the far end it turns round</small></h2>
+  <div class="row">
+    <figure><div class="ph p deep fa" data-stars="9" data-mode="A" data-t="0"></div><figcaption>1 · Start: one button, "go"</figcaption></figure>
+    <figure><div class="ph p deep fa" data-stars="9" data-mode="A" data-t="0.3"></div><figcaption>2 · Flying by itself, passing Earth: button is "stop"</figcaption></figure>
+    <figure><div class="ph p deep fa" data-stars="9" data-mode="A" data-t="1"></div><figcaption>3 · Far, far away: button now flies home</figcaption></figure>
+  </div>
+  <div class="row"><figure><div class="ph l deep fa" data-stars="10" data-mode="A" data-t="0"></div><figcaption>Landscape · start</figcaption></figure></div>
+  <div class="row"><figure><div class="ph l deep fa" data-stars="10" data-mode="A" data-t="0.3"></div><figcaption>Landscape · passing Earth</figcaption></figure></div>
+</section>
+
+<!-- ================= FAR AWAY B ================= -->
+<section class="sheet" id="faraway-B">
+  <h2>Far away toy · Option B <small>Drag the rocket: the strip is the control. Slide the rocket from the Sun to the stars and back. No buttons.</small></h2>
+  <div class="row">
+    <figure><div class="ph p deep fa" data-stars="9" data-mode="B" data-t="0"></div><figcaption>1 · Start: a hand shows the slide</figcaption></figure>
+    <figure><div class="ph p deep fa" data-stars="9" data-mode="B" data-t="0.3"></div><figcaption>2 · Rocket dragged to Earth</figcaption></figure>
+    <figure><div class="ph p deep fa" data-stars="9" data-mode="B" data-t="1"></div><figcaption>3 · Dragged all the way: the Sun is a star</figcaption></figure>
+  </div>
+  <div class="row"><figure><div class="ph l deep fa" data-stars="10" data-mode="B" data-t="0"></div><figcaption>Landscape · start</figcaption></figure></div>
+  <div class="row"><figure><div class="ph l deep fa" data-stars="10" data-mode="B" data-t="0.3"></div><figcaption>Landscape · at Earth</figcaption></figure></div>
+</section>
+
+<!-- ================= MOONLIGHT 2: TORCH ================= -->
+<section class="sheet" id="moonlight-torch">
+  <h2>Moonlight · Option A <small>Torch and ball: the Moon is like a ball in torchlight. One switch turns off the torch and the Sun together.</small></h2>
+  <div class="row">
+    <figure><div class="ph p deep tc" data-stars="11"></div><figcaption>1 · Light on: ball and Moon both shine on the side facing the light</figcaption></figure>
+    <figure><div class="ph p deep tc" data-stars="11" data-off="1"></div><figcaption>2 · Switch off: ball and Moon both go dark</figcaption></figure>
+  </div>
+  <div class="row"><figure><div class="ph l deep tc" data-stars="12"></div><figcaption>Landscape · on</figcaption></figure></div>
+  <div class="row"><figure><div class="ph l deep tc" data-stars="12" data-off="1"></div><figcaption>Landscape · off</figcaption></figure></div>
+</section>
+
+<!-- ================= MOONLIGHT 2: BOUNCE ================= -->
+<section class="sheet" id="moonlight-bounce">
+  <h2>Moonlight · Option B <small>Bounce: sunlight flies to the Moon and bounces down to a house at night. The Sun stays put; a switch turns it off.</small></h2>
+  <div class="row">
+    <figure><div class="ph p deep bn" data-stars="13"></div><figcaption>1 · Sun on: light bounces off the Moon to the house</figcaption></figure>
+    <figure><div class="ph p deep bn" data-stars="13" data-off="1"></div><figcaption>2 · Sun off: no light to bounce, dark Moon, dark night</figcaption></figure>
+  </div>
+  <div class="row"><figure><div class="ph l deep bn" data-stars="14"></div><figcaption>Landscape · on</figcaption></figure></div>
+  <div class="row"><figure><div class="ph l deep bn" data-stars="14" data-off="1"></div><figcaption>Landscape · off</figcaption></figure></div>
+</section>
+
+<script>
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+function rng(seed) { let s = seed * 9301 + 49297; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+
+/** Orthographic picture of a textured ball, lit from `light` (view space, y up). */
+function drawBall(canvas, tex, light, ambient) {
+  const css = parseFloat(canvas.style.width) || canvas.width;
+  const N = canvas.width = canvas.height = Math.round(css * (canvas.dataset.res ? 1 : 2));
+  const ctx = canvas.getContext('2d');
+  const out = ctx.createImageData(N, N);
+  const len = Math.hypot(...light); const L = light.map((v) => v / len);
+  for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
+    const x = (px + 0.5) / N * 2 - 1, y = 1 - (py + 0.5) / N * 2, r2 = x * x + y * y;
+    if (r2 > 1) continue;
+    const z = Math.sqrt(1 - r2);
+    const lon = Math.atan2(x, z), lat = Math.asin(y);
+    const u = Math.min(tex.w - 1, Math.floor((0.5 + lon / (2 * Math.PI)) * tex.w));
+    const v = Math.min(tex.h - 1, Math.floor((0.5 - lat / Math.PI) * tex.h));
+    const ti = (v * tex.w + u) * 4, oi = (py * N + px) * 4;
+    const d = x * L[0] + y * L[1] + z * L[2];
+    const lit = Math.max(0, Math.min(1, d * 6 + 0.5));
+    const k = ambient + (1 - ambient) * lit * (0.75 + 0.25 * Math.max(0, d));
+    out.data[oi] = tex.d[ti] * k * tex.gain; out.data[oi + 1] = tex.d[ti + 1] * k * tex.gain; out.data[oi + 2] = tex.d[ti + 2] * k * tex.gain;
+    out.data[oi + 3] = r2 > 0.985 ? 255 * (1 - r2) / 0.015 : 255;
+  }
+  ctx.putImageData(out, 0, 0);
+}
+async function texture(src, gain) {
+  const img = await loadImg(src); const c = document.createElement('canvas'); c.width = 1536; c.height = 768;
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
+  return { w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data, gain };
+}
+const el = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; };
+
+function stars(ph) {
+  const r = rng(+ph.dataset.stars), w = ph.clientWidth, h = ph.clientHeight, s = [];
+  for (let i = 0; i < 110; i++) s.push(`${(r() * w) | 0}px ${(r() * h) | 0}px 0 ${r() < 0.12 ? 1 : 0}px rgba(255,255,255,${(0.25 + r() * 0.7).toFixed(2)})`);
+  ph.prepend(el(`<div class="stars" style="box-shadow:${s.join(',')}"></div>`));
+}
+
+function buildMoonlight(ph) {
+  const land = ph.classList.contains('l'), off = !!ph.dataset.off, a = +ph.dataset.a * Math.PI / 180;
+  const cx = land ? 400 : 180, cy = land ? 172 : 345, R = land ? 95 : 110, rx = land ? 250 : 136, ry = land ? 128 : 205, S = land ? 68 : 76;
+  const sx = cx + Math.cos(a) * rx, sy = cy - Math.sin(a) * ry;
+  const dx = cx - sx, dy = cy - sy, dl = Math.hypot(dx, dy), nx = -dy / dl, ny = dx / dl;
+  ph.append(el(`<div class="ring" style="left:${cx - rx}px;top:${cy - ry}px;width:${rx * 2}px;height:${ry * 2}px;opacity:.45"></div>`));
+  if (!off) ph.append(el(`<svg class="abs" style="left:0;top:0" width="${ph.clientWidth}" height="${ph.clientHeight}">
+    <defs><linearGradient id="bm${ph.dataset.a}${land}" gradientUnits="userSpaceOnUse" x1="${sx}" y1="${sy}" x2="${cx}" y2="${cy}"><stop offset="0" stop-color="#ffd564" stop-opacity=".55"/><stop offset="1" stop-color="#ffd564" stop-opacity=".12"/></linearGradient></defs>
+    <polygon points="${sx + nx * 14},${sy + ny * 14} ${cx + nx * R},${cy + ny * R} ${cx - nx * R},${cy - ny * R} ${sx - nx * 14},${sy - ny * 14}" fill="url(#bm${ph.dataset.a}${land})"/></svg>`));
+  const ball = el(`<canvas class="ball" style="left:${cx - R}px;top:${cy - R}px;width:${R * 2}px;height:${R * 2}px;${off ? 'box-shadow:0 0 0 2px rgba(255,255,255,.18)' : ''}"></canvas>`);
+  ball.dataset.tex = 'moon'; ball.dataset.amb = off ? '0.05' : '0.07';
+  ball.dataset.light = off ? '0,0,-1' : `${Math.cos(a)},${Math.sin(a) * (ry / rx > 1 ? 1 : 1)},0.1`;
+  ph.append(ball);
+  ph.append(el(`<div class="abs" style="left:${sx - S / 2 - 8}px;top:${sy - S / 2 - 8}px;width:${S + 16}px;height:${S + 16}px;border-radius:50%;${off ? 'background:#3a3d49;border:3px solid #6b6f7c' : 'background:rgba(255,213,100,.28);box-shadow:0 0 34px 14px rgba(255,200,70,.5)'};display:flex;align-items:center;justify-content:center"><img src="icons/sun.svg" width="${S}" class="${off ? 'grey' : ''}"></div>`));
+  if (ph.dataset.hand) {
+    ph.append(el(`<svg class="abs" style="left:${sx - 20}px;top:${sy - 92}px" width="150" height="70"><path d="M10 60 Q60 4 130 22" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 9"/><path d="M118 10 L134 23 L115 32" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`));
+    ph.append(el(`<img class="abs" src="icons/hand.svg" width="58" style="left:${sx - 8}px;top:${sy + 4}px;transform:rotate(-18deg);filter:drop-shadow(2px 3px 0 #2b2118)">`));
+  }
+  ph.append(el(`<div class="cap" style="left:14px;top:14px">${off ? 'No Sun, no moonlight.' : "The Moon shines with the Sun's light."}</div>`));
+  ph.append(el(`<div class="btn" style="left:12px;bottom:14px;width:${land ? 104 : 96}px;height:72px;background:var(--sky)"><svg width="30" height="24" viewBox="0 0 30 24"><path d="M12 3 L3 11 L12 19 M3 11 H20 q7 0 7 8" fill="none" stroke="#2b2118" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><canvas class="mini" data-tex="moon" width="72" height="72" style="width:36px;height:36px;border-radius:50%;border:2.5px solid #2b2118"></canvas></div>`));
+  ph.append(el(`<div class="btn" style="right:12px;bottom:14px;width:158px;height:84px;gap:12px;background:${off ? '#c9ccd4' : 'var(--sun)'}"><img src="icons/sun.svg" width="52" class="${off ? 'grey' : ''}"><div class="toggle ${off ? 'off' : ''}" style="transform:scale(1.25)"></div></div>`));
+}
+
+function buildFar(ph) {
+  const land = ph.classList.contains('l'), B = ph.dataset.mode === 'B', t = +ph.dataset.t, W = ph.clientWidth, H = ph.clientHeight;
+  const band = land ? 104 : (B ? 150 : 214);
+  // the view: Sun shrinking honestly as 1/distance
+  const vx = land ? 420 : 180, vy = (H - band) / 2 + (land ? 4 : 20);
+  if (t === 0) { const D = land ? 216 : 300; ph.append(el(`<div class="sunball" style="left:${vx - D / 2}px;top:${vy - D / 2}px;width:${D}px;height:${D}px"></div>`)); }
+  else if (t < 1) ph.append(el(`<div class="sundot" style="left:${vx - 13}px;top:${vy - 13}px;width:26px;height:26px"></div>`));
+  else {
+    ph.append(el(`<div class="sundot" style="left:${vx - 3}px;top:${vy - 3}px;width:6px;height:6px;box-shadow:0 0 6px 2px rgba(255,213,100,.7)"></div>`));
+    ph.append(el(`<div class="ring" style="left:${vx - 22}px;top:${vy - 22}px;width:44px;height:44px;border-color:#f2b632"></div>`));
+    const r = rng(77); for (let i = 0; i < 26; i++) { const s = 3 + r() * 4; ph.append(el(`<div class="sundot" style="left:${r() * W}px;top:${r() * (H - band - 20)}px;width:${s}px;height:${s}px;background:${['#fff', '#cfe0ff', '#ffe9b0'][i % 3]};box-shadow:0 0 6px 2px rgba(255,255,255,.45)"></div>`)); }
+  }
+  // the ship in the view
+  const shx = land ? (t === 0 ? 640 : 660) : (t === 0 ? 268 : 250), shy = land ? vy - 20 : vy + (t === 0 ? 190 : 130);
+  ph.append(el(`<img class="abs" src="icons/rocket.svg" width="${land ? 64 : 70}" style="left:${shx}px;top:${shy - 30}px;transform:rotate(${land ? 45 : 70}deg)">`));
+  const caps = { 0: 'Up close, the Sun is huge.', 0.3: 'From Earth, the Sun looks this big.', 1: 'Far, far away the Sun is a star.' };
+  ph.append(el(`<div class="cap" style="left:14px;top:14px">${caps[t]}</div>`));
+  // paper band, clear of the Sun
+  ph.append(el(`<div class="drawer" style="left:-3px;right:-3px;bottom:-3px;height:${band}px;border-radius:24px 24px 0 0"></div>`));
+  const backW = 76, x0 = land ? (B ? 150 : 140) : 44, x1 = land ? (B ? W - 54 : W - 250) : W - 44;
+  const ty = land ? H - band / 2 - 2 : H - band + (B ? 62 : 52);
+  const at = (f) => x0 + (x1 - x0) * f, pos = at(t);
+  const th = B ? 26 : 20;
+  ph.append(el(`<div class="track" style="left:${x0 - 8}px;top:${ty - th / 2}px;width:${x1 - x0 + 16}px;height:${th}px"><div class="fill" style="width:${pos - x0 + 8}px"></div></div>`));
+  const stn = (f, inner, on) => ph.append(el(`<div class="stn ${on ? 'on' : ''}" style="left:${at(f)}px;top:${ty}px">${inner}</div>`));
+  stn(0, `<img src="icons/sun.svg" width="34">`, false);
+  stn(0.3, `<canvas class="mini" data-tex="earth" width="80" height="80" style="width:40px;height:40px;border-radius:50%"></canvas>`, t === 0.3);
+  stn(0.55, `<div style="width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8fb4ff,#3f63d8 70%)"></div>`, false);
+  stn(1, `<img src="icons/glowstar.svg" width="34">`, t === 1);
+  const T = B ? 72 : 44;
+  ph.append(el(`<div class="thumb" style="left:${pos - T / 2}px;top:${ty - T / 2 - (B ? 0 : 0)}px;width:${T}px;height:${T}px"><img src="icons/rocket.svg" width="${T * 0.66}" style="transform:rotate(45deg)"></div>`));
+  if (B && t === 0) {
+    ph.append(el(`<svg class="abs" style="left:${pos + 44}px;top:${ty - 46}px" width="150" height="40"><path d="M4 26 Q70 0 132 22" fill="none" stroke="#2b2118" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 9"/><path d="M120 8 L136 23 L116 30" fill="none" stroke="#2b2118" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`));
+    ph.append(el(`<img class="abs" src="icons/hand.svg" width="58" style="left:${pos + 2}px;top:${ty + 6}px;transform:rotate(-14deg);filter:drop-shadow(2px 3px 0 #2b2118)">`));
+  }
+  const back = `<svg width="30" height="24" viewBox="0 0 30 24"><path d="M12 3 L3 11 L12 19 M3 11 H20 q7 0 7 8" fill="none" stroke="#2b2118" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if (land) ph.append(el(`<div class="btn" style="left:12px;bottom:16px;width:${backW}px;height:72px;background:var(--sky)">${back}</div>`));
+  else if (B) ph.append(el(`<div class="btn" style="left:12px;top:${H - band - 84}px;width:${backW}px;height:68px;background:var(--sky)">${back}</div>`));
+  else ph.append(el(`<div class="btn" style="left:12px;bottom:16px;width:${backW}px;height:92px;background:var(--sky)">${back}</div>`));
+  if (!B) {
+    const go = t === 0 ? `<img src="icons/rocket.svg" width="58" style="transform:rotate(45deg)"><svg width="40" height="44" viewBox="0 0 40 44"><path d="M6 4 L36 22 L6 40 Z" fill="#74c27a" stroke="#2b2118" stroke-width="3.5" stroke-linejoin="round"/></svg>`
+      : t < 1 ? `<img src="icons/rocket.svg" width="58" style="transform:rotate(45deg)"><svg width="40" height="44" viewBox="0 0 40 44"><rect x="4" y="4" width="12" height="36" rx="3" fill="#f07a62" stroke="#2b2118" stroke-width="3.5"/><rect x="24" y="4" width="12" height="36" rx="3" fill="#f07a62" stroke="#2b2118" stroke-width="3.5"/></svg>`
+      : `<img src="icons/sun.svg" width="46"><img src="icons/rocket.svg" width="58" style="transform:rotate(-135deg)">`;
+    const bw = land ? 208 : W - backW - 36;
+    ph.append(el(`<div class="btn" style="right:12px;bottom:16px;width:${bw}px;height:${land ? 72 : 92}px;gap:16px;border-radius:22px;background:var(--star);box-shadow:var(--lift), 0 0 0 0 #fff">${go}</div>`));
+  }
+}
+
+const BACK = `<svg width="30" height="24" viewBox="0 0 30 24"><path d="M12 3 L3 11 L12 19 M3 11 H20 q7 0 7 8" fill="none" stroke="#2b2118" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function lightButtons(ph, off) {
+  ph.append(el(`<div class="btn" style="left:12px;bottom:14px;width:100px;height:72px;background:var(--sky)">${BACK}<canvas class="mini" data-tex="moon" width="72" height="72" style="width:36px;height:36px;border-radius:50%;border:2.5px solid #2b2118"></canvas></div>`));
+  ph.append(el(`<div class="btn" style="right:12px;bottom:14px;width:170px;height:92px;gap:14px;border-radius:22px;background:${off ? '#c9ccd4' : 'var(--sun)'}"><img src="icons/sun.svg" width="56" class="${off ? 'grey' : ''}"><div class="toggle ${off ? 'off' : ''}" style="transform:scale(1.35)"></div></div>`));
+}
+const beam = (x0, y0, h0, x1, y1, h1, id, a) => `<svg class="abs" style="left:0;top:0;width:100%;height:100%"><defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"><stop offset="0" stop-color="#ffd564" stop-opacity="${a}"/><stop offset="1" stop-color="#ffd564" stop-opacity="${a * 0.3}"/></linearGradient></defs><polygon points="${x0},${y0 - h0} ${x1},${y1 - h1} ${x1},${y1 + h1} ${x0},${y0 + h0}" fill="url(#${id})"/></svg>`;
+
+function buildTorch(ph) {
+  const land = ph.classList.contains('l'), off = !!ph.dataset.off, uid = ph.dataset.stars + (off ? 'x' : 'o') + (land ? 'l' : 'p');
+  const w = land ? 400 : 360, h1 = land ? 360 : 318, h2 = land ? 360 : 422;
+  // at home
+  const room = el(`<div class="abs" style="left:0;top:0;width:${w}px;height:${h1}px;overflow:hidden;background:linear-gradient(#3b3050,#241c30);${land ? 'border-right' : 'border-bottom'}:3px solid #000"></div>`);
+  const ty = land ? 238 : 232, br = 50, bx = w - 96, by = ty - br;
+  room.append(el(`<div class="abs" style="left:0;right:0;top:${ty}px;bottom:0;background:#7a5238;border-top:3px solid #2b2118"></div>`));
+  if (!off) room.append(el(beam(112, by, 12, bx, by, br, 'tb' + uid, 0.6)));
+  room.append(el(`<div class="abs" style="left:${bx - br}px;top:${by - br}px;width:${br * 2}px;height:${br * 2}px;border-radius:50%;border:3px solid #2b2118;background:${off ? '#2c2a38' : 'radial-gradient(circle at 22% 45%, #ffffff 0%, #f1efe4 30%, #77788a 62%, #34333f 80%)'}"></div>`));
+  room.append(el(`<div class="abs" style="left:${bx - 40}px;top:${ty - 3}px;width:80px;height:9px;border-radius:50%;background:rgba(0,0,0,.35)"></div>`));
+  room.append(el(`<img class="abs torch ${off ? 'grey' : ''}" src="icons/torch.svg" width="96" style="left:18px;top:${by - 48}px;transform:rotate(135deg)">`));
+  room.append(el(`<div class="chip" style="left:12px;top:12px;padding-left:8px"><img src="icons/house.svg" width="28">A ball and a torch</div>`));
+  ph.append(room);
+  // in space
+  const sp = el(`<div class="abs" style="left:${land ? w : 0}px;top:${land ? 0 : h1}px;width:${w}px;height:${h2}px;overflow:hidden"></div>`);
+  const cy = land ? by : 170, R = 72, mx = w - 100, D = 230;
+  sp.append(el(`<div class="sunball ${off ? 'grey' : ''}" style="left:${-D * 0.62}px;top:${cy - D / 2}px;width:${D}px;height:${D}px;${off ? 'box-shadow:none' : ''}"></div>`));
+  if (!off) sp.append(el(beam(D * 0.38, cy, 60, mx, cy, R, 'sb' + uid, 0.5)));
+  const ball = el(`<canvas class="ball" style="left:${mx - R}px;top:${cy - R}px;width:${R * 2}px;height:${R * 2}px;${off ? 'box-shadow:0 0 0 2px rgba(255,255,255,.18)' : ''}"></canvas>`);
+  ball.dataset.tex = 'moon'; ball.dataset.amb = '0.06'; ball.dataset.light = off ? '0,0,-1' : '-1,0.05,0.22';
+  sp.append(ball);
+  sp.append(el(`<div class="chip" style="${land ? 'right:12px' : 'left:12px'};top:12px"><canvas class="mini" data-tex="moon" width="60" height="60" style="width:30px;height:30px;border-radius:50%"></canvas>The Moon and the Sun</div>`));
+  ph.append(sp);
+  lightButtons(ph, off);
+}
+
+function buildBounce(ph) {
+  const land = ph.classList.contains('l'), off = !!ph.dataset.off;
+  const D = land ? 300 : 280, sy = land ? 150 : 300, sxc = -70;
+  const mx = land ? 455 : 262, my = land ? 92 : 170, R = land ? 60 : 68;
+  const ER = land ? 420 : 340, ex = land ? 600 : 250, ey = land ? 250 + ER : 560 + ER;
+  const hx = land ? 610 : 262, hy = ey - Math.sqrt(ER * ER - (hx - ex) * (hx - ex));
+  ph.append(el(`<div class="sunball ${off ? 'grey' : ''}" style="left:${sxc - D / 2}px;top:${sy - D / 2}px;width:${D}px;height:${D}px;${off ? 'box-shadow:none' : ''}"></div>`));
+  const earth = el(`<canvas class="ball" style="left:${ex - ER}px;top:${ey - ER}px;width:${ER * 2}px;height:${ER * 2}px"></canvas>`);
+  earth.dataset.tex = 'earth'; earth.dataset.amb = '0.16'; earth.dataset.light = off ? '0,0,-1' : '-1,-0.35,0.1'; earth.dataset.res = '1';
+  ph.append(earth);
+  if (!off) {
+    const x0 = sxc + D / 2 + 6, lines = [];
+    const arrow = (ax, ay, bx, by, col, wid) => { const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy), ux = dx / l, uy = dy / l;
+      return `<path d="M${ax} ${ay} L${bx} ${by}" stroke="${col}" stroke-width="${wid}" stroke-linecap="round" stroke-dasharray="2 11" fill="none"/><path d="M${bx - ux * 14 - uy * 9} ${by - uy * 14 + ux * 9} L${bx} ${by} L${bx - ux * 14 + uy * 9} ${by - uy * 14 - ux * 9}" stroke="${col}" stroke-width="${wid}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`; };
+    for (const o of [-26, 0, 26]) lines.push(arrow(x0, sy - 40 + o * 0.6, mx - R - 12, my + o, '#ffd564', 5));
+    for (const o of [-16, 16]) lines.push(arrow(mx - 14 + o, my + R + 12, hx + o * 0.6, hy - 62, '#fff3c4', 4.5));
+    ph.append(el(`<svg class="abs" style="left:0;top:0;width:100%;height:100%">${lines.join('')}</svg>`));
+    ph.append(el(`<div class="abs" style="left:${hx - 70}px;top:${hy - 46}px;width:140px;height:70px;border-radius:50%;background:radial-gradient(closest-side, rgba(255,243,196,.55), rgba(255,243,196,0))"></div>`));
+  }
+  const ball = el(`<canvas class="ball" style="left:${mx - R}px;top:${my - R}px;width:${R * 2}px;height:${R * 2}px;${off ? 'box-shadow:0 0 0 2px rgba(255,255,255,.18)' : ''}"></canvas>`);
+  ball.dataset.tex = 'moon'; ball.dataset.amb = '0.06'; ball.dataset.light = off ? '0,0,-1' : '-1,-0.1,0.3';
+  ph.append(ball);
+  ph.append(el(`<img class="abs" src="icons/house.svg" width="56" style="left:${hx - 28}px;top:${hy - 50}px;${off ? 'filter:brightness(.35)' : 'filter:brightness(.85)'}">`));
+  ph.append(el(`<div class="cap" style="${land ? 'right:14px' : 'left:14px'};top:14px">${off ? 'No Sun, no moonlight.' : 'Moonlight is sunlight, bounced.'}</div>`));
+  lightButtons(ph, off);
+}
+
+(async () => {
+  await document.fonts.load("20px 'Patrick Hand'");
+  const tex = { moon: await texture('/assets/moon.jpg', 1.25), earth: await texture('/assets/earth.jpg', 1.15) };
+  document.querySelectorAll('.ph').forEach(stars);
+  document.querySelectorAll('.ml').forEach(buildMoonlight);
+  document.querySelectorAll('.fa').forEach(buildFar);
+  document.querySelectorAll('.tc').forEach(buildTorch);
+  document.querySelectorAll('.bn').forEach(buildBounce);
+  document.querySelectorAll('canvas.ball, canvas.mini').forEach((c) => {
+    const light = (c.dataset.light || '-0.3,0.3,0.9').split(',').map(Number);
+    drawBall(c, tex[c.dataset.tex], light, +(c.dataset.amb || 0.1));
+  });
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

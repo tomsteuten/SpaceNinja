@@ -36,8 +36,19 @@ gamified: nothing is locked, nothing is scored, nothing has to be done in order.
 
 ## How work is done
 
-- The assistant judges appearance itself from real screenshots and keeps going. The owner
-  reviews once per phase, on a phone, from the live site.
+- **Mock first.** For any new screen, toy or look, the assistant shows the owner pictures
+  (two or three options) and the owner picks before code is written. The assistant does not
+  approve its own appearance or usability.
+- **Everything a child can do is visible on arrival**, in the same place on every world, as a
+  big picture. Nothing appears later because of something the child did. Reduce clutter with
+  layout (main things big, secondary things small), never by hiding.
+- **Children are five and up and mostly cannot read.** With no narration yet, a control must
+  make sense from its picture alone. Pictures are illustrations, not line glyphs.
+- **One world right before more worlds.** Get the visit screen right on the Moon and Earth,
+  have the owner's children play it, then roll it out and add worlds.
+- **Play it like a first-time child before merging.** Passing tests is not enough.
+- **Tests:** a small smoke suite only while the design is moving (boot, fly to a world, open
+  a toy, return, offline). New specs run on all three viewport sizes locally before a push.
 - The plan and its progress live at the top of `docs/current-implementation.md`.
 
 ## Changes
@@ -45,3 +56,7 @@ gamified: nothing is locked, nothing is scored, nothing has to be done in order.
 - 2026-11-10: replaced the toys-first decision list with this definition of finished. Locked
   worlds, toy-after-three-finds gating, the strict no-artist's-impression rule and Kokoro
   placeholder audio are retired. History before this date is in `docs/decision-history.md`.
+- 2026-11-11: after the owner played Phases 1 to 2 live. Controls that appeared only after a
+  find confused adults, the Moonlight diagram misled, and the line-glyph icons looked
+  amateurish on a phone. "The assistant judges appearance itself" is replaced by mock first;
+  adding worlds waits until the visit screen is right.

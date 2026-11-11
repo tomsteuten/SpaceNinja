@@ -47,10 +47,13 @@ export function dragAngle(deltaPixels: number, shortEdge: number): number {
  * pulls the camera back (subject smaller), never in, and only bites where the vertical angle
  * is the binding one — on a very narrow portrait the horizontal already dominates and the
  * inset changes nothing. Clamped so a pathological inset cannot invert the angle.
+ *
+ * `insetX` is the same for the *horizontal* frame: the visit screen's toy shelf down the right
+ * side in landscape (ui/viewport.ts).
  */
-export function framingHalfAngle(fovDegrees: number, aspect: number, inset = 0): number {
+export function framingHalfAngle(fovDegrees: number, aspect: number, inset = 0, insetX = 0): number {
   const vFov = THREE.MathUtils.degToRad(fovDegrees);
-  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect * THREE.MathUtils.clamp(1 - insetX, 0.35, 1));
   const usableV = 2 * Math.atan(Math.tan(vFov / 2) * THREE.MathUtils.clamp(1 - inset, 0.35, 1));
   return Math.min(usableV, hFov) / 2;
 }
@@ -92,7 +95,7 @@ export interface OrbitInput {
    * that fraction of the vertical frame for the interface, so the subject clears the dock and
    * the mission prompt rather than hiding behind them — see `framingHalfAngle`.
    */
-  frame(radius: number, immediate?: boolean, inset?: number): void;
+  frame(radius: number, immediate?: boolean, inset?: number, insetX?: number): void;
   /** Re-derive orbit angles from the camera's actual transform. Call after a cutscene. */
   syncFromCamera(): void;
   /** Move the viewpoint around the focus without rotating the world or its sunlight. */
@@ -309,8 +312,8 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       desiredRadius = clampRadius(desiredRadius);
     },
 
-    frame(radius: number, immediate = false, inset = 0) {
-      const half = framingHalfAngle(camera.fov, camera.aspect, inset);
+    frame(radius: number, immediate = false, inset = 0, insetX = 0) {
+      const half = framingHalfAngle(camera.fov, camera.aspect, inset, insetX);
       desiredRadius = clampRadius(radius / Math.sin(half));
       if (immediate) spherical.radius = desiredRadius;
     },

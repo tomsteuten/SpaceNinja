@@ -69,6 +69,7 @@ const SCREEN_CUES = [
   'toy-sun',
   'moonlight-on',
   'moonlight-off',
+  'sunstar-start',
   'sunstar-earth',
   'sunstar-neptune',
   'sunstar-far',

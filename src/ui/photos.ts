@@ -8,6 +8,7 @@
 import { worldPicture } from './pictures';
 import { imageExists } from '../scene/textures';
 import { createIcon } from './icons';
+import { picture } from './visitPictures';
 import { createDialogFocus } from './dialog';
 import { PANEL_OPEN_GUARD_MS, createPanelGuard, type PanelGuard, type PanelOpening } from './panelGuard';
 
@@ -121,7 +122,7 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
   const journalButton = document.createElement('button');
   journalButton.type = 'button';
   journalButton.className = 'photo-view__journal is-hidden';
-  journalButton.append(createIcon('journal'), document.createTextNode('See discoveries'));
+  journalButton.append(picture('book'), document.createTextNode('See discoveries'));
   actions.append(continueButton, journalButton);
   panel.append(header, saved, figure, detail, actions);
   overlay.append(panel);
@@ -217,7 +218,7 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
       overlay.classList.remove('is-reward');
       saved.classList.add('is-hidden');
       journalButton.classList.add('is-hidden');
-      returnWorld.replaceChildren(worldId ? worldPicture(worldId) : createIcon('journal'));
+      returnWorld.replaceChildren(worldId ? worldPicture(worldId) : picture('book'));
       returnLabel.textContent = worldId ? 'Keep exploring' : 'Back to journal';
       continueButton.classList.remove('is-hidden');
       reveal();
@@ -229,7 +230,7 @@ export function createPhotoViewer(root: HTMLElement, options: PhotoViewerOptions
       detail.textContent = discoveryDetail;
       caption.textContent = '';
       overlay.classList.add('is-reward');
-      saved.replaceChildren(createIcon('journal'), document.createTextNode('Saved to your journal'));
+      saved.replaceChildren(picture('book'), document.createTextNode('Saved to your journal'));
       saved.classList.remove('is-hidden');
       if (progress) {
         const count = document.createElement('span');

@@ -12,6 +12,7 @@ import { cueText } from '../audio/script';
 import { DESTINATIONS, DISCOVERIES, type Discovery } from '../config';
 import { STICKERS, foundEverything, loadProgress } from '../state/progress';
 import { createIcon, iconMarkup, type IconName } from './icons';
+import { cardPictureMarkup, picture, type CardPicture } from './visitPictures';
 import {
   guideOnArrival,
   narrationOnEnd,
@@ -37,7 +38,7 @@ export interface GameUI {
   readonly toyIsNext: boolean;
   /** Space map is the visit's one ringed next step. */
   readonly mapIsNext: boolean;
-  /** Day & night is in the visit row now, not held back until later in the visit. */
+  /** Day & night (Turn Earth on Earth) is one of this world's cards on the toy shelf. */
   readonly spinAvailable: boolean;
   /** A repeat tap over the old Space map footprint would still be ignored (mapReturnGuard.ts). */
   readonly mapReturnGuarded: boolean;
@@ -49,22 +50,22 @@ export interface GameUI {
   headingBottom(): number;
   /** Called when the flight starts: everything clears out of the way. */
   enterFlight(): void;
-  /** With a `worldId`, the card's title is led by a small picture of that world. */
-  showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string): void;
+  /**
+   * The ship has landed: the whole visit screen goes up at once and stays put (visit-B). With a
+   * `worldId`, the name chip and the toy shelf are that world's; `places` is how many gold places
+   * this visit has, the rings of the found counter (none on a world without places).
+   */
+  showArrival(cueId: string, label: string, fact: string, emoji: string, worldId?: string, places?: number): void;
   /** Clear idle fact content and follow-ups; an explicitly open reading panel stays open. */
   clearFact(): void;
   /**
-   * Puts up the progress counter a beat after the gold places appear. The targets get the
-   * first look, then the counter names the ambient hunt without becoming a mode the child
-   * has to finish before leaving.
-   *
-   * `cueId` is the spoken instruction. It is spoken only when `speak` is set (the hunt
-   * starting by itself after a quiet spell) and nothing else is talking. It is never queued
-   * behind the arrival welcome: one line at arrival, and nothing waiting to talk over the
-   * child's first taps (owner's playtest, 22 Oct 2026).
+   * The guided hunt has begun. The found counter has been on screen since arrival; this only
+   * speaks the find instruction, and only when `speak` is set (the hunt starting by itself
+   * after a quiet spell) and nothing else is talking. It is never queued behind the arrival
+   * welcome: one line at arrival, and nothing waiting to talk over the child's first taps
+   * (owner's playtest, 22 Oct 2026).
    */
-  beginMission(caption: string, total: number, cueId?: string, speak?: boolean): void;
-  setMissionCaption(text: string, cueId?: string): void;
+  beginMission(caption: string, cueId?: string, speak?: boolean): void;
   /**
    * Queue a guide without replacing the current fact, such as a day/night explanation or
    * invitation. Waits behind whatever is being read, as the hunt line does,
@@ -122,20 +123,12 @@ export interface GameUI {
    * thing that was touched rather than only in a card at the bottom of the screen.
    */
   showFindLabel(clientX: number, clientY: number, discoveryId: string, name: string): void;
-  /**
-   * Offer to turn the destination through a day, or take the offer away. Null hides it.
-   *
-   * `tint` colours the small globe on the button so it is recognisably *this* world's day
-   * rather than a generic one.
-   */
-  showSpin(label: string | null, tint?: string): void;
   /** Turns the activity button into an explicit stop control while a day is turning. */
   setSpinBusy(busy: boolean): void;
   /**
    * Let the day/night button ask to be noticed in a quiet gap. See `shouldInviteSpin`.
    */
   setSpinAttention(on: boolean): void;
-  setEarthWelcome(on: boolean): void;
   /** Open Earth's bedtime spin toy over the visit. It is Earth's toy, so this plays it. */
   openBedtime(): void;
   /** Take any open toy away without its own exit (crash, teardown). */
@@ -156,20 +149,6 @@ export interface GameUI {
   setSpinProgress(progress: number | null): void;
   /** Sound off also stops and hides the read-aloud button, which is the only sound the UI owns. */
   setSoundOn(on: boolean): void;
-  /**
-   * Point at the last place still to be found, or `null` to take the arrow away.
-   *
-   * `-1` for the left edge, `1` for the right. Only ever shown while the one remaining
-   * discovery is round the back: it is the drag lesson, made visible — and a button that
-   * turns the world there for a child who would rather tap than drag.
-   */
-  setHuntArrow(side: -1 | 1 | null): void;
-  /**
-   * The centre of the hunt arrow button in client pixels while it is shown, else null. Read
-   * from layout rather than the animated box, so the idle coach's hand does not chase the
-   * arrow's own nudge.
-   */
-  huntArrowCentre(): { x: number; y: number } | null;
   /** Back to the opening state, without rebuilding any of the DOM. */
   reset(): void;
   dispose(): void;
@@ -182,13 +161,10 @@ export interface UIOptions {
   /** The "turn this world through a day" button. Only offered where config has one. */
   onSpin(): void;
   onStopSpin(): void;
-  onFindPlaces(): void;
   /** Earth's bedtime spin moved the house into a new part of the day. */
   onBedtimePart(part: PartOfDay): void;
   /** The child left the bedtime spin. */
   onBedtimeClose(): void;
-  /** The hunt arrow was pressed: turn the world towards the hidden last place. */
-  onTurnToHidden(): void;
   /**
    * Someone held the journal button down. That is the way back into the grown-ups panel,
    * and it is deliberately a gesture rather than a button: a settings control on screen is
@@ -220,10 +196,8 @@ export function createUI(options: UIOptions): GameUI {
     onExploreAgain,
     onSpin,
     onStopSpin,
-    onFindPlaces,
     onBedtimePart,
     onBedtimeClose,
-    onTurnToHidden,
     onGrownups,
     onFinale,
   } = options;
@@ -244,48 +218,19 @@ export function createUI(options: UIOptions): GameUI {
   const hint = el('p', 'hint');
   root.append(hint);
 
-  /* --- mission HUD --------------------------------------------------------- */
+  /* --- day and night legend ----------------------------------------------- */
 
-  // Top of the screen: the destination sits in the middle and the dock owns the bottom,
-  // so this is the one band that is clear of both in portrait and in landscape.
-  const missionHud = el('div', 'mission-hud');
-  missionHud.classList.add('is-hidden');
-  const slotRow = el('div', 'slot-row');
-  const missionCaption = el('p', 'mission-caption');
-  missionHud.append(slotRow, missionCaption);
-  root.append(missionHud);
   const dayLegend = el('div', 'day-legend is-hidden');
   const dayKey = el('span', 'day-key', 'Day');
   const nightKey = el('span', 'night-key', 'Night');
   dayLegend.append(dayKey, nightKey);
   root.append(dayLegend);
 
-  let slots: HTMLElement[] = [];
-  let visitFound = 0;
   /** This visit's places, in the order found: the journal leads with them once the visit is done. */
   let visitFinds: string[] = [];
+  let visitFound = 0;
 
-  function buildSlots(total: number) {
-    visitFound = 0;
-    missionHud.setAttribute('role', 'img');
-    missionHud.setAttribute('aria-label', `0 of ${total} places found`);
-    slotRow.replaceChildren();
-    slots = [];
-    for (let i = 0; i < total; i++) {
-      const slot = el('div', 'slot');
-      // Not colour alone: an empty slot is dashed and previews the gold target to find, a
-      // filled one is solid, holds the rock and gains a tick.
-      const slotIcon = el('span', 'slot-icon');
-      slotIcon.innerHTML = iconMarkup('target');
-      slot.append(slotIcon);
-      slotRow.append(slot);
-      slots.push(slot);
-    }
-  }
-
-  /* --- dock: buttons + fact card ------------------------------------------- */
-
-  const dock = el('div', 'dock');
+  /* --- the Words card --------------------------------------------------------- */
 
   const factCard = el('div', 'panel fact-card');
   // Named above the text rather than inside it: a child who cannot read the paragraph can
@@ -294,7 +239,7 @@ export function createUI(options: UIOptions): GameUI {
   const factText = el('p');
   factText.id = 'fact-transcript';
   const narrateButton = el('button', 'btn btn--round narrate-btn');
-  narrateButton.append(createIcon('speaker'));
+  narrateButton.append(picture('speaker'));
   narrateButton.type = 'button';
   narrateButton.setAttribute('aria-label', 'Read this out loud');
   /*
@@ -336,29 +281,6 @@ export function createUI(options: UIOptions): GameUI {
   const factFocus = createDialogFocus(factCard, () => factReturn, () => setFactOpen(false));
 
   /*
-   * The drag lesson, made visible — and made a button.
-   *
-   * One discovery on every world sits past the horizon, and reaching it is how a child
-   * learns the camera can be turned — the single most important thing the game teaches
-   * about its own controls. Until now the only cue was a line of text ("One more! Drag to
-   * spin around Earth"), which is a poor instrument for an audience that mostly cannot
-   * read. This points at where the place actually is, and only while it is out of sight.
-   *
-   * On the tablet the drag itself was the frustrating part: the arrow said where, the
-   * child understood where, and turning the world there still took more than they had.
-   * So the arrow now also *does* it: a press turns the world a quarter turn towards the
-   * place. The drag still works and still turns further per swipe than it did; the button
-   * is the smaller ask, offered first. Outside the dock, because it belongs to the edge of
-   * the screen rather than to the cluster of controls at the bottom.
-   */
-  const huntArrow = el('button', 'hunt-arrow is-hidden') as HTMLButtonElement;
-  huntArrow.type = 'button';
-  huntArrow.setAttribute('aria-label', 'Turn to the last place');
-  huntArrow.append(el('span', 'hunt-arrow__chevron', '❯'));
-  huntArrow.addEventListener('click', () => onTurnToHidden());
-  root.append(huntArrow);
-
-  /*
    * One press counter for every panel the interface opens: the journal, the About words and
    * the photo. A fast second tap must not close what the first one opened — see panelGuard.
    */
@@ -375,7 +297,6 @@ export function createUI(options: UIOptions): GameUI {
     onHide: () => {
       factCard.inert = false;
       journalPanel.inert = false;
-      pendingAppear?.();
     },
   });
   /** What the thumbnail currently shows, so a tap opens the right one. */
@@ -429,79 +350,83 @@ export function createUI(options: UIOptions): GameUI {
     }
     if (photoFor !== discovery.id) return;
     photoViewer.showDiscovery(url, discovery.name, discovery.short, visitWorldId,
-      { found: visitFound, total: slots.length });
+      { found: visitFound, total: foundRings.length });
   }
 
   /** The discovery the card is currently about, or null for anything else. */
   let photoFor: string | null = null;
-  /** The latest find's photograph lookup, settled once any postcard it opens is up. */
-  let photoPending: Promise<void> = Promise.resolve();
+
+  /* --- the visit screen ------------------------------------------------------
+   *
+   * Owner's pick B, the toy shelf (design/visit-screen/visit-B.png, 11 Nov 2026). Everything a
+   * child can do on a world is on screen from the moment the ship lands, in the same place on
+   * every world, and never moves: Space map top left (the way back), the world's name beside
+   * it, Listen and Journal small, the found counter, and the world's toys as big picture cards
+   * on a paper shelf (along the bottom in portrait, down the right side in landscape). Nothing
+   * appears later because of something the child did; a control may change state (Day & night
+   * becomes Stop, a ring fills in), never place. The staged "quiet arrival" row, the first-Earth
+   * welcome and the yellow hunt arrow are gone: even adults were lost when controls popped in.
+   *
+   * Layout is visit.css. The camera keeps the world in the clear playfield the screen leaves
+   * (viewport.ts), so the world never sits under the shelf or the top buttons.
+   */
+  const visit = el('div', 'visit is-hidden');
+  visit.setAttribute('role', 'group');
+  visit.setAttribute('aria-label', 'Explore this world');
 
   /**
-   * The one way back, from the moment the ship arrives until it leaves again.
-   *
-   * This replaces a pair that used to split the job: a 62px unlabelled round "🌍" while
-   * a mission was running, and a big labelled "Explore Again" once it was finished. Two
-   * problems with that. The quiet one was the *only* thing in the dock during a mission,
-   * competing with nothing, yet styled to lose — a translucent circle next to the
-   * journal's translucent circle, with no word on it to say which was which. And the
-   * loud one appeared only on completion, so the game shouted the exit at exactly the
-   * child who no longer needed it and whispered it at the one who did.
-   *
-   * So: one button, always the same words, never hidden mid-mission. It stays visually
-   * secondary to whatever the primary action is, but it is unmistakably a button with a
-   * label, because "how do I get out of here" should never need a guess.
-   *
-   * "Fly Home" and a rocket said the wrong thing twice: a rocket means *go*, not *come back*,
-   * and "home" is the very world some children are standing on. It is now the solar-system map
-   * icon and "Space map" — it names the place it returns to (the map of all the worlds), which
-   * adults missed was always available and a pre-reader reads from the little orbit.
+   * The one way back, from the moment the ship arrives until it leaves again: always the same
+   * big sky button in the same corner, a ringed planet for the map of all the worlds.
    */
-  const homeButton = el('button', 'btn btn--secondary home-btn');
+  const homeButton = el('button', 'visit-btn visit-map home-btn');
   homeButton.type = 'button';
   homeButton.setAttribute('aria-label', 'Back to the space map');
-  homeButton.append(createIcon('spaceMap'), el('span', undefined, 'Space map'));
-  homeButton.classList.add('is-hidden');
+  homeButton.append(picture('planet'));
 
-  // Picture + action + words: the globe explains the light, the arrow shows a turn,
-  // and the short label reinforces its meaning. It stays in one place when it becomes Stop.
-  const spinButton = el('button', 'btn btn--secondary spin-btn');
-  spinButton.type = 'button';
-  const spinPicture = el('span', 'spin-picture');
-  spinPicture.setAttribute('aria-hidden', 'true');
-  const spinGlobe = el('span', 'spin-globe');
-  const spinSun = el('span', 'spin-sun');
-  spinGlobe.append(el('span', 'spin-globe__night'));
-  const spinArrow = el('span', 'spin-arrow');
-  spinArrow.append(createIcon('turnArrow'));
-  spinPicture.append(spinSun, spinGlobe, spinArrow);
-  const spinLabel = el('span', 'control-label', 'Day & night');
-  spinButton.append(spinPicture, spinLabel);
-  spinButton.classList.add('is-hidden');
-  let spinBusy = false;
-  let preDayCaption = '';
-  let visitWorldId = 'earth';
-  let spinAccessibleLabel = 'Watch day and night';
+  /** The world's name and its little picture: what a grown-up reads out, what a child matches. */
+  const worldChip = el('div', 'visit-chip');
+  worldChip.setAttribute('aria-hidden', 'true');
+  const chipName = el('strong', 'visit-chip__name');
 
-  const listenButton = el('button', 'btn btn--secondary listen-btn is-hidden');
-  const listenLabel = el('span', 'control-label', 'Listen');
-  listenButton.append(createIcon('speaker'), listenLabel);
+  const listenButton = el('button', 'visit-btn visit-small listen-btn');
   listenButton.type = 'button';
-  listenButton.setAttribute('aria-expanded', 'false');
-  listenButton.setAttribute('aria-controls', 'fact-title');
-  const worldHeading = el('div', 'world-heading is-hidden');
-  const headingName = el('strong');
-  const headingCaption = el('span', 'world-heading__caption');
-  const headingCopy = el('div');
-  headingCopy.append(headingName, headingCaption);
-  worldHeading.append(headingCopy);
-  const wordsButton = el('button', 'world-words', 'Words');
-  wordsButton.type = 'button';
-  wordsButton.setAttribute('aria-label', 'Read the words');
-  wordsButton.setAttribute('aria-expanded', 'false');
-  wordsButton.setAttribute('aria-controls', 'fact-title');
-  headingCopy.append(wordsButton);
-  root.append(worldHeading);
+  listenButton.setAttribute('aria-label', 'Listen');
+  listenButton.append(picture('speaker'));
+
+  /** Three gold rings, one per place on this visit; a found place fills its ring. */
+  const foundCounter = el('div', 'visit-found');
+  foundCounter.setAttribute('role', 'img');
+  let foundRings: HTMLElement[] = [];
+  function buildRings(total: number) {
+    visitFound = 0;
+    foundRings = Array.from({ length: total }, () => el('i', 'found-ring'));
+    foundCounter.replaceChildren(...foundRings);
+    foundCounter.setAttribute('aria-label', `0 of ${total} places found`);
+    foundCounter.classList.toggle('is-hidden', total === 0);
+  }
+
+  const shelf = el('div', 'toy-shelf');
+  shelf.setAttribute('role', 'group');
+  shelf.setAttribute('aria-label', 'Things to do here');
+
+  /** A big picture card on the shelf: the picture large, the word small beneath it. */
+  function toyCard(className: string, word: string, name: string): { card: HTMLButtonElement; label: HTMLSpanElement } {
+    const card = el('button', `toy-card ${className}`);
+    card.type = 'button';
+    card.setAttribute('aria-label', name);
+    const label = el('span', 'toy-card__label', word);
+    card.append(el('span', 'toy-card__picture'), label);
+    return { card, label };
+  }
+  function paint(card: HTMLElement, kind: CardPicture, worldId: string) {
+    const art = card.querySelector('.toy-card__picture');
+    if (art) art.innerHTML = cardPictureMarkup(kind, worldId);
+  }
+
+  visit.append(homeButton, worldChip, listenButton, foundCounter, shelf);
+
+  let spinBusy = false;
+  let visitWorldId = 'earth';
   let arrivalFact = '';
   let arrivalCue = '';
   let factOpen = false;
@@ -511,7 +436,7 @@ export function createUI(options: UIOptions): GameUI {
     if (open === factOpen) return;
     factOpen = open;
     factShade.classList.toggle('is-hidden', !open);
-    wordsButton.setAttribute('aria-expanded', String(open));
+    listenButton.setAttribute('aria-expanded', String(open));
     if (open) {
       readingOpening = panelGuard.opened();
       factCard.classList.remove('is-hidden');
@@ -529,13 +454,8 @@ export function createUI(options: UIOptions): GameUI {
     if (panelGuard.allowsClose(readingOpening, event)) setFactOpen(false);
   });
 
-  const visitActions = el('div', 'visit-actions is-hidden');
-  const findPlacesButton = el('button', 'btn find-places-btn is-hidden');
-  findPlacesButton.type = 'button';
-  findPlacesButton.append(createIcon('target'), el('span', 'control-label', 'Find places'));
-  findPlacesButton.addEventListener('click', onFindPlaces);
-  visitActions.setAttribute('role', 'group');
-  visitActions.setAttribute('aria-label', 'Explore this world');
+  /* --- the world's toys, one card each ----------------------------------------- */
+
   // Earth's toy: day and night are Earth turning, seen from above the North Pole.
   const bedtimeSpin = createBedtimeSpin(root, {
     onPart: (part) => onBedtimePart(part),
@@ -544,23 +464,21 @@ export function createUI(options: UIOptions): GameUI {
       onBedtimeClose();
     },
   });
-  // Prototype toy: on the Moon, jump side by side with yourself on Earth.
+  // On the Moon, jump side by side with yourself on Earth.
   const moonJump = createMoonJump(root, () => jumpButton.focus());
   /** The world's toy has been opened, so it counts as played for this visit. */
   let toyPlayed = false;
   function markToyPlayed() {
     toyPlayed = true;
     root.classList.remove('is-toy-next');
-    // Played after the finds: Space map is the one ringed way on, and Journal joins unringed.
-    // Played before them: nothing is ringed. The places are still there, never required.
-    // A world with no places to find (the Sun) has nothing left to finish: its toy is the visit.
+    // Played after the finds: Space map is the one ringed way on. Played before them: nothing
+    // is ringed. The places are still there, never required. A world with no places to find
+    // (the Sun) has nothing left to finish: its toy is the visit.
     if (root.classList.contains('is-complete') || !DESTINATIONS[visitWorldId]?.mission) {
       root.classList.add('is-map-next');
-      if (!spinBusy) headingCaption.textContent = completeVisitHint();
     }
-    if (visitStage !== 'open') setVisitStage('open');
   }
-  /** Open a world's toy from its visit-row button. Every toy button shares this. */
+  /** Open a world's toy from its card. Every toy card shares this. */
   function openToy(open: () => void) {
     markToyPlayed();
     setFactOpen(false);
@@ -568,151 +486,99 @@ export function createUI(options: UIOptions): GameUI {
     narrator.stop();
     open();
   }
-  const jumpButton = el('button', 'btn toy-btn jump-btn is-hidden');
-  jumpButton.type = 'button';
-  jumpButton.append(createIcon('jump'), el('span', 'control-label', 'Jump'));
-  jumpButton.setAttribute('aria-label', 'Jump on the Moon');
+  const { card: jumpButton } = toyCard('toy-card--jump jump-btn', 'Jump', 'Jump on the Moon');
+  paint(jumpButton, 'jump', 'moon');
   jumpButton.addEventListener('click', () => openToy(() => moonJump.open()));
   // Saturn's toy: a giant bath where Saturn floats and the rocky worlds sink.
   const saturnBath = createSaturnBath(root, { onClose: () => bathButton.focus() });
-  const bathButton = el('button', 'btn toy-btn bath-btn is-hidden');
-  bathButton.type = 'button';
-  bathButton.append(createIcon('bath'), el('span', 'control-label', 'Bath'));
-  bathButton.setAttribute('aria-label', 'Saturn bath time');
+  const { card: bathButton } = toyCard('toy-card--bath bath-btn', 'Bath', 'Saturn bath time');
+  paint(bathButton, 'bath', 'saturn');
   bathButton.addEventListener('click', () => openToy(() => saturnBath.open()));
   // Mars's toy: drive Perseverance, with every command taking minutes to get there.
   const marsRover = createMarsRover(root, { onClose: () => roverButton.focus() });
-  const roverButton = el('button', 'btn toy-btn rover-btn is-hidden');
-  roverButton.type = 'button';
-  roverButton.append(createIcon('rover'), el('span', 'control-label', 'Rover'));
-  roverButton.setAttribute('aria-label', 'Drive the Mars rover');
+  const { card: roverButton } = toyCard('toy-card--rover rover-btn', 'Rover', 'Drive the Mars rover');
+  paint(roverButton, 'rover', 'mars');
   roverButton.addEventListener('click', () => openToy(() => marsRover.open()));
   // The Sun's toy: fly away from it until it is one star among the others.
   const sunStar = createSunStar(root, {
     onClose: () => sunStarButton.focus(),
     onSay: (cueId, text) => speakToyLine(cueId, text),
   });
-  const sunStarButton = el('button', 'btn toy-btn sun-star-btn is-hidden');
-  sunStarButton.type = 'button';
-  sunStarButton.append(createIcon('farAway'), el('span', 'control-label', 'Far away'));
-  sunStarButton.setAttribute('aria-label', 'Far away: fly away from the Sun');
+  const { card: sunStarButton } = toyCard('toy-card--far sun-star-btn', 'Far away', 'Far away: fly away from the Sun');
+  paint(sunStarButton, 'far-away', 'sun');
   sunStarButton.addEventListener('click', () => openToy(() => sunStar.open()));
-  // The Moon's second toy, Moonlight (the Moon shines with the Sun's light). It takes the
-  // place of Day & night in the Moon's row, joins the same way (after a first find or the
-  // toy), and is never the ringed next step: Jump keeps that. So it is not a `toy-btn`, and
-  // opening it does not count as the visit's toy being played.
+  // The Moon's second toy, Moonlight (the Moon shines with the Sun's light). Jump stays the
+  // Moon's ringed next step, so opening this does not count as the visit's toy being played.
   const moonLight = createMoonLight(root, {
     onClose: () => moonlightButton.focus(),
     onSay: (cueId, text) => speakToyLine(cueId, text),
   });
-  const moonlightButton = el('button', 'btn moonlight-btn is-hidden');
-  moonlightButton.type = 'button';
-  moonlightButton.append(createIcon('moonlight'), el('span', 'control-label', 'Moonlight'));
-  moonlightButton.setAttribute('aria-label', 'Moonlight: why the Moon shines');
+  const { card: moonlightButton } = toyCard('toy-card--moonlight moonlight-btn', 'Moonlight', 'Moonlight: why the Moon shines');
+  paint(moonlightButton, 'moonlight', 'moon');
   moonlightButton.addEventListener('click', () => {
     setFactOpen(false);
     pendingGuide = null;
     narrator.stop();
     moonLight.open();
   });
+  /*
+   * Day and night. On Earth it is Turn Earth, Earth's bedtime spin toy (teal); on Mars and
+   * Saturn it is the timed day turn of the world itself (grass), which becomes Stop while it
+   * runs. One card, painted for the world on arrival.
+   */
+  const { card: spinButton, label: spinLabel } = toyCard('spin-btn', 'Day & night', 'Watch day and night');
+  /** What the spin card says when it is not a Stop button. */
+  let spinWord = 'Day & night';
+  /** Picture, word and name for this world (repainted, so a Stop goes back to the world's own). */
+  function paintSpin(worldId: string) {
+    const earth = worldId === 'earth';
+    const spin = DESTINATIONS[worldId]?.spin;
+    spinWord = earth ? 'Turn Earth' : 'Day & night';
+    spinLabel.textContent = spinWord;
+    spinButton.classList.toggle('toy-card--turn-earth', earth);
+    spinButton.classList.toggle('toy-card--day-night', !earth);
+    spinButton.setAttribute('aria-label', earth ? 'Turn Earth: day and night'
+      : `${spin?.label ?? 'Day and night'}: watch day and night`);
+    paint(spinButton, earth ? 'turn-earth' : 'day-night', worldId);
+  }
+  /** The world's cards, its own toy first. Every card is on the shelf from arrival. */
+  function fillShelf(worldId: string) {
+    const spin = DESTINATIONS[worldId]?.spin ? [spinButton] : [];
+    const cards: HTMLElement[] =
+      worldId === 'moon' ? [jumpButton, moonlightButton]
+        : worldId === 'mars' ? [roverButton, ...spin]
+          : worldId === 'saturn' ? [bathButton, ...spin]
+            : worldId === 'sun' ? [sunStarButton]
+              : spin;
+    if (cards.includes(spinButton)) paintSpin(worldId);
+    shelf.replaceChildren(...cards);
+    shelf.dataset.cards = String(cards.length);
+    const toy = visitToy();
+    for (const card of cards) card.classList.toggle('is-main-toy', card === toy);
+  }
   /** A toy's own line: its words are already on screen; it plays only if it has a recording. */
   function speakToyLine(cueId: string, text: string) {
     if (soundOn && narrator.hasRecording(cueId)) narrator.speak(text, cueId, false);
-  }
-  // The toy sits straight after Listen, so on arrival the three shown controls are side by
-  // side and the ones that join later (Day & night, then Journal at the end) fill in to the
-  // right. Earth's toy is its Day & night button, so its row reads the same way.
-  visitActions.append(homeButton, listenButton, jumpButton, bathButton, roverButton, sunStarButton, moonlightButton, spinButton, findPlacesButton);
-  dock.append(visitActions);
-  root.append(dock);
-
-  /*
-   * The visit row. Owner's playtest, 22 Oct 2026: five buttons, a caption, a counter and two
-   * queued voice lines on arrival were too much for the child. Open exploring (DECISIONS.md)
-   * keeps that quiet arrival without holding anything back:
-   *
-   *   arrival  Space map, Listen and the world's toy (on Earth, Day & night: its bedtime
-   *            spin). The gold places are on the world too, and optional.
-   *   open     the child has done something, found a first place or played the toy:
-   *            Journal (and Day & night on the Moon, Mars and Saturn) join.
-   *
-   * A held control keeps its cell in the grid, invisible and out of the focus order, so the
-   * row never reflows and Space map never moves when the others arrive.
-   */
-  type VisitStage = 'arrival' | 'open';
-  let visitStage: VisitStage = 'open';
-  let stageGeneration = 0;
-  /** Controls waiting for a first find's postcard to close, so their pop is seen. */
-  let pendingAppear: (() => void) | null = null;
-  function hold(control: HTMLElement, held: boolean) {
-    control.classList.toggle('is-held', held);
-    if (held) control.setAttribute('aria-hidden', 'true');
-    else control.removeAttribute('aria-hidden');
-    control.classList.remove('is-appearing');
-  }
-  function setVisitStage(stage: VisitStage, appear = true) {
-    visitStage = stage;
-    const generation = ++stageGeneration;
-    pendingAppear = null;
-    const earth = visitWorldId === 'earth';
-    const controls: [HTMLElement, boolean][] = [
-      // The toy is never held back.
-      ...[...visitActions.querySelectorAll<HTMLElement>('.toy-btn')].map(
-        (toy): [HTMLElement, boolean] => [toy, false]),
-      [journalButton, stage !== 'open'],
-      [spinButton, !earth && stage !== 'open'],
-      [moonlightButton, stage !== 'open'],
-    ];
-    const appearing: HTMLElement[] = [];
-    for (const [control, held] of controls) {
-      if (appear && !held && control.classList.contains('is-held')) appearing.push(control);
-      else hold(control, held);
-    }
-    if (appearing.length === 0) return;
-    const reveal = () => {
-      if (generation !== stageGeneration) return;
-      pendingAppear = null;
-      for (const control of appearing) {
-        hold(control, false);
-        control.classList.add('is-appearing');
-        // Settled once the pop ends (reduced motion has none, so the timer is the backstop).
-        const settle = () => control.classList.remove('is-appearing');
-        control.addEventListener('animationend', settle, { once: true });
-        later(settle, 600);
-      }
-    };
-    // A first find's postcard may still be loading its photograph; wait for it, and then
-    // for the child to close it, so the pop happens in front of them rather than behind it.
-    void photoPending.catch(() => undefined).then(() => {
-      if (generation !== stageGeneration) return;
-      if (photoViewer.isOpen) pendingAppear = reveal;
-      else reveal();
-    });
   }
 
   function prepareCurrentWords() {
     const spin = DESTINATIONS[visitWorldId]?.spin;
     if (spinBusy && spin) showFact(spin.fact, 'Day & night', 'spin-' + visitWorldId, false);
-    else if (!currentFact) showFact(arrivalFact, headingName.textContent ?? '', arrivalCue, false);
+    else if (!currentFact) showFact(arrivalFact, chipName.textContent ?? '', arrivalCue, false);
   }
-  wordsButton.addEventListener('click', () => {
-    prepareCurrentWords();
-    setFactOpen(true);
-    pendingGuide = null;
-  });
-  listenButton.removeAttribute('aria-expanded');
-  listenButton.removeAttribute('aria-controls');
+  // Listen opens the words and, with sound on, reads them out: written words exist in every
+  // audio mode (AGENTS.md), and the heading's separate Words box is gone.
   listenButton.addEventListener('click', () => {
     prepareCurrentWords();
     pendingGuide = null;
+    setFactOpen(true);
     if (soundOn) narrator.speak(currentFact, currentFactCueId);
-    else setFactOpen(true);
   });
 
   /* --- journal ------------------------------------------------------------- */
 
   const journalButton = el('button', 'btn btn--round journal-btn');
-  journalButton.append(createIcon('journal'), el('span', 'control-label journal-label', 'Journal'));
+  journalButton.append(picture('book'), el('span', 'control-label journal-label', 'Journal'));
   journalButton.type = 'button';
   journalButton.setAttribute('aria-label', 'Open your discovery journal');
 
@@ -761,7 +627,7 @@ export function createUI(options: UIOptions): GameUI {
   const journalAudio = el('button', 'btn btn--round narrate-btn');
   journalAudio.type = 'button';
   journalAudio.setAttribute('aria-label', 'Read this discovery out loud');
-  journalAudio.append(createIcon('speaker'));
+  journalAudio.append(picture('speaker'));
   journalActions.append(journalPhoto, journalAudio);
   let journalPhotoUrl: string | null = null;
   journalImage.addEventListener('error', () => {
@@ -806,6 +672,7 @@ export function createUI(options: UIOptions): GameUI {
   const journalShade = el('div', 'panel-shade journal-shade is-hidden');
   journalShade.append(journalPanel);
   root.append(journalButton, journalShade);
+  root.append(visit);
 
   let journalWorldId = 'earth';
   function renderJournal() {
@@ -943,17 +810,7 @@ export function createUI(options: UIOptions): GameUI {
 
   let journalOpen = false;
   let journalOpening: PanelOpening | null = null;
-  /** What the heading says after the finds: always the one ringed next step. */
-  function completeVisitHint() {
-    if (root.classList.contains('is-toy-next')) {
-      if (visitWorldId === 'saturn') return 'Three found! Now try the bath.';
-      if (visitWorldId === 'mars') return 'Three found! Now drive the rover.';
-      if (visitWorldId === 'earth') return 'Three found! Now turn Earth.';
-      return 'Three found! Now try Jump.';
-    }
-    return 'Choose your next trip on the Space map.';
-  }
-  /** The visit's toy control: Jump, Bath or Rover, and on Earth its Day & night spin. */
+  /** The visit's toy: the one card ringed after the finds (on Earth, Turn Earth). */
   function visitToy(): HTMLElement | null {
     if (visitWorldId === 'moon') return jumpButton;
     if (visitWorldId === 'saturn') return bathButton;
@@ -966,10 +823,7 @@ export function createUI(options: UIOptions): GameUI {
     journalOpen = open;
     clearJournalDetail();
     if (open) {
-      if (root.classList.contains('is-complete')) {
-        root.classList.add('has-seen-journal');
-        if (!spinBusy) headingCaption.textContent = completeVisitHint();
-      }
+      if (root.classList.contains('is-complete')) root.classList.add('has-seen-journal');
       if (DESTINATIONS[visitWorldId]?.mission && !root.classList.contains('is-home')) journalWorldId = visitWorldId;
       renderJournal();
       // The panel pops up in the button's own corner, so on a double tap the second touch
@@ -979,11 +833,11 @@ export function createUI(options: UIOptions): GameUI {
     journalShade.classList.toggle('is-hidden', !open);
     journalPanel.classList.toggle('is-hidden', !open);
     closeJournal.replaceChildren(createIcon('back'),
-      root.classList.contains('is-home') ? createIcon('spaceMap') : worldPicture(visitWorldId),
+      root.classList.contains('is-home') ? picture('planet') : worldPicture(visitWorldId),
       el('span', '', root.classList.contains('is-home') ? 'Back to space' : 'Keep exploring'));
     journalButton.classList.toggle('is-hidden', open);
-    // Keep the underlying row out of this modal.
-    dock.classList.toggle('is-hidden', open);
+    // Keep the visit's controls out of this modal.
+    visit.inert = open;
     if (open) {
       journalButton.removeAttribute('data-new');
       journalFocus.open();
@@ -1221,21 +1075,17 @@ export function createUI(options: UIOptions): GameUI {
     later(closeFinale, FINALE_MS);
   }
 
+  /** The visit screen up (with the journal in its visit place) or down (the journal goes home). */
   function setHomeAvailable(available: boolean) {
-    homeButton.classList.toggle('is-hidden', !available);
-    visitActions.classList.toggle('is-hidden', !available);
-    // One journal button owns both tap and grown-up hold behavior in either context.
-    if (available) visitActions.append(journalButton);
+    visit.classList.toggle('is-hidden', !available);
+    if (available) visit.insertBefore(journalButton, foundCounter);
     else root.append(journalButton);
   }
 
   function setHint(text: string | null, icon?: IconName) {
-    if (!worldHeading.classList.contains('is-hidden')) {
-      if (text && headingCaption.textContent !== text) headingCaption.textContent = text;
-      hint.style.opacity = '0';
-      return;
-    }
     hint.replaceChildren();
+    // The visit screen has no caption: the world's name chip and the pictures say it.
+    if (!visit.classList.contains('is-hidden')) text = null;
     if (text && icon) hint.append(createIcon(icon));
     if (text) hint.append(el('span', undefined, text));
     hint.style.opacity = text ? '1' : '0';
@@ -1316,7 +1166,7 @@ export function createUI(options: UIOptions): GameUI {
     },
 
     get spinAvailable() {
-      return !spinButton.classList.contains('is-hidden') && !spinButton.classList.contains('is-held');
+      return spinButton.parentElement === shelf;
     },
 
     get toyIsNext() {
@@ -1346,81 +1196,37 @@ export function createUI(options: UIOptions): GameUI {
     enterFlight() {
       setFactOpen(false);
       dayLegend.classList.add('is-hidden');
-      missionHud.style.visibility = '';
       root.classList.remove('is-home');
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next', 'is-hunting');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-map-next', 'is-toy-next', 'is-hunting');
       toyPlayed = false;
-      findPlacesButton.classList.add('is-hidden');
-      worldHeading.classList.add('is-hidden');
-      listenButton.classList.add('is-hidden');
-      // This can be an outbound flight or Fly Home. In the latter case the old mission
-      // rings and instruction otherwise hover over the receding solar-system map.
-      missionHud.classList.add('is-hidden');
-      spinButton.classList.add('is-hidden');
-      moonJump.close();
-      moonLight.dismiss();
-      sunStar.dismiss();
-      bedtimeSpin.dismiss();
-      saturnBath.dismiss();
-      marsRover.dismiss();
-      jumpButton.classList.add('is-hidden');
-      bathButton.classList.add('is-hidden');
-      roverButton.classList.add('is-hidden');
-      moonlightButton.classList.add('is-hidden');
-      sunStarButton.classList.add('is-hidden');
-      visitActions.classList.remove('has-toy');
-      setVisitStage('open', false);
+      this.dismissToys();
       factCard.classList.add('is-hidden');
       // Nothing to go home from yet, and the flight owns the camera regardless.
       setHomeAvailable(false);
       setHint(null);
     },
 
-    showArrival(cueId: string, label: string, fact: string, _emoji: string, worldId = 'earth') {
+    showArrival(cueId: string, label: string, fact: string, _emoji: string, worldId = 'earth', places = 0) {
       root.classList.remove('is-home');
       root.classList.remove('is-complete', 'has-seen-journal', 'is-toy-next', 'is-map-next');
       root.classList.toggle('is-earth', worldId === 'earth');
-      worldHeading.classList.remove('is-hidden');
-      listenButton.classList.remove('is-hidden');
-      headingName.textContent = label;
-      headingCaption.textContent = worldId === 'sun' ? 'Our nearest star' : worldId === 'earth' ? 'Turn Earth. See day and night.' : 'Tap a gold place';
-      worldHeading.replaceChildren(worldPicture(worldId), headingCopy);
+      chipName.textContent = label;
+      worldChip.replaceChildren(worldPicture(worldId), chipName);
       arrivalFact = fact;
       arrivalCue = cueId;
       visitWorldId = worldId;
       visitFinds = [];
       toyPlayed = false;
-      // While places remain the heading is just the world's name (storybook.css).
       root.classList.toggle('is-hunting', Boolean(DESTINATIONS[worldId]?.mission));
+      buildRings(places);
+      fillShelf(worldId);
       setHint(null);
       setHomeAvailable(true);
+      setHint(null);
       showFact(fact, label, cueId);
-      const spin = DESTINATIONS[worldId]?.spin;
-      this.showSpin(spin ? (worldId === 'earth' ? 'Day and night on Earth' : spin.label) : null, spin?.tint);
-      jumpButton.classList.toggle('is-hidden', worldId !== 'moon');
-      bathButton.classList.toggle('is-hidden', worldId !== 'saturn');
-      roverButton.classList.toggle('is-hidden', worldId !== 'mars');
-      moonlightButton.classList.toggle('is-hidden', worldId !== 'moon');
-      sunStarButton.classList.toggle('is-hidden', worldId !== 'sun');
-      visitActions.classList.toggle('has-toy', worldId === 'moon' || worldId === 'saturn' || worldId === 'mars' || worldId === 'sun');
-      // Space map, Listen and the toy; Journal joins once the child has done something.
-      setVisitStage(DESTINATIONS[worldId]?.mission ? 'arrival' : 'open', false);
     },
 
-    beginMission(caption: string, total: number, cueId?: string, speak = false) {
-      setHint(null);
-      buildSlots(total);
-      missionCaption.textContent = caption;
-
-      // A beat behind the target reveal, so the places themselves arrive before a counter
-      // asks the child to count them. The counter lives at the top and the dock owns the
-      // bottom, so nothing has to move aside.
-      later(() => {
-        missionHud.classList.remove('is-hidden');
-        // Its own keyframe, not .fade-in: that one animates transform and would drop the
-        // translateX(-50%) that centres this, sliding the slots off to one side.
-        missionHud.classList.add('fade-in-centred');
-      }, 1400);
+    beginMission(caption: string, cueId?: string, speak = false) {
       // The spoken instruction is a nudge for a child who has not tapped yet, never a second
       // line queued behind the welcome: a hunt started by a tap stays quiet, and a queued
       // line would land on top of the discovery the child is busy with. Without an authored
@@ -1431,14 +1237,6 @@ export function createUI(options: UIOptions): GameUI {
         speaking: narrator.speaking,
       });
       if (speak && arrival === 'speak') narrator.speak(caption, cueId, false);
-    },
-
-    setMissionCaption(text: string, cueId?: string) {
-      missionCaption.textContent = text;
-      headingCaption.textContent = text;
-      // Wait behind the discovery narration rather than interrupting the reward the child
-      // just earned. Without an authored cue the visual hand/arrow remains the instruction.
-      if (cueId) this.speakGuide(text, cueId);
     },
 
     speakGuide(text: string, cueId: string, interrupt = false) {
@@ -1492,22 +1290,15 @@ export function createUI(options: UIOptions): GameUI {
       // compact card so a familiar place does not keep stopping play.
       if (!visitFinds.includes(discovery.id)) visitFinds.push(discovery.id);
       photoFor = discovery.id;
-      photoPending = attachPhoto(discovery, !revisited);
-      // A first find is doing something: the journal joins, after its postcard is closed.
-      if (visitStage !== 'open') setVisitStage('open');
+      void attachPhoto(discovery, !revisited);
       journalButton.setAttribute('data-new', 'true');
       if (journalOpen) renderJournal();
     },
 
     setMissionProgress(collected: number) {
       visitFound = collected;
-      missionHud.setAttribute('aria-label', `${collected} of ${slots.length} places found`);
-      for (const [index, slot] of slots.entries()) {
-        const filled = index < collected;
-        slot.classList.toggle('is-filled', filled);
-        const icon = slot.firstElementChild;
-        if (icon) icon.innerHTML = iconMarkup(filled ? 'rock' : 'target');
-      }
+      foundCounter.setAttribute('aria-label', `${collected} of ${foundRings.length} places found`);
+      for (const [index, ring] of foundRings.entries()) ring.classList.toggle('is-filled', index < collected);
     },
 
     completeMission(
@@ -1531,14 +1322,7 @@ export function createUI(options: UIOptions): GameUI {
       } else {
         root.classList.add('is-map-next');
       }
-      setVisitStage('open');
-      headingCaption.textContent = completeVisitHint();
-      // Clear the slots before the award lands: they share the top of the screen.
-      missionHud.classList.add('is-hidden');
-      missionHud.classList.remove('fade-in-centred');
-      // The card keeps carrying the identity — the name pill stays hidden for the whole
-      // visit, as it has been since arrival.
-      // Behind the last discovery rather than over it. The sticker and the chime land now;
+      // The found counter stays where it is, full. Behind the last discovery rather than over it. The sticker and the chime land now;
       // the words wait their turn.
       if (currentFact) {
         pendingFact = { text: successLine, title, cueId, guide: followUp ?? null };
@@ -1567,22 +1351,9 @@ export function createUI(options: UIOptions): GameUI {
       later(() => showFinale(stickerId), FINALE_DELAY_MS);
     },
 
-    showSpin(label: string | null, tint?: string) {
-      visitActions.classList.toggle('has-activity', Boolean(label));
-      spinAccessibleLabel = label ? `${label}: watch day and night` : 'Watch day and night';
-      spinButton.setAttribute('aria-label', spinAccessibleLabel);
-      spinLabel.textContent = 'Day & night';
-      spinGlobe.style.backgroundImage = worldPicture(visitWorldId).style.backgroundImage;
-      if (tint) spinGlobe.style.setProperty('--world', tint);
-      // On the Moon, Moonlight takes Day & night's cell in the row (its timed turn stays for Mars and Saturn).
-      const moonlit = visitWorldId === 'moon';
-      spinButton.classList.toggle('is-hidden', !label || moonlit);
-      if (label && !moonlit) spinButton.classList.add('fade-in');
-    },
-
     setSpinAttention(on: boolean) {
       // Called every frame, so it has to be idempotent and cheap. A class already set costs
-      // nothing to set again — the same bargain setHuntArrow makes.
+      // nothing to set again.
       spinButton.classList.toggle('is-inviting', on);
     },
 
@@ -1601,30 +1372,18 @@ export function createUI(options: UIOptions): GameUI {
       marsRover.dismiss();
     },
 
-    setEarthWelcome(on: boolean) {
-      root.classList.toggle('is-earth-welcome', on);
-      findPlacesButton.classList.toggle('is-hidden', !on);
-      headingCaption.textContent = on ? 'Make night. Bring back morning.'
-        : root.classList.contains('is-complete') ? completeVisitHint() : 'Tap a gold place';
-      spinLabel.textContent = on ? 'Turn Earth' : 'Day & night';
-    },
-
     setSpinProgress(progress: number | null) {
-      spinGlobe.classList.toggle('is-turning', progress !== null);
-      if (progress !== null) spinGlobe.style.setProperty('--turn', String(progress));
+      // The card's own night half follows the world's turn (visit.css).
+      spinButton.classList.toggle('is-turning', progress !== null);
+      if (progress !== null) spinButton.style.setProperty('--turn', String(progress));
     },
 
     setSpinBusy(busy: boolean) {
-      if (busy && !spinBusy) preDayCaption = headingCaption.textContent ?? '';
       spinBusy = busy;
-      spinGlobe.style.backgroundImage = busy ? '' : worldPicture(visitWorldId).style.backgroundImage;
-      headingCaption.textContent = busy ? 'Sunlight makes day.'
-        : root.classList.contains('is-complete') ? completeVisitHint() : preDayCaption;
       dayLegend.classList.toggle('is-hidden', !busy);
-      // Preserve the hunt's display state even if its delayed reveal happens mid-turn.
-      missionHud.style.visibility = busy ? 'hidden' : '';
-      spinLabel.textContent = busy ? 'Stop' : 'Day & night';
-      spinButton.setAttribute('aria-label', busy ? 'Stop day and night' : spinAccessibleLabel);
+      spinLabel.textContent = busy ? 'Stop' : spinWord;
+      if (busy) spinButton.setAttribute('aria-label', 'Stop day and night');
+      else paintSpin(visitWorldId);
       spinButton.disabled = false;
       spinButton.classList.toggle('is-busy', busy);
       root.classList.toggle('is-day-active', busy);
@@ -1633,31 +1392,11 @@ export function createUI(options: UIOptions): GameUI {
 
     setSoundOn(on: boolean) {
       soundOn = on;
-      listenLabel.textContent = on ? 'Listen' : 'Words';
-      // With sound off the row's own button is Words, so the heading needs no second one.
+      // Sound off, the same speaker opens the words to read (with sound, it reads them too).
+      listenButton.setAttribute('aria-label', on ? 'Listen' : 'Read the words');
       root.classList.toggle('is-sound-off', !on);
       if (!on) narrator.stop();
       updateNarrateButton();
-    },
-
-    setHuntArrow(side: -1 | 1 | null) {
-      // Called every frame while a mission is running, so it has to be cheap and it has to
-      // be idempotent. Both are: a class that is already set costs nothing to set again.
-      huntArrow.classList.toggle('is-hidden', side === null);
-      huntArrow.classList.toggle('is-left', side === -1);
-      huntArrow.classList.toggle('is-right', side === 1);
-    },
-
-    huntArrowCentre() {
-      if (huntArrow.classList.contains('is-hidden')) return null;
-      // offsetLeft/Top ignore the transform the arrow's own animation applies, so this is
-      // the resting centre. The root is the fixed full-screen layer, so its offsets are
-      // already client pixels; the root's rect is added for a page that ever insets it.
-      const rootRect = root.getBoundingClientRect();
-      return {
-        x: rootRect.left + huntArrow.offsetLeft + huntArrow.offsetWidth / 2,
-        y: rootRect.top + huntArrow.offsetTop + huntArrow.offsetHeight / 2,
-      };
     },
 
     showTapEcho(clientX: number, clientY: number) {
@@ -1695,12 +1434,8 @@ export function createUI(options: UIOptions): GameUI {
     reset() {
       visitFinds = [];
       dayLegend.classList.add('is-hidden');
-      missionHud.style.visibility = '';
-      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-earth-welcome', 'is-map-next', 'is-toy-next', 'is-hunting');
+      root.classList.remove('is-earth', 'is-day-active', 'is-complete', 'has-seen-journal', 'is-map-next', 'is-toy-next', 'is-hunting');
       toyPlayed = false;
-      findPlacesButton.classList.add('is-hidden');
-      worldHeading.classList.add('is-hidden');
-      listenButton.classList.add('is-hidden');
       setFactOpen(false);
       clearTimers();
       // Clear this before stop(): the narrator's onChange listener otherwise interprets
@@ -1714,25 +1449,10 @@ export function createUI(options: UIOptions): GameUI {
       finale?.remove();
       finale = null;
       setHomeAvailable(false);
-      spinButton.classList.add('is-hidden');
-      moonJump.close();
-      moonLight.dismiss();
-      sunStar.dismiss();
-      bedtimeSpin.dismiss();
-      saturnBath.dismiss();
-      marsRover.dismiss();
-      jumpButton.classList.add('is-hidden');
-      bathButton.classList.add('is-hidden');
-      roverButton.classList.add('is-hidden');
-      moonlightButton.classList.add('is-hidden');
-      sunStarButton.classList.add('is-hidden');
-      visitActions.classList.remove('has-toy');
-      setVisitStage('open', false);
+      this.dismissToys();
       spinBusy = false;
-      spinLabel.textContent = 'Day & night';
-      spinButton.disabled = false;
-      spinButton.classList.remove('is-busy', 'is-inviting', 'fade-in');
-      spinGlobe.classList.remove('is-turning');
+      spinLabel.textContent = spinWord;
+      spinButton.classList.remove('is-busy', 'is-inviting', 'is-turning');
       for (const echo of root.querySelectorAll('.tap-echo')) echo.remove();
 
       setJournalOpen(false);
@@ -1750,17 +1470,9 @@ export function createUI(options: UIOptions): GameUI {
       factTitle.textContent = '';
       factTitle.classList.add('is-hidden');
       factText.textContent = '';
-      missionHud.classList.add('is-hidden');
-      slotRow.replaceChildren();
-      slots = [];
-
-      for (const node of [factCard, homeButton]) {
-        node.classList.add('is-hidden');
-        // Or the animation will not replay the next time the node is shown.
-        node.classList.remove('fade-in');
-      }
-      missionHud.classList.remove('fade-in-centred');
-      dock.classList.remove('is-hidden');
+      factCard.classList.add('is-hidden');
+      buildRings(0);
+      visit.inert = false;
     },
 
     dispose() {

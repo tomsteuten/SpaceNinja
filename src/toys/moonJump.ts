@@ -11,6 +11,7 @@
 import './moonJump.css';
 import { worldPicture } from '../ui/pictures';
 import { createIcon } from '../ui/icons';
+import { picture } from '../ui/visitPictures';
 import {
   CHILD_HEIGHT, EARTH_GRAVITY, MOON_GRAVITY, createJumper, jump, peakHeight, stepJumper,
   type Jumper,
@@ -85,7 +86,7 @@ export function createMoonJump(host: HTMLElement, onClose: () => void = () => {}
 
   const jumpButton = el('button', 'moon-jump__jump');
   jumpButton.type = 'button';
-  jumpButton.append(createIcon('jump'), el('span', '', 'Jump!'));
+  jumpButton.append(picture('astronaut'), el('span', '', 'Jump!'));
 
   root.append(canvas, labels, back, caption, jumpButton);
   // Only in the page while open: the scene's canvas stays the page's one canvas otherwise.

@@ -4,6 +4,66 @@
 
 Scope is [DECISIONS.md](../DECISIONS.md). Tick a phase here when it lands.
 
+### Next up: the visit screen (11 November 2026) — do this before Phase 3b
+
+The owner played the live game (`5b829bb`): the crayon style can stay, but the visit screen is
+not understandable and the icons look amateurish, worse on a phone. Order of work:
+
+- [x] **Mock the visit screen** (Moon, phone portrait and landscape), two or three options as
+  pictures for the owner to pick. **Owner picked B, the toy shelf** (11 November 2026,
+  `design/visit-screen/visit-B.png`): a paper shelf holds the big toy cards (bottom in
+  portrait, right side in landscape), Space map is the top-left button, Listen and Journal
+  small. **Far away: owner picked B, drag the rocket** (`faraway-B.png`): the strip is the
+  control, in its own paper band below the Sun, picture milestones, no buttons. **Moonlight:
+  the drag-the-Sun mock (`moonlight.png`) was rejected**: the Sun seems to orbit the Moon and
+  the lesson does not land. Second round, Sun fixed: **owner picked "bounce"**
+  (`moonlight-bounce.png`): sunlight flies to the Moon and bounces down to a house on
+  Earth's night side; a Sun switch removes the beams and darkens Moon and house. (Not
+  chosen: `moonlight-torch.png`.) **Yellow hunt arrow: owner said drop it.** It is the
+  `.hunt-arrow` "Turn to the last place" button (`setHuntArrow` in `src/ui/ui.ts`, driven
+  from `src/main.ts`), a control that pops in; remove it in the visit-row rebuild and keep
+  the idle hand (`src/ui/coach.ts`) as a hint that shows the sideways drag. Fixed layout on every world: the world in the middle with
+  its gold places; the world's toys as one or two big illustrated cards, there from arrival;
+  Space map always in the same corner; Listen and Journal small. No staged pop-ins, no
+  first-Earth special flow, no "Words" box in the heading. Check what the yellow arrow and
+  hand at the left edge of a visit are for, and whether a five-year-old needs them.
+- [ ] **Replace the line-glyph icons** (`src/ui/icons.ts`: the Jump stick figure, Moonlight,
+  Listen, Journal, Space map) with one consistent illustrated set. Candidates: Fluent Emoji
+  flat (MIT) or OpenMoji (CC BY-SA), or the Icons8 plugin if the owner installed it. Credit
+  the set on the credits page.
+- [ ] **Redo Moonlight as a simpler toy.** The lesson is "the Moon is bright because it
+  reflects sunlight", not phases. One big Moon; the child drags the Sun around it and the lit
+  side follows; the Sun switch turns it dark. The current top-down diagram is physically
+  right (the half facing the Sun is always lit; the Moon is full when Earth is between it and
+  the Sun, and Earth's shadow only reaches it in an eclipse because the orbit is tilted about
+  5 degrees) but it reads as "Earth blocks the light", so it teaches the wrong thing.
+  `moonPhase.ts` can stay for a later phases toy.
+- [ ] **Rebuild the visit row cleanly** rather than patching `setVisitStage` in
+  `src/ui/ui.ts` again; keep the 3D scene, content and toy physics. Moon and Earth first.
+- [ ] **Cut the browser suite to a smoke set** (DECISIONS.md, "Tests"); delete specs that
+  assert staging or old layouts.
+
+  Built, awaiting the owner's look (not ticked): the toy shelf on every world
+  (`src/ui/visit.css`, `src/ui/visitPictures.ts`, playfield framing in `src/ui/viewport.ts`),
+  Fluent Emoji pictures in `src/pictures/`, staging, first-Earth welcome and hunt arrow
+  removed, suite cut to boot, lifecycle, offline, map keyboard, `visit-shelf` and the two toy
+  specs. Pictures: `design/visit-screen/built/`. Open: the recorded hunt lines ("You can tap
+  the arrow") are no longer spoken on a visit and need rewording; Listen now opens the words
+  as it reads them (the heading's Words box is gone).
+- [ ] **Owner's children play it**; then roll the screen out to Mars, Saturn and the Sun.
+
+- [ ] **Redo the controls of the Sun's "Far away" toy** (`src/toys/sunStar.ts`). The owner,
+  an adult, found the toy but could not work out how to use it: "Fly back" and "Fly away"
+  are not intuitive, a tap only hops a tiny step (it needs a nine-second hold, which nobody
+  guesses), and the slider and its Earth/Neptune labels sit on top of the Sun and read as
+  decoration. Mock it first. Direction: one obvious action with no hold (for example one big
+  rocket button that starts the flight and keeps going by itself, tap again to stop, with the
+  same button turning round to fly home at the far end), or the child drags the rocket
+  itself away from the Sun. Keep the honest 1/distance shrinking and the three milestones;
+  keep the strip clear of the Sun.
+
+The bedtime-spin sunrise window has not had owner feedback yet.
+
 - [x] **Phase 0, clear the decks:** merge done-visible, one-page rules.
 - [x] **Phase 1, open it up:** no locked worlds; each world's toy is there on arrival; gold places optional (`f2a1457`, branch `finish/open-explore`, not on `main`). Known gap: with all five worlds in one shot the home map is cramped (Saturn overlaps Earth, worlds are tiny on a phone). Do the paged map next, before merging to `main`. Also open: the first Earth visit still queues a second spoken line.
 - [x] **Phase 3a, paged map (pulled forward):** paged neighbourhood map (`src/map/`), moons orbit their parent.
