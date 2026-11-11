@@ -173,11 +173,6 @@ export function shortLabel(world: WorldGeometry): string {
   return world.label.replace(/^The /, '');
 }
 
-/** The sticker a world's collection earns. Written into saved progress, so stable. */
-export function stickerIdFor(id: string): string {
-  return `${id}-explorer`;
-}
-
 export function worldGeometry(id: string): WorldGeometry {
   const world = BY_ID.get(id);
   if (!world) throw new Error(`Unknown world: ${id}`);

@@ -181,135 +181,6 @@ body {
   }
 }
 
-@keyframes photoAttention {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(255, 208, 138, 0);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 7px rgba(255, 208, 138, 0.28);
-  }
-}
-.award {
-  position: absolute;
-  top: var(--pad-top);
-  left: 50%;
-  max-width: min(300px, calc(100vw - var(--pad-left) - var(--pad-right)));
-  padding: 0.8rem 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  transform: translateX(-50%);
-  animation: popDown 0.45s cubic-bezier(0.2, 1.5, 0.4, 1);
-}
-
-.award .award-icon {
-  font-size: 2.4rem;
-  line-height: 1;
-  filter: drop-shadow(0 0 18px var(--warm));
-}
-
-.award .award-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.award strong {
-  font-size: 1.05rem;
-}
-
-.award small {
-  font-size: 0.85rem;
-  color: var(--ink-soft);
-}
-.finale {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: rgba(6, 4, 16, 0.8);
-  z-index: 55;
-  animation: fadeIn 0.4s ease both;
-}
-
-.finale.is-leaving {
-  animation: fadeOut 0.5s ease both;
-  pointer-events: none;
-}
-
-.finale__inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 1.4rem 1.6rem 1.5rem;
-  max-width: min(420px, 100%);
-  text-align: center;
-  animation: popDown 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) both;
-  transform: none;
-}
-.finale__badges {
-  /* Full width on purpose: the panel centres its children, and a shrink-to-fit grid of
-     auto-fit columns collapses to one column, which showed the 24 badges as a tall scroll. */
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
-  justify-items: center;
-  gap: 0.5rem;
-  max-height: min(46vh, 360px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.finale__badge {
-  width: 100%;
-  aspect-ratio: 1;
-  max-width: 74px;
-  display: grid;
-  place-content: center;
-  font-size: 2.3rem;
-  line-height: 1;
-  border-radius: 22px;
-  background: radial-gradient(circle at 40% 32%, rgba(255, 220, 170, 0.32), rgba(120, 96, 220, 0.24));
-  border: 1px solid var(--panel-edge);
-  box-shadow: 0 0 22px var(--glow);
-  animation: badgePop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
-  animation-delay: calc(0.35s + var(--i, 0) * 0.14s);
-}
-
-.finale__title {
-  font-size: 1.45rem;
-  font-weight: 800;
-  color: var(--warm);
-}
-
-.finale__line {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
-.finale__hero {
-  font-size: 2.6rem;
-  line-height: 1;
-  filter: drop-shadow(0 0 18px var(--warm));
-  animation: badgePop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both;
-  animation-delay: 1.8s;
-}
-
-.finale__close {
-  margin-top: 0.3rem;
-}
-
 @keyframes badgePop {
   from {
     opacity: 0;
@@ -326,51 +197,13 @@ body {
   }
 }
 
-@media (max-width: 420px), (max-height: 480px) {
-  .finale__badge {
-    width: 58px;
-    height: 58px;
-    font-size: 1.8rem;
-    border-radius: 16px;
-  }
-  .finale__inner {
-    gap: 0.6rem;
-    padding: 1rem 1.2rem 1.1rem;
-  }
-  .finale__title {
-    font-size: 1.2rem;
-  }
-}
-
 @media (max-height: 480px) {
-  .finale__inner {
-    flex-direction: row;
-    max-width: min(560px, 100%);
-    text-align: left;
-  }
-  .finale__inner > :not(.finale__badges) {
-    flex: 0 1 auto;
-  }
+  
+  
   /* A fixed share, not a flexible one: with auto-basis text siblings the grid was the
      item that shrank, down to two columns. The words wrap instead. */
-  .finale__badges {
-    width: auto;
-    flex: 0 0 50%;
-    min-width: 0;
-  }
-  .finale__inner > :not(.finale__badges) {
-    min-width: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .finale,
-  .finale.is-leaving,
-  .finale__inner,
-  .finale__badge,
-  .finale__hero {
-    animation: none;
-  }
+  
+  
 }
 
 @keyframes popCorner {
@@ -424,8 +257,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .award,
-  .fade-in {
+  .fade-in{
     animation: none;
   }
   .btn {
@@ -494,31 +326,6 @@ body {
     opacity: 0;
   }
 }
-.find-label {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  background: rgba(20, 14, 44, 0.86);
-  border: 1px solid rgba(255, 214, 150, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #fff3dc;
-  font-size: 1.05rem;
-  font-weight: 700;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 30;
-  animation: findLabel 2.4s ease-out forwards;
-}
-
-.find-label__emoji {
-  font-size: 1.35em;
-  line-height: 1;
-}
 
 @keyframes findLabel {
   0% {
@@ -536,12 +343,6 @@ body {
   100% {
     transform: translate(-50%, -135%) scale(1);
     opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .find-label {
-    animation: findLabelStill 2.4s ease-out forwards;
   }
 }
 
@@ -719,64 +520,7 @@ body {
       0 0 22px 6px rgba(255, 208, 138, 0.38);
   }
 }
-.coach {
-  position: fixed;
-  z-index: 26;
-  margin-left: -18px;
-  margin-top: 8px;
-  font-size: 2.3rem;
-  line-height: 1;
-  pointer-events: none;
-  filter: drop-shadow(0 3px 8px rgba(6, 4, 20, 0.75));
-  will-change: transform;
-}
 
-.coach.is-tap {
-  animation: coachTap 1.5s ease-in-out infinite;
-}
-
-.coach.is-drag {
-  animation: coachDrag 2.1s ease-in-out infinite;
-}
-.coach.is-still {
-  animation: none;
-}
-
-@keyframes coachTap {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-    opacity: 0.95;
-  }
-  45% {
-    transform: translateY(-13px) scale(1.06);
-    opacity: 1;
-  }
-  60% {
-    transform: translateY(0) scale(0.9);
-  }
-}
-@keyframes coachDrag {
-  0%,
-  100% {
-    transform: translateX(calc(var(--coach-sweep) * -0.5));
-    opacity: 0;
-  }
-  15%,
-  85% {
-    opacity: 1;
-  }
-  85%,
-  100% {
-    transform: translateX(calc(var(--coach-sweep) * 0.5));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .coach {
-    animation: none;
-  }
-}
 .control-label { font-weight: 800; line-height: 1.1; }
 .btn:focus-visible {
   outline: 3px solid var(--spark);

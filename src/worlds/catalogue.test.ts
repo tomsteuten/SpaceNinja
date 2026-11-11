@@ -5,13 +5,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { BODY_IDS } from '../scene/Bodies';
-import { SHIP_DECAL_IDS } from '../scene/shipDecals';
-import { FINALE_STICKER, STICKERS } from '../state/progress';
 import {
   WORLDS,
   WORLD_IDS,
-  shortLabel,
-  stickerIdFor,
   viewRadius,
   worldGeometry,
 } from './catalogue';
@@ -37,12 +33,4 @@ describe('world catalogue', () => {
     expect(viewRadius(worldGeometry('mars'))).toBe(0.53);
   });
 
-  it('drives the stickers and the ship badges', () => {
-    for (const world of WORLDS) {
-      const stickerId = stickerIdFor(world.id);
-      expect(STICKERS[stickerId]?.label).toBe(`${shortLabel(world)} Explorer`);
-      expect(SHIP_DECAL_IDS).toContain(stickerId);
-    }
-    expect(SHIP_DECAL_IDS[SHIP_DECAL_IDS.length - 1]).toBe(FINALE_STICKER);
-  });
 });

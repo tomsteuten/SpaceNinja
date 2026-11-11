@@ -52,3 +52,25 @@ export function shorteningPair(full: string, short: string): NudgeStep[] {
 export function singleNudge(cue: string): NudgeStep[] {
   return [{ at: NUDGE_DELAY_SECONDS, cue }];
 }
+
+/**
+ * How long a child gets on Earth before Turn Earth asks to be noticed (the card rocks and the
+ * world's invitation is spoken once). Earth only: there Day & night is the world's own toy.
+ */
+export const SPIN_INVITE_DELAY = 9;
+
+/**
+ * Whether the day/night card should ask to be noticed: on the world whose toy it is, after a
+ * quiet spell, and never once tried or while it is running (a button asking to be pressed
+ * while doing the thing it was pressed for is nonsense).
+ */
+export function shouldInviteSpin(opts: {
+  idleFor: number;
+  spinOffered: boolean;
+  spinBusy: boolean;
+  spinTried: boolean;
+  spinIsPrimary: boolean;
+}): boolean {
+  if (!opts.spinOffered || opts.spinBusy || opts.spinTried || !opts.spinIsPrimary) return false;
+  return opts.idleFor >= SPIN_INVITE_DELAY;
+}

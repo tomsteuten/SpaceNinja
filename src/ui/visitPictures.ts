@@ -8,16 +8,17 @@
  */
 import planetUrl from '../pictures/planet.svg?url';
 import speakerUrl from '../pictures/speaker.svg?url';
-import bookUrl from '../pictures/book.svg?url';
+import cameraUrl from '../pictures/camera.svg?url';
 import astronautUrl from '../pictures/astronaut.svg?url';
 import sunUrl from '../pictures/sun.svg?url';
 import houseUrl from '../pictures/house.svg?url';
 import rocketUrl from '../pictures/rocket.svg?url';
 import glowstarUrl from '../pictures/glowstar.svg?url';
+import { DESTINATIONS } from '../config';
 
-export type PictureName = 'planet' | 'speaker' | 'book' | 'astronaut';
+export type PictureName = 'planet' | 'speaker' | 'camera' | 'astronaut';
 const PICTURES: Record<PictureName, string> = {
-  planet: planetUrl, speaker: speakerUrl, book: bookUrl, astronaut: astronautUrl,
+  planet: planetUrl, speaker: speakerUrl, camera: cameraUrl, astronaut: astronautUrl,
 };
 
 /** One of the control pictures, decorative: the control carries its own accessible name. */
@@ -31,7 +32,7 @@ export function picture(name: PictureName, className = 'picture'): HTMLImageElem
   return image;
 }
 
-export type CardPicture = 'jump' | 'moonlight' | 'turn-earth' | 'day-night' | 'rover' | 'bath' | 'far-away';
+export type CardPicture = 'jump' | 'moonlight' | 'turn-earth' | 'day-night' | 'rover' | 'bath' | 'far-away' | 'places';
 
 const INK = '#2b2118';
 const SKY = '<rect width="120" height="84" fill="#0a0b22"/>';
@@ -51,6 +52,11 @@ const sunlight = (x0: number, x1: number, y: number) =>
 /** The near half of a ring, drawn over its world (the far half goes behind it). */
 const ringFront = (cx: number, cy: number, rx: number, ry: number, tilt: number) =>
   `<path d="M${cx - rx} ${cy} A${rx} ${ry} 0 0 0 ${cx + rx} ${cy}" fill="none" stroke="#d7c693" stroke-width="4" transform="rotate(${tilt} ${cx} ${cy})"/>`;
+/** A little snapshot of one of the world's places, tilted, as the Places mock drew them. */
+const snapshot = (id: string | undefined, x: number, tilt: number) => id
+  ? `<g transform="rotate(${tilt} ${x + 22} 32)"><rect x="${x}" y="7" width="44" height="50" rx="3" fill="#fffdf6" stroke="${INK}" stroke-width="2.5"/>` +
+    `<image href="./assets/discoveries/thumbs/${id}.jpg" x="${x + 4}" y="11" width="36" height="36" preserveAspectRatio="xMidYMid slice"/></g>`
+  : '';
 /** A curved arrow under a world: it turns. */
 const turnArrow = (cx: number, y: number, half: number) =>
   `<g fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">` +
@@ -129,6 +135,14 @@ const PICTURE_MARKUP: Record<CardPicture, (worldId: string) => string> = {
     '<path d="M46 50 Q64 44 76 40" fill="none" stroke="#c9cff5" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 7"/>' +
     `<image href="${rocketUrl}" x="70" y="24" width="28" height="28" transform="rotate(45 84 38)"/>` +
     `<image href="${glowstarUrl}" x="100" y="26" width="16" height="16"/>`,
+  // Places (owner's pick B, design/places/places-B.png): two of this world's real photos with
+  // a camera in front.
+  places: (worldId) => {
+    const places = DESTINATIONS[worldId]?.places ?? [];
+    return SKY + stars([[10, 10, 1.2], [112, 70, 1.2], [8, 64, 1]]) +
+      snapshot(places[1]?.id, 14, -9) + snapshot(places[0]?.id, 58, 8) +
+      `<image href="${cameraUrl}" x="35" y="34" width="50" height="50"/>`;
+  },
 };
 
 /** The markup for one card's picture, as an inline SVG (static strings only). */

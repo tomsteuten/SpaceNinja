@@ -111,41 +111,16 @@ export const MAX_ORBIT_DISTANCE = 36;
 export const FLIGHT_DURATION = 7; // seconds
 
 /**
- * A real place on a real body, at its real coordinates.
- *
- * These are not decorations scattered over the surface: `lat`/`lon` are the actual
- * selenographic or areographic coordinates of the feature, and the marker is placed from
- * them, so what a child taps really is sitting on Tycho's ray system or on the volcano.
- * That is the whole point of the change from collectibles — a rock could be anywhere and
- * therefore taught nothing about where you were.
- *
- * A world carries more of these than it shows: `mission/selection.ts` picks three per visit,
- * so a second trip to the Moon is a different Moon. Order still matters, in two ways. The
- * list is the *pool*, and the picker's job is to draw a set from it that composes as an
- * arrival — some in view, exactly one over the horizon so reaching it needs a drag. And the
- * authored order is the fallback: the opening entries plus the **last** one, which is the
- * triple this game shipped with and the one a person actually looked at. Keep writing new
- * lists that way — near-side places first, the drag-for-it place last.
- *
- * Two constraints are easy to miss when adding one, and both are enforced by
- * `selection.test.ts` rather than by care:
- *
- * - **Nothing above about 55 degrees of latitude.** `POLE_GUARD` is `PI/2 - 0.6`, which is
- *   55.6 degrees and not the 80 it looks like; a hit sphere nearer the pole than that
- *   foreshortens to nothing and cannot be tapped. Greenland at 72 north was added here and
- *   was silently unreachable — in no playable set, so the journal could never be filled.
- * - **Every place must appear in some playable set.** `JOURNAL_SLOTS` counts them all and
- *   `foundEverything` requires them all, so one that can never be chosen makes the game
- *   impossible to finish with nothing anywhere reporting a problem.
- *
- * See `placementAngles`, which turns these into view angles, and `selection.ts`.
+ * A real place on a real body, at its real coordinates (selenographic, areographic or
+ * geographic), with a real photograph in `public/assets/discoveries/<id>.jpg`. The Places
+ * card turns the world so the place faces the child and shows its photo; the list order is
+ * the order the card goes through.
  */
 export interface Discovery {
-  /** Stable key. Written into the journal, so renaming one forgets a child's find. */
+  /** Stable key: names the photo, its thumbnail and the recorded line `discovery-<id>`. */
   id: string;
   /** Child-facing name. Plain English beats the catalogue name at this age. */
   name: string;
-  /** Shown in the journal grid. */
   emoji: string;
   /** Degrees north, and degrees east, on the body itself. */
   lat: number;
@@ -154,16 +129,13 @@ export interface Discovery {
    * Optional: this place is on the ring plane, not the sphere.
    *
    * Saturn's whole reason to exist is a feature that is not a surface coordinate. When set,
-   * the marker sits in the body's equatorial plane at this many body-radii from the centre
+   * the place sits in the body's equatorial plane at this many body-radii from the centre
    * (so a value between the inner and outer ring ratios lands it *on* the rings), along the
-   * direction `lon` gives, and `lat` is ignored. The one deviation from "a discovery is a
-   * lat/lon on the surface", contained to placement — everything else (the journal, the
-   * hidden-one drag rule, the sticker) treats it like any other. Only ever a non-hidden
-   * one: the last discovery, the one reached by dragging, stays a real surface feature.
+   * direction `lon` gives, and `lat` is ignored.
    */
   ring?: number;
   /**
-   * The whole story. Kept in the journal, where a grown-up can read it out.
+   * The whole story, for a grown-up to read out (the Places card says the short line).
    */
   fact: string;
   /**
@@ -232,21 +204,11 @@ export interface DestinationConfig {
      */
     tint: string;
   };
-  /** Surface hunts are a capability; a star visit has no solid places to collect. */
-  mission?: {
-    instruction: string;
-    huntLine: string;
-    successLine: string;
-    stickerId: string;
-    /** How many there are to find is simply how many there are. */
-    discoveries: Discovery[];
-    /**
-     * This world carries exactly one visit's worth of places (DECISIONS.md, line 6), shown
-     * in authored order every visit, so that order must itself be playable: the last entry
-     * is the hidden one. Without it a world carries more places than a visit shows.
-     */
-    singleSet?: true;
-  };
+  /**
+   * The world's notable places, in the order the Places card shows them (DECISIONS.md: a
+   * Places card the child asks for, no hunt). Only where real photos exist.
+   */
+  places?: Discovery[];
 }
 
 export const DESTINATIONS: Record<string, DestinationConfig> = {
@@ -281,12 +243,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     fact:
       'This is your planet, seen from space. It is the only place anyone has ever found ' +
       'with water you can swim in, air you can breathe, and anybody at all to talk to.',
-    mission: {
-      instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Tap the arrow.',
-      successLine: 'You found all three! You know your own planet from space now.',
-      stickerId: 'earth-explorer',
-      discoveries: [
+    places: [
         {
           // These two average out to a longitude in the middle of the Atlantic, so the
           // arrival is the classic view: Africa on one side, South America on the other.
@@ -390,7 +347,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'of people, most of them fast asleep.',
         },
       ],
-    },
   },
   moon: {
     emoji: '🌙',
@@ -411,12 +367,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     fact:
       'The Moon has no air and no weather at all. Nothing moves here, and there is ' +
       'nothing to carry a sound, so it is the quietest place there is.',
-    mission: {
-      instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Tap the arrow.',
-      successLine: 'You found all three! What a brilliant explorer you are.',
-      stickerId: 'moon-explorer',
-      discoveries: [
+    places: [
         {
           id: 'moon-tranquility',
           name: 'The First Footprints',
@@ -501,7 +452,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'spacecraft flew around and took a photograph.',
         },
       ],
-    },
   },
   mars: {
     emoji: '🔴',
@@ -517,12 +467,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
     fact:
       'Mars is red because its dust is full of rust — the same rust that grows on an old ' +
       'bike left out in the rain. The whole planet is a bit rusty!',
-    mission: {
-      instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Tap the arrow.',
-      successLine: 'You found all three! You are a real space explorer now.',
-      stickerId: 'mars-explorer',
-      discoveries: [
+    places: [
         {
           id: 'mars-olympus',
           name: 'The Giant Volcano',
@@ -606,7 +551,6 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'mountain on Earth twice over.',
         },
       ],
-    },
   },
   saturn: {
     emoji: '🪐',
@@ -625,12 +569,7 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
       'Saturn is the planet with the beautiful rings. It is so big that a thousand Earths ' +
       'could fit inside it — and it is so light for its size that it would float in a ' +
       'bath, if anyone could find a bath big enough.',
-    mission: {
-      instruction: 'Tap the 3 gold targets!',
-      huntLine: 'One more! Tap the arrow.',
-      successLine: 'You found all three! You have been all the way out to Saturn.',
-      stickerId: 'saturn-explorer',
-      discoveries: [
+    places: [
         {
           /*
            * The rings, and the one discovery that is not a point on the surface. `ring` puts
@@ -732,29 +671,13 @@ export const DESTINATIONS: Record<string, DestinationConfig> = {
             'on for months.',
         },
       ],
-    },
   },
 };
 
-/**
- * Every discovery in the game, by id.
- *
- * The journal shows what has been found without knowing which destination it came from,
- * and progress.ts stores bare ids, so both need one flat lookup. Derived rather than
- * written out, so a new destination cannot be added to the game and forgotten here.
- */
+/** Every place in the game, by id. */
 export const DISCOVERIES: Record<string, Discovery> = Object.fromEntries(
   Object.values(DESTINATIONS).flatMap((destination) =>
-    (destination.mission?.discoveries ?? []).map((discovery) => [discovery.id, discovery]),
+    (destination.places ?? []).map((discovery) => [discovery.id, discovery]),
   ),
 );
 
-/**
- * Slots in the discovery journal: exactly as many as there are places to find.
- *
- * Counted rather than written down. It was a hand-set 6 against a journal that held the
- * two stickers, so a child who had done everything in the game saw a grid that was
- * two-thirds question marks. Deriving it means the journal fills on completion for every
- * future destination too, instead of quietly going wrong again the next time one is added.
- */
-export const JOURNAL_SLOTS = Object.keys(DISCOVERIES).length;

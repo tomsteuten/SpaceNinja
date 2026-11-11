@@ -46,15 +46,16 @@ export function dragAngle(deltaPixels: number, shortEdge: number): number {
  * angle by the inset fits the subject into the clear band between them instead. It only ever
  * pulls the camera back (subject smaller), never in, and only bites where the vertical angle
  * is the binding one — on a very narrow portrait the horizontal already dominates and the
- * inset changes nothing. Clamped so a pathological inset cannot invert the angle.
+ * inset changes nothing. Clamped so a pathological inset cannot invert the angle (0.2: the
+ * place photo leaves a portrait world about a quarter of the height).
  *
  * `insetX` is the same for the *horizontal* frame: the visit screen's toy shelf down the right
  * side in landscape (ui/viewport.ts).
  */
 export function framingHalfAngle(fovDegrees: number, aspect: number, inset = 0, insetX = 0): number {
   const vFov = THREE.MathUtils.degToRad(fovDegrees);
-  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect * THREE.MathUtils.clamp(1 - insetX, 0.35, 1));
-  const usableV = 2 * Math.atan(Math.tan(vFov / 2) * THREE.MathUtils.clamp(1 - inset, 0.35, 1));
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect * THREE.MathUtils.clamp(1 - insetX, 0.2, 1));
+  const usableV = 2 * Math.atan(Math.tan(vFov / 2) * THREE.MathUtils.clamp(1 - inset, 0.2, 1));
   return Math.min(usableV, hFov) / 2;
 }
 
@@ -333,7 +334,10 @@ export function createOrbitInput(options: OrbitInputOptions): OrbitInput {
       if (!api.enabled) return;
       camera.position.sub(target).applyAxisAngle(axis, angle).add(target);
       camera.lookAt(target);
+      // A tilt is not a zoom: keep any framing glide (`frame`) that is under way.
+      const zoomingTo = desiredRadius;
       api.syncFromCamera();
+      desiredRadius = zoomingTo;
     },
 
     cancelGesture() {

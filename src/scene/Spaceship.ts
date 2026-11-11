@@ -12,7 +12,6 @@
  */
 
 import * as THREE from 'three';
-import { createShipDecals } from './shipDecals';
 import { makeGlowTexture } from './textures';
 
 export interface Spaceship {
@@ -20,10 +19,8 @@ export interface Spaceship {
   group: THREE.Group;
   /** 0 = idle flicker, 1 = full burn. Drives the engine glow. */
   setThrust(value: number): void;
-  /** Fade the parked ship while the child is looking for places on the world behind it. */
+  /** Fade the parked ship while the child is looking at the world behind it. */
   setContextDimmed(dimmed: boolean): void;
-  /** Put every earned mission emblem onto the hull; unknown save entries are ignored. */
-  setStickers(ids: readonly string[]): void;
   orient(direction: THREE.Vector3, rollHint?: number): void;
   update(dt: number, elapsed: number): void;
   /**
@@ -38,7 +35,7 @@ export interface Spaceship {
 /** Where the ship waits before launch. Held here so reset() has one source of truth. */
 const PARK_POSITION = new THREE.Vector3(2.2, 1.35, 1.4);
 const PARK_SCALE = 0.85;
-/** Still recognisably the child's ship, but no longer able to hide a gold target. */
+/** Still recognisably the child's ship, but no longer able to hide the world behind it. */
 export const SHIP_CONTEXT_OPACITY = 0.28;
 
 export function shipContextOpacity(dimmed: boolean): number {
@@ -99,9 +96,6 @@ export function createSpaceship(): Spaceship {
   // Inner node carries the idle bob so the outer transform stays purely flight-driven.
   const body = new THREE.Group();
   group.add(body);
-
-  const decals = createShipDecals();
-  body.add(decals.group);
 
   const hull = new THREE.MeshStandardMaterial({
     color: HULL,
@@ -330,7 +324,6 @@ export function createSpaceship(): Spaceship {
       resting.material.transparent = transparent;
       if (transparencyChanged) resting.material.needsUpdate = true;
     }
-    decals.setOpacity(amount);
   }
 
   return {
@@ -343,10 +336,6 @@ export function createSpaceship(): Spaceship {
     setContextDimmed(dimmed: boolean) {
       contextDimmed = dimmed;
       applyContextOpacity();
-    },
-
-    setStickers(ids: readonly string[]) {
-      decals.setEarned(ids);
     },
 
     orient(direction: THREE.Vector3, rollHint = 0) {
@@ -404,7 +393,6 @@ export function createSpaceship(): Spaceship {
       for (const material of materials) material.dispose();
       flameMaterial.dispose();
       flameTexture.dispose();
-      decals.dispose();
     },
   };
 }

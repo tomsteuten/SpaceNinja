@@ -268,29 +268,26 @@ export function createGrownups(options: GrownupsOptions): Grownups {
     /*
      * A precise reset rather than asking a parent or tester to clear all browser storage.
      * Site-data clearing also removes the offline shell and device choices; none of those
-     * are the child's adventure. Two deliberate presses protect a completed journal from
+     * are the child's adventure. Two deliberate presses protect the map's ticks from
      * an exploratory adult tap without bringing in a browser-native confirmation dialog.
      */
     const progress = loadProgress();
-    const hasProgress =
-      progress.discoveries.length > 0 || progress.visited.length > 0 || progress.stickers.length > 0;
+    const hasProgress = progress.visited.length > 0;
     const progressSection = el('section', 'grownups__section');
     progressSection.append(el('h3', 'grownups__heading', 'Progress'));
-    const progressCount = progress.discoveries.length;
     progressSection.append(
       el(
         'p',
         'grownups__note',
         !hasProgress
-          ? 'No visits or discoveries saved yet.'
-          : `${progressCount} ${progressCount === 1 ? 'place' : 'places'} found, ` +
-              `${progress.visited.length} ${progress.visited.length === 1 ? 'world' : 'worlds'} visited.`,
+          ? 'No visits saved yet.'
+          : `${progress.visited.length} ${progress.visited.length === 1 ? 'world' : 'worlds'} visited.`,
       ),
     );
     const reset = el('button', 'grownups__auto grownups__reset') as HTMLButtonElement;
     reset.type = 'button';
     reset.disabled = !hasProgress;
-    reset.textContent = resetArmed ? 'Tap again to erase the journal' : 'Start a new adventure';
+    reset.textContent = resetArmed ? 'Tap again to start over' : 'Start a new adventure';
     reset.classList.toggle('is-confirming', resetArmed);
     reset.addEventListener('click', () => {
       if (!resetArmed) {
@@ -314,8 +311,8 @@ export function createGrownups(options: GrownupsOptions): Grownups {
           'p',
           'grownups__warning',
           resetFailed
-            ? 'This browser would not allow the saved journal to be changed.'
-            : 'This permanently removes every visit, discovery and earned sticker.',
+            ? 'This browser would not allow the saved visits to be changed.'
+            : 'This forgets which worlds have been visited.',
         ),
       );
     }
@@ -328,10 +325,10 @@ export function createGrownups(options: GrownupsOptions): Grownups {
         'p',
         'grownups__note',
         about?.teaches ??
-          'Every place is real and sits at its true position on real NASA maps: the Sahara, ' +
-            'the Amazon, the Apollo 11 landing site, Olympus Mons. One place on each world ' +
-            'is round the back, so finding it means learning to look around. Day & night turns ' +
-            'Earth through one day, with the city lights coming on at dusk.',
+          'Every world is a real map you can spin. The Places card turns it to real places, ' +
+            'the Sahara, the Apollo 11 landing site, Olympus Mons, and shows a real photograph ' +
+            'of each. Turn Earth shows why the Sun rises and sets, Moonlight why the Moon ' +
+            'shines, and Far away that the Sun is a star. Nothing to collect or score.',
       ),
     );
     if (about?.imagery) what.append(el('p', 'grownups__note', about.imagery));
@@ -363,7 +360,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       el(
         'p',
         'grownups__note',
-        'Nothing leaves this device. No accounts, no adverts, no tracking. The journal is ' +
+        'Nothing leaves this device. No accounts, no adverts, no tracking. Visits are ' +
           'saved on the tablet, and after the first load the game works without internet.',
       ),
     );
@@ -394,7 +391,7 @@ export function createGrownups(options: GrownupsOptions): Grownups {
       el(
         'p',
         'grownups__reopen',
-        'To open this again, press and hold the book button in the corner for two seconds. ' +
+        'To open this again, visit a world and press and hold the purple speaker button for two seconds. ' +
           'It is a hold rather than a button so that a child does not find it.',
       ),
     );
