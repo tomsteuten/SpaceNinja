@@ -9,8 +9,20 @@ Scope is [DECISIONS.md](../DECISIONS.md). Tick a phase here when it lands.
 The owner played the live game (`5b829bb`): the crayon style can stay, but the visit screen is
 not understandable and the icons look amateurish, worse on a phone. Order of work:
 
-- [ ] **Mock the visit screen** (Moon, phone portrait and landscape), two or three options as
-  pictures for the owner to pick. Fixed layout on every world: the world in the middle with
+- [x] **Mock the visit screen** (Moon, phone portrait and landscape), two or three options as
+  pictures for the owner to pick. **Owner picked B, the toy shelf** (11 November 2026,
+  `design/visit-screen/visit-B.png`): a paper shelf holds the big toy cards (bottom in
+  portrait, right side in landscape), Space map is the top-left button, Listen and Journal
+  small. **Far away: owner picked B, drag the rocket** (`faraway-B.png`): the strip is the
+  control, in its own paper band below the Sun, picture milestones, no buttons. **Moonlight:
+  the drag-the-Sun mock (`moonlight.png`) was rejected**: the Sun seems to orbit the Moon and
+  the lesson does not land. Second round, Sun fixed: **owner picked "bounce"**
+  (`moonlight-bounce.png`): sunlight flies to the Moon and bounces down to a house on
+  Earth's night side; a Sun switch removes the beams and darkens Moon and house. (Not
+  chosen: `moonlight-torch.png`.) **Yellow hunt arrow: owner said drop it.** It is the
+  `.hunt-arrow` "Turn to the last place" button (`setHuntArrow` in `src/ui/ui.ts`, driven
+  from `src/main.ts`), a control that pops in; remove it in the visit-row rebuild and keep
+  the idle hand (`src/ui/coach.ts`) as a hint that shows the sideways drag. Fixed layout on every world: the world in the middle with
   its gold places; the world's toys as one or two big illustrated cards, there from arrival;
   Space map always in the same corner; Listen and Journal small. No staged pop-ins, no
   first-Earth special flow, no "Words" box in the heading. Check what the yellow arrow and
