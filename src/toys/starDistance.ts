@@ -59,6 +59,31 @@ export function angularDiameterDeg(distanceAu: number): number {
   return (2 * Math.atan(SUN_RADIUS_AU / distanceAu) * 180) / Math.PI;
 }
 
+/** Drawn radii (px) at Earth, Neptune and the far end: a Sun a small child can still see. */
+export const DISPLAY_EARTH_PX = 12.5;
+export const DISPLAY_NEPTUNE_PX = 6;
+export const DISPLAY_FAR_PX = 3.4;
+
+/**
+ * The Sun's radius on screen for a given journey progress: the honest 1 / distance size at the
+ * start, then a display curve through the sizes above (straight on a log scale between them,
+ * so it keeps shrinking all the way and never vanishes). The model above stays the truth; this
+ * is only how big the picture is drawn.
+ */
+export function displayRadius(progress: number, startRadius: number): number {
+  const stops = [0, ...MILESTONES.map(m => m.progress)];
+  const sizes = [startRadius, DISPLAY_EARTH_PX, DISPLAY_NEPTUNE_PX, DISPLAY_FAR_PX];
+  const p = Math.min(1, Math.max(0, progress));
+  for (let i = 1; i < stops.length; i++) {
+    if (p <= stops[i]! || i === stops.length - 1) {
+      const k = (p - stops[i - 1]!) / (stops[i]! - stops[i - 1]!);
+      const from = Math.min(sizes[i - 1]!, Math.max(sizes[i]!, sizes[i - 1]!));
+      return Math.exp(Math.log(from) + k * (Math.log(sizes[i]!) - Math.log(from)));
+    }
+  }
+  return DISPLAY_FAR_PX;
+}
+
 /**
  * How the Sun is drawn once it is smaller than anything can be drawn: a dot of at least
  * `minRadius`, a little fainter the smaller the real Sun would be, like any star.
@@ -75,6 +100,46 @@ export function drawnSun(radiusPx: number, minRadius: number): { radius: number;
  */
 export function glowStrength(progress: number): number {
   return Math.max(0.2, 1 - 0.8 * Math.min(1, Math.max(0, progress)));
+}
+
+/**
+ * Where the pictures sit along the rocket's track (0 = Sun end, 1 = star end): the track is
+ * drawn with Earth and Neptune evenly spread, not at their true places on the log scale.
+ */
+export const TRACK_STOPS: readonly number[] = [0, 0.3, 0.55, 1];
+const PROGRESS_STOPS = [0, ...MILESTONES.map(m => m.progress)];
+
+function pieceMap(x: number, from: readonly number[], to: readonly number[]): number {
+  const c = Math.min(1, Math.max(0, x));
+  for (let i = 1; i < from.length; i++) {
+    if (c <= from[i]! || i === from.length - 1) {
+      const span = from[i]! - from[i - 1]!;
+      return to[i - 1]! + ((c - from[i - 1]!) / span) * (to[i]! - to[i - 1]!);
+    }
+  }
+  return c;
+}
+
+/** Where the rocket is on its track (0 to 1) to the journey progress behind the Sun's size. */
+export function progressFromTrack(track: number): number {
+  return pieceMap(track, TRACK_STOPS, PROGRESS_STOPS);
+}
+
+/** Journey progress back to the rocket's place on its track. */
+export function trackFromProgress(progress: number): number {
+  return pieceMap(progress, PROGRESS_STOPS, TRACK_STOPS);
+}
+
+export type StopId = 'start' | MilestoneId;
+const STOP_IDS: readonly StopId[] = ['start', 'earth', 'neptune', 'far'];
+
+/** The picture the rocket is nearest on its track: what the words chip talks about. */
+export function nearestStop(track: number): StopId {
+  let best = 0;
+  for (let i = 1; i < TRACK_STOPS.length; i++) {
+    if (Math.abs(TRACK_STOPS[i]! - track) < Math.abs(TRACK_STOPS[best]! - track)) best = i;
+  }
+  return STOP_IDS[best]!;
 }
 
 /** Progress after holding Fly away (direction 1) or Fly back (-1) for `seconds`. */

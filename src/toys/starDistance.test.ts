@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  JOURNEY_SECONDS, MILESTONES, NEAREST_STARS_AU, NEPTUNE_AU, START_AU, angularDiameterDeg,
-  apparentRadius, distanceAt, drawnSun, glowStrength, milestoneNear, nextStop, progressAt, travel,
+  JOURNEY_SECONDS, MILESTONES, NEAREST_STARS_AU, NEPTUNE_AU, START_AU, TRACK_STOPS, displayRadius, angularDiameterDeg,
+  apparentRadius, distanceAt, drawnSun, glowStrength, milestoneNear, nearestStop, nextStop, progressAt, progressFromTrack, trackFromProgress, travel,
 } from './starDistance';
 
 describe('far away from the Sun', () => {
@@ -89,5 +89,47 @@ describe('far away from the Sun', () => {
     expect(milestoneNear(0.8)).toBeNull();
     expect(milestoneNear(0.98)).toBe('far');
     expect(milestoneNear(1)).toBe('far');
+  });
+
+  it('maps the drawn track to progress through the three milestones, in order, and back', () => {
+    const [earth, neptune] = MILESTONES;
+    expect(progressFromTrack(0)).toBe(0);
+    expect(progressFromTrack(TRACK_STOPS[1]!)).toBeCloseTo(earth!.progress, 9);
+    expect(progressFromTrack(TRACK_STOPS[2]!)).toBeCloseTo(neptune!.progress, 9);
+    expect(progressFromTrack(1)).toBeCloseTo(1, 9);
+    let last = -1;
+    for (let t = 0; t <= 1.0001; t += 0.05) {
+      const p = progressFromTrack(t);
+      expect(p).toBeGreaterThan(last);
+      last = p;
+      expect(trackFromProgress(p)).toBeCloseTo(Math.min(t, 1), 6);
+    }
+    expect(progressFromTrack(-1)).toBe(0);
+    expect(progressFromTrack(2)).toBeCloseTo(1, 9);
+  });
+
+  it('words follow the nearest picture on the track', () => {
+    expect(nearestStop(0)).toBe('start');
+    expect(nearestStop(0.12)).toBe('start');
+    expect(nearestStop(0.3)).toBe('earth');
+    expect(nearestStop(0.5)).toBe('neptune');
+    expect(nearestStop(0.9)).toBe('far');
+    expect(nearestStop(1)).toBe('far');
+  });
+
+  it('draws the Sun readably: about 12.5 px at Earth, 6 at Neptune, a bright dot at the end, always shrinking', () => {
+    const [earth, neptune] = MILESTONES;
+    for (const start of [90, 164, 240]) {
+      expect(displayRadius(0, start)).toBeCloseTo(start);
+      expect(displayRadius(earth!.progress, start)).toBeCloseTo(12.5, 1);
+      expect(displayRadius(neptune!.progress, start)).toBeCloseTo(6, 1);
+      expect(displayRadius(1, start)).toBeGreaterThanOrEqual(3);
+      let last = Infinity;
+      for (let p = 0; p <= 1.0001; p += 0.01) {
+        const r = displayRadius(p, start);
+        expect(r).toBeLessThan(last);
+        last = r;
+      }
+    }
   });
 });
