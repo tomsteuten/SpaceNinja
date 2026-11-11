@@ -12,7 +12,7 @@ skip the finds. Decided (DECISIONS.md, 2026-11-11 second entry): the hunt goes, 
 a card the child asks for, new worlds are museum-style, narration is recorded early. This
 list replaces Phases 3b to 5 below. In order:
 
-- [ ] **1. Remove the hunt, add the Places card** (Moon, Earth, Mars, Saturn). Remove the
+- [x] **1. Remove the hunt, add the Places card** (Moon, Earth, Mars, Saturn). Remove the
   gold target rings, the found counter, "3 found", the journal and its button, stickers and
   the postcard flow. Add one "Places" card to the toy shelf (camera picture, tomato): a tap
   turns the world itself to a place, shows the real photo with its name and speaks its line;
@@ -25,7 +25,7 @@ list replaces Phases 3b to 5 below. In order:
   landscape) with its name, the world shrinks below and turns to the spot, a big green arrow on
   the photo (and the Places card) goes to the next place. Not chosen: A pinned photo, C photo
   strip. The quiet dots are not built.
-  Built on `finish/places-and-worlds` (not merged, awaiting the owner's look): hunt, counter,
+  Merged to `main` (f3b6cf1, 11 November 2026, owner said merge): hunt, counter,
   journal, stickers, postcard, finale, ship decals and the coach hand removed; `src/places/`
   turns the world (surface yaw plus a partial camera tilt) and marks the place; the photo and
   card are in `src/ui/ui.ts` / `visit.css`, framed from `placePhotoRect` in `viewport.ts`.
@@ -41,6 +41,11 @@ list replaces Phases 3b to 5 below. In order:
   arrow", "one more is hiding", success-after-three). Owner reads the script, approves the
   spend, then one ElevenLabs Emma pass (`npm run narration:generate`). This is the main fix
   for "an adult has to explain".
+  Script rewritten (11 November 2026, awaiting the owner's read): hunt cues and their
+  recordings removed, places say "This is ..." instead of "You found ...", each world's own
+  toy says a line when it opens, arrivals end "Tap a picture to play", the map's arrow nudge
+  is `map-arrow-nudge` (same recording). 31 lines (about 2,900 characters) to record; sheet:
+  `docs/narration-script-review.md`. No audio generated.
 - [ ] **4. World template, piloted on Jupiter.** A museum world is: real texture, a globe the
   child can spin, name chip, Space map, Listen, one spoken arrival fact, and a Places card
   only where real photos exist. No toy. Get Jupiter right, owner looks.
