@@ -746,12 +746,12 @@ async function main() {
       if (atMap && suggested) {
         mapIdle += dt;
         // "Tap Saturn" is only true on Saturn's page. Elsewhere the page arrow carries the
-        // hint, and the existing "You can tap the arrow" pair says exactly that.
+        // hint, and the "You can tap the arrow" pair says exactly that.
         const nudge = dueNudge(
           mapIdle,
           map.hint === 0
             ? shorteningPair(`home-nudge-${suggested}`, `home-nudge-short-${suggested}`)
-            : shorteningPair('hunt-nudge', 'hunt-nudge-short'),
+            : shorteningPair('map-arrow-nudge', 'map-arrow-nudge-short'),
           mapNudgesGiven,
         );
         if (nudge) {

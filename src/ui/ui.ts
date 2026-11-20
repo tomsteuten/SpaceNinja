@@ -7,6 +7,7 @@ import { worldPicture } from './pictures';
  */
 
 import type { Narrator } from '../audio/narration';
+import { cueText } from '../audio/script';
 import { DESTINATIONS, type Discovery } from '../config';
 import { createIcon, type IconName } from './icons';
 import { cardPictureMarkup, picture, type CardPicture } from './visitPictures';
@@ -378,8 +379,12 @@ export function createUI(options: UIOptions): GameUI {
     // The world's toy played: Space map is the one ringed way on.
     root.classList.add('is-map-next');
   }
-  /** Open a world's toy from its card. Every toy card shares this. */
-  function openToy(open: () => void) {
+  /**
+   * Open a world's toy from its card. Every toy card shares this. `line` is the toy's own
+   * opening line (narration-script.json), said once it has a recording; Moonlight and Far
+   * away say theirs themselves.
+   */
+  function openToy(open: () => void, line?: string) {
     markToyPlayed();
     hidePlace(true);
     setFactOpen(false);
@@ -387,20 +392,21 @@ export function createUI(options: UIOptions): GameUI {
     narrator.stop();
     open();
     visit.inert = true;
+    if (line) speakToyLine(line, cueText(line));
   }
   const { card: jumpButton } = toyCard('toy-card--jump jump-btn', 'Jump', 'Jump on the Moon');
   paint(jumpButton, 'jump', 'moon');
-  jumpButton.addEventListener('click', () => openToy(() => moonJump.open()));
+  jumpButton.addEventListener('click', () => openToy(() => moonJump.open(), 'toy-moon'));
   // Saturn's toy: a giant bath where Saturn floats and the rocky worlds sink.
   const saturnBath = createSaturnBath(root, { onClose: () => toyClosed(bathButton) });
   const { card: bathButton } = toyCard('toy-card--bath bath-btn', 'Bath', 'Saturn bath time');
   paint(bathButton, 'bath', 'saturn');
-  bathButton.addEventListener('click', () => openToy(() => saturnBath.open()));
+  bathButton.addEventListener('click', () => openToy(() => saturnBath.open(), 'toy-saturn'));
   // Mars's toy: drive Perseverance, with every command taking minutes to get there.
   const marsRover = createMarsRover(root, { onClose: () => toyClosed(roverButton) });
   const { card: roverButton } = toyCard('toy-card--rover rover-btn', 'Rover', 'Drive the Mars rover');
   paint(roverButton, 'rover', 'mars');
-  roverButton.addEventListener('click', () => openToy(() => marsRover.open()));
+  roverButton.addEventListener('click', () => openToy(() => marsRover.open(), 'toy-mars'));
   // The Sun's toy: fly away from it until it is one star among the others.
   const sunStar = createSunStar(root, {
     onClose: () => toyClosed(sunStarButton),
