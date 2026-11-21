@@ -9,6 +9,7 @@
  * visit. It owns nothing in the 3D scene.
  */
 import './moonJump.css';
+import { cueText } from '../audio/script';
 import { worldPicture } from '../ui/pictures';
 import { createIcon } from '../ui/icons';
 import { picture } from '../ui/visitPictures';
@@ -425,7 +426,8 @@ export function createMoonJump(host: HTMLElement, onClose: () => void = () => {}
       if (open) return;
       open = true;
       freshSides();
-      caption.classList.add('is-hidden');
+      caption.textContent = cueText('toy-moon');
+      caption.classList.remove('is-hidden');
       host.append(root);
       root.classList.remove('is-hidden');
       resize();

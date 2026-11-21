@@ -25,12 +25,8 @@ function cuesByBody(): Record<string, string[]> {
       bodyId,
       [
         `arrival-${bodyId}`,
-        ...(destination.places ? [
-          `find-${bodyId}`,
-          ...destination.places.map(discovery => `discovery-${discovery.id}`),
-          `hunt-${bodyId}`,
-          `success-${bodyId}`,
-        ] : []),
+        // The Places card says each place's line as it shows its photo.
+        ...(destination.places ?? []).map(place => `discovery-${place.id}`),
         ...(destination.spin ? [`spin-${bodyId}`] : []),
         ...(destination.spin?.intro ? [`spin-intro-${bodyId}`] : []),
         ...(destination.spin?.invite ? [`spin-invite-${bodyId}`] : []),
@@ -39,30 +35,27 @@ function cuesByBody(): Record<string, string[]> {
         `home-${bodyId}`,
         `home-nudge-${bodyId}`,
         `home-nudge-short-${bodyId}`,
-        // A world with a toy (src/toys/) invites it once the places are found.
+        // A world's own toy says its line when it opens (src/ui/ui.ts openToy).
         ...(bodyId === 'moon' || bodyId === 'saturn' || bodyId === 'mars' ? [`toy-${bodyId}`] : []),
       ],
     ]),
   );
 }
 
-/** Shared map, hunt, invitation and celebration cues requested by the adventure UI. */
+/** Shared map and invitation cues requested by the adventure UI. */
 const SCREEN_CUES = [
   'home-first',
   'home-any',
   'fly-home',
-  'find-nudge',
-  'find-nudge-short',
-  'hunt-nudge',
-  'hunt-nudge-short',
+  // The map's page arrow, when the suggested world is on another page.
+  'map-arrow-nudge',
+  'map-arrow-nudge-short',
   'spin-nudge',
   // Earth's hands-on day/night spot: into night, then back to morning (main.ts).
   'day-night-start',
   'day-night-night',
   'day-night-moon',
   'day-night-done',
-  'success-next',
-  'finale',
   // The lesson toys' opening lines and captions (src/toys/moonLight.ts, sunStar.ts). Script
   // only for now (DECISIONS.md #9): they show as words and play once they have a recording.
   'toy-moonlight',
@@ -101,12 +94,9 @@ describe('narration script', () => {
     expect(Object.values(script.cues).every((line) => line.trim().length > 0)).toBe(true);
   });
 
-  it('keeps arrival welcomes distinct from the hunt instruction', () => {
-    for (const bodyId of Object.keys(DESTINATIONS)) {
-      expect(script.cues[`arrival-${bodyId}`]).not.toMatch(/\b(?:tap|target)\b/i);
-      if (DESTINATIONS[bodyId]?.places) {
-        expect(script.cues[`find-${bodyId}`]).toMatch(/\btap\b.*\bgold\b|\bgold\b.*\btap\b/i);
-      }
+  it('says nothing about a hunt: nothing to find, count or collect (DECISIONS.md)', () => {
+    for (const [id, line] of Object.entries(script.cues)) {
+      expect(line, id).not.toMatch(/\b(?:gold|target|found|find|three places|sticker|journal)\b/i);
     }
   });
 
@@ -116,7 +106,7 @@ describe('narration script', () => {
     // invitation and nudge stays under about eight words so it is over before it is a lecture.
     const words = (line: string) => line.trim().split(/\s+/).length;
     const invitations = Object.keys(script.cues).filter(
-      (id) => /^(home-(?!first|nudge)|spin-invite-|toy-|success-next|find-nudge$|hunt-nudge$)/.test(id),
+      (id) => /^(home-(?!first|nudge)|spin-invite-|toy-(?:moonlight|sun)$|map-arrow-nudge$)/.test(id),
     );
     expect(invitations.length).toBeGreaterThan(0);
     for (const id of invitations) {
@@ -134,28 +124,15 @@ describe('narration script', () => {
     }
   });
 
-  it('keeps arrival/find recording pairs consistent and rejects orphan recordings', () => {
+  it('rejects orphan recordings', () => {
     const recorded = new Set(
       readdirSync(new URL('./recordings', import.meta.url))
         .filter((name) => name.endsWith('.mp3'))
         .map((name) => name.slice(0, -'.mp3'.length)),
     );
 
-    /*
-     * Runtime playback is per available cue; a missing recording does not silence a visit
-     * or start device speech automatically. This asset check keeps the arrival/find framing
-     * pair together for mission worlds (arrival alone for observation visits). It does not
-     * require every discovery or every cue for a world to be recorded.
-     */
-    for (const bodyId of Object.keys(DESTINATIONS)) {
-      const framing = [`arrival-${bodyId}`, ...(DESTINATIONS[bodyId]?.places ? [`find-${bodyId}`] : [])];
-      const have = framing.filter((cue) => recorded.has(cue));
-      expect(
-        have.length === 0 || have.length === framing.length,
-        `${bodyId} has ${have.length}/${framing.length} framing cues recorded — record every framing cue or none`,
-      ).toBe(true);
-    }
-
+    // Runtime playback is per available cue: a missing recording does not silence a visit or
+    // start device speech by itself, so nothing here requires every cue to be recorded.
     // And nothing recorded that no world asks for: a renamed or removed discovery must not
     // leave a stray MP3 the game will never play.
     const known = new Set(expectedCueIds());

@@ -9,6 +9,7 @@
  * 3D scene. The physics is in bathPhysics.ts.
  */
 import './saturnBath.css';
+import { cueText } from '../audio/script';
 import { worldPicture } from '../ui/pictures';
 import { createIcon } from '../ui/icons';
 import {
@@ -682,7 +683,7 @@ export function createSaturnBath(host: HTMLElement, options: SaturnBathOptions =
       heldId = null;
       saturnAnnounced = false;
       allAnnounced = false;
-      say('Drag a planet into the bath!');
+      say(cueText('toy-saturn'));
       syncButton();
       syncState();
       last = 0;

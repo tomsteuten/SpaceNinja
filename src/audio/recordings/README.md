@@ -2,6 +2,8 @@
 
 Put authored MP3 narration here. The filename is the stable cue id used by the game, for
 example `arrival-earth.mp3`, `discovery-earth-sahara.mp3`, or `spin-earth.mp3`.
+Retired hunt recordings are preserved under `retired/`; that directory is not imported or
+shipped. The map arrow cues reuse copies of the old hunt-nudge recordings.
 
 **One voice, two engines (as of 22 October 2026).** The pack is meant to be one voice: the
 ElevenLabs voice **Emma** (`eleven_multilingual_v2`), chosen by the owner by ear. While toys

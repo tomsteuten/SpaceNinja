@@ -10,6 +10,7 @@
  * timing is in roverDelay.ts.
  */
 import './marsRover.css';
+import { cueText } from '../audio/script';
 import { worldPicture } from '../ui/pictures';
 import { createIcon } from '../ui/icons';
 import {
@@ -811,7 +812,7 @@ export function createMarsRover(host: HTMLElement, options: MarsRoverOptions = {
       nudges = 0;
       flyers = [];
       dust = [];
-      say('Tap a rock!');
+      say(cueText('toy-mars'));
       resize();
       syncState();
       last = 0;

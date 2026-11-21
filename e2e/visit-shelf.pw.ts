@@ -12,10 +12,14 @@
  * and their Places photos for the owner (run with --project=phone and
  * --project=short-landscape); VISIT_SHOTS_OTHERS=<folder> adds Mars, Saturn and the Sun.
  */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, settleMapReturn, showWorld } from './fixtures';
+
+const script = JSON.parse(readFileSync(new URL('../src/audio/narration-script.json', import.meta.url), 'utf8')) as {
+  cues: Record<string, string>;
+};
 
 const snapshot = (page: Page) => page.evaluate(() => (window as any).spaceNinjaSnapshot());
 type Box = { x: number; y: number; width: number; height: number };
@@ -169,6 +173,7 @@ test('every visit control is there on arrival, Places shows real places, and the
   // Open a toy from its card and come back: the same screen, nothing moved.
   await page.getByRole('button', { name: 'Jump on the Moon', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Jump on Earth and on the Moon' })).toBeVisible();
+  await expect(page.locator('.moon-jump__caption')).toHaveText(script.cues['toy-moon']);
   await page.getByRole('button', { name: 'Back to the Moon', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Jump on the Moon', exact: true })).toBeFocused();
   expect(await boxes(page, 'Moon')).toEqual(moon);
@@ -208,6 +213,22 @@ test('every visit control is there on arrival, Places shows real places, and the
   await expect(page.getByRole('figure', { name: 'Photo of this place' })).toBeHidden();
   await backToMap(page, 'Earth');
 });
+
+for (const { world, card, dialog, caption, cue, back } of [
+  { world: 'Mars', card: 'Drive the Mars rover', dialog: 'Drive the Mars rover', caption: '.mars-rover__caption', cue: script.cues['toy-mars'], back: 'Back to Mars' },
+  { world: 'Saturn', card: 'Saturn bath time', dialog: 'Saturn bath time', caption: '.saturn-bath__caption', cue: script.cues['toy-saturn'], back: 'Back to Saturn' },
+]) {
+  test(`${world}'s toy shows its opening words even with sound off`, async ({ page }) => {
+    await start(page);
+    await fly(page, world);
+    await page.getByRole('button', { name: card, exact: true }).click();
+    await expect(page.getByRole('dialog', { name: dialog })).toBeVisible();
+    await expect(page.locator(caption)).toBeVisible();
+    await expect(page.locator(caption)).toHaveText(cue);
+    await page.getByRole('button', { name: back, exact: true }).click();
+    await expect(page.getByRole('button', { name: card, exact: true })).toBeFocused();
+  });
+}
 
 test.describe('pictures for the owner', () => {
   const OUT = process.env.VISIT_SHOTS ?? '';
