@@ -36,6 +36,8 @@ list replaces Phases 3b to 5 below. In order:
   first-draft cards for Mars, Saturn and the Sun, Listen opening the words panel, or the
   parked ship overlapping the Moon in portrait. Fixed: toy overlays no longer leave the visit
   buttons reachable by keyboard behind them (the visit screen is inert while a toy is open).
+  The owner chose the arrow-to-worlds map button and book for sound-off words (22 November);
+  the photo's speaker cue is hidden when sound is off. Other shelf feedback remains open.
 - [ ] **3. Narration, early.** Rewrite `narration-script.json` for the new shape: one arrival
   line per world, one line when each toy opens, the place lines; delete hunt lines ("tap the
   arrow", "one more is hiding", success-after-three). Owner reads the script, approves the

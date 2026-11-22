@@ -10,7 +10,7 @@ import type { Narrator } from '../audio/narration';
 import { cueText } from '../audio/script';
 import { DESTINATIONS, type Discovery } from '../config';
 import { createIcon, type IconName } from './icons';
-import { cardPictureMarkup, picture, type CardPicture } from './visitPictures';
+import { cardPictureMarkup, picture, visitControlPicture, type CardPicture } from './visitPictures';
 import {
   guideOnArrival,
   narrationOnEnd,
@@ -222,12 +222,12 @@ export function createUI(options: UIOptions): GameUI {
 
   /**
    * The one way back, from the moment the ship arrives until it leaves again: always the same
-   * big sky button in the same corner, a ringed planet for the map of all the worlds.
+   * big sky button in the same corner, an arrow back towards the worlds.
    */
   const homeButton = el('button', 'visit-btn visit-map home-btn');
   homeButton.type = 'button';
   homeButton.setAttribute('aria-label', 'Back to the space map');
-  homeButton.append(picture('planet'));
+  homeButton.append(visitControlPicture('map-return'));
 
   /** The world's name and its little picture: what a grown-up reads out, what a child matches. */
   const worldChip = el('div', 'visit-chip');
@@ -237,7 +237,7 @@ export function createUI(options: UIOptions): GameUI {
   const listenButton = el('button', 'visit-btn visit-small listen-btn');
   listenButton.type = 'button';
   listenButton.setAttribute('aria-label', 'Listen');
-  listenButton.append(picture('speaker'));
+  listenButton.append(picture('speaker', 'picture picture--speaker'), visitControlPicture('words'));
 
   const shelf = el('div', 'toy-shelf');
   shelf.setAttribute('role', 'group');
@@ -273,7 +273,7 @@ export function createUI(options: UIOptions): GameUI {
   placeImageButton.append(placeImage);
   const placeName = el('figcaption', 'place-photo__name');
   const placeNameText = el('span');
-  placeName.append(placeNameText, picture('speaker'));
+  placeName.append(placeNameText, picture('speaker', 'picture picture--speaker'));
   const placeNext = el('button', 'place-photo__next');
   placeNext.type = 'button';
   placeNext.setAttribute('aria-label', 'Next place');

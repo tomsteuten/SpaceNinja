@@ -32,6 +32,23 @@ export function picture(name: PictureName, className = 'picture'): HTMLImageElem
   return image;
 }
 
+/** Pictured visit controls: a return to several worlds, or words with sound off. */
+export function visitControlPicture(name: 'map-return' | 'words'): HTMLSpanElement {
+  const picture = document.createElement('span');
+  picture.className = `picture picture--${name}`;
+  picture.setAttribute('aria-hidden', 'true');
+  const content = name === 'map-return'
+    ? '<path d="M28 34H8M8 34l9-9M8 34l9 9" fill="none" stroke="#2b2118" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="44" cy="21" r="10" fill="#5aab62" stroke="#2b2118" stroke-width="2.5"/>' +
+      '<path d="M38 17l5-3 5 5-2 4-6-1z" fill="#f3d171"/>' +
+      '<circle cx="47" cy="43" r="9" fill="#aeb4bf" stroke="#2b2118" stroke-width="2.5"/>' +
+      '<circle cx="49" cy="40" r="2" fill="#777d89"/><circle cx="36" cy="34" r="3" fill="#f2b632"/>'
+    : '<path d="M5 10q8-3 15 2v22q-7-5-15-2zM35 10q-8-3-15 2v22q7-5 15-2z" fill="#f8f0dd" stroke="#2b2118" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<path d="M8 16l8 1M24 17l8-1" stroke="#b195ec" stroke-width="2.5" stroke-linecap="round"/>';
+  picture.innerHTML = `<svg viewBox="${name === 'map-return' ? '0 0 64 64' : '0 0 40 40'}" focusable="false">${content}</svg>`;
+  return picture;
+}
+
 export type CardPicture = 'jump' | 'moonlight' | 'turn-earth' | 'day-night' | 'rover' | 'bath' | 'far-away' | 'places';
 
 const INK = '#2b2118';

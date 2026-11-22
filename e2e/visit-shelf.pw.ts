@@ -167,9 +167,15 @@ test('every visit control is there on arrival, Places shows real places, and the
 
   await fly(page, 'Moon');
   const moon = await expectClearLayout(page, 'Moon');
+  await expect(page.locator('.visit-map .picture--map-return')).toBeVisible();
+  await expect(page.locator('.listen-btn .picture--words')).toBeVisible();
+  await expect(page.locator('.listen-btn .picture--speaker')).toBeHidden();
   // No hunt: no gold targets, no counter, no journal.
   await expect(page.locator('.visit-found, .journal-btn, .hunt-arrow')).toHaveCount(0);
   await expectTabReach(page, 'Moon');
+  await page.getByRole('button', { name: 'Read the words', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Read this out loud' })).toBeHidden();
+  await page.getByRole('button', { name: 'Close the words', exact: true }).click();
   // Open a toy from its card and come back: the same screen, nothing moved.
   await page.getByRole('button', { name: 'Jump on the Moon', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Jump on Earth and on the Moon' })).toBeVisible();
@@ -182,6 +188,7 @@ test('every visit control is there on arrival, Places shows real places, and the
   await expect(page.getByRole('figure', { name: 'Photo of this place' })).toBeHidden();
   await page.getByRole('button', { name: PLACES, exact: true }).click();
   await expectPlaceShown(page, 'moon-tranquility');
+  await expect(page.locator('.place-photo__name .picture--speaker')).toBeHidden();
   await expect(page.getByRole('button', { name: PLACES, exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Next place', exact: true }).click();
   await expectPlaceShown(page, 'moon-tycho');
@@ -229,6 +236,18 @@ for (const { world, card, dialog, caption, cue, back } of [
     await expect(page.getByRole('button', { name: card, exact: true })).toBeFocused();
   });
 }
+
+test('sound-on visits show the speaker and allow reading aloud', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('spaceninja.sound.v1', 'on'));
+  await page.goto('/?fast');
+  await page.getByRole('button', { name: 'Start playing', exact: true }).click();
+  await expect(page.locator('#boot')).toBeHidden();
+  await fly(page, 'Moon');
+  await expect(page.locator('.listen-btn .picture--speaker')).toBeVisible();
+  await expect(page.locator('.listen-btn .picture--words')).toBeHidden();
+  await page.getByRole('button', { name: 'Listen', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^(Read this out loud|Stop reading)$/ })).toBeVisible();
+});
 
 test.describe('pictures for the owner', () => {
   const OUT = process.env.VISIT_SHOTS ?? '';
